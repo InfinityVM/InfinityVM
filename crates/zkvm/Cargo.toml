@@ -1,0 +1,5 @@
+[package]
+name = "zkvm"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
