@@ -92,3 +92,4 @@ significant_drop_in_scrutinee = "allow"
 significant_drop_tightening = "allow"
 
 [workspace.dependencies]
+tonic-build = "*"

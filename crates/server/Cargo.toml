@@ -3,3 +3,9 @@ name = "server"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
+
+[lints]
+workspace = true
+
+[build-dependencies]
+tonic-build.workspace = true

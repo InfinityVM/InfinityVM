@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package zkvm_executor;
+
+// ZKVM executor service interface
+service ZkvmExecutor {
+  rpc execute(ExecuteRequest) returns (ExecuteResponse) {}
+}
+
+message VerifiedInputs {
+  // The verifying key for the program. The executor needs to check
+  // that this matches up with the program ELF before using it.
+  bytes program_verifying_key = 1;
+  bytes program_input = 2;
+  int64 max_cycles = 3;
+}
+
+message ExecuteRequest {
+  bytes program_elf = 1;
+  // Below are input from on chain
+  VerifiedInputs inputs = 2;
+}
+
+message ExecuteResponse {
+  VerifiedInputs inputs = 1;
+  bytes raw_output = 2;
+  bytes zkvm_operator_address = 3;
+  bytes zkvm_operator_signature = 4;
+}
