@@ -2,7 +2,6 @@ syntax = "proto3";
 
 package zkvm_executor;
 
-// ZKVM executor service interface
 service ZkvmExecutor {
   rpc execute(ExecuteRequest) returns (ExecuteResponse) {}
 }
@@ -11,19 +10,31 @@ message VerifiedInputs {
   // The verifying key for the program. The executor needs to check
   // that this matches up with the program ELF before using it.
   bytes program_verifying_key = 1;
+  // The input to the zkvm program. The zkvm program is in charge
+  // of deserializing this.
   bytes program_input = 2;
+  // The maximium amount of cpu cycles. In the future this may
+  // be something closer to gas/opcode coutn.
   int64 max_cycles = 3;
 }
 
 message ExecuteRequest {
+  // The program executable
   bytes program_elf = 1;
-  // Below are input from on chain
+  // The inputs for running the program and 
   VerifiedInputs inputs = 2;
 }
 
 message ExecuteResponse {
+  // The inputs to the program execution request. These need to be included
+  // in the attested to payload to ensure that a zk proof can be constructed
+  // just using the attested payload.
   VerifiedInputs inputs = 1;
+  // Output of the program specified by the verified inputs
   bytes raw_output = 2;
+  // The ZKVM operator who attests to the job
   bytes zkvm_operator_address = 3;
+  // Signature over 
+  // H(program_verifying_key|program_input|max_cycles|raw_output)
   bytes zkvm_operator_signature = 4;
 }
