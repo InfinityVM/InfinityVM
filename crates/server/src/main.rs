@@ -1,6 +1,6 @@
 //! The binary for running the server
 
-use server::proto::zkvm_executor_server::ZkvmExecutorServer;
+use proto::zkvm_executor_server::ZkvmExecutorServer;
 use server::ZkvmExecutorService;
 
 #[tokio::main]

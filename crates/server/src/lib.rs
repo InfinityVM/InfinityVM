@@ -1,12 +1,6 @@
 //! Better then your server.
 
-// use proto::zkvm_executor_server::{ZkvmExecutor, ZkvmExecutorServer};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
-
-/// Protobuf generated types
-pub mod proto {
-    tonic::include_proto!("zkvm_executor");
-}
 
 ///  The implementation of the ZkvmExecutor trait
 #[derive(Debug)]
