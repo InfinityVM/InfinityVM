@@ -6,6 +6,7 @@ service ZkvmExecutor {
   rpc execute(ExecuteRequest) returns (ExecuteResponse) {}
 }
 
+// The inputs to the zkvm program that get attested to by the zkvm operator.
 message VerifiedInputs {
   // The verifying key for the program. The executor needs to check
   // that this matches up with the program ELF before using it.
@@ -18,6 +19,7 @@ message VerifiedInputs {
   int64 max_cycles = 3;
 }
 
+// A request to execute a zkvm program.
 message ExecuteRequest {
   // The program executable
   bytes program_elf = 1;
@@ -25,6 +27,7 @@ message ExecuteRequest {
   VerifiedInputs inputs = 2;
 }
 
+// The results of executing a program
 message ExecuteResponse {
   // The inputs to the program execution request. These need to be included
   // in the attested to payload to ensure that a zk proof can be constructed
