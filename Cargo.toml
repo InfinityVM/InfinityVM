@@ -7,6 +7,8 @@ rust-version = "1.79"
 members = [
 	"crates/server",
 	"crates/zkvm",
+	"programs/vapenation/core",
+	"programs/vapenation/methods"
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -96,12 +98,15 @@ tonic-build = "*"
 tonic = "*"
 prost = "*"
 tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time"] }
-risc0-zkvm = { version = "1.0.1", features = ["prove"] }
 anyhow = "*"
 thiserror = "*"
+
+risc0-zkvm = { version = "1.0.1", features = ["prove"] }
+risc0-build = { version = "1.0.1" }
+serde = { version = "1.0", features = ["derive"] }
+
 # tokio-stream = "0"
 
 # async-stream = "0.2"
-# serde = { version = "1.0", features = ["derive"] }
 # serde_json = "1.0"
 # rand = "0.8"
