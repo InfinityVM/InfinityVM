@@ -96,6 +96,9 @@ tonic-build = "*"
 tonic = "*"
 prost = "*"
 tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time"] }
+risc0-zkvm = { version = "1.0.1", features = ["prove"] }
+anyhow = "*"
+thiserror = "*"
 # tokio-stream = "0"
 
 # async-stream = "0.2"
