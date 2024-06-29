@@ -19,3 +19,12 @@ brew install protobuf
 # build the workspace
 cargo build
 ```
+
+## TODO
+
+- [ ] cli that you can use ecdsa signing key with
+- [ ] locally generate proto bindings so they are easier to understand, but git ignore them
+- [ ] do we want the errors to be in the proto message so its not just a gRPC status?
+- [ ] basic logging with debug + info
+- [ ] prometheus metrics
+- [ ] disable default features on all deps and pin versions

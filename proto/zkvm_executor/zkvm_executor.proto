@@ -17,6 +17,7 @@ message VerifiedInputs {
   // The maximium amount of cpu cycles. In the future this may
   // be something closer to gas/opcode coutn.
   int64 max_cycles = 3;
+  // TOOD(zeke): VM type
 }
 
 // A request to execute a zkvm program.
