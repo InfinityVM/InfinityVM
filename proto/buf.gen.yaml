@@ -10,4 +10,7 @@ plugins:
       - paths=source_relative
   - name: grpc-gateway
     out: gen/go
-    opt: logtostderr=true,allow_colon_final_segments=true
+    opt:
+      - logtostderr=true
+      - paths=source_relative
+      - generate_unbound_methods=true

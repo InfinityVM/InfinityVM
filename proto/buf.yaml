@@ -5,6 +5,9 @@ deps:
 breaking:
   use:
     - FILE
+build:
+  excludes:
+    - zkvm_executor
 lint:
   use:
     - DEFAULT
