@@ -1,6 +1,6 @@
 # Infinity
 
-Infinite possibilities 
+Infinite possibilities.
 
 ## Rust Development
 
