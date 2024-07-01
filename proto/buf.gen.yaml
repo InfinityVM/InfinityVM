@@ -1,0 +1,13 @@
+version: v1
+plugins:
+  - plugin: go
+    out: gen/go
+    opt:
+      - paths=source_relative
+  - plugin: go-grpc
+    out: gen/go
+    opt:
+      - paths=source_relative
+  - name: grpc-gateway
+    out: gen/go
+    opt: logtostderr=true,allow_colon_final_segments=true

@@ -1,0 +1,9 @@
+syntax = "proto3";
+package infinityvm.server.v1;
+option go_package = "github.com/ethos-works/InfinityVM/server/pkg/types";
+
+message StringMessage { string value = 1; }
+
+service YourService {
+  rpc Echo(StringMessage) returns (StringMessage) {}
+}
