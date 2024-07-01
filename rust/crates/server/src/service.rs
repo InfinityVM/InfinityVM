@@ -27,18 +27,19 @@ pub struct ZkvmExecutorService<T, S> {
 
 impl<T, S> ZkvmExecutorService<T, S>
 where
-    S: Signer<Signature> + SignerSync + Send + Sync + 'static,
+    S: Signer<Signature> + Send + Sync + 'static,
 {
     pub(crate) fn new(wallet: S, chain_id: Option<u64>) -> Self {
         Self { wallet, chain_id, _phantom: PhantomData }
     }
 
-    fn checksum_address_bytes(&self) -> Vec<u8> {
+    fn address_checksum_bytes(&self) -> Vec<u8> {
         self.wallet.address().to_checksum(self.chain_id).as_bytes().to_vec()
     }
 
-    fn sign_message(&self, msg: &[u8]) -> Vec<u8> {
-        self.wallet.sign_message_sync(msg).map(|s| s.to_bytes())
+    // TODO(zeke): do we want to return v,r,s separately?
+    async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
+        self.wallet.sign_message(msg).await.map(|s| s.into()).map_err(|e| e.into())
     }
 }
 
@@ -85,15 +86,18 @@ where
 
         let signing_payload = result_signing_payload(&inputs, &raw_output);
 
-        // TODO(zeke): make sure this is getting keccak hash
-        let zkvm_operator_signature = self.sign_message(&signing_payload);
+        let zkvm_operator_signature = self
+            .sign_message(&signing_payload)
+            .await
+            .map_err(|e| format!("signing error: {e:?}"))
+            .map_err(|e| tonic::Status::internal(e))?;
         let response = ExecuteResponse {
             inputs: Some(inputs),
-            zkvm_operator_address: self.checksum_address_bytes(),
+            zkvm_operator_address: self.address_checksum_bytes(),
             zkvm_operator_signature,
             raw_output,
         };
 
-        Ok(response)
+        Ok(tonic::Response::new(response))
     }
 }

@@ -100,7 +100,7 @@ impl Cli {
         let wallet = opts.operator_wallet();
 
         let executor_service = match opts.zkvm {
-            Zkvm::Risc0 => ZkvmExecutorService::<zkvm::Risc0, _>::new(wallet),
+            Zkvm::Risc0 => ZkvmExecutorService::<zkvm::Risc0, _>::new(wallet, opts.chain_id),
             Zkvm::Sp1 => unimplemented!(),
         };
 
