@@ -2,24 +2,22 @@
 
 use alloy::{
     primitives::Signature,
-    signers::{Signer, SignerSync},
+    signers::{Signer},
 };
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
 
 #[derive(thiserror::Error, Debug)]
-pub enum Error {
+pub(crate) enum Error {
     #[error("signer error: {0}")]
     Signer(#[from] alloy::signers::Error),
 }
 
-///  The implementation of the ZkvmExecutor trait
+///  The implementation of the `ZkvmExecutor` trait
 /// TODO(zeke): do we want to make this generic over executor?
 #[derive(Debug)]
-pub struct ZkvmExecutorService<T, S> {
-    // TODO(zeke): we can make this generic over a signer
-    // to add support for things like AWS, yubihsm etc
+pub(crate) struct ZkvmExecutorService<T, S> {
     wallet: S,
     chain_id: Option<u64>,
     _phantom: PhantomData<T>,
@@ -29,7 +27,7 @@ impl<T, S> ZkvmExecutorService<T, S>
 where
     S: Signer<Signature> + Send + Sync + 'static,
 {
-    pub(crate) fn new(wallet: S, chain_id: Option<u64>) -> Self {
+    pub(crate) const fn new(wallet: S, chain_id: Option<u64>) -> Self {
         Self { wallet, chain_id, _phantom: PhantomData }
     }
 
@@ -82,7 +80,7 @@ where
             inputs.max_cycles as u64,
         )
         .map_err(|e| format!("zkvm execute error: {e:?}"))
-        .map_err(|e| tonic::Status::invalid_argument(e))?;
+        .map_err(tonic::Status::invalid_argument)?;
 
         let signing_payload = result_signing_payload(&inputs, &raw_output);
 
@@ -90,7 +88,7 @@ where
             .sign_message(&signing_payload)
             .await
             .map_err(|e| format!("signing error: {e:?}"))
-            .map_err(|e| tonic::Status::internal(e))?;
+            .map_err(tonic::Status::internal)?;
         let response = ExecuteResponse {
             inputs: Some(inputs),
             zkvm_operator_address: self.address_checksum_bytes(),

@@ -20,6 +20,10 @@ brew install protobuf
 ```sh
 # build the workspace
 cargo build
+
+# lint
+cargo lint --fix
+
 # format
 cargo +nightly fmt
 ```

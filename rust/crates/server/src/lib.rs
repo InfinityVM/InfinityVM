@@ -1,11 +1,9 @@
 //! Better then your server.
 use alloy::signers::local::LocalSigner;
 use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddrV4},
-    path::PathBuf,
+    net::{Ipv4Addr, SocketAddrV4},
 };
 
-use alloy::network::EthereumWallet;
 use clap::{Parser, ValueEnum};
 use k256::ecdsa::SigningKey;
 use service::ZkvmExecutorService;
@@ -90,9 +88,12 @@ impl Args {
     }
 }
 
+/// Command line interface for running the executor gRPC server.
+#[derive(Parser, Debug)]
 pub struct Cli;
 
 impl Cli {
+    /// Run the CLI
     pub async fn run() -> Result<(), tonic::transport::Error> {
         let opts = Args::parse();
 
