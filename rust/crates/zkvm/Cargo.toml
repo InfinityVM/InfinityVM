@@ -11,5 +11,4 @@ workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 risc0-zkvm.workspace = true
-
-
+risc0-binfmt.workspace = true

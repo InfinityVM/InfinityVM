@@ -7,8 +7,8 @@ rust-version = "1.79"
 members = [
 	"crates/server",
 	"crates/zkvm",
-	"programs/vapenation/core",
-	"programs/vapenation/methods"
+	# "programs/vapenation/core",
+	# "programs/vapenation/methods"
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -94,19 +94,51 @@ significant_drop_in_scrutinee = "allow"
 significant_drop_tightening = "allow"
 
 [workspace.dependencies]
-tonic-build = "*"
-tonic = "*"
-prost = "*"
-tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time"] }
+# a
 anyhow = "*"
-thiserror = "*"
+alloy = { version = "*", features = ["network", "signers"]}
+# async-stream = "0.2"
 
+# b
+# c
+clap = { version = "*", features = ["derive"] }
+
+# d
+# e
+# f
+# g
+# h
+# i
+# j
+# k
+# l
+# m
+# n
+# o
+# p
+prost = "*"
+
+# q
+# r
 risc0-zkvm = { version = "1.0.1", features = ["prove"] }
 risc0-build = { version = "1.0.1" }
-serde = { version = "1.0", features = ["derive"] }
+risc0-binfmt = "*"
+# rand = "0.8"
 
+# s
+serde = { version = "1.0", features = ["derive"] }
+# serde_json = "1.0"
+
+# t
+tonic-build = "*"
+tonic = "*"
+tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time"] }
+thiserror = "*"
 # tokio-stream = "0"
 
-# async-stream = "0.2"
-# serde_json = "1.0"
-# rand = "0.8"
+# u
+# v
+# w
+# x
+# y
+# z

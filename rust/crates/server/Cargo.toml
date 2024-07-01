@@ -11,7 +11,10 @@ workspace = true
 tonic.workspace = true
 prost.workspace = true
 tokio.workspace = true
+alloy.workspace = true
+clap.workspace = true
 proto = { path = "../proto" }
+zkvm = { path = "../zkvm" }
 
 [build-dependencies]
 tonic-build.workspace = true
