@@ -1,5 +1,6 @@
-# ZKVM Execution Service
+# Rust workspace
 
+The workspace configuration is defined by `rust/Cargo.toml`.
 This is a PoC for our ZKVM Execution Service. The service is in charge of executing ZKVM programs.
 
 ## Develop
@@ -28,3 +29,7 @@ cargo build
 - [ ] basic logging with debug + info
 - [ ] prometheus metrics
 - [ ] disable default features on all deps and pin versions
+
+## Acknowledgements
+
+- reth: the workspace configuration was largely inspired by reth.
