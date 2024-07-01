@@ -24,7 +24,7 @@ message VerifiedInputs {
 message ExecuteRequest {
   // The program executable
   bytes program_elf = 1;
-  // The inputs for running the program and 
+  // The inputs for running the program and
   VerifiedInputs inputs = 2;
 }
 
@@ -38,7 +38,7 @@ message ExecuteResponse {
   bytes raw_output = 2;
   // The ZKVM operator who attests to the job
   bytes zkvm_operator_address = 3;
-  // Signature over 
+  // Signature over
   // H(program_verifying_key|program_input|max_cycles|raw_output)
   bytes zkvm_operator_signature = 4;
 }
