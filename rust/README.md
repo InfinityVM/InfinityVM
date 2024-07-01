@@ -1,5 +1,6 @@
-# ZKVM Execution Service
+# Rust workspace
 
+The workspace configuration is defined by `rust/Cargo.toml`.
 This is a PoC for our ZKVM Execution Service. The service is in charge of executing ZKVM programs.
 
 ## Develop
@@ -7,6 +8,7 @@ This is a PoC for our ZKVM Execution Service. The service is in charge of execut
 ```sh
 # set rust version
 rustup use 1.79
+rustup toolchain install nightly
 ```
 
 ```sh
@@ -18,6 +20,22 @@ brew install protobuf
 ```sh
 # build the workspace
 cargo build
+
+# lint
+cargo lint --fix
+
+# format
+cargo +nightly fmt
+```
+
+If you are working in VSCode, try installing the rust-analyzer extension. We recommend the following settings:
+
+```
+"rust-analyzer.rustfmt.extraArgs": ["+nightly"],
+"[rust]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "rust-lang.rust-analyzer"
+}
 ```
 
 ## TODO
@@ -28,3 +46,7 @@ cargo build
 - [ ] basic logging with debug + info
 - [ ] prometheus metrics
 - [ ] disable default features on all deps and pin versions
+
+## Acknowledgements
+
+- reth: the workspace configuration was largely inspired by reth.
