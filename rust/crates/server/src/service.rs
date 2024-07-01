@@ -1,11 +1,11 @@
 //! gRPC service implementation.
 
-use alloy::primitives::Signature;
-use alloy::signers::Signer;
-use alloy::signers::SignerSync;
+use alloy::{
+    primitives::Signature,
+    signers::{Signer, SignerSync},
+};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
-use std::marker::PhantomData;
-use std::marker::Send;
+use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
 
 #[derive(thiserror::Error, Debug)]
@@ -30,19 +30,11 @@ where
     S: Signer<Signature> + SignerSync + Send + Sync + 'static,
 {
     pub(crate) fn new(wallet: S, chain_id: Option<u64>) -> Self {
-        Self {
-            wallet,
-            chain_id,
-            _phantom: PhantomData,
-        }
+        Self { wallet, chain_id, _phantom: PhantomData }
     }
 
     fn checksum_address_bytes(&self) -> Vec<u8> {
-        self.wallet
-            .address()
-            .to_checksum(self.chain_id)
-            .as_bytes()
-            .to_vec()
+        self.wallet.address().to_checksum(self.chain_id).as_bytes().to_vec()
     }
 
     fn sign_message(&self, msg: &[u8]) -> Vec<u8> {

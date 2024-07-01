@@ -1,9 +1,7 @@
 //! Better then your ZKVM.
 
 use risc0_binfmt::compute_image_id;
-use risc0_zkvm::Executor;
-use risc0_zkvm::ExecutorEnv;
-use risc0_zkvm::LocalProver;
+use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
 use thiserror::Error;
 
 /// The error
