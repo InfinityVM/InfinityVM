@@ -96,7 +96,7 @@ significant_drop_tightening = "allow"
 [workspace.dependencies]
 # a
 anyhow = "*"
-alloy = { version = "*", features = ["network", "signers"]}
+alloy = { version = "*", features = ["network", "signer-local"]}
 # async-stream = "0.2"
 
 # b
@@ -111,6 +111,8 @@ clap = { version = "*", features = ["derive"] }
 # i
 # j
 # k
+k256 = { version = "*" }
+
 # l
 # m
 # n

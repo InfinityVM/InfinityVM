@@ -1,20 +1,18 @@
 //! gRPC service implementation.
 
-use alloy::network::NetworkWallet;
-use alloy::network::TxSigner;
 use alloy::primitives::Signature;
 use alloy::signers::Signer;
-use core::slice::Iter;
+use alloy::signers::SignerSync;
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use std::marker::PhantomData;
 use std::marker::Send;
 use zkvm::Zkvm;
 
-use alloy::{
-    network::EthereumWallet,
-    // signers::local::LocalSigner,
-    primitives::{address, U256},
-};
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    #[error("signer error: {0}")]
+    Signer(#[from] alloy::signers::Error),
+}
 
 ///  The implementation of the ZkvmExecutor trait
 /// TODO(zeke): do we want to make this generic over executor?
@@ -23,26 +21,32 @@ pub struct ZkvmExecutorService<T, S> {
     // TODO(zeke): we can make this generic over a signer
     // to add support for things like AWS, yubihsm etc
     wallet: S,
+    chain_id: Option<u64>,
     _phantom: PhantomData<T>,
 }
 
 impl<T, S> ZkvmExecutorService<T, S>
 where
-    S: Signer<Signature> + Send + Sync + 'static,
+    S: Signer<Signature> + SignerSync + Send + Sync + 'static,
 {
-    pub(crate) fn new(wallet: S) -> Self {
+    pub(crate) fn new(wallet: S, chain_id: Option<u64>) -> Self {
         Self {
             wallet,
+            chain_id,
             _phantom: PhantomData,
         }
     }
 
-    fn zkvm_operator_eth_address() -> Vec<u8> {
-        unimplemented!()
+    fn checksum_address_bytes(&self) -> Vec<u8> {
+        self.wallet
+            .address()
+            .to_checksum(self.chain_id)
+            .as_bytes()
+            .to_vec()
     }
 
-    fn eth_sign() -> Vec<u8> {
-        unimplemented!()
+    fn sign_message(&self, msg: &[u8]) -> Vec<u8> {
+        self.wallet.sign_message_sync(msg).map(|s| s.to_bytes())
     }
 }
 
@@ -90,10 +94,10 @@ where
         let signing_payload = result_signing_payload(&inputs, &raw_output);
 
         // TODO(zeke): make sure this is getting keccak hash
-        let zkvm_operator_signature = self.wallet.sign_msg(signing_payload);
+        let zkvm_operator_signature = self.sign_message(&signing_payload);
         let response = ExecuteResponse {
             inputs: Some(inputs),
-            zkvm_operator_address: self.wallet.default_signer_address(),
+            zkvm_operator_address: self.checksum_address_bytes(),
             zkvm_operator_signature,
             raw_output,
         };

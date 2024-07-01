@@ -76,6 +76,7 @@ dependencies = [
  "alloy-rpc-client",
  "alloy-serde",
  "alloy-signer",
+ "alloy-signer-local",
  "alloy-transport-http",
  "reqwest 0.12.5",
 ]
@@ -341,6 +342,22 @@ dependencies = [
  "auto_impl",
  "elliptic-curve",
  "k256",
+ "thiserror",
+]
+
+[[package]]
+name = "alloy-signer-local"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "87db68d926887393a1d0f9c43833b44446ea29d603291e7b20e5d115f31aa4e3"
+dependencies = [
+ "alloy-consensus",
+ "alloy-network",
+ "alloy-primitives",
+ "alloy-signer",
+ "async-trait",
+ "k256",
+ "rand",
  "thiserror",
 ]
 
@@ -2147,6 +2164,7 @@ dependencies = [
  "elliptic-curve",
  "once_cell",
  "sha2",
+ "signature",
 ]
 
 [[package]]
@@ -3647,8 +3665,10 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "clap",
+ "k256",
  "prost",
  "proto",
+ "thiserror",
  "tokio",
  "tonic",
  "tonic-build",

@@ -13,6 +13,9 @@ prost.workspace = true
 tokio.workspace = true
 alloy.workspace = true
 clap.workspace = true
+k256.workspace = true
+thiserror.workspace = true
+
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
 
