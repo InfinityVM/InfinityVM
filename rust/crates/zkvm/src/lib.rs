@@ -48,7 +48,7 @@ impl Zkvm for Risc0 {
     fn execute(program_elf: &[u8], raw_input: &[u8], max_cycles: u64) -> Result<Vec<u8>, Error> {
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
-            .write_slice(&raw_input[..])
+            .write_slice(raw_input)
             .build()?;
 
         let prover = LocalProver::new("locals only");
