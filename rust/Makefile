@@ -3,7 +3,7 @@ clippy-ci:
 	RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
 
 .PHONY: clippy
-clippy-fix:
+clippy:
 	cargo clippy --fix --allow-dirty
 
 .PHONY: fmt-ci
@@ -13,6 +13,9 @@ fmt-ci:
 .PHONY: fmt
 fmt:
 	cargo +nightly fmt --all
+
+.PHONY: lint
+lint: clippy fmt
 
 .PHONY: test-ci
 test-ci:
