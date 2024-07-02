@@ -1,8 +1,6 @@
 //! Better then your server.
 use alloy::signers::local::LocalSigner;
-use std::{
-    net::{Ipv4Addr, SocketAddrV4},
-};
+use std::net::{Ipv4Addr, SocketAddrV4};
 
 use clap::{Parser, ValueEnum};
 use k256::ecdsa::SigningKey;
