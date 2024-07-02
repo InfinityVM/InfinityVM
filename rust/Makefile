@@ -8,7 +8,7 @@ clippy:
 
 .PHONY: fmt-ci
 fmt-ci: 
-	cargo +nightly fmt --workspace --lib --examples --tests --benches --all-features --locked
+	cargo +nightly fmt --all --check
 
 .PHONY: fmt
 fmt:
