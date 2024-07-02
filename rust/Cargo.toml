@@ -8,8 +8,8 @@ members = [
 	"crates/executor",
 	"crates/zkvm",
 	"test",
-	# "programs/vapenation/core",
-	# "programs/vapenation/methods"
+	"programs/risc0/vapenation/core",
+	"programs/risc0/vapenation/methods"
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021

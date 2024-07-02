@@ -1,5 +1,5 @@
 [package]
-name = "guest"
+name = "vapenation"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,4 +7,4 @@ edition = "2021"
 
 [dependencies]
 risc0-zkvm = { version = "1.0.1", default-features = false, features = ['std'] }
-core = { path = "../../core" }
+vapenation_core = { path = "../../core" }

@@ -6,7 +6,7 @@
 //!
 //! For this example, we are putting shared resources in a `core` crate.
 use risc0_zkvm::guest::env;
-use core::{VapeNationMetadata, compute_nation_id};
+use vapenation_core::{VapeNationMetadata, compute_nation_id};
 
 fn main() {
     // read in data as bytes
