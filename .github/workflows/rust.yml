@@ -38,7 +38,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-      - run: cd rust && cargo test --all-features
+      - run: make -C rust test-all
 
   clippy:
     name: clippy

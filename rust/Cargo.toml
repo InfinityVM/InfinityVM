@@ -99,6 +99,7 @@ significant_drop_tightening = "allow"
 anyhow = "*"
 alloy = { version = "*", features = ["network", "signer-local", "signer-keystore", "rlp"]}
 alloy-signer-local = { version = "*" }
+alloy-rlp = { version = "*" }
 
 # b
 # c

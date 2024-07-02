@@ -16,7 +16,7 @@ message VerifiedInputs {
   bytes program_input = 2;
   // The maximum amount of cpu cycles. In the future this may
   // be something closer to gas/opcode coutn.
-  int64 max_cycles = 3;
+  uint64 max_cycles = 3;
   // TODO(zeke): VM type
 }
 

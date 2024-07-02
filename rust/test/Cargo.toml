@@ -13,6 +13,8 @@ tonic.workspace = true
 tokio.workspace = true
 futures.workspace = true
 risc0-binfmt.workspace = true
+alloy-rlp.workspace = true
 
 proto = { path = "../crates/proto"}
 vapenation_methods = { path = "../programs/risc0/vapenation/methods"}
+vapenation_core = { path = "../programs/risc0/vapenation/core"}

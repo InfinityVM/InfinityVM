@@ -90,7 +90,7 @@ fn get_localhost_port() -> u16 {
 fn sleep_until_bound(port: u16) {
     for _ in 0..16 {
         if !TcpListener::bind((LOCALHOST, port)).is_ok() {
-            return
+            return;
         }
 
         thread::sleep(Duration::from_secs(1));

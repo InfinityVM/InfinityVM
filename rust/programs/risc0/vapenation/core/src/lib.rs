@@ -4,7 +4,6 @@
 use alloy_rlp::{RlpDecodable, RlpEncodable};
 
 const FOUR_TWENTY: u64 = 420;
-
 /// Metadata for a Vape Nation
 #[derive(RlpEncodable, RlpDecodable, Debug, Default, Clone)]
 pub struct VapeNationMetadata {
