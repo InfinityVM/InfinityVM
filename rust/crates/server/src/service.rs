@@ -1,9 +1,6 @@
 //! gRPC service implementation.
 
-use alloy::{
-    primitives::Signature,
-    signers::{Signer},
-};
+use alloy::{primitives::Signature, signers::Signer};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
