@@ -41,6 +41,7 @@ jobs:
       - uses: codespell-project/actions-codespell@v2
         with:
           skip: "*.json"
+          ignore_words_file: .codespellignore
 
   docs:
     name: docs

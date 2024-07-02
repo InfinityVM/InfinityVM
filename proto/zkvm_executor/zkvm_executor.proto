@@ -14,10 +14,10 @@ message VerifiedInputs {
   // The input to the zkvm program. The zkvm program is in charge
   // of deserializing this.
   bytes program_input = 2;
-  // The maximium amount of cpu cycles. In the future this may
+  // The maximum amount of cpu cycles. In the future this may
   // be something closer to gas/opcode coutn.
   int64 max_cycles = 3;
-  // TOOD(zeke): VM type
+  // TODO(zeke): VM type
 }
 
 // A request to execute a zkvm program.

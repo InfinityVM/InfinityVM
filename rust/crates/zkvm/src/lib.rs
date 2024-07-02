@@ -54,9 +54,7 @@ impl Zkvm for Risc0 {
         let prover = LocalProver::new("locals only");
 
         let prove_info = prover.execute(env, program_elf)?;
-        // let receipt = prove_info.receipt;
 
-        // TODO(zeke): verify the raw bytes are whats wrong here
         Ok(prove_info.journal.bytes)
     }
 }
