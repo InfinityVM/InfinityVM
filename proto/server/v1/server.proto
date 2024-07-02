@@ -1,0 +1,79 @@
+syntax = "proto3";
+package server.v1;
+
+import "google/api/annotations.proto";
+import "server/v1/job.proto";
+
+option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
+
+// Server defines the gRPC service for the coprocessing server.
+service Server {
+  // SubmitJob defines the gRPC method for submitting a coprocessing job.
+  rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {
+    option (google.api.http) = {
+      post: "/v1/server/submit_job"
+      body: "*"
+    };
+  }
+
+  // GetResult defines the gRPC method for getting the result of a coprocessing
+  // job.
+  rpc GetResult(GetResultRequest) returns (GetResultResponse) {
+    option (google.api.http).get = "/v1/server/result/{job_id}";
+  }
+
+  // CreateProgram defines the gRPC method for creating/storing a new program.
+  rpc CreateProgram(CreateProgramRequest) returns (CreateProgramResponse) {
+    option (google.api.http) = {
+      post: "/v1/server/create_program"
+      body: "*"
+    };
+  }
+}
+
+// JobStatus defines the status of a submitted coprocessor job.
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_PENDING = 1;
+  JOB_STATUS_DONE = 2;
+}
+
+// SubmitJobRequest defines the request structure to submit a job to the
+// coprocessing server.
+message SubmitJobRequest {
+  Job job = 1;
+}
+
+// SubmitJobResponse defines the response structure to submit a job to the
+// coprocessing server.
+message SubmitJobResponse {
+  uint64 job_id = 1;
+}
+
+// GetResultRequest defines the request structure to get the result of a
+// coprocessing job.
+message GetResultRequest {
+  uint64 job_id = 1;
+}
+
+// GetResultResponse defines the response structure to get the result of a
+// coprocessing job.
+message GetResultResponse {
+  Job job = 1;
+  JobStatus status = 2;
+  bytes result = 3;
+  bytes zkvm_operator_address = 4;
+  bytes zkvm_operator_signature = 5;
+}
+
+// CreateProgramRequest defines the request structure to create a new program.
+message CreateProgramRequest {
+  // The zkVM program to execute compute against.
+  bytes program = 1;
+}
+
+// CreateProgramResponse defines the response structure to create a new program.
+message CreateProgramResponse {
+  // The ZK program to execute compute against
+  int64 program_id = 1;
+}

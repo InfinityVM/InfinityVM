@@ -1,0 +1,17 @@
+syntax = "proto3";
+package server.v1;
+
+option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
+
+// Job represents a program to be executed by the coprocessor with specific
+// inputs.
+message Job {
+  // The ZK program verification key
+  bytes program_verifying_key = 1;
+  // Program inputs
+  bytes inputs = 2;
+  // The address of the contract to execute a callback with a result with
+  bytes contract_address = 3;
+  // CPU cycle limit for job execution
+  uint32 max_cycles = 4;
+}

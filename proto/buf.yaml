@@ -15,3 +15,5 @@ lint:
     - FILE_LOWER_SNAKE_CASE
   except:
     - COMMENT_FIELD
+    - COMMENT_ENUM_VALUE
+    - SERVICE_SUFFIX

@@ -2,11 +2,12 @@
 // versions:
 // 	protoc-gen-go v1.34.2
 // 	protoc        (unknown)
-// source: infinityvm/server/v1/server.proto
+// source: server/v1/server.proto
 
 package types
 
 import (
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -20,31 +21,83 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-type StringMessage struct {
+// JobStatus defines the status of a submitted coprocessor job.
+type JobStatus int32
+
+const (
+	JobStatus_JOB_STATUS_UNSPECIFIED JobStatus = 0
+	JobStatus_JOB_STATUS_PENDING     JobStatus = 1
+	JobStatus_JOB_STATUS_DONE        JobStatus = 2
+)
+
+// Enum value maps for JobStatus.
+var (
+	JobStatus_name = map[int32]string{
+		0: "JOB_STATUS_UNSPECIFIED",
+		1: "JOB_STATUS_PENDING",
+		2: "JOB_STATUS_DONE",
+	}
+	JobStatus_value = map[string]int32{
+		"JOB_STATUS_UNSPECIFIED": 0,
+		"JOB_STATUS_PENDING":     1,
+		"JOB_STATUS_DONE":        2,
+	}
+)
+
+func (x JobStatus) Enum() *JobStatus {
+	p := new(JobStatus)
+	*p = x
+	return p
+}
+
+func (x JobStatus) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (JobStatus) Descriptor() protoreflect.EnumDescriptor {
+	return file_server_v1_server_proto_enumTypes[0].Descriptor()
+}
+
+func (JobStatus) Type() protoreflect.EnumType {
+	return &file_server_v1_server_proto_enumTypes[0]
+}
+
+func (x JobStatus) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use JobStatus.Descriptor instead.
+func (JobStatus) EnumDescriptor() ([]byte, []int) {
+	return file_server_v1_server_proto_rawDescGZIP(), []int{0}
+}
+
+// SubmitJobRequest defines the request structure to submit a job to the
+// coprocessing server.
+type SubmitJobRequest struct {
 	state         protoimpl.MessageState
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
+	Job *Job `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
 }
 
-func (x *StringMessage) Reset() {
-	*x = StringMessage{}
+func (x *SubmitJobRequest) Reset() {
+	*x = SubmitJobRequest{}
 	if protoimpl.UnsafeEnabled {
-		mi := &file_infinityvm_server_v1_server_proto_msgTypes[0]
+		mi := &file_server_v1_server_proto_msgTypes[0]
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		ms.StoreMessageInfo(mi)
 	}
 }
 
-func (x *StringMessage) String() string {
+func (x *SubmitJobRequest) String() string {
 	return protoimpl.X.MessageStringOf(x)
 }
 
-func (*StringMessage) ProtoMessage() {}
+func (*SubmitJobRequest) ProtoMessage() {}
 
-func (x *StringMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_infinityvm_server_v1_server_proto_msgTypes[0]
+func (x *SubmitJobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_v1_server_proto_msgTypes[0]
 	if protoimpl.UnsafeEnabled && x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,74 +108,477 @@ func (x *StringMessage) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use StringMessage.ProtoReflect.Descriptor instead.
-func (*StringMessage) Descriptor() ([]byte, []int) {
-	return file_infinityvm_server_v1_server_proto_rawDescGZIP(), []int{0}
+// Deprecated: Use SubmitJobRequest.ProtoReflect.Descriptor instead.
+func (*SubmitJobRequest) Descriptor() ([]byte, []int) {
+	return file_server_v1_server_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *StringMessage) GetValue() string {
+func (x *SubmitJobRequest) GetJob() *Job {
 	if x != nil {
-		return x.Value
+		return x.Job
 	}
-	return ""
+	return nil
 }
 
-var File_infinityvm_server_v1_server_proto protoreflect.FileDescriptor
+// SubmitJobResponse defines the response structure to submit a job to the
+// coprocessing server.
+type SubmitJobResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
 
-var file_infinityvm_server_v1_server_proto_rawDesc = []byte{
-	0x0a, 0x21, 0x69, 0x6e, 0x66, 0x69, 0x6e, 0x69, 0x74, 0x79, 0x76, 0x6d, 0x2f, 0x73, 0x65, 0x72,
-	0x76, 0x65, 0x72, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x70, 0x72,
-	0x6f, 0x74, 0x6f, 0x12, 0x14, 0x69, 0x6e, 0x66, 0x69, 0x6e, 0x69, 0x74, 0x79, 0x76, 0x6d, 0x2e,
-	0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x22, 0x25, 0x0a, 0x0d, 0x53, 0x74, 0x72,
-	0x69, 0x6e, 0x67, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x12, 0x14, 0x0a, 0x05, 0x76, 0x61,
-	0x6c, 0x75, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75, 0x65,
-	0x32, 0x61, 0x0a, 0x0b, 0x59, 0x6f, 0x75, 0x72, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12,
-	0x52, 0x0a, 0x04, 0x45, 0x63, 0x68, 0x6f, 0x12, 0x23, 0x2e, 0x69, 0x6e, 0x66, 0x69, 0x6e, 0x69,
-	0x74, 0x79, 0x76, 0x6d, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53,
-	0x74, 0x72, 0x69, 0x6e, 0x67, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67, 0x65, 0x1a, 0x23, 0x2e, 0x69,
-	0x6e, 0x66, 0x69, 0x6e, 0x69, 0x74, 0x79, 0x76, 0x6d, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
-	0x2e, 0x76, 0x31, 0x2e, 0x53, 0x74, 0x72, 0x69, 0x6e, 0x67, 0x4d, 0x65, 0x73, 0x73, 0x61, 0x67,
-	0x65, 0x22, 0x00, 0x42, 0x34, 0x5a, 0x32, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f,
-	0x6d, 0x2f, 0x65, 0x74, 0x68, 0x6f, 0x73, 0x2d, 0x77, 0x6f, 0x72, 0x6b, 0x73, 0x2f, 0x49, 0x6e,
-	0x66, 0x69, 0x6e, 0x69, 0x74, 0x79, 0x56, 0x4d, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2f,
-	0x70, 0x6b, 0x67, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f,
-	0x33,
+	JobId uint64 `protobuf:"varint,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+}
+
+func (x *SubmitJobResponse) Reset() {
+	*x = SubmitJobResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_server_v1_server_proto_msgTypes[1]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *SubmitJobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SubmitJobResponse) ProtoMessage() {}
+
+func (x *SubmitJobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_server_v1_server_proto_msgTypes[1]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SubmitJobResponse.ProtoReflect.Descriptor instead.
+func (*SubmitJobResponse) Descriptor() ([]byte, []int) {
+	return file_server_v1_server_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *SubmitJobResponse) GetJobId() uint64 {
+	if x != nil {
+		return x.JobId
+	}
+	return 0
+}
+
+// GetResultRequest defines the request structure to get the result of a
+// coprocessing job.
+type GetResultRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	JobId uint64 `protobuf:"varint,1,opt,name=job_id,json=jobId,proto3" json:"job_id,omitempty"`
+}
+
+func (x *GetResultRequest) Reset() {
+	*x = GetResultRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_server_v1_server_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetResultRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetResultRequest) ProtoMessage() {}
+
+func (x *GetResultRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_v1_server_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetResultRequest.ProtoReflect.Descriptor instead.
+func (*GetResultRequest) Descriptor() ([]byte, []int) {
+	return file_server_v1_server_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *GetResultRequest) GetJobId() uint64 {
+	if x != nil {
+		return x.JobId
+	}
+	return 0
+}
+
+// GetResultResponse defines the response structure to get the result of a
+// coprocessing job.
+type GetResultResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Job                   *Job      `protobuf:"bytes,1,opt,name=job,proto3" json:"job,omitempty"`
+	Status                JobStatus `protobuf:"varint,2,opt,name=status,proto3,enum=server.v1.JobStatus" json:"status,omitempty"`
+	Result                []byte    `protobuf:"bytes,3,opt,name=result,proto3" json:"result,omitempty"`
+	ZkvmOperatorAddress   []byte    `protobuf:"bytes,4,opt,name=zkvm_operator_address,json=zkvmOperatorAddress,proto3" json:"zkvm_operator_address,omitempty"`
+	ZkvmOperatorSignature []byte    `protobuf:"bytes,5,opt,name=zkvm_operator_signature,json=zkvmOperatorSignature,proto3" json:"zkvm_operator_signature,omitempty"`
+}
+
+func (x *GetResultResponse) Reset() {
+	*x = GetResultResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_server_v1_server_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetResultResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetResultResponse) ProtoMessage() {}
+
+func (x *GetResultResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_server_v1_server_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetResultResponse.ProtoReflect.Descriptor instead.
+func (*GetResultResponse) Descriptor() ([]byte, []int) {
+	return file_server_v1_server_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *GetResultResponse) GetJob() *Job {
+	if x != nil {
+		return x.Job
+	}
+	return nil
+}
+
+func (x *GetResultResponse) GetStatus() JobStatus {
+	if x != nil {
+		return x.Status
+	}
+	return JobStatus_JOB_STATUS_UNSPECIFIED
+}
+
+func (x *GetResultResponse) GetResult() []byte {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *GetResultResponse) GetZkvmOperatorAddress() []byte {
+	if x != nil {
+		return x.ZkvmOperatorAddress
+	}
+	return nil
+}
+
+func (x *GetResultResponse) GetZkvmOperatorSignature() []byte {
+	if x != nil {
+		return x.ZkvmOperatorSignature
+	}
+	return nil
+}
+
+// CreateProgramRequest defines the request structure to create a new program.
+type CreateProgramRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// The zkVM program to execute compute against.
+	Program []byte `protobuf:"bytes,1,opt,name=program,proto3" json:"program,omitempty"`
+}
+
+func (x *CreateProgramRequest) Reset() {
+	*x = CreateProgramRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_server_v1_server_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateProgramRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateProgramRequest) ProtoMessage() {}
+
+func (x *CreateProgramRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_server_v1_server_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateProgramRequest.ProtoReflect.Descriptor instead.
+func (*CreateProgramRequest) Descriptor() ([]byte, []int) {
+	return file_server_v1_server_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CreateProgramRequest) GetProgram() []byte {
+	if x != nil {
+		return x.Program
+	}
+	return nil
+}
+
+// CreateProgramResponse defines the response structure to create a new program.
+type CreateProgramResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	// The ZK program to execute compute against
+	ProgramId int64 `protobuf:"varint,1,opt,name=program_id,json=programId,proto3" json:"program_id,omitempty"`
+}
+
+func (x *CreateProgramResponse) Reset() {
+	*x = CreateProgramResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_server_v1_server_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateProgramResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateProgramResponse) ProtoMessage() {}
+
+func (x *CreateProgramResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_server_v1_server_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateProgramResponse.ProtoReflect.Descriptor instead.
+func (*CreateProgramResponse) Descriptor() ([]byte, []int) {
+	return file_server_v1_server_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CreateProgramResponse) GetProgramId() int64 {
+	if x != nil {
+		return x.ProgramId
+	}
+	return 0
+}
+
+var File_server_v1_server_proto protoreflect.FileDescriptor
+
+var file_server_v1_server_proto_rawDesc = []byte{
+	0x0a, 0x16, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x65, 0x72, 0x76,
+	0x65, 0x72, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x12, 0x09, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
+	0x2e, 0x76, 0x31, 0x1a, 0x1c, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x2f, 0x61, 0x70, 0x69, 0x2f,
+	0x61, 0x6e, 0x6e, 0x6f, 0x74, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x73, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x1a, 0x13, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2f, 0x76, 0x31, 0x2f, 0x6a, 0x6f, 0x62,
+	0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x22, 0x34, 0x0a, 0x10, 0x53, 0x75, 0x62, 0x6d, 0x69, 0x74,
+	0x4a, 0x6f, 0x62, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x20, 0x0a, 0x03, 0x6a, 0x6f,
+	0x62, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72,
+	0x2e, 0x76, 0x31, 0x2e, 0x4a, 0x6f, 0x62, 0x52, 0x03, 0x6a, 0x6f, 0x62, 0x22, 0x2a, 0x0a, 0x11,
+	0x53, 0x75, 0x62, 0x6d, 0x69, 0x74, 0x4a, 0x6f, 0x62, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x15, 0x0a, 0x06, 0x6a, 0x6f, 0x62, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28,
+	0x04, 0x52, 0x05, 0x6a, 0x6f, 0x62, 0x49, 0x64, 0x22, 0x29, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x52,
+	0x65, 0x73, 0x75, 0x6c, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x15, 0x0a, 0x06,
+	0x6a, 0x6f, 0x62, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x04, 0x52, 0x05, 0x6a, 0x6f,
+	0x62, 0x49, 0x64, 0x22, 0xe7, 0x01, 0x0a, 0x11, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x75, 0x6c,
+	0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x20, 0x0a, 0x03, 0x6a, 0x6f, 0x62,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x0e, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e,
+	0x76, 0x31, 0x2e, 0x4a, 0x6f, 0x62, 0x52, 0x03, 0x6a, 0x6f, 0x62, 0x12, 0x2c, 0x0a, 0x06, 0x73,
+	0x74, 0x61, 0x74, 0x75, 0x73, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0e, 0x32, 0x14, 0x2e, 0x73, 0x65,
+	0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x4a, 0x6f, 0x62, 0x53, 0x74, 0x61, 0x74, 0x75,
+	0x73, 0x52, 0x06, 0x73, 0x74, 0x61, 0x74, 0x75, 0x73, 0x12, 0x16, 0x0a, 0x06, 0x72, 0x65, 0x73,
+	0x75, 0x6c, 0x74, 0x18, 0x03, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c,
+	0x74, 0x12, 0x32, 0x0a, 0x15, 0x7a, 0x6b, 0x76, 0x6d, 0x5f, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74,
+	0x6f, 0x72, 0x5f, 0x61, 0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x18, 0x04, 0x20, 0x01, 0x28, 0x0c,
+	0x52, 0x13, 0x7a, 0x6b, 0x76, 0x6d, 0x4f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x6f, 0x72, 0x41, 0x64,
+	0x64, 0x72, 0x65, 0x73, 0x73, 0x12, 0x36, 0x0a, 0x17, 0x7a, 0x6b, 0x76, 0x6d, 0x5f, 0x6f, 0x70,
+	0x65, 0x72, 0x61, 0x74, 0x6f, 0x72, 0x5f, 0x73, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65,
+	0x18, 0x05, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x15, 0x7a, 0x6b, 0x76, 0x6d, 0x4f, 0x70, 0x65, 0x72,
+	0x61, 0x74, 0x6f, 0x72, 0x53, 0x69, 0x67, 0x6e, 0x61, 0x74, 0x75, 0x72, 0x65, 0x22, 0x30, 0x0a,
+	0x14, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x52, 0x65,
+	0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x18, 0x0a, 0x07, 0x70, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d,
+	0x18, 0x01, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x07, 0x70, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x22,
+	0x36, 0x0a, 0x15, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d,
+	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x1d, 0x0a, 0x0a, 0x70, 0x72, 0x6f, 0x67,
+	0x72, 0x61, 0x6d, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x03, 0x52, 0x09, 0x70, 0x72,
+	0x6f, 0x67, 0x72, 0x61, 0x6d, 0x49, 0x64, 0x2a, 0x54, 0x0a, 0x09, 0x4a, 0x6f, 0x62, 0x53, 0x74,
+	0x61, 0x74, 0x75, 0x73, 0x12, 0x1a, 0x0a, 0x16, 0x4a, 0x4f, 0x42, 0x5f, 0x53, 0x54, 0x41, 0x54,
+	0x55, 0x53, 0x5f, 0x55, 0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00,
+	0x12, 0x16, 0x0a, 0x12, 0x4a, 0x4f, 0x42, 0x5f, 0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x50,
+	0x45, 0x4e, 0x44, 0x49, 0x4e, 0x47, 0x10, 0x01, 0x12, 0x13, 0x0a, 0x0f, 0x4a, 0x4f, 0x42, 0x5f,
+	0x53, 0x54, 0x41, 0x54, 0x55, 0x53, 0x5f, 0x44, 0x4f, 0x4e, 0x45, 0x10, 0x02, 0x32, 0xd8, 0x02,
+	0x0a, 0x06, 0x53, 0x65, 0x72, 0x76, 0x65, 0x72, 0x12, 0x68, 0x0a, 0x09, 0x53, 0x75, 0x62, 0x6d,
+	0x69, 0x74, 0x4a, 0x6f, 0x62, 0x12, 0x1b, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76,
+	0x31, 0x2e, 0x53, 0x75, 0x62, 0x6d, 0x69, 0x74, 0x4a, 0x6f, 0x62, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x1c, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x53,
+	0x75, 0x62, 0x6d, 0x69, 0x74, 0x4a, 0x6f, 0x62, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
+	0x22, 0x20, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1a, 0x3a, 0x01, 0x2a, 0x22, 0x15, 0x2f, 0x76, 0x31,
+	0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2f, 0x73, 0x75, 0x62, 0x6d, 0x69, 0x74, 0x5f, 0x6a,
+	0x6f, 0x62, 0x12, 0x6a, 0x0a, 0x09, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12,
+	0x1b, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x52,
+	0x65, 0x73, 0x75, 0x6c, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x1c, 0x2e, 0x73,
+	0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x75,
+	0x6c, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x22, 0x82, 0xd3, 0xe4, 0x93,
+	0x02, 0x1c, 0x12, 0x1a, 0x2f, 0x76, 0x31, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2f, 0x72,
+	0x65, 0x73, 0x75, 0x6c, 0x74, 0x2f, 0x7b, 0x6a, 0x6f, 0x62, 0x5f, 0x69, 0x64, 0x7d, 0x12, 0x78,
+	0x0a, 0x0d, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x12,
+	0x1f, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61,
+	0x74, 0x65, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x20, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65,
+	0x61, 0x74, 0x65, 0x50, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e,
+	0x73, 0x65, 0x22, 0x24, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x1e, 0x3a, 0x01, 0x2a, 0x22, 0x19, 0x2f,
+	0x76, 0x31, 0x2f, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2f, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65,
+	0x5f, 0x70, 0x72, 0x6f, 0x67, 0x72, 0x61, 0x6d, 0x42, 0x34, 0x5a, 0x32, 0x67, 0x69, 0x74, 0x68,
+	0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x65, 0x74, 0x68, 0x6f, 0x73, 0x2d, 0x77, 0x6f, 0x72,
+	0x6b, 0x73, 0x2f, 0x69, 0x6e, 0x66, 0x69, 0x6e, 0x69, 0x74, 0x79, 0x76, 0x6d, 0x2f, 0x73, 0x65,
+	0x72, 0x76, 0x65, 0x72, 0x2f, 0x70, 0x6b, 0x67, 0x2f, 0x74, 0x79, 0x70, 0x65, 0x73, 0x62, 0x06,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
-	file_infinityvm_server_v1_server_proto_rawDescOnce sync.Once
-	file_infinityvm_server_v1_server_proto_rawDescData = file_infinityvm_server_v1_server_proto_rawDesc
+	file_server_v1_server_proto_rawDescOnce sync.Once
+	file_server_v1_server_proto_rawDescData = file_server_v1_server_proto_rawDesc
 )
 
-func file_infinityvm_server_v1_server_proto_rawDescGZIP() []byte {
-	file_infinityvm_server_v1_server_proto_rawDescOnce.Do(func() {
-		file_infinityvm_server_v1_server_proto_rawDescData = protoimpl.X.CompressGZIP(file_infinityvm_server_v1_server_proto_rawDescData)
+func file_server_v1_server_proto_rawDescGZIP() []byte {
+	file_server_v1_server_proto_rawDescOnce.Do(func() {
+		file_server_v1_server_proto_rawDescData = protoimpl.X.CompressGZIP(file_server_v1_server_proto_rawDescData)
 	})
-	return file_infinityvm_server_v1_server_proto_rawDescData
+	return file_server_v1_server_proto_rawDescData
 }
 
-var file_infinityvm_server_v1_server_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_infinityvm_server_v1_server_proto_goTypes = []any{
-	(*StringMessage)(nil), // 0: infinityvm.server.v1.StringMessage
+var file_server_v1_server_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_server_v1_server_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_server_v1_server_proto_goTypes = []any{
+	(JobStatus)(0),                // 0: server.v1.JobStatus
+	(*SubmitJobRequest)(nil),      // 1: server.v1.SubmitJobRequest
+	(*SubmitJobResponse)(nil),     // 2: server.v1.SubmitJobResponse
+	(*GetResultRequest)(nil),      // 3: server.v1.GetResultRequest
+	(*GetResultResponse)(nil),     // 4: server.v1.GetResultResponse
+	(*CreateProgramRequest)(nil),  // 5: server.v1.CreateProgramRequest
+	(*CreateProgramResponse)(nil), // 6: server.v1.CreateProgramResponse
+	(*Job)(nil),                   // 7: server.v1.Job
 }
-var file_infinityvm_server_v1_server_proto_depIdxs = []int32{
-	0, // 0: infinityvm.server.v1.YourService.Echo:input_type -> infinityvm.server.v1.StringMessage
-	0, // 1: infinityvm.server.v1.YourService.Echo:output_type -> infinityvm.server.v1.StringMessage
-	1, // [1:2] is the sub-list for method output_type
-	0, // [0:1] is the sub-list for method input_type
-	0, // [0:0] is the sub-list for extension type_name
-	0, // [0:0] is the sub-list for extension extendee
-	0, // [0:0] is the sub-list for field type_name
+var file_server_v1_server_proto_depIdxs = []int32{
+	7, // 0: server.v1.SubmitJobRequest.job:type_name -> server.v1.Job
+	7, // 1: server.v1.GetResultResponse.job:type_name -> server.v1.Job
+	0, // 2: server.v1.GetResultResponse.status:type_name -> server.v1.JobStatus
+	1, // 3: server.v1.Server.SubmitJob:input_type -> server.v1.SubmitJobRequest
+	3, // 4: server.v1.Server.GetResult:input_type -> server.v1.GetResultRequest
+	5, // 5: server.v1.Server.CreateProgram:input_type -> server.v1.CreateProgramRequest
+	2, // 6: server.v1.Server.SubmitJob:output_type -> server.v1.SubmitJobResponse
+	4, // 7: server.v1.Server.GetResult:output_type -> server.v1.GetResultResponse
+	6, // 8: server.v1.Server.CreateProgram:output_type -> server.v1.CreateProgramResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_infinityvm_server_v1_server_proto_init() }
-func file_infinityvm_server_v1_server_proto_init() {
-	if File_infinityvm_server_v1_server_proto != nil {
+func init() { file_server_v1_server_proto_init() }
+func file_server_v1_server_proto_init() {
+	if File_server_v1_server_proto != nil {
 		return
 	}
+	file_server_v1_job_proto_init()
 	if !protoimpl.UnsafeEnabled {
-		file_infinityvm_server_v1_server_proto_msgTypes[0].Exporter = func(v any, i int) any {
-			switch v := v.(*StringMessage); i {
+		file_server_v1_server_proto_msgTypes[0].Exporter = func(v any, i int) any {
+			switch v := v.(*SubmitJobRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_server_v1_server_proto_msgTypes[1].Exporter = func(v any, i int) any {
+			switch v := v.(*SubmitJobResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_server_v1_server_proto_msgTypes[2].Exporter = func(v any, i int) any {
+			switch v := v.(*GetResultRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_server_v1_server_proto_msgTypes[3].Exporter = func(v any, i int) any {
+			switch v := v.(*GetResultResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_server_v1_server_proto_msgTypes[4].Exporter = func(v any, i int) any {
+			switch v := v.(*CreateProgramRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_server_v1_server_proto_msgTypes[5].Exporter = func(v any, i int) any {
+			switch v := v.(*CreateProgramResponse); i {
 			case 0:
 				return &v.state
 			case 1:
@@ -138,18 +594,19 @@ func file_infinityvm_server_v1_server_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: file_infinityvm_server_v1_server_proto_rawDesc,
-			NumEnums:      0,
-			NumMessages:   1,
+			RawDescriptor: file_server_v1_server_proto_rawDesc,
+			NumEnums:      1,
+			NumMessages:   6,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_infinityvm_server_v1_server_proto_goTypes,
-		DependencyIndexes: file_infinityvm_server_v1_server_proto_depIdxs,
-		MessageInfos:      file_infinityvm_server_v1_server_proto_msgTypes,
+		GoTypes:           file_server_v1_server_proto_goTypes,
+		DependencyIndexes: file_server_v1_server_proto_depIdxs,
+		EnumInfos:         file_server_v1_server_proto_enumTypes,
+		MessageInfos:      file_server_v1_server_proto_msgTypes,
 	}.Build()
-	File_infinityvm_server_v1_server_proto = out.File
-	file_infinityvm_server_v1_server_proto_rawDesc = nil
-	file_infinityvm_server_v1_server_proto_goTypes = nil
-	file_infinityvm_server_v1_server_proto_depIdxs = nil
+	File_server_v1_server_proto = out.File
+	file_server_v1_server_proto_rawDesc = nil
+	file_server_v1_server_proto_goTypes = nil
+	file_server_v1_server_proto_depIdxs = nil
 }
