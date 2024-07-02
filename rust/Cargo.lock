@@ -2165,6 +2165,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "integration"
+version = "0.0.1"
+dependencies = [
+ "futures",
+ "proto",
+ "rand",
+ "tokio",
+ "tonic",
+]
+
+[[package]]
 name = "inventory"
 version = "0.3.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"

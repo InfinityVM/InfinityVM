@@ -7,6 +7,7 @@ rust-version = "1.79"
 members = [
 	"crates/executor",
 	"crates/zkvm",
+	"test",
 	# "programs/vapenation/core",
 	# "programs/vapenation/methods"
 ]
@@ -106,6 +107,8 @@ clap = { version = "*", features = ["derive"] }
 # d
 # e
 # f
+futures = { version = "*" }
+
 # g
 # h
 hex = { version = "*" }
@@ -127,6 +130,8 @@ prost = "*"
 risc0-zkvm = { version = "1.0.1", features = ["prove"] }
 risc0-build = { version = "1.0.1" }
 risc0-binfmt = "*"
+rand_core = { version = "*" }
+rand = { version = "*" }
 
 # s
 serde = { version = "1.0", features = ["derive"] }

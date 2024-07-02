@@ -27,6 +27,14 @@ cargo lint --fix
 cargo +nightly fmt
 ```
 
+To iterate on integration tests run:
+
+```
+make test-all
+```
+
+### VSCode
+
 If you are working in VSCode, try installing the rust-analyzer extension. We recommend the following settings:
 
 ```

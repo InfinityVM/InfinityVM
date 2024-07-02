@@ -31,3 +31,11 @@ doc-ci:
 doc:
 	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps --open
+
+# Use this for iterating on integration tests
+.PHONY: test-all
+test-all:
+	@# Make sure to build the bins that the integration tests rely on
+	@# and run the ignored tests
+	cargo build && \
+	cargo test -- --ignored
