@@ -1,5 +1,5 @@
 [package]
-name = "server"
+name = "executor"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -12,7 +12,11 @@ tonic.workspace = true
 prost.workspace = true
 tokio.workspace = true
 alloy.workspace = true
+alloy-signer-local.workspace = true
 clap.workspace = true
+k256.workspace = true
+thiserror.workspace = true
+
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
 

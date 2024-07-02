@@ -5,7 +5,7 @@ rust-version = "1.79"
 
 [workspace]
 members = [
-	"crates/server",
+	"crates/executor",
 	"crates/zkvm",
 	# "programs/vapenation/core",
 	# "programs/vapenation/methods"
@@ -96,8 +96,8 @@ significant_drop_tightening = "allow"
 [workspace.dependencies]
 # a
 anyhow = "*"
-alloy = { version = "*", features = ["network", "signers"]}
-# async-stream = "0.2"
+alloy = { version = "*", features = ["network", "signer-local", "signer-keystore"]}
+alloy-signer-local = { version = "*" }
 
 # b
 # c
@@ -108,9 +108,13 @@ clap = { version = "*", features = ["derive"] }
 # f
 # g
 # h
+hex = { version = "*" }
+
 # i
 # j
 # k
+k256 = { version = "*" }
+
 # l
 # m
 # n
@@ -123,18 +127,15 @@ prost = "*"
 risc0-zkvm = { version = "1.0.1", features = ["prove"] }
 risc0-build = { version = "1.0.1" }
 risc0-binfmt = "*"
-# rand = "0.8"
 
 # s
 serde = { version = "1.0", features = ["derive"] }
-# serde_json = "1.0"
 
 # t
 tonic-build = "*"
 tonic = "*"
 tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time"] }
 thiserror = "*"
-# tokio-stream = "0"
 
 # u
 # v

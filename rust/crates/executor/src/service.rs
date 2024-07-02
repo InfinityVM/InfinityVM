@@ -1,28 +1,22 @@
 //! gRPC service implementation.
 
-use alloy::network::NetworkWallet;
-use alloy::network::TxSigner;
-use alloy::primitives::Signature;
-use alloy::signers::Signer;
-use core::slice::Iter;
+use alloy::{primitives::Signature, signers::Signer};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
-use std::marker::PhantomData;
-use std::marker::Send;
+use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
 
-use alloy::{
-    network::EthereumWallet,
-    // signers::local::LocalSigner,
-    primitives::{address, U256},
-};
+#[derive(thiserror::Error, Debug)]
+enum Error {
+    #[error("signer error: {0}")]
+    Signer(#[from] alloy::signers::Error),
+}
 
-///  The implementation of the ZkvmExecutor trait
+///  The implementation of the `ZkvmExecutor` trait
 /// TODO(zeke): do we want to make this generic over executor?
 #[derive(Debug)]
-pub struct ZkvmExecutorService<T, S> {
-    // TODO(zeke): we can make this generic over a signer
-    // to add support for things like AWS, yubihsm etc
-    wallet: S,
+pub(crate) struct ZkvmExecutorService<T, S> {
+    signer: S,
+    chain_id: Option<u64>,
     _phantom: PhantomData<T>,
 }
 
@@ -30,19 +24,17 @@ impl<T, S> ZkvmExecutorService<T, S>
 where
     S: Signer<Signature> + Send + Sync + 'static,
 {
-    pub(crate) fn new(wallet: S) -> Self {
-        Self {
-            wallet,
-            _phantom: PhantomData,
-        }
+    pub(crate) const fn new(signer: S, chain_id: Option<u64>) -> Self {
+        Self { signer, chain_id, _phantom: PhantomData }
     }
 
-    fn zkvm_operator_eth_address() -> Vec<u8> {
-        unimplemented!()
+    fn address_checksum_bytes(&self) -> Vec<u8> {
+        self.signer.address().to_checksum(self.chain_id).as_bytes().to_vec()
     }
 
-    fn eth_sign() -> Vec<u8> {
-        unimplemented!()
+    // TODO(zeke): do we want to return v,r,s separately?
+    async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
+        self.signer.sign_message(msg).await.map(|s| s.into()).map_err(|e| e.into())
     }
 }
 
@@ -85,19 +77,22 @@ where
             inputs.max_cycles as u64,
         )
         .map_err(|e| format!("zkvm execute error: {e:?}"))
-        .map_err(|e| tonic::Status::invalid_argument(e))?;
+        .map_err(tonic::Status::invalid_argument)?;
 
         let signing_payload = result_signing_payload(&inputs, &raw_output);
 
-        // TODO(zeke): make sure this is getting keccak hash
-        let zkvm_operator_signature = self.wallet.sign_msg(signing_payload);
+        let zkvm_operator_signature = self
+            .sign_message(&signing_payload)
+            .await
+            .map_err(|e| format!("signing error: {e:?}"))
+            .map_err(tonic::Status::internal)?;
         let response = ExecuteResponse {
             inputs: Some(inputs),
-            zkvm_operator_address: self.wallet.default_signer_address(),
+            zkvm_operator_address: self.address_checksum_bytes(),
             zkvm_operator_signature,
             raw_output,
         };
 
-        Ok(response)
+        Ok(tonic::Response::new(response))
     }
 }

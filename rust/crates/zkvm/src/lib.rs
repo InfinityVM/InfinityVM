@@ -1,9 +1,7 @@
 //! Better then your ZKVM.
 
 use risc0_binfmt::compute_image_id;
-use risc0_zkvm::Executor;
-use risc0_zkvm::ExecutorEnv;
-use risc0_zkvm::LocalProver;
+use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
 use thiserror::Error;
 
 /// The error
@@ -14,7 +12,7 @@ pub enum Error {
     Risc0(#[from] anyhow::Error),
 }
 
-/// A ZKVM
+/// Something that can execute programs and generate ZK proofs for them.
 pub trait Zkvm {
     /// Check if the verifying key can be derived from program elf.
     fn is_correct_verifying_key(
@@ -32,6 +30,8 @@ pub trait Zkvm {
     // fn verify()
 }
 
+/// Risc0 impl of [Zkvm].
+#[derive(Debug)]
 pub struct Risc0;
 
 impl Zkvm for Risc0 {
@@ -63,10 +63,12 @@ impl Zkvm for Risc0 {
 
 #[cfg(test)]
 mod test {
+    #[test]
     fn risc0_execute_works() {
         // take a real program and make sure
         // - we can serialize bytes
         // - run execute
         // - deserialize result
+        todo!()
     }
 }
