@@ -1,15 +1,12 @@
 //! gRPC service implementation.
 
-use alloy::{
-    primitives::Signature,
-    signers::{Signer},
-};
+use alloy::{primitives::Signature, signers::Signer};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
 
 #[derive(thiserror::Error, Debug)]
-pub(crate) enum Error {
+enum Error {
     #[error("signer error: {0}")]
     Signer(#[from] alloy::signers::Error),
 }
@@ -18,7 +15,7 @@ pub(crate) enum Error {
 /// TODO(zeke): do we want to make this generic over executor?
 #[derive(Debug)]
 pub(crate) struct ZkvmExecutorService<T, S> {
-    wallet: S,
+    signer: S,
     chain_id: Option<u64>,
     _phantom: PhantomData<T>,
 }
@@ -27,17 +24,17 @@ impl<T, S> ZkvmExecutorService<T, S>
 where
     S: Signer<Signature> + Send + Sync + 'static,
 {
-    pub(crate) const fn new(wallet: S, chain_id: Option<u64>) -> Self {
-        Self { wallet, chain_id, _phantom: PhantomData }
+    pub(crate) const fn new(signer: S, chain_id: Option<u64>) -> Self {
+        Self { signer, chain_id, _phantom: PhantomData }
     }
 
     fn address_checksum_bytes(&self) -> Vec<u8> {
-        self.wallet.address().to_checksum(self.chain_id).as_bytes().to_vec()
+        self.signer.address().to_checksum(self.chain_id).as_bytes().to_vec()
     }
 
     // TODO(zeke): do we want to return v,r,s separately?
     async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
-        self.wallet.sign_message(msg).await.map(|s| s.into()).map_err(|e| e.into())
+        self.signer.sign_message(msg).await.map(|s| s.into()).map_err(|e| e.into())
     }
 }
 

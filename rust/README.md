@@ -1,7 +1,6 @@
 # Rust workspace
 
 The workspace configuration is defined by `rust/Cargo.toml`.
-This is a PoC for our ZKVM Execution Service. The service is in charge of executing ZKVM programs.
 
 ## Develop
 
@@ -37,15 +36,6 @@ If you are working in VSCode, try installing the rust-analyzer extension. We rec
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
 }
 ```
-
-## TODO
-
-- [ ] cli that you can use ecdsa signing key with
-- [ ] locally generate proto bindings so they are easier to understand, but git ignore them
-- [ ] do we want the errors to be in the proto message so its not just a gRPC status?
-- [ ] basic logging with debug + info
-- [ ] prometheus metrics
-- [ ] disable default features on all deps and pin versions
 
 ## Acknowledgements
 
