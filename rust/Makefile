@@ -28,6 +28,3 @@ doc-ci:
 doc:
 	RUSTDOCFLAGS="--cfg docsrs --show-type-layout --generate-link-to-definition --enable-index-page"
 	cargo doc --document-private-items --open
-
-.PHONY: pr
-pr: fmt-ci clippy-ci docs-ci
