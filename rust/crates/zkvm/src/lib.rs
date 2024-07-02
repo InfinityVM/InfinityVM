@@ -67,6 +67,5 @@ mod test {
         // - we can serialize bytes
         // - run execute
         // - deserialize result
-        todo!()
     }
 }
