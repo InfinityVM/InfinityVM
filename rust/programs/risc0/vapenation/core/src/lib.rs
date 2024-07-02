@@ -1,10 +1,12 @@
 //! Crate with things we can reuse in the guest program (targets risc-v) and
 //! in the host or anywhere else (targets local arch e.g. amd64).
 
+use alloy_rlp::{RlpDecodable, RlpEncodable};
+
 const FOUR_TWENTY: u64 = 420;
 
 /// Metadata for a Vape Nation
-#[derive(serde::Serialize, serde::Deserialize, Debug, Default, Clone)]
+#[derive(RlpEncodable, RlpDecodable, Debug, Default, Clone)]
 pub struct VapeNationMetadata {
     pub nation_id: u64,
     pub phrase: String,

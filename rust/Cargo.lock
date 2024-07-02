@@ -125,6 +125,7 @@ dependencies = [
  "alloy-dyn-abi",
  "alloy-json-abi",
  "alloy-primitives",
+ "alloy-rlp",
  "alloy-sol-types",
 ]
 
@@ -2218,8 +2219,10 @@ dependencies = [
  "futures",
  "proto",
  "rand",
+ "risc0-binfmt",
  "tokio",
  "tonic",
+ "vapenation_methods",
 ]
 
 [[package]]
@@ -4489,13 +4492,6 @@ name = "valuable"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b7e5d4d90034032940e4ace0d9a9a057e7a45cd94e6c007832e39edb82f6d"
-
-[[package]]
-name = "vapenation_core"
-version = "0.1.0"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "vapenation_methods"

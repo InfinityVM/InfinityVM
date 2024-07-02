@@ -1,4 +1,9 @@
-//! NOTE(zeke): The stuff in here will be compiled down to riscv32im byte code.
+//! This is a SUPER SERIOUS ZKVM PROGRAM. It is extremely critical and if you
+//! have to ask what it is you probably should reconsider your career.
+//! JK! This is just a silly program to demonstrate how to setup a risc0
+//! program that can be used with our executor.
+//!
+//! The stuff in here will be compiled down to riscv32im byte code.
 //!
 //! Anything that you want to be accessible in the host (i.e. stuff that
 //! compiles down your local arch), must be defined in another crate and then
@@ -16,7 +21,7 @@ fn main() {
     let input = u64::from_be_bytes(raw_input);
     
     // Note that alternatively we could have done, but this would mean
-    // serializing/deserializing
+    // serializing/deserializing implicitly with the risc0 serialization.
     // let input: u64 = env::read();
 
     let phrase = (0..input)
@@ -30,13 +35,11 @@ fn main() {
     let points = nation_id / 69;
 
 
-    let output = VapeNationMetadata {
+    let output = alloy_rlp::encode(VapeNationMetadata {
         nation_id,
         phrase,
         points,
-    };
+    });
 
-    // write public output to the journal
-    // TODO(zeke): commit output just as lslice
-    env::commit(&output);
+    env::commit_slice(&output);
 }

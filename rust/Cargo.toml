@@ -8,8 +8,8 @@ members = [
 	"crates/executor",
 	"crates/zkvm",
 	"test",
-	"programs/risc0/vapenation/core",
-	"programs/risc0/vapenation/methods"
+	"programs/risc0/vapenation/methods",
+	# "programs/risc0/vapenation/core"
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -97,7 +97,7 @@ significant_drop_tightening = "allow"
 [workspace.dependencies]
 # a
 anyhow = "*"
-alloy = { version = "*", features = ["network", "signer-local", "signer-keystore"]}
+alloy = { version = "*", features = ["network", "signer-local", "signer-keystore", "rlp"]}
 alloy-signer-local = { version = "*" }
 
 # b
