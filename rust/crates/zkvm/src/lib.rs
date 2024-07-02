@@ -61,11 +61,11 @@ impl Zkvm for Risc0 {
 
 #[cfg(test)]
 mod test {
-    #[test]
-    fn risc0_execute_works() {
-        // take a real program and make sure
-        // - we can serialize bytes
-        // - run execute
-        // - deserialize result
-    }
+    // #[test]
+    // fn risc0_execute_works() {
+    //     // take a real program and make sure
+    //     // - we can serialize bytes
+    //     // - run execute
+    //     // - deserialize result
+    // }
 }
