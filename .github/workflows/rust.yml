@@ -16,10 +16,10 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain
+      - uses: dtolnay/rust-toolchain@1.79.0
+      - uses: Swatinem/rust-cache@v2
         with:
-          toolchain: 1.79
-          components: rustc
+          cache-on-failure: true
       - run: cd rust && cargo build --workspace --all-targets --examples --tests
 
   test:
@@ -28,11 +28,11 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain
+      - uses: dtolnay/rust-toolchainn@1.79.0
+      - uses: Swatinem/rust-cache@v2
         with:
-          toolchain: 1.79
-          components: rustc
-      - run: cd rust && cargo test
+          cache-on-failure: true
+      - run: cd rust && cargo test --all-features
 
   clippy:
     name: clippy
