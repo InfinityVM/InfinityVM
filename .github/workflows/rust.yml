@@ -20,7 +20,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-      - run: make -C rust lint-ci
+      - run: make -C rust clippy-ci
 
   fmt:
     name: fmt
@@ -54,4 +54,3 @@ jobs:
         with:
           cache-on-failure: true
       - run: make -C rust doc-ci
-
