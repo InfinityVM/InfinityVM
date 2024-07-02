@@ -24,10 +24,10 @@ test-ci:
 
 .PHONY: doc-ci
 doc-ci:
-	RUSTDOCFLAGS="--cfg docsrs --show-type-layout --generate-link-to-definition -D warnings" \
-	cargo doc --document-private-items
+	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
+	cargo doc --document-private-items --no-deps
 
 .PHONY: doc
 doc:
-	RUSTDOCFLAGS="--cfg docsrs --show-type-layout --generate-link-to-definition -D warnings"
-	cargo doc --document-private-items --open
+	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
+	cargo doc --document-private-items --no-deps --open

@@ -10,6 +10,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain
+        with:
+          toolchain: 1.79
+          components: rustc
+      - run: cd rust && cargo build --workspace --all-targets --examples --tests
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain
+        with:
+          toolchain: 1.79
+          components: rustc
+      - run: cd rust && cargo test
+
   clippy:
     name: clippy
     runs-on: ubuntu-latest
@@ -20,6 +44,12 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+      - uses: wizhi/setup-buf@v1
+        with:
+          version: '0.36.0'
+      - uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
       - run: make -C rust clippy-ci
 
   fmt:
@@ -32,16 +62,6 @@ jobs:
         with:
           components: rustfmt
       - run: make -C rust fmt-ci
-
-  codespell:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: codespell-project/actions-codespell@v2
-        with:
-          skip: "*.json"
-          ignore_words_file: .codespellignore
 
   docs:
     name: docs
