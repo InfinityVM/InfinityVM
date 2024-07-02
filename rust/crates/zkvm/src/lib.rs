@@ -54,21 +54,18 @@ impl Zkvm for Risc0 {
         let prover = LocalProver::new("locals only");
 
         let prove_info = prover.execute(env, program_elf)?;
-        // let receipt = prove_info.receipt;
 
-        // TODO(zeke): verify the raw bytes are whats wrong here
         Ok(prove_info.journal.bytes)
     }
 }
 
 #[cfg(test)]
 mod test {
-    #[test]
-    fn risc0_execute_works() {
-        // take a real program and make sure
-        // - we can serialize bytes
-        // - run execute
-        // - deserialize result
-        todo!()
-    }
+    // #[test]
+    // fn risc0_execute_works() {
+    //     // take a real program and make sure
+    //     // - we can serialize bytes
+    //     // - run execute
+    //     // - deserialize result
+    // }
 }
