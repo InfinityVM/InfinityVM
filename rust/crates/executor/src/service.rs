@@ -74,7 +74,7 @@ where
             &msg.program_elf,
             &inputs.program_input,
             // TODO(zeke) make this safe
-            inputs.max_cycles as u64,
+            inputs.max_cycles,
         )
         .map_err(|e| format!("zkvm execute error: {e:?}"))
         .map_err(tonic::Status::invalid_argument)?;

@@ -2217,6 +2217,7 @@ name = "integration"
 version = "0.0.1"
 dependencies = [
  "alloy-rlp",
+ "alloy-sol-types",
  "futures",
  "proto",
  "rand",
