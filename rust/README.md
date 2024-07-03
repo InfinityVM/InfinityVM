@@ -33,9 +33,15 @@ cargo risczero --version
 
 **Iterating**
 
+View docs
+
+```sh
+make doc
+```
+
 Lint
 
-```
+```sh
 # you can run lint commands directly 
 RISC0_SKIP_BUILD=true cargo clippy --fix
 cargo +nightly fmt
