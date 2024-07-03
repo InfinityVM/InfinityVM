@@ -52,6 +52,9 @@ jobs:
         with:
           version: '3.x'
       - uses: dtolnay/rust-toolchain@clippy
+      - run: cargo binstall cargo-risczero -y
+      - run: cargo risczero install
+      - run: cargo risczero --version
       - run: make -C rust clippy-ci
 
   fmt:
