@@ -61,11 +61,29 @@ impl Zkvm for Risc0 {
 
 #[cfg(test)]
 mod test {
-    // #[test]
-    // fn risc0_execute_works() {
-    //     // take a real program and make sure
-    //     // - we can serialize bytes
-    //     // - run execute
-    //     // - deserialize result
-    // }
+    use crate::{Risc0, Zkvm};
+    use alloy_rlp::Decodable;
+    use alloy_sol_types::SolType;
+    use vapenation_core::{VapeNationArg, VapeNationMetadata};
+
+    const VAPENATION_ELF_PATH: &str =
+        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
+    #[test]
+    fn risc0_execute_works() {
+        let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
+        let image_id = risc0_binfmt::compute_image_id(&vapenation_elf).unwrap().as_bytes().to_vec();
+        let input = 2u64;
+        let raw_input = VapeNationArg::abi_encode(&input);
+
+        dbg!(&raw_input);
+
+        let raw_result = Risc0::execute(&vapenation_elf, &raw_input, 32 * 1000 * 1000 * 1000).unwrap();
+
+        let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
+        let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
+
+        assert_eq!(metadata.nation_id, 32);
+        assert_eq!(metadata.points, 32);
+        assert_eq!(metadata.phrase, phrase);
+    }
 }

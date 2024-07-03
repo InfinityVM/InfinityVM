@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 serde = { version = "*"}
 alloy-rlp = { version = "*", features = ["derive"] }
+alloy-sol-types = { version = "*" }

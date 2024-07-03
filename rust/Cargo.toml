@@ -100,6 +100,7 @@ anyhow = "*"
 alloy = { version = "*", features = ["network", "signer-local", "signer-keystore", "rlp"]}
 alloy-signer-local = { version = "*" }
 alloy-rlp = { version = "*" }
+alloy-sol-types = { version = "*" }
 
 # b
 # c

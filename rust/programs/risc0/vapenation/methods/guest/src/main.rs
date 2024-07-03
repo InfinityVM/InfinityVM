@@ -6,21 +6,23 @@
 //! The stuff in here will be compiled down to riscv32im byte code.
 //!
 //! Anything that you want to be accessible in the host (i.e. stuff that
-//! compiles down your local arch), must be defined in another crate and then
-//! imported
+//! compiles down to your local arch), must be defined in another crate and then
+//! imported,
 //!
 //! For this example, we are putting shared resources in a `core` crate.
-use alloy_rlp::Decodable;
+use alloy_sol_types::SolType;
 use risc0_zkvm::guest::env;
-use vapenation_core::{compute_nation_id, VapeNationMetadata};
+use vapenation_core::{compute_nation_id, VapeNationArg, VapeNationMetadata};
 
 fn main() {
     // read in data as bytes
-    let mut raw_input = [0u8; 8];
-    env::read_slice(&mut raw_input);
+    let mut input_bytes = vec![];
+    let mut input_bytes = Vec::<u8>::new();
+    env::stdin().read_to_end(&mut input_bytes).unwrap();
 
+    dbg!(&raw);
     // deserialize the bytes to a u64 using rlp encoding
-    let input = u64::decode(&mut &raw_input[..]).unwrap();
+    let input = VapeNationArg::abi_decode(&raw, false).unwrap();
 
     // Note that alternatively we could have done, but this would mean
     // serializing/deserializing implicitly with the risc0 serialization.

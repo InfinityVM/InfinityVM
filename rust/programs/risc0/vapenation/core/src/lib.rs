@@ -2,8 +2,13 @@
 //! in the host or anywhere else (targets local arch e.g. amd64).
 
 use alloy_rlp::{RlpDecodable, RlpEncodable};
+use alloy_sol_types::sol;
 
 const FOUR_TWENTY: u64 = 420;
+
+pub type VapeNationArg = sol! {
+    uint64
+};
 /// Metadata for a Vape Nation
 #[derive(RlpEncodable, RlpDecodable, Debug, Default, Clone)]
 pub struct VapeNationMetadata {

@@ -9,3 +9,4 @@ edition = "2021"
 risc0-zkvm = { version = "1.0.1", default-features = false, features = ['std'] }
 vapenation_core = { path = "../../core" }
 alloy-rlp = { version = "*" }
+alloy-sol-types = { version = "*" }

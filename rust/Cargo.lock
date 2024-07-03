@@ -4500,6 +4500,7 @@ name = "vapenation_core"
 version = "0.1.0"
 dependencies = [
  "alloy-rlp",
+ "alloy-sol-types",
  "serde",
 ]
 
@@ -4902,10 +4903,13 @@ dependencies = [
 name = "zkvm"
 version = "0.0.1"
 dependencies = [
+ "alloy-rlp",
+ "alloy-sol-types",
  "anyhow",
  "risc0-binfmt",
  "risc0-zkvm",
  "thiserror",
+ "vapenation_core",
 ]
 
 [[package]]
