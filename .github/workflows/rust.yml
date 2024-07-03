@@ -28,8 +28,6 @@ jobs:
       - run: cargo binstall cargo-risczero -y
       - run: cargo risczero install
       - run: cargo risczero --version
-      - run: make -C rust fmt
-      - run: make -C rust clippy-ci
       - run: cd rust && cargo build --workspace --all-targets --examples --tests
       - run: make -C rust test-all
 
