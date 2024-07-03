@@ -75,7 +75,8 @@ jobs:
         with:
           version: '3.x'
       - uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "/rust"
+      - uses: taiki-e/install-action@cargo-binstall
+      - run: cargo binstall cargo-risczero -y
+      - run: cargo risczero install
+      - run: cargo risczero --version
       - run: make -C rust doc-ci
