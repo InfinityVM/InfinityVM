@@ -12,7 +12,9 @@ use executor::DEV_SECRET;
 use vapenation_core::{VapeNationArg, VapeNationMetadata};
 use vapenation_methods::{VAPENATION_GUEST_ELF, VAPENATION_GUEST_ID, VAPENATION_GUEST_PATH};
 
-// NOTE: this relies on debug binaries, so make sure to run `cargo build` while iterating
+// WARNING: read the integration test readme to learn about common footguns while iterating
+// on these integration tests.
+
 const VAPENATION_ELF_PATH: &str =
     "../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
 
@@ -21,7 +23,7 @@ fn expected_signer_address() -> Address {
     signer.address()
 }
 
-// We copy and past this instead of importing so we can detect regressions in the core impl.
+// We copy and paste this instead of importing so we can detect regressions in the core impl.
 fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
     i.program_verifying_key
         .iter()

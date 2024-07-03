@@ -14,13 +14,13 @@ enum Error {
 ///  The implementation of the `ZkvmExecutor` trait
 /// TODO(zeke): do we want to make this generic over executor?
 #[derive(Debug)]
-pub(crate) struct ZkvmExecutorService<T, S> {
+pub(crate) struct ZkvmExecutorService<Z, S> {
     signer: S,
     chain_id: Option<u64>,
-    _phantom: PhantomData<T>,
+    _phantom: PhantomData<Z>,
 }
 
-impl<T, S> ZkvmExecutorService<T, S>
+impl<Z, S> ZkvmExecutorService<Z, S>
 where
     S: Signer<Signature> + Send + Sync + 'static,
 {
@@ -28,7 +28,7 @@ where
         Self { signer, chain_id, _phantom: PhantomData }
     }
 
-    /// Checksum address (string), as bytes.
+    /// Checksum address (hex string), as bytes.
     fn address_checksum_bytes(&self) -> Vec<u8> {
         self.signer.address().to_checksum(self.chain_id).as_bytes().to_vec()
     }
@@ -49,22 +49,10 @@ where
     }
 }
 
-// TODO(zeke): should we just create a payload struct and RLP encode
-// that instead? This seems like a finicky encoding strategy
-fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
-    i.program_verifying_key
-        .iter()
-        .chain(i.program_input.iter())
-        .chain(i.max_cycles.to_be_bytes().iter())
-        .chain(raw_output)
-        .copied()
-        .collect()
-}
-
 #[tonic::async_trait]
-impl<T, S> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<T, S>
+impl<Z, S> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<Z, S>
 where
-    T: Zkvm + Send + Sync + 'static,
+    Z: Zkvm + Send + Sync + 'static,
     S: Signer<Signature> + Send + Sync + 'static,
 {
     async fn execute(
@@ -74,20 +62,15 @@ where
         let msg = request.into_inner();
         let inputs = msg.inputs.expect("todo");
 
-        if !T::is_correct_verifying_key(&msg.program_elf, &inputs.program_verifying_key)
+        if !Z::is_correct_verifying_key(&msg.program_elf, &inputs.program_verifying_key)
             .expect("todo")
         {
             return Err(tonic::Status::invalid_argument("bad verifying key"));
         }
 
-        let raw_output = T::execute(
-            &msg.program_elf,
-            &inputs.program_input,
-            // TODO(zeke) make this safe
-            inputs.max_cycles,
-        )
-        .map_err(|e| format!("zkvm execute error: {e:?}"))
-        .map_err(tonic::Status::invalid_argument)?;
+        let raw_output = Z::execute(&msg.program_elf, &inputs.program_input, inputs.max_cycles)
+            .map_err(|e| format!("zkvm execute error: {e:?}"))
+            .map_err(tonic::Status::invalid_argument)?;
 
         let signing_payload = result_signing_payload(&inputs, &raw_output);
 
@@ -105,4 +88,16 @@ where
 
         Ok(tonic::Response::new(response))
     }
+}
+
+// TODO(zeke): should we just create a payload struct and RLP encode
+// that instead? This seems like a finicky encoding strategy
+fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
+    i.program_verifying_key
+        .iter()
+        .chain(i.program_input.iter())
+        .chain(i.max_cycles.to_be_bytes().iter())
+        .chain(raw_output)
+        .copied()
+        .collect()
 }

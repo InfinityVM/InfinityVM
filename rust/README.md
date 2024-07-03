@@ -37,7 +37,6 @@ make lint
 Build
 
 ```sh
-# build the workspace
 cargo build
 ```
 
@@ -48,7 +47,7 @@ cargo test
 ```
 
 
-Integration tests:
+Integration tests
 
 ```sh
 make test-all
