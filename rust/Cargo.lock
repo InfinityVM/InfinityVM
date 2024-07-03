@@ -2216,8 +2216,10 @@ dependencies = [
 name = "integration"
 version = "0.0.1"
 dependencies = [
+ "alloy",
  "alloy-rlp",
  "alloy-sol-types",
+ "executor",
  "futures",
  "proto",
  "rand",

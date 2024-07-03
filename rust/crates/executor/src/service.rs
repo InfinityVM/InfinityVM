@@ -1,6 +1,6 @@
 //! gRPC service implementation.
 
-use alloy::{primitives::Signature, signers::Signer};
+use alloy::{primitives::Signature, rlp::Encodable, signers::Signer};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
@@ -28,20 +28,30 @@ where
         Self { signer, chain_id, _phantom: PhantomData }
     }
 
+    /// Checksum address (string), as bytes.
     fn address_checksum_bytes(&self) -> Vec<u8> {
         self.signer.address().to_checksum(self.chain_id).as_bytes().to_vec()
     }
 
-    // TODO(zeke): do we want to return v,r,s separately?
+    /// Returns an RLP encoded signature over `eip191_hash_message(msg)`
+    // TODO(zeke): figure out if we want to encode with header (current approach)
+    // or just `encode_rlp_vrs`. CC maanav
     async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
-        self.signer.sign_message(msg).await.map(|s| s.into()).map_err(|e| e.into())
+        self.signer
+            .sign_message(msg)
+            .await
+            .map(|sig| {
+                let mut out = Vec::with_capacity(sig.rlp_vrs_len());
+                sig.encode(&mut out);
+                out
+            })
+            .map_err(Into::into)
     }
 }
 
+// TODO(zeke): should we just create a payload struct and RLP encode
+// that instead? This seems like a finicky encoding strategy
 fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
-    // TODO(zeke): should we just create a payload struct and RLP encode
-    // that instead? This seems like a finicky encoding strategy
-
     i.program_verifying_key
         .iter()
         .chain(i.program_input.iter())

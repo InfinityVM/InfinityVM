@@ -4,6 +4,8 @@ The workspace configuration is defined by `rust/Cargo.toml`.
 
 ## Develop
 
+**Workspace setup**
+
 ```sh
 # set rust version
 rustup use 1.79
@@ -16,20 +18,39 @@ brew update
 brew install protobuf
 ```
 
-```sh
-# build the workspace
-cargo build
+**Iterating**
 
+Lint
+
+```
+# you can run lint commands directly 
 # lint
-cargo lint --fix
+cargo clippy --fix
 
 # format
 cargo +nightly fmt
+
+# or use the convience wrapper
+make lint
 ```
 
-To iterate on integration tests run:
+Build
 
+```sh
+# build the workspace
+cargo build
 ```
+
+Unit tests
+
+```sh
+cargo test
+```
+
+
+Integration tests:
+
+```sh
 make test-all
 ```
 
