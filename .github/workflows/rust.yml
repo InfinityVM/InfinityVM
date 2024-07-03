@@ -51,13 +51,42 @@ jobs:
       - uses: arduino/setup-protoc@v1
         with:
           version: '3.x'
-      - uses: dtolnay/rust-toolchain@clippy
+      - uses: dtolnay/rust-toolchain@1.79.0
       - uses: taiki-e/install-action@cargo-binstall
       - run: cargo binstall cargo-risczero -y
       - run: cargo risczero install
       - run: cargo risczero --version
       - run: make -C rust clippy-ci
 
+  lint:
+    name: Formatting & Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - uses: taiki-e/install-action@cargo-binstall
+      - run: cargo binstall cargo-risczero -y
+      - run: cargo risczero install
+      - run: cargo risczero --version
+      - run: make -C rust clippy-ci
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
+          command: fmt
+          args: --all -- --check
+        env:
+          CARGO_INCREMENTAL: 1
+
+      - name: Run cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all-features --all-targets -- -D warnings -A incomplete-features
+        env:
+          CARGO_INCREMENTAL: 1
   fmt:
     name: fmt
     runs-on: ubuntu-latest
