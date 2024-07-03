@@ -6,6 +6,10 @@ import (
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
+// TODO: Implement handlers!
+//
+// Ref: ETH-377
+
 var _ types.ServiceServer = &Server{}
 
 type Server struct {
