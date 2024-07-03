@@ -16,14 +16,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: taiki-e/install-action@cargo-binstall
-      - run: cargo binstall cargo-risczero -y
-      - run: cargo risczero install
-      - run: cargo risczero --version
+      - name: common setup
+        uses: ./.github/actions/setup
       - run: cd rust && cargo build --workspace --all-targets --examples --tests
 
   test:
@@ -69,6 +63,7 @@ jobs:
       - run: cargo risczero install
       - run: cargo risczero --version
 
+      - uses: dtolnay/rust-toolchain@nightly
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
         with:
@@ -76,15 +71,16 @@ jobs:
           command: fmt
           args: --all -- --check
         env:
-          CARGO_INCREMENTAL: 1
+          CARGO_INCREMENTAL: 0
 
+      - uses: dtolnay/rust-toolchain@1.79.0
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1
         with:
           command: clippy
           args: --all-features --all-targets -- -D warnings
         env:
-          CARGO_INCREMENTAL: 1
+          CARGO_INCREMENTAL: 0
           RISC0_SKIP_BUILD: true
 
   fmt:
@@ -104,12 +100,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: taiki-e/install-action@cargo-binstall
-      - run: cargo binstall cargo-risczero -y
-      - run: cargo risczero install
-      - run: cargo risczero --version
+      - name: common setup
+        uses: ./.github/actions/setup
       - run: make -C rust doc-ci
