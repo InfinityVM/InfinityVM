@@ -38,7 +38,7 @@ message ExecuteResponse {
   bytes raw_output = 2;
   // The ZKVM operator who attests to the job
   bytes zkvm_operator_address = 3;
-  // Signature over 
+  // RLP encoded signature over
   // `eip191_hash_message(program_verifying_key|program_input|max_cycles|raw_output)`
   bytes zkvm_operator_signature = 4;
 }
