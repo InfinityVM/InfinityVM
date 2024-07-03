@@ -1,5 +1,5 @@
 use alloy_rlp::Decodable;
-use alloy_sol_types::{sol_data::Address, SolType};
+use alloy_sol_types::{SolType};
 use integration::{Clients, Integration};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use risc0_binfmt::compute_image_id;
@@ -48,7 +48,7 @@ async fn executor_works() {
         let ExecuteResponse {
             inputs,
             raw_output,
-            zkvm_operator_address,
+            zkvm_operator_address: _,
             zkvm_operator_signature: _,
         } = clients.executor.execute(request).await.unwrap().into_inner();
 
