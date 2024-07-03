@@ -52,6 +52,8 @@ jobs:
         with:
           version: '3.x'
       - uses: dtolnay/rust-toolchain@1.79.0
+        with:
+          components: clippy
       - uses: taiki-e/install-action@cargo-binstall
       - run: cargo binstall cargo-risczero -y
       - run: cargo risczero install
@@ -69,7 +71,6 @@ jobs:
       - run: cargo binstall cargo-risczero -y
       - run: cargo risczero install
       - run: cargo risczero --version
-      - run: make -C rust clippy-ci
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1
