@@ -13,16 +13,15 @@
 use alloy_sol_types::SolType;
 use risc0_zkvm::guest::env;
 use vapenation_core::{compute_nation_id, VapeNationArg, VapeNationMetadata};
+use std::io::Read;
 
 fn main() {
     // read in data as bytes
-    let mut input_bytes = vec![];
-    let mut input_bytes = Vec::<u8>::new();
-    env::stdin().read_to_end(&mut input_bytes).unwrap();
+    let mut raw_input = vec![];
+    env::stdin().read_to_end(&mut raw_input).unwrap();
 
-    dbg!(&raw);
     // deserialize the bytes to a u64 using rlp encoding
-    let input = VapeNationArg::abi_decode(&raw, false).unwrap();
+    let input = VapeNationArg::abi_decode(&raw_input, false).unwrap();
 
     // Note that alternatively we could have done, but this would mean
     // serializing/deserializing implicitly with the risc0 serialization.
