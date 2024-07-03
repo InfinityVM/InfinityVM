@@ -22,8 +22,9 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.79.0
       - uses: Swatinem/rust-cache@v2
         with:
+          workspaces: "/rust"
           cache-on-failure: true
-      - run: cargo install cargo-binstall
+      - uses: taiki-e/install-action@cargo-binstall
       - run: cargo binstall cargo-risczero
       - run: cargo risczero install
       - run: cargo risczero --version

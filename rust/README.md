@@ -6,16 +6,29 @@ The workspace configuration is defined by `rust/Cargo.toml`.
 
 **Workspace setup**
 
+Rust
+
 ```sh
 # set rust version
 rustup use 1.79
 rustup toolchain install nightly
 ```
 
+Proto
+
 ```sh
 # install protobuf compilation tools
 brew update
 brew install protobuf
+```
+
+Risc0
+
+```sh
+cargo install cargo-binstall
+cargo binstall cargo-risczero
+cargo risczero install
+cargo risczero --version
 ```
 
 **Iterating**
