@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.4.0
 // - protoc             (unknown)
-// source: server/v1/server.proto
+// source: server/v1/service.proto
 
 package types
 
@@ -19,17 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion8
 
 const (
-	Server_SubmitJob_FullMethodName     = "/server.v1.Server/SubmitJob"
-	Server_GetResult_FullMethodName     = "/server.v1.Server/GetResult"
-	Server_CreateProgram_FullMethodName = "/server.v1.Server/CreateProgram"
+	Service_SubmitJob_FullMethodName     = "/server.v1.Service/SubmitJob"
+	Service_GetResult_FullMethodName     = "/server.v1.Service/GetResult"
+	Service_CreateProgram_FullMethodName = "/server.v1.Service/CreateProgram"
 )
 
-// ServerClient is the client API for Server service.
+// ServiceClient is the client API for Service service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// Server defines the gRPC service for the coprocessing server.
-type ServerClient interface {
+// Service defines the gRPC service for the coprocessing server.
+type ServiceClient interface {
 	// SubmitJob defines the gRPC method for submitting a coprocessing job.
 	SubmitJob(ctx context.Context, in *SubmitJobRequest, opts ...grpc.CallOption) (*SubmitJobResponse, error)
 	// GetResult defines the gRPC method for getting the result of a coprocessing
@@ -39,50 +39,50 @@ type ServerClient interface {
 	CreateProgram(ctx context.Context, in *CreateProgramRequest, opts ...grpc.CallOption) (*CreateProgramResponse, error)
 }
 
-type serverClient struct {
+type serviceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewServerClient(cc grpc.ClientConnInterface) ServerClient {
-	return &serverClient{cc}
+func NewServiceClient(cc grpc.ClientConnInterface) ServiceClient {
+	return &serviceClient{cc}
 }
 
-func (c *serverClient) SubmitJob(ctx context.Context, in *SubmitJobRequest, opts ...grpc.CallOption) (*SubmitJobResponse, error) {
+func (c *serviceClient) SubmitJob(ctx context.Context, in *SubmitJobRequest, opts ...grpc.CallOption) (*SubmitJobResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(SubmitJobResponse)
-	err := c.cc.Invoke(ctx, Server_SubmitJob_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Service_SubmitJob_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *serverClient) GetResult(ctx context.Context, in *GetResultRequest, opts ...grpc.CallOption) (*GetResultResponse, error) {
+func (c *serviceClient) GetResult(ctx context.Context, in *GetResultRequest, opts ...grpc.CallOption) (*GetResultResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetResultResponse)
-	err := c.cc.Invoke(ctx, Server_GetResult_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Service_GetResult_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *serverClient) CreateProgram(ctx context.Context, in *CreateProgramRequest, opts ...grpc.CallOption) (*CreateProgramResponse, error) {
+func (c *serviceClient) CreateProgram(ctx context.Context, in *CreateProgramRequest, opts ...grpc.CallOption) (*CreateProgramResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(CreateProgramResponse)
-	err := c.cc.Invoke(ctx, Server_CreateProgram_FullMethodName, in, out, cOpts...)
+	err := c.cc.Invoke(ctx, Service_CreateProgram_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// ServerServer is the server API for Server service.
-// All implementations must embed UnimplementedServerServer
+// ServiceServer is the server API for Service service.
+// All implementations must embed UnimplementedServiceServer
 // for forward compatibility
 //
-// Server defines the gRPC service for the coprocessing server.
-type ServerServer interface {
+// Service defines the gRPC service for the coprocessing server.
+type ServiceServer interface {
 	// SubmitJob defines the gRPC method for submitting a coprocessing job.
 	SubmitJob(context.Context, *SubmitJobRequest) (*SubmitJobResponse, error)
 	// GetResult defines the gRPC method for getting the result of a coprocessing
@@ -90,109 +90,109 @@ type ServerServer interface {
 	GetResult(context.Context, *GetResultRequest) (*GetResultResponse, error)
 	// CreateProgram defines the gRPC method for creating/storing a new program.
 	CreateProgram(context.Context, *CreateProgramRequest) (*CreateProgramResponse, error)
-	mustEmbedUnimplementedServerServer()
+	mustEmbedUnimplementedServiceServer()
 }
 
-// UnimplementedServerServer must be embedded to have forward compatible implementations.
-type UnimplementedServerServer struct {
+// UnimplementedServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedServiceServer struct {
 }
 
-func (UnimplementedServerServer) SubmitJob(context.Context, *SubmitJobRequest) (*SubmitJobResponse, error) {
+func (UnimplementedServiceServer) SubmitJob(context.Context, *SubmitJobRequest) (*SubmitJobResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SubmitJob not implemented")
 }
-func (UnimplementedServerServer) GetResult(context.Context, *GetResultRequest) (*GetResultResponse, error) {
+func (UnimplementedServiceServer) GetResult(context.Context, *GetResultRequest) (*GetResultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetResult not implemented")
 }
-func (UnimplementedServerServer) CreateProgram(context.Context, *CreateProgramRequest) (*CreateProgramResponse, error) {
+func (UnimplementedServiceServer) CreateProgram(context.Context, *CreateProgramRequest) (*CreateProgramResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateProgram not implemented")
 }
-func (UnimplementedServerServer) mustEmbedUnimplementedServerServer() {}
+func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}
 
-// UnsafeServerServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ServerServer will
+// UnsafeServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ServiceServer will
 // result in compilation errors.
-type UnsafeServerServer interface {
-	mustEmbedUnimplementedServerServer()
+type UnsafeServiceServer interface {
+	mustEmbedUnimplementedServiceServer()
 }
 
-func RegisterServerServer(s grpc.ServiceRegistrar, srv ServerServer) {
-	s.RegisterService(&Server_ServiceDesc, srv)
+func RegisterServiceServer(s grpc.ServiceRegistrar, srv ServiceServer) {
+	s.RegisterService(&Service_ServiceDesc, srv)
 }
 
-func _Server_SubmitJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_SubmitJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SubmitJobRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServerServer).SubmitJob(ctx, in)
+		return srv.(ServiceServer).SubmitJob(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Server_SubmitJob_FullMethodName,
+		FullMethod: Service_SubmitJob_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerServer).SubmitJob(ctx, req.(*SubmitJobRequest))
+		return srv.(ServiceServer).SubmitJob(ctx, req.(*SubmitJobRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Server_GetResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_GetResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetResultRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServerServer).GetResult(ctx, in)
+		return srv.(ServiceServer).GetResult(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Server_GetResult_FullMethodName,
+		FullMethod: Service_GetResult_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerServer).GetResult(ctx, req.(*GetResultRequest))
+		return srv.(ServiceServer).GetResult(ctx, req.(*GetResultRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Server_CreateProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _Service_CreateProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateProgramRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServerServer).CreateProgram(ctx, in)
+		return srv.(ServiceServer).CreateProgram(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Server_CreateProgram_FullMethodName,
+		FullMethod: Service_CreateProgram_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServerServer).CreateProgram(ctx, req.(*CreateProgramRequest))
+		return srv.(ServiceServer).CreateProgram(ctx, req.(*CreateProgramRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Server_ServiceDesc is the grpc.ServiceDesc for Server service.
+// Service_ServiceDesc is the grpc.ServiceDesc for Service service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Server_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "server.v1.Server",
-	HandlerType: (*ServerServer)(nil),
+var Service_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "server.v1.Service",
+	HandlerType: (*ServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "SubmitJob",
-			Handler:    _Server_SubmitJob_Handler,
+			Handler:    _Service_SubmitJob_Handler,
 		},
 		{
 			MethodName: "GetResult",
-			Handler:    _Server_GetResult_Handler,
+			Handler:    _Service_GetResult_Handler,
 		},
 		{
 			MethodName: "CreateProgram",
-			Handler:    _Server_CreateProgram_Handler,
+			Handler:    _Service_CreateProgram_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "server/v1/server.proto",
+	Metadata: "server/v1/service.proto",
 }
