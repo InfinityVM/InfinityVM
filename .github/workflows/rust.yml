@@ -28,8 +28,6 @@ jobs:
       - run: cargo binstall cargo-risczero -y
       - run: cargo risczero install
       - run: cargo risczero --version
-      - run: cd rust && cargo build --workspace --all-targets --examples --tests
-      - run: make -C rust test-all
 
   build:
     name: build
@@ -43,7 +41,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.79.0
       - uses: Swatinem/rust-cache@v2
         with:
+          workspaces: "/rust"
           cache-on-failure: true
+      - uses: taiki-e/install-action@cargo-binstall
+      - run: cargo binstall cargo-risczero -y
+      - run: cargo risczero install
+      - run: cargo risczero --version
       - run: cd rust && cargo build --workspace --all-targets --examples --tests
 
   test:
@@ -58,7 +61,12 @@ jobs:
       - uses: dtolnay/rust-toolchain@1.79.0
       - uses: Swatinem/rust-cache@v2
         with:
+          workspaces: "/rust"
           cache-on-failure: true
+      - uses: taiki-e/install-action@cargo-binstall
+      - run: cargo binstall cargo-risczero -y
+      - run: cargo risczero install
+      - run: cargo risczero --version
       - run: make -C rust test-all
 
   clippy:
