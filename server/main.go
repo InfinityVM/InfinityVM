@@ -28,7 +28,7 @@ func main() {
 func execute() error {
 	// TODO: Use cobra for CLI and wiring.
 	//
-	// Ref: ...
+	// Ref: ETH-376
 
 	ctx, cancel := context.WithCancel(context.Background())
 	g, ctx := errgroup.WithContext(ctx)
