@@ -35,63 +35,6 @@ jobs:
         env:
           CARGO_INCREMENTAL: 0
 
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@1.79.0
-        with:
-          components: clippy
-      - uses: taiki-e/install-action@cargo-binstall
-      - run: cargo binstall cargo-risczero -y
-      - run: cargo risczero install
-      - run: cargo risczero --version
-      - run: cargo build
-      - run: make -C rust clippy-ci
-        env:
-          CARGO_INCREMENTAL: 0
-
-
-  lint:
-    name: Formatting & Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
-
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: taiki-e/install-action@cargo-binstall
-      - run: cargo binstall cargo-risczero -y
-      - run: cargo risczero install
-      - run: cargo risczero --version
-
-      - uses: dtolnay/rust-toolchain@nightly
-      - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly
-          command: fmt
-          args: --all -- --check
-        env:
-          CARGO_INCREMENTAL: 0
-
-      - uses: dtolnay/rust-toolchain@1.79.0
-      - name: Run cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --all-features --all-targets -- -D warnings
-        env:
-          CARGO_INCREMENTAL: 0
-          RISC0_SKIP_BUILD: true
-
   fmt:
     name: fmt
     runs-on: ubuntu-latest

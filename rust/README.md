@@ -39,21 +39,22 @@ View docs
 make doc
 ```
 
+Build
+
+```sh
+cargo build
+```
+
 Lint
 
 ```sh
-# you can run lint commands directly 
+# NOTE: there is a bug with risc0 build tooling where you need to build before
+# running clippy; needs investigation, but we might drop risc0 soon.
 RISC0_SKIP_BUILD=true cargo clippy --fix
 cargo +nightly fmt
 
 # or use the convenience wrapper
 make lint
-```
-
-Build
-
-```sh
-cargo build
 ```
 
 Unit tests
