@@ -1,0 +1,20 @@
+name: Common Setup
+runs:
+  using: "composite"
+  steps:
+      - uses: actions/checkout@v4
+
+      - uses: arduino/setup-protoc@v1
+        with:
+          version: '3.x'
+
+      - uses: dtolnay/rust-toolchain@1.79.0
+
+      - uses: taiki-e/install-action@cargo-binstall
+      
+      - name: Install risc0 tooling
+        shell: bash
+        run: |
+          cargo binstall cargo-risczero -y
+          cargo risczero install
+          cargo risczero --version

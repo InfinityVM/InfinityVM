@@ -31,15 +31,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: taiki-e/install-action@cargo-binstall
-      - run: cargo binstall cargo-risczero -y
-      - run: cargo risczero install
-      - run: cargo risczero --version
+      - name: common setup
+        uses: ./.github/actions/common
       - run: make -C rust test-all
 
   clippy:
