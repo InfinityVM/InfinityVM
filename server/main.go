@@ -2,71 +2,139 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/server"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
-
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rs/zerolog"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 )
 
 func main() {
+	if err := execute(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func execute() error {
+	// TODO: Use cobra for CLI and wiring.
+	//
+	// Ref: ...
+
+	ctx, cancel := context.WithCancel(context.Background())
+	g, ctx := errgroup.WithContext(ctx)
+
+	logger := zerolog.New(os.Stdout).With().Timestamp().Logger()
+
+	// listen for and trap any OS signal to gracefully shutdown and exit
+	trapSignal(cancel, logger)
+
+	g.Go(func() error {
+		return startGRPCServer(ctx, logger, "tcp", ":50051")
+	})
+
+	g.Go(func() error {
+		return startGRPCGateway(ctx, logger, ":8080")
+	})
+
+	// Block main process until all spawned goroutines have gracefully exited and
+	// signal has been captured in the main process or if an error occurs.
+	return g.Wait()
 }
 
 // startGRPCServer starts a gRPC server and listens for incoming requests in a
 // blocking process. It returns an error if the server cannot start.
-func startGRPCServer(ctx context.Context, logger zerolog.Logger, network, address string) error {
-	l, err := net.Listen(network, address)
+func startGRPCServer(ctx context.Context, logger zerolog.Logger, network, listenAddr string, opts ...grpc.ServerOption) error {
+	l, err := net.Listen(network, listenAddr)
 	if err != nil {
 		return err
 	}
 
 	defer func() {
-		if err := l.Close(); err != nil {
-			logger.Error().Err(err).Str("address", address).Str("network", network).Msg("failed to close gRPC server")
-		}
+		_ = l.Close()
 	}()
 
-	svr := grpc.NewServer()
-	types.RegisterServiceServer(svr, server.New())
+	srv := grpc.NewServer(opts...)
+	types.RegisterServiceServer(srv, server.New())
+
+	srvErrCh := make(chan error, 1)
 
 	go func() {
-		defer svr.GracefulStop()
-		<-ctx.Done()
+		logger.Info().Str("listen_addr", listenAddr).Msg("starting gRPC server...")
+		srvErrCh <- srv.Serve(l)
 	}()
 
-	return svr.Serve(l)
+	for {
+		select {
+		case <-ctx.Done():
+			logger.Info().Str("listen_addr", listenAddr).Msg("shutting down gRPC server...")
+			srv.GracefulStop()
+
+			return nil
+
+		case err := <-srvErrCh:
+			logger.Error().Err(err).Msg("failed to start gRPC gateway server")
+			return err
+		}
+	}
 }
 
-// var (
-//   // command-line options:
-//   // gRPC server endpoint
-//   grpcServerEndpoint = flag.String("grpc-server-endpoint",  "localhost:9090", "gRPC server endpoint")
-// )
+func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr string, opts ...runtime.ServeMuxOption) error {
+	mux := runtime.NewServeMux(opts...)
+	types.RegisterServiceHandlerServer(ctx, mux, server.New())
 
-// func run() error {
-//   ctx := context.Background()
-//   ctx, cancel := context.WithCancel(ctx)
-//   defer cancel()
+	srvErrCh := make(chan error, 1)
+	srv := &http.Server{
+		Addr:    listenAddr,
+		Handler: mux,
+	}
 
-//   // Register gRPC server endpoint
-//   // Note: Make sure the gRPC server is running properly and accessible
-//   mux := runtime.NewServeMux()
-//   opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-//   // err := gw.RegisterYourServiceHandlerFromEndpoint(ctx, mux,  *grpcServerEndpoint, opts)
-//   // if err != nil {
-//   //   return err
-//   // }
+	go func() {
+		logger.Info().Str("listen_addr", listenAddr).Msg("starting gRPC gateway server...")
+		srvErrCh <- srv.ListenAndServe()
+	}()
 
-//   // Start HTTP server (and proxy calls to gRPC server endpoint)
-//   return http.ListenAndServe(":8081", mux)
-// }
+	for {
+		select {
+		case <-ctx.Done():
+			shutdownCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+			defer cancel()
 
-// func main() {
-//   flag.Parse()
+			logger.Info().Str("listen_addr", listenAddr).Msg("shutting down gRPC gateway server...")
+			if err := srv.Shutdown(shutdownCtx); err != nil {
+				logger.Error().Err(err).Msg("failed to gracefully shutdown gRPC gateway server")
+				return err
+			}
 
-//   if err := run(); err != nil {
-//     grpclog.Fatal(err)
-//   }
-// }
+			return nil
+
+		case err := <-srvErrCh:
+			logger.Error().Err(err).Msg("failed to start gRPC gateway server")
+			return err
+		}
+	}
+}
+
+// trapSignal will listen for any OS signal and invoke Done on the main WaitGroup
+// allowing the main process to gracefully exit.
+func trapSignal(cancel context.CancelFunc, logger zerolog.Logger) {
+	sigCh := make(chan os.Signal, 1)
+
+	signal.Notify(sigCh, syscall.SIGTERM)
+	signal.Notify(sigCh, syscall.SIGINT)
+
+	go func() {
+		sig := <-sigCh
+		logger.Info().Str("signal", sig.String()).Msg("caught signal; shutting down...")
+		cancel()
+	}()
+}
