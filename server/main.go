@@ -26,7 +26,8 @@ func main() {
 }
 
 func execute() error {
-	// TODO: Use cobra for CLI and wiring.
+	// TODO: Use cobra for CLI and wiring. This will allow us to get all relevant
+	// values such as listen addresses and logger configuration.
 	//
 	// Ref: ETH-376
 
