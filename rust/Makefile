@@ -1,6 +1,6 @@
 .PHONY: clippy-ci
 clippy-ci:
-	RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
+	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
 
 .PHONY: clippy
 clippy:
@@ -24,6 +24,7 @@ test-ci:
 
 .PHONY: doc-ci
 doc-ci:
+	RISC0_SKIP_BUILD=true \
 	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps
 

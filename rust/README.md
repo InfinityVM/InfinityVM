@@ -37,13 +37,10 @@ Lint
 
 ```
 # you can run lint commands directly 
-# lint
-cargo clippy --fix
-
-# format
+RISC0_SKIP_BUILD=true cargo clippy --fix
 cargo +nightly fmt
 
-# or use the convience wrapper
+# or use the convenience wrapper
 make lint
 ```
 

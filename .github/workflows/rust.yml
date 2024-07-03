@@ -10,25 +10,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  risc0:
-    name: risc0
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "/rust"
-          cache-on-failure: true
-      - uses: taiki-e/install-action@cargo-binstall
-      - run: cargo binstall cargo-risczero -y
-      - run: cargo risczero install
-      - run: cargo risczero --version
-
   build:
     name: build
     runs-on: ubuntu-latest
@@ -39,10 +20,6 @@ jobs:
         with:
           version: '3.x'
       - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "/rust"
-          cache-on-failure: true
       - uses: taiki-e/install-action@cargo-binstall
       - run: cargo binstall cargo-risczero -y
       - run: cargo risczero install
@@ -59,10 +36,6 @@ jobs:
         with:
           version: '3.x'
       - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "/rust"
-          cache-on-failure: true
       - uses: taiki-e/install-action@cargo-binstall
       - run: cargo binstall cargo-risczero -y
       - run: cargo risczero install
@@ -79,9 +52,6 @@ jobs:
         with:
           version: '3.x'
       - uses: dtolnay/rust-toolchain@clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
       - run: make -C rust clippy-ci
 
   fmt:
@@ -90,9 +60,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
@@ -110,5 +77,5 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
       - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
+          workspaces: "/rust"
       - run: make -C rust doc-ci
