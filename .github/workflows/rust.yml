@@ -25,7 +25,7 @@ jobs:
           workspaces: "/rust"
           cache-on-failure: true
       - uses: taiki-e/install-action@cargo-binstall
-      - run: cargo binstall cargo-risczero
+      - run: cargo binstall cargo-risczero -y
       - run: cargo risczero install
       - run: cargo risczero --version
       - run: make -C rust fmt
