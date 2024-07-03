@@ -18,9 +18,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: common setup
         uses: ./.github/actions/setup
-      - run: cd rust && cargo build --workspace --all-targets --examples --tests
-        env:
-          CARGO_INCREMENTAL: 0
+      - run: cd rust && cargo build --workspace --all-targets
       - run: make -C rust clippy-ci
 
   test:
@@ -32,8 +30,6 @@ jobs:
       - name: common setup
         uses: ./.github/actions/setup
       - run: make -C rust test-all
-        env:
-          CARGO_INCREMENTAL: 0
 
   fmt:
     name: fmt
