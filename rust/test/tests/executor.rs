@@ -1,5 +1,5 @@
 use alloy_rlp::Decodable;
-use alloy_sol_types::{SolType};
+use alloy_sol_types::SolType;
 use integration::{Clients, Integration};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use risc0_binfmt::compute_image_id;
