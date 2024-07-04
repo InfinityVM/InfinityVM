@@ -3,6 +3,7 @@
 use risc0_binfmt::compute_image_id;
 use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
 use thiserror::Error;
+use sp1_sdk::{ProverClient, SP1Stdin, HashableKey};
 
 /// The error
 #[derive(Error, Debug)]
@@ -56,6 +57,33 @@ impl Zkvm for Risc0 {
         let prove_info = prover.execute(env, program_elf)?;
 
         Ok(prove_info.journal.bytes)
+    }
+}
+
+/// Sp1 impl of [Zkvm].
+#[derive(Debug)]
+pub struct Sp1;
+
+impl Zkvm for Sp1 {
+    fn is_correct_verifying_key(
+        program_elf: &[u8],
+        program_verifying_key: &[u8],
+    ) -> Result<bool, Error> {
+        let client = ProverClient::new();
+        let (_, vk) = client.setup(program_elf);
+        let is_correct = vk.hash_bytes() == program_verifying_key;
+
+        Ok(is_correct)
+    }
+
+    fn execute(program_elf: &[u8], raw_input: &[u8], _max_cycles: u64) -> Result<Vec<u8>, Error> {
+        let mut stdin = SP1Stdin::new();
+        stdin.write(&raw_input);
+
+        let client = ProverClient::new();
+        let (public_values,_) = client.execute(program_elf, stdin).unwrap();
+
+        Ok(public_values.to_vec())
     }
 }
 

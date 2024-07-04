@@ -12,3 +12,6 @@ anyhow.workspace = true
 thiserror.workspace = true
 risc0-zkvm.workspace = true
 risc0-binfmt.workspace = true
+sp1-zkvm.workspace = true
+sp1-sdk.workspace = true
+sp1-helper.workspace = true

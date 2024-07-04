@@ -1,3 +1,6 @@
 programs/**/methods/Cargo.lock
 /target/
 /debug/
+
+# ide
+.idea
