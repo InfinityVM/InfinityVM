@@ -5685,15 +5685,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp1-helper"
-version = "0.1.0"
-source = "git+https://github.com/succinctlabs/sp1.git?tag=v1.0.8-testnet#14eb569d41d24721ffbd407d6060e202482d659c"
-dependencies = [
- "cargo_metadata",
- "chrono",
-]
-
-[[package]]
 name = "sp1-precompiles"
 version = "0.1.0"
 source = "git+https://github.com/succinctlabs/sp1.git?tag=v1.0.8-testnet#14eb569d41d24721ffbd407d6060e202482d659c"
@@ -7258,7 +7249,6 @@ dependencies = [
  "anyhow",
  "risc0-binfmt",
  "risc0-zkvm",
- "sp1-helper",
  "sp1-sdk",
  "sp1-zkvm",
  "thiserror",

@@ -132,7 +132,7 @@ risc0-binfmt = "*"
 serde = { version = "1.0", features = ["derive"] }
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.8-testnet" }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.8-testnet" }
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.8-testnet" }
+
 # t
 tonic-build = "*"
 tonic = "*"
