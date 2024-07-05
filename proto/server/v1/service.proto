@@ -6,8 +6,8 @@ import "server/v1/job.proto";
 
 option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
 
-// Server defines the gRPC service for the coprocessing server.
-service Server {
+// Service defines the gRPC service for the coprocessing server.
+service Service {
   // SubmitJob defines the gRPC method for submitting a coprocessing job.
   rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {
     option (google.api.http) = {
