@@ -34,8 +34,8 @@ where
     }
 
     /// Returns an RLP encoded signature over `eip191_hash_message(msg)`
-    // TODO(zeke): figure out if we want to encode with header (current approach)
-    // or just `encode_rlp_vrs`. CC maanav
+    // TODO: (leaving this as an easy issue to fix)
+    // https://linear.app/ethos-stake/issue/ETH-378/infinityrust-switch-executor-signature-encoding
     async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
         self.signer
             .sign_message(msg)
