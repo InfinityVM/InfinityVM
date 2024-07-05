@@ -36,7 +36,8 @@ message ExecuteResponse {
   VerifiedInputs inputs = 1;
   // Output of the program specified by the verified inputs
   bytes raw_output = 2;
-  // The ZKVM operator who attests to the job
+  // The ZKVM operator who attests to the job.
+  // Ethereum address, as the bytes of an EIP-55 checksum string.
   bytes zkvm_operator_address = 3;
   // RLP v,r,s signature over
   // `eip191_hash_message(program_verifying_key|program_input|max_cycles|raw_output)`
