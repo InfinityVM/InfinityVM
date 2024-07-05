@@ -1601,6 +1601,7 @@ name = "executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "alloy-rlp",
  "alloy-signer-local",
  "clap",
  "k256",

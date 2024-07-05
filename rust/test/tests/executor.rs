@@ -2,7 +2,7 @@ use alloy::{
     primitives::{utils::eip191_hash_message, Address, Signature},
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
 };
-use alloy_rlp::Decodable;
+use alloy_rlp::{Decodable, Encodable, RlpEncodable};
 use alloy_sol_types::SolType;
 use integration::{Clients, Integration};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
@@ -23,15 +23,25 @@ fn expected_signer_address() -> Address {
     signer.address()
 }
 
+#[derive(Debug, RlpEncodable)]
+struct SingingPayload<'a> {
+    program_verifying_key: &'a [u8],
+    program_input: &'a [u8],
+    max_cycles: u64,
+    raw_output: &'a [u8],
+}
 // We copy and paste this instead of importing so we can detect regressions in the core impl.
 fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
-    i.program_verifying_key
-        .iter()
-        .chain(i.program_input.iter())
-        .chain(i.max_cycles.to_be_bytes().iter())
-        .chain(raw_output)
-        .copied()
-        .collect()
+    let mut out = vec![];
+    let payload = SingingPayload {
+        program_verifying_key: &i.program_verifying_key,
+        program_input: &i.program_input,
+        max_cycles: i.max_cycles,
+        raw_output,
+    };
+    payload.encode(&mut out);
+
+    out
 }
 
 #[test]
