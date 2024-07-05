@@ -70,7 +70,7 @@ mod test {
         "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
 
     #[test]
-    fn risc0_execute_works() {
+    fn risc0_execute_can_correctly_execute_program() {
         let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
 
         let input = 2u64;
