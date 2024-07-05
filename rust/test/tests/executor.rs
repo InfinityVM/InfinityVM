@@ -90,7 +90,7 @@ async fn executor_works() {
         assert_eq!(address, expected_signer_address());
 
         // Verify signature
-        // Note: alternatively we could use decode_rlp_vrs if we did not encode with a header
+        // TODO: https://linear.app/ethos-stake/issue/ETH-378/infinityrust-switch-executor-signature-encoding
         let sig = Signature::decode(&mut &zkvm_operator_signature[..]).unwrap();
         let signing_payload = result_signing_payload(&original_inputs, &raw_output);
 
