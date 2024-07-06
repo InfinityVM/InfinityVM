@@ -5,7 +5,6 @@ import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED
 import {Consumer} from "./Consumer.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 
-// TODO (Maanav): Add OwnableUpgradeable
 contract JobManager is IJobManager, OwnableUpgradeable {
     uint32 public jobIDCounter = 1;
     address relayer;
@@ -16,10 +15,19 @@ contract JobManager is IJobManager, OwnableUpgradeable {
     constructor(address _relayer, address _coprocessorOperator) {
         relayer = _relayer;
         coprocessorOperator = _coprocessorOperator;
+        _disableInitializers();
     }
 
-    function setRelayer(address _relayer) external {
+    function initializeJobManager(address initialOwner) public initializer {
+        _transferOwnership(initialOwner);
+    }
+
+    function setRelayer(address _relayer) external onlyOwner {
         relayer = _relayer;
+    }
+
+    function setCoprocessorOperator(address _coprocessorOperator) external onlyOwner {
+        coprocessorOperator = _coprocessorOperator;
     }
 
     function createJob(bytes calldata programID, bytes calldata inputs) external override returns (uint32 jobID) {
