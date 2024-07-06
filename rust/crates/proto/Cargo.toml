@@ -4,9 +4,6 @@ version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
 
-[lints]
-workspace = true
-
 [dependencies]
 tonic.workspace = true
 prost.workspace = true

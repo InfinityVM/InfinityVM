@@ -12,3 +12,8 @@ anyhow.workspace = true
 thiserror.workspace = true
 risc0-zkvm.workspace = true
 risc0-binfmt.workspace = true
+
+[dev-dependencies]
+alloy-rlp.workspace = true
+alloy-sol-types.workspace = true
+vapenation_core = { path = "../../programs/risc0/vapenation/core" }
