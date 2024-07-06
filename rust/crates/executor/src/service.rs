@@ -1,6 +1,7 @@
 //! gRPC service implementation.
 
-use alloy::{primitives::Signature, signers::Signer};
+use alloy::{primitives::Signature, rlp::Encodable, signers::Signer};
+use alloy_rlp::RlpEncodable;
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
@@ -14,13 +15,13 @@ enum Error {
 ///  The implementation of the `ZkvmExecutor` trait
 /// TODO(zeke): do we want to make this generic over executor?
 #[derive(Debug)]
-pub(crate) struct ZkvmExecutorService<T, S> {
+pub(crate) struct ZkvmExecutorService<Z, S> {
     signer: S,
     chain_id: Option<u64>,
-    _phantom: PhantomData<T>,
+    _phantom: PhantomData<Z>,
 }
 
-impl<T, S> ZkvmExecutorService<T, S>
+impl<Z, S> ZkvmExecutorService<Z, S>
 where
     S: Signer<Signature> + Send + Sync + 'static,
 {
@@ -28,33 +29,31 @@ where
         Self { signer, chain_id, _phantom: PhantomData }
     }
 
+    /// Checksum address (hex string), as bytes.
     fn address_checksum_bytes(&self) -> Vec<u8> {
         self.signer.address().to_checksum(self.chain_id).as_bytes().to_vec()
     }
 
-    // TODO(zeke): do we want to return v,r,s separately?
+    /// Returns an RLP encoded signature over `eip191_hash_message(msg)`
+    // TODO: (leaving this as an easy issue to fix)
+    // https://linear.app/ethos-stake/issue/ETH-378/infinityrust-switch-executor-signature-encoding
     async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
-        self.signer.sign_message(msg).await.map(|s| s.into()).map_err(|e| e.into())
+        self.signer
+            .sign_message(msg)
+            .await
+            .map(|sig| {
+                let mut out = Vec::with_capacity(sig.rlp_vrs_len());
+                sig.encode(&mut out);
+                out
+            })
+            .map_err(Into::into)
     }
 }
 
-fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
-    // TODO(zeke): should we just create a payload struct and RLP encode
-    // that instead? This seems like a finicky encoding strategy
-
-    i.program_verifying_key
-        .iter()
-        .chain(i.program_input.iter())
-        .chain(i.max_cycles.to_be_bytes().iter())
-        .chain(raw_output)
-        .copied()
-        .collect()
-}
-
 #[tonic::async_trait]
-impl<T, S> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<T, S>
+impl<Z, S> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<Z, S>
 where
-    T: Zkvm + Send + Sync + 'static,
+    Z: Zkvm + Send + Sync + 'static,
     S: Signer<Signature> + Send + Sync + 'static,
 {
     async fn execute(
@@ -64,20 +63,15 @@ where
         let msg = request.into_inner();
         let inputs = msg.inputs.expect("todo");
 
-        if !T::is_correct_verifying_key(&msg.program_elf, &inputs.program_verifying_key)
+        if !Z::is_correct_verifying_key(&msg.program_elf, &inputs.program_verifying_key)
             .expect("todo")
         {
             return Err(tonic::Status::invalid_argument("bad verifying key"));
         }
 
-        let raw_output = T::execute(
-            &msg.program_elf,
-            &inputs.program_input,
-            // TODO(zeke) make this safe
-            inputs.max_cycles as u64,
-        )
-        .map_err(|e| format!("zkvm execute error: {e:?}"))
-        .map_err(tonic::Status::invalid_argument)?;
+        let raw_output = Z::execute(&msg.program_elf, &inputs.program_input, inputs.max_cycles)
+            .map_err(|e| format!("zkvm execute error: {e:?}"))
+            .map_err(tonic::Status::invalid_argument)?;
 
         let signing_payload = result_signing_payload(&inputs, &raw_output);
 
@@ -95,4 +89,28 @@ where
 
         Ok(tonic::Response::new(response))
     }
+}
+
+/// This gets RLP encoded to construct the singing payload.
+#[derive(Debug, RlpEncodable)]
+struct SigningPayload<'a> {
+    program_verifying_key: &'a [u8],
+    program_input: &'a [u8],
+    max_cycles: u64,
+    raw_output: &'a [u8],
+}
+
+fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
+    let result_len =
+        i.program_input.len() + i.program_verifying_key.len() + raw_output.len() + 64 + 32;
+    let mut out = Vec::with_capacity(result_len);
+    let payload = SigningPayload {
+        program_verifying_key: &i.program_verifying_key,
+        program_input: &i.program_input,
+        max_cycles: i.max_cycles,
+        raw_output,
+    };
+    payload.encode(&mut out);
+
+    out
 }

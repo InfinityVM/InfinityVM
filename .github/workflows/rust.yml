@@ -10,20 +10,16 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: build
+  build_clippy:
+    name: build+clippy
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-      - run: cd rust && cargo build --workspace --all-targets --examples --tests
+      - name: common setup
+        uses: ./.github/actions/setup
+      - run: cd rust && cargo build --workspace --all-targets
+      - run: make -C rust clippy-ci
 
   test:
     name: test
@@ -31,29 +27,9 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-      - run: cd rust && cargo test --all-features
-
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-      - run: make -C rust clippy-ci
+      - name: common setup
+        uses: ./.github/actions/setup
+      - run: make -C rust test-all
 
   fmt:
     name: fmt
@@ -61,9 +37,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
       - uses: dtolnay/rust-toolchain@nightly
         with:
           components: rustfmt
@@ -75,11 +48,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
+      - name: common setup
+        uses: ./.github/actions/setup
       - run: make -C rust doc-ci
