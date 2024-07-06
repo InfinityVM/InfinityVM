@@ -93,7 +93,7 @@ where
 
 /// This gets RLP encoded to construct the singing payload.
 #[derive(Debug, RlpEncodable)]
-struct SingingPayload<'a> {
+struct SigningPayload<'a> {
     program_verifying_key: &'a [u8],
     program_input: &'a [u8],
     max_cycles: u64,
@@ -104,7 +104,7 @@ fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
     let result_len =
         i.program_input.len() + i.program_verifying_key.len() + raw_output.len() + 64 + 32;
     let mut out = Vec::with_capacity(result_len);
-    let payload = SingingPayload {
+    let payload = SigningPayload {
         program_verifying_key: &i.program_verifying_key,
         program_input: &i.program_input,
         max_cycles: i.max_cycles,
