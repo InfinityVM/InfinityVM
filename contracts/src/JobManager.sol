@@ -3,9 +3,10 @@ pragma solidity ^0.8.13;
 
 import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED} from "./IJobManager.sol";
 import {Consumer} from "./Consumer.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 
 // TODO (Maanav): Add OwnableUpgradeable
-contract JobManager is IJobManager {
+contract JobManager is IJobManager, OwnableUpgradeable {
     uint32 public jobIDCounter = 1;
     address relayer;
     address coprocessorOperator;
