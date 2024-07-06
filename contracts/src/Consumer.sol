@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 import {JobManager} from "./JobManager.sol";
 
 abstract contract Consumer {
-    mapping(uint32 => bytes) internal jobIDToInputs;
     JobManager internal _jobManager;
+    mapping(uint32 => bytes) internal jobIDToInputs;
 
     constructor(address jobManager) {
         _jobManager = JobManager(jobManager);
