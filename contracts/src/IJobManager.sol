@@ -21,7 +21,8 @@ interface IJobManager {
 
     // FUNCTIONS
     function createJob(bytes calldata programID, bytes calldata inputs) external returns (uint32 jobID);
+    function getJobMetadata(uint32 jobID) external view returns (JobMetadata memory);
     function cancelJob(uint32 jobID) external;
-    function submitResult(bytes calldata resultWithJobID, bytes calldata signature) external;
+    function submitResult(bytes calldata resultWithMetadata, bytes calldata signature) external;
     function setRelayer(address _relayer) external;
 }

@@ -52,25 +52,32 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
     }
 
     // This function is called by the relayer
-    function submitResult(bytes calldata resultWithJobID, bytes calldata signature) external override nonReentrant {
+    function submitResult(
+        bytes calldata resultWithMetadata, // Includes result value + job ID + program ID + hash of inputs
+        bytes calldata signature
+    ) external override nonReentrant {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
 
-        // Decode the resultWithJobID using abi.decode
-        (uint32 jobID, bytes memory result) = abi.decode(resultWithJobID, (uint32, bytes));
         // Recover the signer address
-        bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithJobID.length, resultWithJobID));
+        bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithMetadata.length, resultWithMetadata));
         address signer = recoverSigner(messageHash, signature);
         require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
+        // Decode the resultWithMetadata using abi.decode
+        (bytes memory result, uint32 jobID, bytes memory programID, bytes32 inputsHash) = abi.decode(resultWithMetadata, (bytes, uint32, bytes, bytes32));
+
         JobMetadata memory job = jobIDToMetadata[jobID];
         require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");
+
+        // This is to prevent coprocessor from generating a malicious result by using a different program ID
+        require(keccak256(job.programID) == keccak256(programID), "JobManager.submitResult: program ID mismatch");
 
         job.status = JOB_STATE_COMPLETED;
         jobIDToMetadata[jobID] = job;
 
         emit JobCompleted(jobID, result);
 
-        Consumer(job.caller).receiveResult(jobID, result);
+        Consumer(job.caller).receiveResult(jobID, inputsHash, result);
     }
 
     function recoverSigner(bytes32 _ethSignedMessageHash, bytes memory _signature) internal pure returns (address) {
