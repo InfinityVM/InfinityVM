@@ -4,8 +4,9 @@ pragma solidity ^0.8.13;
 import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED} from "./IJobManager.sol";
 import {Consumer} from "./Consumer.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract JobManager is IJobManager, OwnableUpgradeable {
+contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
     uint32 public jobIDCounter = 1;
     address relayer;
     address coprocessorOperator;
@@ -50,9 +51,8 @@ contract JobManager is IJobManager, OwnableUpgradeable {
         emit JobCancelled(jobID);
     }
 
-    // TODO: Add reentrancy check (probably easiest via OpenZeppelin's ReentrancyGuard)
     // This function is called by the relayer
-    function submitResult(bytes calldata resultWithJobID, bytes calldata signature) external override {
+    function submitResult(bytes calldata resultWithJobID, bytes calldata signature) external override nonReentrant {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
 
         // Decode the resultWithJobID using abi.decode
