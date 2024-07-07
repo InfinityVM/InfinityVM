@@ -69,15 +69,20 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         JobMetadata memory job = jobIDToMetadata[jobID];
         require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");
 
-        // This is to prevent coprocessor from generating a malicious result by using a different program ID
-        require(keccak256(job.programID) == keccak256(programID), "JobManager.submitResult: program ID mismatch");
+        // This is to prevent coprocessor from using a different program ID to produce a malicious result
+        require(keccak256(job.programID) == keccak256(programID), 
+            "JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
+
+        // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
+        require(keccak256(Consumer(job.caller).getJobInputs(jobID)) == inputsHash, 
+            "JobManager.submitResult: inputs signed by coprocessor don't match inputs submitted with job");
 
         job.status = JOB_STATE_COMPLETED;
         jobIDToMetadata[jobID] = job;
 
         emit JobCompleted(jobID, result);
 
-        Consumer(job.caller).receiveResult(jobID, inputsHash, result);
+        Consumer(job.caller).receiveResult(jobID, result);
     }
 
     function recoverSigner(bytes32 _ethSignedMessageHash, bytes memory _signature) internal pure returns (address) {

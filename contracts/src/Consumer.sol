@@ -31,11 +31,7 @@ abstract contract Consumer {
         return jobIDToInputs[jobID];
     }
 
-    function receiveResult(uint32 jobID, bytes32 inputsHash, bytes calldata result) public onlyJobManager {
-        // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
-        require(keccak256(getJobInputs(jobID)) == inputsHash, 
-        "Consumer.receiveResult: inputs signed by coprocessor don't match inputs submitted with job");
-
+    function receiveResult(uint32 jobID, bytes calldata result) public virtual onlyJobManager {
         // Decode the coprocessor result into app-specific struct
 
         // Perform app-specific logic using the result
