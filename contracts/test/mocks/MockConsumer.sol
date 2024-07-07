@@ -31,5 +31,5 @@ contract MockConsumer is Consumer {
         addressToBalance[resultStruct.addr] = resultStruct.balance;
         jobIDToResult[jobID] = result;
     }
-    
+
 }
