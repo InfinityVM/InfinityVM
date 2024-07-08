@@ -3,8 +3,9 @@ package queue_test
 import (
 	"testing"
 
-	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/stretchr/testify/require"
+
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 )
 
 func TestMemQueue(t *testing.T) {

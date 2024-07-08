@@ -39,7 +39,7 @@ func (m *MemQueue[T]) Pop() (T, error) {
 
 	result = x.Value.(T)
 
-	_ = m.container.Remove(x)
+	m.container.Remove(x)
 	return result, nil
 }
 
