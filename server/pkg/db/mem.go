@@ -7,7 +7,8 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
-// MemDB defines an in-memory non-durable key/value store.
+// MemDB defines an in-memory non-durable key/value store using an embedded B-tree
+// based database.
 //
 // TODO(bez): Determine if we need to define any custom indexes. Since we're only
 // storing jobs for now, this is not necessary.
