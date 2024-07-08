@@ -18,6 +18,9 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
+	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
+	"github.com/ethos-works/InfinityVM/server/pkg/relayer"
 	"github.com/ethos-works/InfinityVM/server/pkg/server"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
@@ -103,12 +106,26 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	// listen for and trap any OS signal to gracefully shutdown and exit
 	trapSignal(cancel, logger)
 
+	// Configure Eth Client
+	ethClient, err := eth.NewEthClient()
+	if err != nil {
+		return err
+	}
+
+	// TODO: Define Broadcast Queue
+	broadcastQueue := queue.NewQueue()
+
 	g.Go(func() error {
 		return startGRPCServer(ctx, logger, "tcp", gRPCEndpoint)
 	})
 
 	g.Go(func() error {
 		return startGRPCGateway(ctx, logger, gRPCGatewayEndpoint)
+	})
+
+	g.Go(func() error {
+		// TODO: Load workerCount from config
+		return relayer.Start(ctx, logger, broadcastQueue, ethClient, 10)
 	})
 
 	// Block main process until all spawned goroutines have gracefully exited and
