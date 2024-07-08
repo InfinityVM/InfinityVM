@@ -1,0 +1,23 @@
+[package]
+name = "integration"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+rand.workspace = true
+tonic.workspace = true
+tokio.workspace = true
+futures.workspace = true
+risc0-binfmt.workspace = true
+alloy.workspace = true
+alloy-rlp.workspace = true
+alloy-sol-types.workspace = true
+
+executor = { path = "../crates/executor" }
+proto = { path = "../crates/proto"}
+vapenation_methods = { path = "../programs/risc0/vapenation/methods"}
+vapenation_core = { path = "../programs/risc0/vapenation/core"}

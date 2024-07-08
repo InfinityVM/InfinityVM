@@ -9,11 +9,7 @@ use std::{
 use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 
-use crate::service::ZkvmExecutorService;
-
-/// Executor operators private key for development
-const DEV_SECRET: [u8; 32] =
-    hex!("2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6");
+use crate::{service::ZkvmExecutorService, DEV_SECRET};
 
 /// Errors from the executor CLI
 #[derive(thiserror::Error, Debug)]
