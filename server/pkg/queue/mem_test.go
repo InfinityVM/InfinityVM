@@ -30,4 +30,14 @@ func TestMemQueue(t *testing.T) {
 
 	_, err := q.Peek()
 	require.ErrorIs(t, err, queue.ErrQueueEmpty)
+
+	for _, e := range elements {
+		require.NoError(t, q.Push(e))
+	}
+
+	err = q.Reset()
+	require.NoError(t, err)
+
+	_, err = q.Peek()
+	require.ErrorIs(t, err, queue.ErrQueueEmpty)
 }
