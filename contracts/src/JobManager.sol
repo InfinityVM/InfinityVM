@@ -43,7 +43,8 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
 
     function cancelJob(uint32 jobID) external override {
         JobMetadata memory job = jobIDToMetadata[jobID];
-        require(msg.sender == job.caller, "JobManager.cancelJob: caller is not the job creator");
+        // We allow the JobManager owner to also cancel jobs so Ethos admin can veto any jobs
+        require(msg.sender == job.caller || msg.sender == owner(), "JobManager.cancelJob: caller is not the job creator or JobManager owner");
 
         job.status = JOB_STATE_CANCELLED;
         jobIDToMetadata[jobID] = job;
