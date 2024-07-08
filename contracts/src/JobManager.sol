@@ -9,6 +9,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
     uint32 public jobIDCounter = 1;
     address relayer;
+    // This operator is a registered entity that will eventually require some bond from participants
     address coprocessorOperator;
 
     mapping(uint32 => JobMetadata) public jobIDToMetadata;
