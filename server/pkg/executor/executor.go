@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	"math"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
+	"github.com/rs/zerolog"
 )
 
 const (
@@ -30,12 +32,13 @@ const (
 // and executing (via the zkShim) jobs. The caller must ensure to start the
 // executor, which will consume submitted jobs from the queue.
 type Executor struct {
+	logger     zerolog.Logger
 	db         db.DB
 	queue      queue.Queue[types.Job]
 	grpcClient *grpc.ClientConn
 }
 
-func New(db db.DB, zkClientAddr string) (*Executor, error) {
+func New(logger zerolog.Logger, db db.DB, zkClientAddr string) (*Executor, error) {
 	grpcClient, err := grpc.NewClient(
 		zkClientAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -49,6 +52,7 @@ func New(db db.DB, zkClientAddr string) (*Executor, error) {
 	}
 
 	return &Executor{
+		logger:     logger,
 		db:         db,
 		queue:      queue.NewMemQueue[types.Job](QueueSize),
 		grpcClient: grpcClient,
@@ -62,7 +66,7 @@ func (e *Executor) SubmitJob(job types.Job) error {
 }
 
 func (e *Executor) Start(ctx context.Context) error {
-	jobCh := e.queue.Listen()
+	jobCh := e.queue.ListenCh()
 
 	for {
 		select {
@@ -70,11 +74,10 @@ func (e *Executor) Start(ctx context.Context) error {
 			_ = e.queue.Close()
 			return ctx.Err()
 
-		case <-jobCh:
-			// 1. Dequeue a job.
-			// 2. Execute the job.
-			// 3. Update the job record
-			panic("not implemented!")
+		case job := <-jobCh:
+			// 1. Execute the job.
+			// 2. Update the job record
+			e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
 		}
 	}
 }
