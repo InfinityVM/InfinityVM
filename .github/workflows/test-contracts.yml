@@ -1,0 +1,49 @@
+name: Test Coprocessor Contracts
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  test-contracts:
+    strategy:
+      fail-fast: true
+    name: Foundry project
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            ../.github/workflows/test-contracts.yml
+            **/*.sol
+      - name: Install Foundry
+        if: env.GIT_DIFF
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+      - name: Run Forge build
+        if: env.GIT_DIFF
+        run: |
+          forge --version
+          forge build --sizes
+        id: build
+      - name: Run Forge tests
+        if: env.GIT_DIFF
+        run: |
+          forge test -vvv
+        id: test
