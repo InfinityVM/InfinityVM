@@ -4,7 +4,7 @@ import {JobManager} from "./JobManager.sol";
 
 abstract contract Consumer {
     JobManager internal _jobManager;
-    mapping(uint32 => bytes) internal jobIDToInputs;
+    mapping(uint32 => bytes) internal jobIDToProgramInput;
 
     constructor(address jobManager) {
         _jobManager = JobManager(jobManager);
@@ -20,15 +20,15 @@ abstract contract Consumer {
 
     function requestJob(
         bytes calldata programID,
-        bytes calldata inputs
+        bytes calldata programInput
     ) internal returns (uint32) {
-        uint32 jobID = _jobManager.createJob(programID, inputs);
-        jobIDToInputs[jobID] = inputs;
+        uint32 jobID = _jobManager.createJob(programID, programInput);
+        jobIDToProgramInput[jobID] = programInput;
         return jobID;
     }
 
-    function getJobInputs(uint32 jobID) public view returns (bytes memory) {
-        return jobIDToInputs[jobID];
+    function getProgramInputsForJob(uint32 jobID) public view returns (bytes memory) {
+        return jobIDToProgramInput[jobID];
     }
 
     function receiveResult(uint32 jobID, bytes calldata result) public virtual onlyJobManager {

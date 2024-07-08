@@ -31,10 +31,10 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         coprocessorOperator = _coprocessorOperator;
     }
 
-    function createJob(bytes calldata programID, bytes calldata inputs) external override returns (uint32 jobID) {
+    function createJob(bytes calldata programID, bytes calldata programInput) external override returns (uint32 jobID) {
         jobID = jobIDCounter++;
         jobIDToMetadata[jobID] = JobMetadata(programID, msg.sender, JOB_STATE_PENDING);
-        emit JobCreated(jobID, programID, inputs);
+        emit JobCreated(jobID, programID, programInput);
     }
 
     function getJobMetadata(uint32 jobID) public view returns (JobMetadata memory) {
@@ -53,7 +53,7 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
 
     // This function is called by the relayer
     function submitResult(
-        bytes calldata resultWithMetadata, // Includes result value + job ID + program ID + hash of inputs
+        bytes calldata resultWithMetadata, // Includes result value + job ID + program ID + hash of program input
         bytes calldata signature
     ) external override nonReentrant {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
@@ -64,7 +64,7 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
         // Decode the resultWithMetadata using abi.decode
-        (bytes memory result, uint32 jobID, bytes memory programID, bytes32 inputsHash) = abi.decode(resultWithMetadata, (bytes, uint32, bytes, bytes32));
+        (bytes memory result, uint32 jobID, bytes memory programID, bytes32 programInputHash) = abi.decode(resultWithMetadata, (bytes, uint32, bytes, bytes32));
 
         JobMetadata memory job = jobIDToMetadata[jobID];
         require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");
@@ -74,8 +74,8 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
             "JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
 
         // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
-        require(keccak256(Consumer(job.caller).getJobInputs(jobID)) == inputsHash, 
-            "JobManager.submitResult: inputs signed by coprocessor don't match inputs submitted with job");
+        require(keccak256(Consumer(job.caller).getProgramInputsForJob(jobID)) == programInputHash, 
+            "JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
 
         job.status = JOB_STATE_COMPLETED;
         jobIDToMetadata[jobID] = job;
