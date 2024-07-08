@@ -7,6 +7,12 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
+// MemDB defines an in-memory non-durable key/value store.
+//
+// TODO(bez): Determine if we need to define any custom indexes. Since we're only
+// storing jobs for now, this is not necessary.
+//
+// Ref: https://github.com/tidwall/buntdb?tab=readme-ov-file#custom-indexes
 type MemDB struct {
 	db *buntdb.DB
 }
