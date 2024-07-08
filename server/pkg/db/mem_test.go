@@ -17,6 +17,10 @@ func TestMemDB(t *testing.T) {
 		require.NoError(t, db.Close())
 	}()
 
+	val, err := db.Get([]byte("key001"))
+	require.NoError(t, err)
+	require.Nil(t, val)
+
 	err = db.Delete([]byte("key001"))
 	require.NoError(t, err)
 
