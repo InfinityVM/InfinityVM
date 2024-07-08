@@ -34,7 +34,7 @@ func (m *MemQueue[T]) Size() int {
 	return len(m.container)
 }
 
-func (m *MemQueue[T]) Listen() <-chan T {
+func (m *MemQueue[T]) ListenCh() <-chan T {
 	return m.container
 }
 

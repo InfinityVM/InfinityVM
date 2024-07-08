@@ -1,7 +1,9 @@
 package queue_test
 
 import (
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -31,4 +33,21 @@ func TestMemQueue(t *testing.T) {
 
 	err := q.Reset()
 	require.NoError(t, err)
+
+	var processed []int
+	go func() {
+		for j := range q.ListenCh() {
+			processed = append(processed, j)
+		}
+	}()
+
+	for _, e := range elements {
+		require.NoError(t, q.Push(e))
+	}
+
+	require.Eventually(t, func() bool {
+		return slices.Equal(processed, elements)
+	}, time.Second, 10*time.Millisecond)
+
+	require.NoError(t, q.Close())
 }

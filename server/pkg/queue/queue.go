@@ -16,8 +16,8 @@ type Queue[T any] interface {
 	Pop() (T, error)
 	// Reset clears the queue.
 	Reset() error
-	// Listen returns a read-only channel that can be used to listen for new jobs.
-	Listen() <-chan T
+	// ListenCh returns a read-only channel that can be used to listen for new jobs.
+	ListenCh() <-chan T
 	// Size returns the number of jobs in the queue.
 	Size() int
 	// Close closes the queue.

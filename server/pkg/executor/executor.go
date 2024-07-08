@@ -21,6 +21,9 @@ const (
 	// DefaultGRPCMaxSendMsgSize defines the default gRPC max message size in
 	// bytes the server can send.
 	DefaultGRPCMaxSendMsgSize = math.MaxInt32
+
+	// QueueSize defines the size of the job queue, which when full, will block.
+	QueueSize = 1024
 )
 
 // Executor defines the job executor. It is responsible for enqueuing, storing,
@@ -47,7 +50,7 @@ func New(db db.DB, zkClientAddr string) (*Executor, error) {
 
 	return &Executor{
 		db:         db,
-		queue:      queue.NewMemQueue[types.Job](),
+		queue:      queue.NewMemQueue[types.Job](QueueSize),
 		grpcClient: grpcClient,
 	}, nil
 }
@@ -64,7 +67,7 @@ func (e *Executor) Start(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done():
-			e.queue.Close()
+			_ = e.queue.Close()
 			return ctx.Err()
 
 		case <-jobCh:
