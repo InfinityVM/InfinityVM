@@ -1,17 +1,14 @@
 package queue
 
-import (
-	"github.com/ethos-works/InfinityVM/server/pkg/types"
-)
-
-// Queue defines the interface for a queue that can be used to produce jobs.
-type Queue interface {
+// Queue defines the interface for a queue that can be used to produce types of
+// type T.
+type Queue[T any] interface {
 	// Push adds a job to the queue.
-	Push(j types.Job) error
+	Push(j T) error
 	// Pop removes a job from the queue.
-	Pop() (types.Job, error)
+	Pop() (T, error)
 	// Peek returns the next job in the queue without removing it.
-	Peek() (types.Job, error)
+	Peek() (T, error)
 	// Reset clears the queue.
 	Reset() error
 	// Size returns the number of jobs in the queue.
