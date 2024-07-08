@@ -21,7 +21,7 @@ abstract contract Consumer {
     function requestJob(
         bytes calldata programID,
         bytes calldata inputs
-    ) public returns (uint32) {
+    ) internal returns (uint32) {
         uint32 jobID = _jobManager.createJob(programID, inputs);
         jobIDToInputs[jobID] = inputs;
         return jobID;
