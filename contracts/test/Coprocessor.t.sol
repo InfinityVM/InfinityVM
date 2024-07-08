@@ -6,7 +6,7 @@ import {JobManager} from "../src/JobManager.sol";
 import {Consumer} from "../src/Consumer.sol";
 import {MockConsumer} from "./mocks/MockConsumer.sol";
 
-contract CounterTest is Test {
+contract CoprocessorTest is Test {
     JobManager public jobManager;
     MockConsumer public consumer;
 
