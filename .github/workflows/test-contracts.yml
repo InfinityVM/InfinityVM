@@ -16,7 +16,6 @@ jobs:
   test-contracts:
     strategy:
       fail-fast: true
-    name: Foundry project
     runs-on: ubuntu-latest
     defaults:
       run:
