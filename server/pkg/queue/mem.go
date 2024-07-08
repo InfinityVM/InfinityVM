@@ -4,6 +4,7 @@ import (
 	"container/list"
 )
 
+// MemQueue is an in-memory implementation of the Queue interface using FIFO order.
 type MemQueue[T any] struct {
 	container *list.List
 }
@@ -15,7 +16,7 @@ func NewMemQueue[T any]() Queue[T] {
 }
 
 func (m *MemQueue[T]) Push(x T) error {
-	m.container.PushFront(x)
+	m.container.PushBack(x)
 	return nil
 }
 
