@@ -34,7 +34,7 @@ const (
 type Executor struct {
 	logger     zerolog.Logger
 	db         db.DB
-	queue      queue.Queue[types.Job]
+	queue      queue.Queue[*types.Job]
 	grpcClient *grpc.ClientConn
 }
 
@@ -54,12 +54,12 @@ func New(logger zerolog.Logger, db db.DB, zkClientAddr string) (*Executor, error
 	return &Executor{
 		logger:     logger,
 		db:         db,
-		queue:      queue.NewMemQueue[types.Job](QueueSize),
+		queue:      queue.NewMemQueue[*types.Job](QueueSize),
 		grpcClient: grpcClient,
 	}, nil
 }
 
-func (e *Executor) SubmitJob(job types.Job) error {
+func (e *Executor) SubmitJob(job *types.Job) error {
 	// 1. Store the job in the database.
 	// 2. Enqueue the job.
 	panic("not implemented!")
