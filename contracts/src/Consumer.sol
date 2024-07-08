@@ -31,11 +31,12 @@ abstract contract Consumer {
         return jobIDToProgramInput[jobID];
     }
 
-    // This function must be overridden by the app-specific Consumer contract
-    function receiveResult(uint32 jobID, bytes calldata result) public virtual onlyJobManager {
-        // Decode the coprocessor result into app-specific struct
-        // ...
-        // Perform app-specific logic using the result
-        // ...
+    function receiveResult(uint32 jobID, bytes calldata result) public onlyJobManager {
+        _receiveResult(jobID, result);
     }
+
+    // This function must be overridden by the app-specific Consumer contract
+    // to decode the coprocessor result into any app-specific struct and
+    // perform app-specific logic using the result
+    function _receiveResult(uint32 jobID, bytes calldata result) internal virtual;
 }

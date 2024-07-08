@@ -23,7 +23,7 @@ contract MockConsumer is Consumer {
         return jobIDToResult[jobID];
     }
 
-    function receiveResult(uint32 jobID, bytes calldata result) public override onlyJobManager {
+    function _receiveResult(uint32 jobID, bytes calldata result) internal override {
         // Decode the coprocessor result into AddressWithBalance
         (AddressWithBalance memory resultStruct) = abi.decode(result, (AddressWithBalance));
 
