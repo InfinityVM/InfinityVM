@@ -33,9 +33,10 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
     }
 
     function createJob(bytes calldata programID, bytes calldata programInput) external override returns (uint32 jobID) {
-        jobID = jobIDCounter++;
+        jobID = jobIDCounter;
         jobIDToMetadata[jobID] = JobMetadata(programID, msg.sender, JOB_STATE_PENDING);
         emit JobCreated(jobID, programID, programInput);
+        jobIDCounter++;
     }
 
     function getJobMetadata(uint32 jobID) public view returns (JobMetadata memory) {
