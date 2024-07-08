@@ -6,8 +6,8 @@ abstract contract Consumer {
     JobManager internal _jobManager;
     mapping(uint32 => bytes) internal jobIDToProgramInput;
 
-    constructor(address jobManager) {
-        _jobManager = JobManager(jobManager);
+    constructor(address __jobManager) {
+        _jobManager = JobManager(__jobManager);
     }
 
     modifier onlyJobManager() {
