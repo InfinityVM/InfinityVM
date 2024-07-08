@@ -34,6 +34,7 @@ const (
 	flagLogFormat           = "log-format"
 	flagGRPCEndpoint        = "grpc-endpoint"
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
+	flagWorkerPool          = "worker-pool-count"
 )
 
 // RootCmd is the root command for the server CLI. All commands stem from the root
@@ -103,17 +104,19 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// listen for and trap any OS signal to gracefully shutdown and exit
-	trapSignal(cancel, logger)
+	// Relayer Setup
 
-	// Configure Eth Client
-	ethClient, err := eth.NewEthClient()
+	// Configure Broadcast Queue
+	// TODO: Will need to pass to server
+	broadcastQueue := queue.NewMemQueue[interface{}]()
+
+	workerCount, err := cmd.Flags().GetInt(flagWorkerPool)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Define Broadcast Queue
-	broadcastQueue := queue.NewQueue()
+	// listen for and trap any OS signal to gracefully shutdown and exit
+	trapSignal(cancel, logger)
 
 	g.Go(func() error {
 		return startGRPCServer(ctx, logger, "tcp", gRPCEndpoint)
@@ -124,8 +127,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	})
 
 	g.Go(func() error {
-		// TODO: Load workerCount from config
-		return relayer.Start(ctx, logger, broadcastQueue, ethClient, 10)
+		return startRelayer(ctx, logger, broadcastQueue, workerCount)
 	})
 
 	// Block main process until all spawned goroutines have gracefully exited and
@@ -208,6 +210,23 @@ func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr str
 			return err
 		}
 	}
+}
+
+// TODO: Determine if we need to inject EthClient
+func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[interface{}], workerCount int) error {
+	// Configure Eth Client
+	ethClient, err := eth.NewEthClient()
+	if err != nil {
+		return err
+	}
+
+	r := relayer.NewRelayer(logger, queue, ethClient, workerCount)
+
+	if err := r.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start relayer: %w", err)
+	}
+
+	return nil
 }
 
 // trapSignal will listen for any OS signal and invoke Done on the main WaitGroup

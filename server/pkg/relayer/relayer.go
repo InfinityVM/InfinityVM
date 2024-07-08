@@ -3,39 +3,50 @@ package relayer
 import (
 	"context"
 
+
 	"github.com/rs/zerolog"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 )
 
-// Configure and start Relayer
-func Start(ctx context.Context, logger zerolog.Logger, queueService interface{}, ethClient *eth.EthClient, workerCount int) error {
-	// Create Manager Config
+// Relayer monitors the Infinity coprocessor server for completed jobs and submits them to JobManager contract
+type Relayer struct {
+	Logger      zerolog.Logger
+	Coordinator *Coordinator
+}
+
+// Returns a new Relayer
+func NewRelayer(logger zerolog.Logger, queueService queue.Queue[interface{}], ethClient *eth.EthClient, workerCount int) *Relayer {
 	config := &Config{
-		logger,
 		workerCount,
 	}
+	coordinator := NewCoordinator(config, queueService, ethClient)
 
-	// Configure Manager
-	manager := NewManager(config, queueService, ethClient)
+	return &Relayer{
+		logger,
+		coordinator,
+	}
+}
 
+// Configure and start Relayer
+func (r *Relayer) Start(ctx context.Context) error {
 	errChan := make(chan error, 1)
 
-	// Start Manager
 	go func() {
-		if err := manager.Start(); err != nil {
+		if err := r.Coordinator.Start(); err != nil {
 			errChan <- err
 		}
 	}()
 
 	select {
 	case <-ctx.Done():
-		logger.Info().Msg("shutting down relayer")
-		manager.Stop()
+		r.Logger.Info().Msg("shutting down relayer")
+		r.Coordinator.Stop()
 		return nil
 	case err := <-errChan:
-		logger.Error().Err(err).Msg("relayer failure")
-		manager.Stop()
+		r.Logger.Error().Err(err).Msg("relayer failure")
+		r.Coordinator.Stop()
 		return err
 	}
 }
