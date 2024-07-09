@@ -2,10 +2,15 @@ package relayer
 
 import (
 	"context"
+	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
+	"github.com/ethos-works/InfinityVM/server/pkg/testutil"
+	"github.com/golang/mock/gomock"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 	"time"
-
 )
 
 func TestCoordinatorLifecycle(t *testing.T) {
@@ -71,14 +76,14 @@ func TestProcessBroadcastedJobFailure(t *testing.T) {
 
 	ethClient.EXPECT().ExecuteCallback(job).Return(eth.NewFatalClientError("service unavailable")).Times(1)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	done := make(chan struct{})
 
 	go func() {
+		defer close(done)
 		err = coordinator.Start()
 		require.Error(t, err)
-		close(done)
 	}()
 
 	select {
