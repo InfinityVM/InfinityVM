@@ -8,6 +8,7 @@ import (
 	"math"
 	"sync"
 
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
@@ -15,7 +16,6 @@ import (
 	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
-	"github.com/rs/zerolog"
 )
 
 const (
@@ -65,7 +65,7 @@ func New(logger zerolog.Logger, db db.DB, zkClientAddr string, queueSize int) (*
 func (e *Executor) SubmitJob(job *types.Job) error {
 	job.Status = types.JobStatus_JOB_STATUS_PENDING
 
-	if err := e.saveJob(job); err != nil {
+	if err := e.SaveJob(job); err != nil {
 		return fmt.Errorf("failed to save job: %w", err)
 	}
 
@@ -79,41 +79,19 @@ func (e *Executor) SubmitJob(job *types.Job) error {
 func (e *Executor) Start(ctx context.Context, numWorkers int) {
 	jobCh := e.queue.ListenCh()
 
-	var wg *sync.WaitGroup
+	wg := new(sync.WaitGroup)
 	for i := 0; i < numWorkers; i++ {
 		wg.Add(1)
-		go e.startWorker(ctx, wg, jobCh)
+		go func() {
+			defer wg.Done()
+			e.startWorker(ctx, jobCh)
+		}()
 	}
 
 	wg.Wait()
-
-	// for {
-	// 	select {
-	// 	case <-ctx.Done():
-	// 		_ = e.queue.Close()
-	// 		return ctx.Err()
-
-	// 	case job := <-jobCh:
-	// 		// 1. Execute the job.
-	// 		// TODO(bez): Execute gRPC call to execute job.
-
-	// 		e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
-
-	// 		// TODO(bez): Set fields based on gRPC response.
-	// 		job.Status = types.JobStatus_JOB_STATUS_DONE
-	// 		// job.Result = ...
-	// 		// job.ZkvmOperatorAddress = ...
-	// 		// job.ZkvmOperatorSignature = ...
-
-	// 		if err := e.saveJob(job); err != nil {
-	// 			e.logger.Error().Err(err).Msg("failed to save job")
-	// 		}
-	// 	}
-	// }
 }
 
-func (e *Executor) startWorker(ctx context.Context, wg *sync.WaitGroup, jobCh <-chan *types.Job) {
-	defer wg.Done()
+func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 	e.logger.Info().Msg("starting worker...")
 
 	for {
@@ -133,16 +111,16 @@ func (e *Executor) startWorker(ctx context.Context, wg *sync.WaitGroup, jobCh <-
 			// job.ZkvmOperatorAddress = ...
 			// job.ZkvmOperatorSignature = ...
 
-			if err := e.saveJob(job); err != nil {
+			if err := e.SaveJob(job); err != nil {
 				e.logger.Error().Err(err).Msg("failed to save job")
 			}
 		}
 	}
 }
 
-func (e *Executor) saveJob(job *types.Job) error {
+func (e *Executor) SaveJob(job *types.Job) error {
 	idBz := make([]byte, 4)
-	binary.LittleEndian.PutUint32(idBz, job.Id)
+	binary.BigEndian.PutUint32(idBz, job.Id)
 
 	bz, err := proto.Marshal(job)
 	if err != nil {
@@ -150,4 +128,21 @@ func (e *Executor) saveJob(job *types.Job) error {
 	}
 
 	return e.db.Set(idBz, bz)
+}
+
+func (e *Executor) GetJob(id uint32) (*types.Job, error) {
+	idBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(idBz, id)
+
+	bz, err := e.db.Get(idBz)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get job: %w", err)
+	}
+
+	job := new(types.Job)
+	if err := proto.Unmarshal(bz, job); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal job: %w", err)
+	}
+
+	return job, nil
 }
