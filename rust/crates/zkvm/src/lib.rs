@@ -10,7 +10,7 @@ use sp1_sdk::{ProverClient, SP1Stdin, HashableKey};
 pub enum Error {
     /// Error from the Risc0 sdk
     #[error(transparent)]
-    ZkEvm(#[from] anyhow::Error),
+    Zkvm(#[from] anyhow::Error),
 
     #[error("Risc0 error: {source}")]
     Risc0{source: anyhow::Error},
