@@ -10,20 +10,29 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-    name: build
+  build_clippy:
+    name: build+clippy
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
         with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: Swatinem/rust-cache@v2
+          submodules: recursive
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
         with:
-          cache-on-failure: true
-      - run: cd rust && cargo build --workspace --all-targets --examples --tests
+          PATTERNS: |
+            rust/**
+
+      - name: common setup
+        if: env.GIT_DIFF
+        uses: ./.github/actions/setup
+
+      - run: cd rust && cargo build --workspace --all-targets
+        if: env.GIT_DIFF
+
+      - run: make -C rust clippy-ci
+        if: env.GIT_DIFF
 
   test:
     name: test
@@ -31,29 +40,20 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
         with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@1.79.0
-      - uses: Swatinem/rust-cache@v2
+          submodules: recursive
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
         with:
-          cache-on-failure: true
-      - run: cd rust && cargo test --all-features
+          PATTERNS: |
+            rust/**
 
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@clippy
-      - uses: Swatinem/rust-cache@v2
-        with:
-          cache-on-failure: true
-      - run: make -C rust clippy-ci
+      - name: common setup
+        if: env.GIT_DIFF
+        uses: ./.github/actions/setup
+
+      - run: make -C rust test-all
+        if: env.GIT_DIFF
 
   fmt:
     name: fmt
@@ -61,13 +61,21 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
         with:
-          version: '3.x'
+          submodules: recursive
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            rust/**
+
       - uses: dtolnay/rust-toolchain@nightly
+        if: env.GIT_DIFF
         with:
           components: rustfmt
+
       - run: make -C rust fmt-ci
+        if: env.GIT_DIFF
 
   docs:
     name: docs
@@ -75,11 +83,17 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: arduino/setup-protoc@v1
         with:
-          version: '3.x'
-      - uses: dtolnay/rust-toolchain@nightly
-      - uses: Swatinem/rust-cache@v2
+          submodules: recursive
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
         with:
-          cache-on-failure: true
+          PATTERNS: |
+            rust/**
+
+      - name: common setup
+        if: env.GIT_DIFF
+        uses: ./.github/actions/setup
+
       - run: make -C rust doc-ci
+        if: env.GIT_DIFF

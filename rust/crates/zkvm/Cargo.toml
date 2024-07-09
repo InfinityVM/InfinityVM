@@ -14,3 +14,8 @@ risc0-zkvm.workspace = true
 risc0-binfmt.workspace = true
 sp1-zkvm.workspace = true
 sp1-sdk.workspace = true
+
+[dev-dependencies]
+alloy-rlp.workspace = true
+alloy-sol-types.workspace = true
+vapenation_core = { path = "../../programs/risc0/vapenation/core" }

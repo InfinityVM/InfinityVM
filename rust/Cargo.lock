@@ -135,6 +135,7 @@ dependencies = [
  "alloy-dyn-abi",
  "alloy-json-abi",
  "alloy-primitives",
+ "alloy-rlp",
  "alloy-sol-types",
 ]
 
@@ -1833,6 +1834,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "docker-generate"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccf673e0848ef09fa4aeeba78e681cf651c0c7d35f76ee38cec8e55bc32fa111"
+
+[[package]]
 name = "downcast-rs"
 version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2231,6 +2238,7 @@ name = "executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "alloy-rlp",
  "alloy-signer-local",
  "clap",
  "k256",
@@ -3080,6 +3088,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e0242819d153cba4b4b05a5a8f2a7e9bbf97b6055b2a002b395c96b5ff3c0222"
 dependencies = [
  "cfg-if",
+]
+
+[[package]]
+name = "integration"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "alloy-rlp",
+ "alloy-sol-types",
+ "executor",
+ "futures",
+ "proto",
+ "rand",
+ "risc0-binfmt",
+ "tokio",
+ "tonic",
+ "vapenation_core",
+ "vapenation_methods",
 ]
 
 [[package]]
@@ -4771,6 +4797,24 @@ dependencies = [
  "risc0-zkvm-platform",
  "serde",
  "tracing",
+]
+
+[[package]]
+name = "risc0-build"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b68a9c8dbae8e14ec00e0cc4deca152a4f7d815aa5f745b24a9469ff08c8495d"
+dependencies = [
+ "anyhow",
+ "cargo_metadata",
+ "dirs",
+ "docker-generate",
+ "risc0-binfmt",
+ "risc0-zkp",
+ "risc0-zkvm-platform",
+ "serde",
+ "serde_json",
+ "tempfile",
 ]
 
 [[package]]
@@ -6735,6 +6779,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "830b7e5d4d90034032940e4ace0d9a9a057e7a45cd94e6c007832e39edb82f6d"
 
 [[package]]
+name = "vapenation_core"
+version = "0.1.0"
+dependencies = [
+ "alloy-rlp",
+ "alloy-sol-types",
+ "serde",
+]
+
+[[package]]
+name = "vapenation_methods"
+version = "0.1.0"
+dependencies = [
+ "risc0-build",
+]
+
+[[package]]
 name = "vcpkg"
 version = "0.2.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7279,12 +7339,15 @@ dependencies = [
 name = "zkvm"
 version = "0.0.1"
 dependencies = [
+ "alloy-rlp",
+ "alloy-sol-types",
  "anyhow",
  "risc0-binfmt",
  "risc0-zkvm",
  "sp1-sdk",
  "sp1-zkvm",
  "thiserror",
+ "vapenation_core",
 ]
 
 [[package]]

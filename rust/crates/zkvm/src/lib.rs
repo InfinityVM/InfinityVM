@@ -99,11 +99,46 @@ impl Zkvm for Sp1 {
 
 #[cfg(test)]
 mod test {
-    // #[test]
-    // fn risc0_execute_works() {
-    //     // take a real program and make sure
-    //     // - we can serialize bytes
-    //     // - run execute
-    //     // - deserialize result
-    // }
+    use crate::{Risc0, Zkvm};
+    use alloy_rlp::Decodable;
+    use alloy_sol_types::SolType;
+    use vapenation_core::{VapeNationArg, VapeNationMetadata};
+
+    const VAPENATION_ELF_PATH: &str =
+        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
+
+    #[test]
+    fn risc0_execute_can_correctly_execute_program() {
+        let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
+
+        let input = 2u64;
+        let raw_input = VapeNationArg::abi_encode(&input);
+
+        let max_cycles = 32 * 1024 * 1024;
+        let raw_result = Risc0::execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
+
+        let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
+        let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
+
+        assert_eq!(metadata.nation_id, 352380);
+        assert_eq!(metadata.points, 5106);
+        assert_eq!(metadata.phrase, phrase);
+    }
+
+    #[test]
+    fn risc0_is_correct_verifying_key() {
+        let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
+        let mut image_id =
+            risc0_binfmt::compute_image_id(&vapenation_elf).unwrap().as_bytes().to_vec();
+
+        let correct = Risc0::is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        assert!(correct);
+
+        image_id.pop();
+        image_id.push(255);
+
+        let correct = Risc0::is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+
+        assert!(!correct);
+    }
 }
