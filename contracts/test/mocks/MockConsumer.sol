@@ -15,6 +15,10 @@ contract MockConsumer is Consumer {
 
     constructor(address jobManager) Consumer(jobManager) {}
 
+    function requestBalance(address addr) public returns (uint32) {
+        return requestJob("programID", abi.encode(addr));
+    }
+
     function getBalance(address addr) public view returns (uint256) {
         return addressToBalance[addr];
     }
@@ -23,7 +27,7 @@ contract MockConsumer is Consumer {
         return jobIDToResult[jobID];
     }
 
-    function _receiveResult(uint32 jobID, bytes calldata result) internal override {
+    function _receiveResult(uint32 jobID, bytes memory result) internal override {
         // Decode the coprocessor result into AddressWithBalance
         (AddressWithBalance memory resultStruct) = abi.decode(result, (AddressWithBalance));
 

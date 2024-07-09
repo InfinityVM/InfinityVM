@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 // CONSTANTS
-uint8 constant JOB_STATE_PENDING = 0;
-uint8 constant JOB_STATE_CANCELLED = 1;
-uint8 constant JOB_STATE_COMPLETED = 2;
+uint8 constant JOB_STATE_PENDING = 1;
+uint8 constant JOB_STATE_CANCELLED = 2;
+uint8 constant JOB_STATE_COMPLETED = 3;
 
 interface IJobManager {
     // EVENTS
