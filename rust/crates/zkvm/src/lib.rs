@@ -9,12 +9,10 @@ use sp1_sdk::{ProverClient, SP1Stdin, HashableKey};
 #[derive(Error, Debug)]
 pub enum Error {
     /// Error from the Risc0 sdk
-    #[error(transparent)]
-    Zkvm(#[from] anyhow::Error),
-
     #[error("Risc0 error: {source}")]
     Risc0{source: anyhow::Error},
 
+    /// Error from the Sp1 sdk
     #[error("Sp1 error: {source}")]
     Sp1{source: anyhow::Error}
  }
@@ -57,7 +55,7 @@ impl Zkvm for Risc0 {
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
             .write_slice(raw_input)
-            .build()?;
+            .build().map_err(|source|Error::Risc0{source})?;
 
         let prover = LocalProver::new("locals only");
 
