@@ -131,12 +131,15 @@ impl Cli {
         let addr = SocketAddrV4::new(opts.ip, opts.port);
         let signer = opts.operator_signer()?;
 
-        let executor_service = match opts.zkvm {
-            Zkvm::Risc0 => ZkvmExecutorService::<zkvm::Risc0, _>::new(signer, opts.chain_id),
-            Zkvm::Sp1 => unimplemented!(),
+        let mut builder = tonic::transport::Server::builder();
+        let router = match opts.zkvm{
+            Zkvm::Risc0 => builder.add_service(proto::zkvm_executor_server::ZkvmExecutorServer::new(
+                ZkvmExecutorService::<zkvm::Risc0, _>::new(signer, opts.chain_id))
+            ),
+            Zkvm::Sp1 => builder.add_service(proto::zkvm_executor_server::ZkvmExecutorServer::new(
+                ZkvmExecutorService::<zkvm::Sp1, _>::new(signer, opts.chain_id))
+            )
         };
-
-        let executor = proto::zkvm_executor_server::ZkvmExecutorServer::new(executor_service);
 
         // TODO: figure out reflection service protos
         // let reflector = tonic_reflection::server::Builder::configure()
@@ -144,14 +147,9 @@ impl Cli {
         //     .build()
         //     .expect("failed to start reflector service");
 
-        tonic::transport::Server::builder()
-            .add_service(executor)
-            // .add_service(reflector)
+        router
             .serve(addr.into())
             .await
             .map_err(Into::into)
-        // .serve_with_shutdown(addr, async {
-        //     // TODO
-        // })
     }
 }
