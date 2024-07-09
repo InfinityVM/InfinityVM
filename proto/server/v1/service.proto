@@ -11,8 +11,8 @@ service Service {
   // SubmitJob defines the gRPC method for submitting a coprocessing job.
   rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {
     option (google.api.http) = {
-      post : "/v1/server/submit_job"
-      body : "*"
+      post: "/v1/server/submit_job"
+      body: "*"
     };
   }
 
@@ -25,23 +25,29 @@ service Service {
   // CreateProgram defines the gRPC method for creating/storing a new program.
   rpc CreateProgram(CreateProgramRequest) returns (CreateProgramResponse) {
     option (google.api.http) = {
-      post : "/v1/server/create_program"
-      body : "*"
+      post: "/v1/server/create_program"
+      body: "*"
     };
   }
 }
 
 // SubmitJobRequest defines the request structure to submit a job to the
 // coprocessing server.
-message SubmitJobRequest { Job job = 1; }
+message SubmitJobRequest {
+  Job job = 1;
+}
 
 // SubmitJobResponse defines the response structure to submit a job to the
 // coprocessing server.
-message SubmitJobResponse { uint64 job_id = 1; }
+message SubmitJobResponse {
+  uint64 job_id = 1;
+}
 
 // GetResultRequest defines the request structure to get the result of a
 // coprocessing job.
-message GetResultRequest { uint64 job_id = 1; }
+message GetResultRequest {
+  uint64 job_id = 1;
+}
 
 // GetResultResponse defines the response structure to get the result of a
 // coprocessing job.

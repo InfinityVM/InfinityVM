@@ -46,6 +46,7 @@ func TestExecutor(t *testing.T) {
 		return job.Status == types.JobStatus_JOB_STATUS_DONE
 	}, time.Second, 100*time.Millisecond)
 
+	// ensure graceful cleanup
 	cancel()
 	<-doneCh
 }
