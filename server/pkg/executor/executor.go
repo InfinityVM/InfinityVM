@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
+	"sync"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -40,7 +41,7 @@ type Executor struct {
 	grpcClient *grpc.ClientConn
 }
 
-func New(logger zerolog.Logger, db db.DB, zkClientAddr string) (*Executor, error) {
+func New(logger zerolog.Logger, db db.DB, zkClientAddr string, queueSize int) (*Executor, error) {
 	grpcClient, err := grpc.NewClient(
 		zkClientAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -56,33 +57,77 @@ func New(logger zerolog.Logger, db db.DB, zkClientAddr string) (*Executor, error
 	return &Executor{
 		logger:     logger,
 		db:         db,
-		queue:      queue.NewMemQueue[*types.Job](QueueSize),
+		queue:      queue.NewMemQueue[*types.Job](queueSize),
 		grpcClient: grpcClient,
 	}, nil
 }
 
 func (e *Executor) SubmitJob(job *types.Job) error {
-	// 1. Store the job in the database.
-	// 2. Enqueue the job.
-	panic("not implemented!")
+	job.Status = types.JobStatus_JOB_STATUS_PENDING
+
+	if err := e.saveJob(job); err != nil {
+		return fmt.Errorf("failed to save job: %w", err)
+	}
+
+	if err := e.queue.Push(job); err != nil {
+		return fmt.Errorf("failed to enqueue job: %w", err)
+	}
+
+	return nil
 }
 
-func (e *Executor) Start(ctx context.Context) error {
+func (e *Executor) Start(ctx context.Context, numWorkers int) {
 	jobCh := e.queue.ListenCh()
+
+	var wg *sync.WaitGroup
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go e.startWorker(ctx, wg, jobCh)
+	}
+
+	wg.Wait()
+
+	// for {
+	// 	select {
+	// 	case <-ctx.Done():
+	// 		_ = e.queue.Close()
+	// 		return ctx.Err()
+
+	// 	case job := <-jobCh:
+	// 		// 1. Execute the job.
+	// 		// TODO(bez): Execute gRPC call to execute job.
+
+	// 		e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
+
+	// 		// TODO(bez): Set fields based on gRPC response.
+	// 		job.Status = types.JobStatus_JOB_STATUS_DONE
+	// 		// job.Result = ...
+	// 		// job.ZkvmOperatorAddress = ...
+	// 		// job.ZkvmOperatorSignature = ...
+
+	// 		if err := e.saveJob(job); err != nil {
+	// 			e.logger.Error().Err(err).Msg("failed to save job")
+	// 		}
+	// 	}
+	// }
+}
+
+func (e *Executor) startWorker(ctx context.Context, wg *sync.WaitGroup, jobCh <-chan *types.Job) {
+	defer wg.Done()
+	e.logger.Info().Msg("starting worker...")
 
 	for {
 		select {
 		case <-ctx.Done():
-			_ = e.queue.Close()
-			return ctx.Err()
+			e.logger.Info().Msg("stopping worker...")
+			return
 
 		case job := <-jobCh:
-			// 1. Execute the job.
-			// TODO(bez): Execute gRPC call to execute job.
-
 			e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
 
-			// TODO(bez): Set fields based on gRPC response.
+			// 1. Execute the job.
+			// TODO(bez): Execute gRPC call to execute job and set fields based on gRPC
+			// response.
 			job.Status = types.JobStatus_JOB_STATUS_DONE
 			// job.Result = ...
 			// job.ZkvmOperatorAddress = ...
