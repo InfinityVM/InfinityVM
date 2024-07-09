@@ -10,8 +10,14 @@ use sp1_sdk::{ProverClient, SP1Stdin, HashableKey};
 pub enum Error {
     /// Error from the Risc0 sdk
     #[error(transparent)]
-    Risc0(#[from] anyhow::Error),
-}
+    ZkEvm(#[from] anyhow::Error),
+
+    #[error("Risc0 error: {source}")]
+    Risc0{source: anyhow::Error},
+
+    #[error("Sp1 error: {source}")]
+    Sp1{source: anyhow::Error}
+ }
 
 /// Something that can execute programs and generate ZK proofs for them.
 pub trait Zkvm {
@@ -40,7 +46,8 @@ impl Zkvm for Risc0 {
         program_elf: &[u8],
         program_verifying_key: &[u8],
     ) -> Result<bool, Error> {
-        let image_id = compute_image_id(program_elf)?;
+        let image_id = compute_image_id(program_elf).
+            map_err(|source| Error::Risc0 {source})?;
         let is_correct = image_id.as_bytes() == program_verifying_key;
 
         Ok(is_correct)
@@ -54,7 +61,8 @@ impl Zkvm for Risc0 {
 
         let prover = LocalProver::new("locals only");
 
-        let prove_info = prover.execute(env, program_elf)?;
+        let prove_info = prover.execute(env, program_elf).
+            map_err(|source| Error::Risc0 {source})?;
 
         Ok(prove_info.journal.bytes)
     }
@@ -83,8 +91,7 @@ impl Zkvm for Sp1 {
         let client = ProverClient::new();
         let (public_values,_) = client.execute(program_elf, stdin).
             max_cycles(max_cycles).
-            run().
-            unwrap();
+            run().map_err(|source| Error::Sp1 {source})?;
 
         Ok(public_values.to_vec())
     }
