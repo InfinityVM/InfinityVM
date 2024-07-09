@@ -76,12 +76,15 @@ impl Zkvm for Sp1 {
         Ok(is_correct)
     }
 
-    fn execute(program_elf: &[u8], raw_input: &[u8], _max_cycles: u64) -> Result<Vec<u8>, Error> {
+    fn execute(program_elf: &[u8], raw_input: &[u8], max_cycles: u64) -> Result<Vec<u8>, Error> {
         let mut stdin = SP1Stdin::new();
         stdin.write(&raw_input);
 
         let client = ProverClient::new();
-        let (public_values,_) = client.execute(program_elf, stdin).unwrap();
+        let (public_values,_) = client.execute(program_elf, stdin).
+            max_cycles(max_cycles).
+            run().
+            unwrap();
 
         Ok(public_values.to_vec())
     }
