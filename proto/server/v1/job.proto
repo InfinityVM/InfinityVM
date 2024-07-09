@@ -3,6 +3,13 @@ package server.v1;
 
 option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
 
+// JobStatus defines the status of a submitted coprocessor job.
+enum JobStatus {
+  JOB_STATUS_UNSPECIFIED = 0;
+  JOB_STATUS_PENDING = 1;
+  JOB_STATUS_DONE = 2;
+}
+
 // Job represents a program to be executed by the coprocessor with specific
 // inputs.
 message Job {
@@ -16,4 +23,12 @@ message Job {
   bytes contract_address = 4;
   // CPU cycle limit for job execution
   uint64 max_cycles = 5;
+  // The result of job execution
+  bytes result = 6;
+  // The address of the operator that executed the job
+  bytes zkvm_operator_address = 7;
+  // The signature of the operator that executed the job
+  bytes zkvm_operator_signature = 8;
+  // The status of the job.
+  JobStatus status = 9;
 }

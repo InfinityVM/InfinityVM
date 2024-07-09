@@ -11,8 +11,8 @@ service Service {
   // SubmitJob defines the gRPC method for submitting a coprocessing job.
   rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {
     option (google.api.http) = {
-      post: "/v1/server/submit_job"
-      body: "*"
+      post : "/v1/server/submit_job"
+      body : "*"
     };
   }
 
@@ -25,45 +25,31 @@ service Service {
   // CreateProgram defines the gRPC method for creating/storing a new program.
   rpc CreateProgram(CreateProgramRequest) returns (CreateProgramResponse) {
     option (google.api.http) = {
-      post: "/v1/server/create_program"
-      body: "*"
+      post : "/v1/server/create_program"
+      body : "*"
     };
   }
 }
 
-// JobStatus defines the status of a submitted coprocessor job.
-enum JobStatus {
-  JOB_STATUS_UNSPECIFIED = 0;
-  JOB_STATUS_PENDING = 1;
-  JOB_STATUS_DONE = 2;
-}
-
 // SubmitJobRequest defines the request structure to submit a job to the
 // coprocessing server.
-message SubmitJobRequest {
-  Job job = 1;
-}
+message SubmitJobRequest { Job job = 1; }
 
 // SubmitJobResponse defines the response structure to submit a job to the
 // coprocessing server.
-message SubmitJobResponse {
-  uint64 job_id = 1;
-}
+message SubmitJobResponse { uint64 job_id = 1; }
 
 // GetResultRequest defines the request structure to get the result of a
 // coprocessing job.
-message GetResultRequest {
-  uint64 job_id = 1;
-}
+message GetResultRequest { uint64 job_id = 1; }
 
 // GetResultResponse defines the response structure to get the result of a
 // coprocessing job.
 message GetResultResponse {
   Job job = 1;
-  JobStatus status = 2;
-  bytes result = 3;
-  bytes zkvm_operator_address = 4;
-  bytes zkvm_operator_signature = 5;
+  bytes result = 2;
+  bytes zkvm_operator_address = 3;
+  bytes zkvm_operator_signature = 4;
 }
 
 // CreateProgramRequest defines the request structure to create a new program.

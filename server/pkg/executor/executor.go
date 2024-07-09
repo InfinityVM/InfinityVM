@@ -2,12 +2,14 @@ package executor
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"math"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
@@ -76,8 +78,31 @@ func (e *Executor) Start(ctx context.Context) error {
 
 		case job := <-jobCh:
 			// 1. Execute the job.
-			// 2. Update the job record
+			// TODO(bez): Execute gRPC call to execute job.
+
 			e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
+
+			// TODO(bez): Set fields based on gRPC response.
+			job.Status = types.JobStatus_JOB_STATUS_DONE
+			// job.Result = ...
+			// job.ZkvmOperatorAddress = ...
+			// job.ZkvmOperatorSignature = ...
+
+			if err := e.saveJob(job); err != nil {
+				e.logger.Error().Err(err).Msg("failed to save job")
+			}
 		}
 	}
+}
+
+func (e *Executor) saveJob(job *types.Job) error {
+	idBz := make([]byte, 4)
+	binary.LittleEndian.PutUint32(idBz, job.Id)
+
+	bz, err := proto.Marshal(job)
+	if err != nil {
+		return fmt.Errorf("failed to marshal job: %w", err)
+	}
+
+	return e.db.Set(idBz, bz)
 }
