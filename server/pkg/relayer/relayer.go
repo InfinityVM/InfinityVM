@@ -3,7 +3,6 @@ package relayer
 import (
 	"context"
 
-
 	"github.com/rs/zerolog"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
@@ -13,15 +12,15 @@ import (
 // Relayer monitors the Infinity coprocessor server for completed jobs and submits them to JobManager contract
 type Relayer struct {
 	Logger      zerolog.Logger
-	Coordinator *Coordinator
+	Coordinator Coordinator
 }
 
 // Returns a new Relayer
-func NewRelayer(logger zerolog.Logger, queueService queue.Queue[interface{}], ethClient *eth.EthClient, workerCount int) *Relayer {
+func NewRelayer(logger zerolog.Logger, queueService queue.Queue[interface{}], ethClient eth.EthClient, workerCount int) *Relayer {
 	config := &Config{
 		workerCount,
 	}
-	coordinator := NewCoordinator(config, queueService, ethClient)
+	coordinator := NewCoordinator(config, queueService, ethClient, logger)
 
 	return &Relayer{
 		logger,
