@@ -1610,6 +1610,7 @@ dependencies = [
  "kvdb-memorydb",
  "prost",
  "proto",
+ "sha2",
  "thiserror",
  "tokio",
  "tonic",
