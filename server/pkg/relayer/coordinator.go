@@ -8,6 +8,7 @@ import (
 
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
+	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
 // Config holds settings for running the Coordinator
@@ -25,7 +26,7 @@ type Coordinator interface {
 
 type InfCoordinator struct {
 	Config       *Config
-	QueueService queue.Queue[interface{}]
+	QueueService queue.Queue[*types.Job]
 	EthClient    eth.EthClient
 	log          zerolog.Logger
 	wg           sync.WaitGroup
@@ -35,7 +36,7 @@ type InfCoordinator struct {
 }
 
 // Returns a new Job Coordinator
-func NewCoordinator(c *Config, qs queue.Queue[interface{}], ec eth.EthClient, log zerolog.Logger) *InfCoordinator {
+func NewCoordinator(c *Config, qs queue.Queue[*types.Job], ec eth.EthClient, log zerolog.Logger) *InfCoordinator {
 	return &InfCoordinator{
 		Config:       c,
 		QueueService: qs,

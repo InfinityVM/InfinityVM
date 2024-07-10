@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/ethos-works/InfinityVM/server/pkg/testutil"
+	"github.com/ethos-works/InfinityVM/server/pkg/types"
 	"github.com/golang/mock/gomock"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
@@ -18,7 +19,7 @@ func TestRelayerLifecycle(t *testing.T) {
 	defer ctrl.Finish()
 
 	logger := zerolog.New(os.Stdout)
-	broadcastQueue := queue.NewMemQueue[interface{}](1000)
+	broadcastQueue := queue.NewMemQueue[*types.Job](1000)
 	ethClient := testutil.NewMockEthClient(ctrl)
 	coordinator := testutil.NewMockCoordinator(ctrl)
 

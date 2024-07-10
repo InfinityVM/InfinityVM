@@ -2,15 +2,18 @@ package relayer
 
 import (
 	"context"
-	"github.com/ethos-works/InfinityVM/server/pkg/eth"
-	"github.com/ethos-works/InfinityVM/server/pkg/queue"
-	"github.com/ethos-works/InfinityVM/server/pkg/testutil"
-	"github.com/golang/mock/gomock"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
+
+	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
+	"github.com/ethos-works/InfinityVM/server/pkg/testutil"
+	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
 func TestCoordinatorLifecycle(t *testing.T) {
@@ -18,7 +21,7 @@ func TestCoordinatorLifecycle(t *testing.T) {
 	defer ctrl.Finish()
 
 	logger := zerolog.New(os.Stdout)
-	broadcastQueue := queue.NewMemQueue[interface{}](100)
+	broadcastQueue := queue.NewMemQueue[*types.Job](100)
 	ethClient := testutil.NewMockEthClient(ctrl)
 
 	config := &Config{3}
@@ -38,10 +41,10 @@ func TestProcessBroadcastedJobsSuccess(t *testing.T) {
 	defer ctrl.Finish()
 
 	logger := zerolog.New(os.Stdout)
-	broadcastQueue := queue.NewMemQueue[interface{}](100)
+	broadcastQueue := queue.NewMemQueue[*types.Job](100)
 	ethClient := testutil.NewMockEthClient(ctrl)
 
-	job := "job1"
+	job := &types.Job{}
 	err := broadcastQueue.Push(job)
 	require.NoError(t, err)
 
@@ -64,10 +67,10 @@ func TestProcessBroadcastedJobFailure(t *testing.T) {
 	defer ctrl.Finish()
 
 	logger := zerolog.New(os.Stdout)
-	broadcastQueue := queue.NewMemQueue[interface{}](100)
+	broadcastQueue := queue.NewMemQueue[*types.Job](100)
 	ethClient := testutil.NewMockEthClient(ctrl)
 
-	job := "job1"
+	job := &types.Job{}
 	err := broadcastQueue.Push(job)
 	require.NoError(t, err)
 
