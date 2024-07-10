@@ -222,7 +222,7 @@ func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[
 
 	r := relayer.NewRelayer(logger, queue, ethClient, workerCount)
 
-	if err := r.Start(ctx); err != nil {
+	if err = r.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start relayer: %w", err)
 	}
 

@@ -2,7 +2,7 @@
 // Source: pkg/eth/eth_client.go
 
 // Package testutil is a generated GoMock package.
-package testutil
+package testutils
 
 import (
 	reflect "reflect"

@@ -2,16 +2,18 @@ package relayer
 
 import (
 	"context"
-	"errors"
-	"github.com/ethos-works/InfinityVM/server/pkg/queue"
-	"github.com/ethos-works/InfinityVM/server/pkg/testutil"
-	"github.com/ethos-works/InfinityVM/server/pkg/types"
-	"github.com/golang/mock/gomock"
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/golang/mock/gomock"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
+
+	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
+	"github.com/ethos-works/InfinityVM/server/pkg/testutils"
+	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
 func TestRelayerLifecycle(t *testing.T) {
@@ -20,32 +22,75 @@ func TestRelayerLifecycle(t *testing.T) {
 
 	logger := zerolog.New(os.Stdout)
 	broadcastQueue := queue.NewMemQueue[*types.Job](1000)
-	ethClient := testutil.NewMockEthClient(ctrl)
-	coordinator := testutil.NewMockCoordinator(ctrl)
+	ethClient := testutils.NewMockEthClient(ctrl)
+	errChan := make(chan error, 1)
 
 	relayer := NewRelayer(logger, broadcastQueue, ethClient, 10)
-	relayer.Coordinator = coordinator
+
+	for i := 1; i <= 3; i++ {
+		job := &types.Job{}
+		err := broadcastQueue.Push(job)
+		require.NoError(t, err)
+		ethClient.EXPECT().ExecuteCallback(job).Return(nil).Times(1)
+
+	}
+	require.Equal(t, broadcastQueue.Size(), 3)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	coordinator.EXPECT().Start().Return(nil)
-	coordinator.EXPECT().Stop().Return()
-
 	go func() {
-		time.Sleep(1 * time.Second)
-		cancel()
+		errChan <- relayer.Start(ctx)
 	}()
 
-	err := relayer.Start(ctx)
+	time.Sleep(1 * time.Second)
+	cancel()
+
+	require.Eventually(t, func() bool {
+		select {
+		case err := <-errChan:
+			require.NoError(t, err)
+			require.Equal(t, broadcastQueue.Size(), 0)
+			return true
+		default:
+			return false
+		}
+	}, 3*time.Second, 100*time.Millisecond)
+}
+
+func TestProcessBroadcastedJobFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger := zerolog.New(os.Stdout)
+	broadcastQueue := queue.NewMemQueue[*types.Job](100)
+	ethClient := testutils.NewMockEthClient(ctrl)
+	errChan := make(chan error, 1)
+
+	job := &types.Job{}
+	err := broadcastQueue.Push(job)
 	require.NoError(t, err)
 
-	coordinator.EXPECT().Start().Return(errors.New("relayer failure"))
-	coordinator.EXPECT().Stop().Return()
-
-	ctx, cancel = context.WithCancel(context.Background())
+	relayer := NewRelayer(logger, broadcastQueue, ethClient, 10)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	err = relayer.Start(ctx)
-	require.Error(t, err)
+	ethClient.EXPECT().ExecuteCallback(job).Return(eth.NewFatalClientError("service unavailable")).Times(1)
+
+	go func() {
+		errChan <- relayer.Start(ctx)
+	}()
+
+	time.Sleep(1 * time.Second)
+	cancel()
+
+	require.Eventually(t, func() bool {
+		select {
+		case err := <-errChan:
+			require.Error(t, err)
+			return true
+		default:
+			return false
+		}
+	}, 2*time.Second, 100*time.Millisecond)
 }
