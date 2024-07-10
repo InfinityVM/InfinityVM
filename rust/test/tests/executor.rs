@@ -24,20 +24,19 @@ fn expected_signer_address() -> Address {
 }
 
 /// The payload that gets signed to signify that the zkvm executor has faithfully
-/// executed the job.
+/// executed the job. Also the result payload the job manager contract expects.
 ///
-/// tuple(JobID,ProgramInputHash,MaxCycles,VmType,VerifyingKey,RawOutput)
-type SigningPayload = sol! {
-    tuple(uint32,bytes32,uint64,uint8,bytes,bytes)
+/// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
+type ResultWithMetadata = sol! {
+    tuple(uint32,bytes32,uint64,bytes,bytes)
 };
 
-fn result_signing_payload(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
+fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
     let program_input_hash = keccak256(&i.program_input);
-    SigningPayload::abi_encode(&(
+    ResultWithMetadata::abi_encode(&(
         i.job_id,
         program_input_hash,
         i.max_cycles,
-        i.vm_type as u8,
         &i.program_verifying_key,
         raw_output,
     ))
@@ -82,8 +81,13 @@ async fn executor_works() {
         // Make a request and wait for the response
 
         let r = clients.executor.execute(request).await.unwrap().into_inner();
-        let ExecuteResponse { inputs, raw_output, zkvm_operator_address, zkvm_operator_signature } =
-            r;
+        let ExecuteResponse {
+            inputs,
+            raw_output,
+            result_with_metadata,
+            zkvm_operator_address,
+            zkvm_operator_signature,
+        } = r;
 
         // Verify address
         let address = {
@@ -95,7 +99,8 @@ async fn executor_works() {
         // Verify signature
         // TODO: https://linear.app/ethos-stake/issue/ETH-378/infinityrust-switch-executor-signature-encoding
         let sig = Signature::decode(&mut &zkvm_operator_signature[..]).unwrap();
-        let signing_payload = result_signing_payload(&original_inputs, &raw_output);
+        let signing_payload = abi_encode_result_with_metadata(&original_inputs, &raw_output);
+        assert_eq!(result_with_metadata, signing_payload);
 
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
         assert_eq!(recovered1, expected_signer_address());

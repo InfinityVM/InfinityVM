@@ -4,7 +4,7 @@ package zkvm_executor;
 
 service ZkvmExecutor {
   rpc execute(ExecuteRequest) returns (ExecuteResponse) {}
-  // rpc create_elf(CreateElfRequest) returns (CreateElfResponse) {}
+  rpc create_elf(CreateElfRequest) returns (CreateElfResponse) {}
 }
 
 // Type of ZKVM to execute
@@ -47,12 +47,15 @@ message ExecuteResponse {
   JobInputs inputs = 1;
   // Output of the program specified by the verified inputs.
   bytes raw_output = 2;
+  // The Soldity ABI encoded response intended to be submitted back to the
+  // job manager smart contract
+  bytes result_with_metadata = 3;
   // The ZKVM operator who attests to the job.
   // Ethereum address, as the bytes of an EIP-55 checksum string.
-  bytes zkvm_operator_address = 3;
+  bytes zkvm_operator_address = 4;
   // RLP v,r,s signature over
-  // `eip191_hash_message(program_verifying_key|program_input|max_cycles|raw_output)`
-  bytes zkvm_operator_signature = 4;
+  // `eip191_hash_message(result_with_metadata)`
+  bytes zkvm_operator_signature = 5;
 }
 
 message CreateElfRequest {

@@ -5,8 +5,11 @@ use alloy::{
     rlp::Encodable,
     signers::Signer,
 };
-use proto::{ExecuteRequest, ExecuteResponse, JobInputs};
-use std::marker::{PhantomData, Send};
+use kvdb::KeyValueDB;
+use proto::{
+    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
+};
+use std::marker::Send;
 use zkvm::Zkvm;
 
 use alloy_sol_types::{sol, SolType};
@@ -20,18 +23,19 @@ enum Error {
 ///  The implementation of the `ZkvmExecutor` trait
 /// TODO(zeke): do we want to make this generic over executor?
 #[derive(Debug)]
-pub(crate) struct ZkvmExecutorService<Z, S> {
+pub(crate) struct ZkvmExecutorService<S, D> {
     signer: S,
     chain_id: Option<u64>,
-    _phantom: PhantomData<Z>,
+    _db: D,
 }
 
-impl<Z, S> ZkvmExecutorService<Z, S>
+impl<S, D> ZkvmExecutorService<S, D>
 where
     S: Signer<Signature> + Send + Sync + 'static,
+    D: KeyValueDB,
 {
-    pub(crate) const fn new(signer: S, chain_id: Option<u64>) -> Self {
-        Self { signer, chain_id, _phantom: PhantomData }
+    pub(crate) const fn new(signer: S, chain_id: Option<u64>, db: D) -> Self {
+        Self { signer, chain_id, _db: db }
     }
 
     /// Checksum address (hex string), as bytes.
@@ -56,10 +60,10 @@ where
 }
 
 #[tonic::async_trait]
-impl<Z, S> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<Z, S>
+impl<S, D> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<S, D>
 where
-    Z: Zkvm + Send + Sync + 'static,
     S: Signer<Signature> + Send + Sync + 'static,
+    D: KeyValueDB + 'static,
 {
     async fn execute(
         &self,
@@ -68,25 +72,35 @@ where
         let msg = request.into_inner();
         let inputs = msg.inputs.expect("todo");
 
-        if !Z::is_correct_verifying_key(&msg.program_elf, &inputs.program_verifying_key)
+        let vm = match VmType::try_from(inputs.vm_type)
+            .map_err(|_| tonic::Status::internal("invalid vm type"))?
+        {
+            VmType::Risc0 => Box::new(zkvm::Risc0),
+            VmType::Sp1 => unimplemented!(),
+        };
+
+        if !vm
+            .is_correct_verifying_key(&msg.program_elf, &inputs.program_verifying_key)
             .expect("todo")
         {
             return Err(tonic::Status::invalid_argument("bad verifying key"));
         }
 
-        let raw_output = Z::execute(&msg.program_elf, &inputs.program_input, inputs.max_cycles)
+        let raw_output = vm
+            .execute(&msg.program_elf, &inputs.program_input, inputs.max_cycles)
             .map_err(|e| format!("zkvm execute error: {e:?}"))
             .map_err(tonic::Status::invalid_argument)?;
 
-        let signing_payload = result_signing_payload(&inputs, &raw_output);
+        let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output);
 
         let zkvm_operator_signature = self
-            .sign_message(&signing_payload)
+            .sign_message(&result_with_metadata)
             .await
             .map_err(|e| format!("signing error: {e:?}"))
             .map_err(tonic::Status::internal)?;
         let response = ExecuteResponse {
             inputs: Some(inputs),
+            result_with_metadata,
             zkvm_operator_address: self.address_checksum_bytes(),
             zkvm_operator_signature,
             raw_output,
@@ -94,23 +108,29 @@ where
 
         Ok(tonic::Response::new(response))
     }
+
+    async fn create_elf(
+        &self,
+        _request: tonic::Request<CreateElfRequest>,
+    ) -> Result<tonic::Response<CreateElfResponse>, tonic::Status> {
+        unimplemented!()
+    }
 }
 
 /// The payload that gets signed to signify that the zkvm executor has faithfully
-/// executed the job.
+/// executed the job. Also the result payload the job manager contract expects.
 ///
-/// tuple(JobID,ProgramInputHash,MaxCycles,VmTypeVerifyingKey,RawOutput)
-type SigningPayload = sol! {
-    tuple(uint32,bytes32,uint64,uint8,bytes,bytes)
+/// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
+type ResultWithMetadata = sol! {
+    tuple(uint32,bytes32,uint64,bytes,bytes)
 };
 
-fn result_signing_payload(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
+fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
     let program_input_hash = keccak256(&i.program_input);
-    SigningPayload::abi_encode(&(
+    ResultWithMetadata::abi_encode(&(
         i.job_id,
         program_input_hash,
         i.max_cycles,
-        i.vm_type as u8,
         &i.program_verifying_key,
         raw_output,
     ))
