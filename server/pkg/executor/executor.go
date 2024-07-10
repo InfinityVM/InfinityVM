@@ -35,13 +35,14 @@ const (
 // and executing (via the zkShim) jobs. The caller must ensure to start the
 // executor, which will consume submitted jobs from the queue.
 type Executor struct {
-	logger     zerolog.Logger
-	db         db.DB
-	queue      queue.Queue[*types.Job]
-	grpcClient *grpc.ClientConn
+	logger         zerolog.Logger
+	db             db.DB
+	execQueue      queue.Queue[*types.Job]
+	broadcastQueue queue.Queue[*types.Job]
+	grpcClient     *grpc.ClientConn
 }
 
-func New(logger zerolog.Logger, db db.DB, zkClientAddr string, queueSize int) (*Executor, error) {
+func New(logger zerolog.Logger, db db.DB, zkClientAddr string, execQueue, broadcastQueue queue.Queue[*types.Job]) (*Executor, error) {
 	grpcClient, err := grpc.NewClient(
 		zkClientAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
@@ -55,10 +56,11 @@ func New(logger zerolog.Logger, db db.DB, zkClientAddr string, queueSize int) (*
 	}
 
 	return &Executor{
-		logger:     logger,
-		db:         db,
-		queue:      queue.NewMemQueue[*types.Job](queueSize),
-		grpcClient: grpcClient,
+		logger:         logger,
+		db:             db,
+		execQueue:      execQueue,
+		broadcastQueue: broadcastQueue,
+		grpcClient:     grpcClient,
 	}, nil
 }
 
@@ -69,7 +71,7 @@ func (e *Executor) SubmitJob(job *types.Job) error {
 		return fmt.Errorf("failed to save job: %w", err)
 	}
 
-	if err := e.queue.Push(job); err != nil {
+	if err := e.execQueue.Push(job); err != nil {
 		return fmt.Errorf("failed to enqueue job: %w", err)
 	}
 
@@ -77,7 +79,7 @@ func (e *Executor) SubmitJob(job *types.Job) error {
 }
 
 func (e *Executor) Start(ctx context.Context, numWorkers int) {
-	jobCh := e.queue.ListenCh()
+	jobCh := e.execQueue.ListenCh()
 
 	wg := new(sync.WaitGroup)
 	for i := 0; i < numWorkers; i++ {
@@ -103,9 +105,19 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 		case job := <-jobCh:
 			e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
 
-			// 1. Execute the job.
 			// TODO(bez): Execute gRPC call to execute job and set fields based on gRPC
 			// response.
+			// if err := e.grpcClient.Invoke(context.Background(), "/service.ExecuteJob", nil, nil); err != nil {
+			// 	e.logger.Error().Err(err).Msg("failed to execute job")
+
+			// 	job.Status = types.JobStatus_JOB_STATUS_FAILED
+			// 	if err := e.SaveJob(job); err != nil {
+			// 		e.logger.Error().Err(err).Msg("failed to save job")
+			// 	}
+
+			// 	continue
+			// }
+
 			job.Status = types.JobStatus_JOB_STATUS_DONE
 			// job.Result = ...
 			// job.ZkvmOperatorAddress = ...
@@ -113,6 +125,12 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 
 			if err := e.SaveJob(job); err != nil {
 				e.logger.Error().Err(err).Msg("failed to save job")
+				continue
+			}
+
+			// push to broadcast queue
+			if err := e.broadcastQueue.Push(job); err != nil {
+				e.logger.Error().Err(err).Msg("failed to push job to broadcast queue")
 			}
 		}
 	}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/executor"
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/ethos-works/InfinityVM/server/pkg/testutils"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
@@ -18,8 +19,10 @@ func TestExecutor(t *testing.T) {
 	require.NoError(t, err)
 
 	logger := testutils.NewTestLogger(t)
+	execQueue := queue.NewMemQueue[*types.Job](1024)
+	broadcastQueue := queue.NewMemQueue[*types.Job](1024)
 
-	exec, err := executor.New(logger, db, "", 1024)
+	exec, err := executor.New(logger, db, "", execQueue, broadcastQueue)
 	require.NoError(t, err)
 
 	// create cancelable context and start executor
