@@ -19,6 +19,7 @@ import (
 	"google.golang.org/grpc"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/executor"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/ethos-works/InfinityVM/server/pkg/relayer"
 	"github.com/ethos-works/InfinityVM/server/pkg/server"
@@ -104,11 +105,8 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Relayer Setup
-
-	// Configure Broadcast Queue
-	// TODO: Will need to pass to server
-	broadcastQueue := queue.NewMemQueue[interface{}]()
+	// execQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
+	broadcastQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 
 	workerCount, err := cmd.Flags().GetInt(flagWorkerPool)
 	if err != nil {
@@ -213,7 +211,7 @@ func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr str
 }
 
 // TODO: Determine if we need to inject EthClient
-func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[interface{}], workerCount int) error {
+func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], workerCount int) error {
 	// Configure Eth Client
 	ethClient, err := eth.NewEthClient()
 	if err != nil {
