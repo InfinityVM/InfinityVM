@@ -136,6 +136,11 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 	}
 }
 
+// SubmitELF submits an ELF to the ZK shim and returns a verification key.
+func (e *Executor) SubmitELF(elf []byte) ([]byte, error) {
+	panic("not implemented!")
+}
+
 func (e *Executor) SaveJob(job *types.Job) error {
 	idBz := make([]byte, 4)
 	binary.BigEndian.PutUint32(idBz, job.Id)
