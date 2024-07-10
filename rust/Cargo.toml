@@ -119,6 +119,9 @@ hex = { version = "*" }
 # j
 # k
 k256 = { version = "*" }
+kvdb = { version = "*" }
+kvdb-rocksdb = { version = "*" }
+kvdb-memorydb = { version = "*" }
 
 # l
 # m
