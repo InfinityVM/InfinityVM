@@ -128,9 +128,9 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 			}
 
 			job.Status = types.JobStatus_JOB_STATUS_DONE
-			// job.Result = ...
-			// job.ZkvmOperatorAddress = ...
-			// job.ZkvmOperatorSignature = ...
+			job.Result = resp.ResultWithMetadata
+			job.ZkvmOperatorAddress = resp.ZkvmOperatorAddress
+			job.ZkvmOperatorSignature = resp.ZkvmOperatorSignature
 
 			if err := e.SaveJob(job); err != nil {
 				e.logger.Error().Err(err).Msg("failed to save job")
