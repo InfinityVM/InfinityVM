@@ -4,6 +4,13 @@ package zkvm_executor;
 
 service ZkvmExecutor {
   rpc execute(ExecuteRequest) returns (ExecuteResponse) {}
+  // rpc create_elf(CreateElfRequest) returns (CreateElfResponse) {}
+}
+
+// Type of ZKVM to execute
+enum VmType {
+  Risc0 = 0;
+  Sp1 = 1;
 }
 
 // The inputs to the zkvm program that get attested to by the zkvm operator.
@@ -19,7 +26,8 @@ message JobInputs {
   // The maximum amount of cpu cycles. In the future this may
   // be something closer to gas/opcode count.
   uint64 max_cycles = 4;
-  // TODO(zeke): VM type
+  // Type of ZKVM to execute
+  VmType vm_type = 5;
 }
 
 // A request to execute a zkvm program.
@@ -45,4 +53,16 @@ message ExecuteResponse {
   // RLP v,r,s signature over
   // `eip191_hash_message(program_verifying_key|program_input|max_cycles|raw_output)`
   bytes zkvm_operator_signature = 4;
+}
+
+message CreateElfRequest {
+  // Raw bytes of the ELF.
+  bytes elf = 1;
+  // The type of ZKVM the ELF targets for execution.
+  VmType vm_type = 2;
+}
+
+message CreateElfResponse {
+  // The verifying key of the ELF submitted.
+  bytes verifying_key = 1;
 }

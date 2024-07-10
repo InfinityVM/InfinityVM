@@ -99,9 +99,9 @@ where
 /// The payload that gets signed to signify that the zkvm executor has faithfully
 /// executed the job.
 ///
-/// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
+/// tuple(JobID,ProgramInputHash,MaxCycles,VmTypeVerifyingKey,RawOutput)
 type SigningPayload = sol! {
-    tuple(uint32,bytes32,uint64,bytes,bytes)
+    tuple(uint32,bytes32,uint64,uint8,bytes,bytes)
 };
 
 fn result_signing_payload(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
@@ -110,6 +110,7 @@ fn result_signing_payload(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
         i.job_id,
         program_input_hash,
         i.max_cycles,
+        i.vm_type as u8,
         &i.program_verifying_key,
         raw_output,
     ))

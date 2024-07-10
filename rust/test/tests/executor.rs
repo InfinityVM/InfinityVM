@@ -5,7 +5,7 @@ use alloy::{
 use alloy_rlp::Decodable;
 use alloy_sol_types::{sol, SolType};
 use integration::{Clients, Integration};
-use proto::{ExecuteRequest, ExecuteResponse, JobInputs};
+use proto::{ExecuteRequest, ExecuteResponse, JobInputs, VmType};
 use risc0_binfmt::compute_image_id;
 
 use executor::DEV_SECRET;
@@ -26,9 +26,9 @@ fn expected_signer_address() -> Address {
 /// The payload that gets signed to signify that the zkvm executor has faithfully
 /// executed the job.
 ///
-/// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
+/// tuple(JobID,ProgramInputHash,MaxCycles,VmType,VerifyingKey,RawOutput)
 type SigningPayload = sol! {
-    tuple(uint32,bytes32,uint64,bytes,bytes)
+    tuple(uint32,bytes32,uint64,uint8,bytes,bytes)
 };
 
 fn result_signing_payload(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
@@ -37,6 +37,7 @@ fn result_signing_payload(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
         i.job_id,
         program_input_hash,
         i.max_cycles,
+        i.vm_type as u8,
         &i.program_verifying_key,
         raw_output,
     ))
@@ -73,13 +74,16 @@ async fn executor_works() {
             program_verifying_key: image_id.as_bytes().to_vec(),
             program_input: program_input.clone(),
             max_cycles,
+            vm_type: VmType::Risc0.into(),
         };
         let request =
             ExecuteRequest { program_elf: vapenation_elf, inputs: Some(original_inputs.clone()) };
 
         // Make a request and wait for the response
+
+        let r = clients.executor.execute(request).await.unwrap().into_inner();
         let ExecuteResponse { inputs, raw_output, zkvm_operator_address, zkvm_operator_signature } =
-            clients.executor.execute(request).await.unwrap().into_inner();
+            r;
 
         // Verify address
         let address = {
