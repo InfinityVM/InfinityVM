@@ -137,8 +137,18 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 }
 
 // SubmitELF submits an ELF to the ZK shim and returns a verification key.
-func (e *Executor) SubmitELF(elf []byte) ([]byte, error) {
-	panic("not implemented!")
+func (e *Executor) SubmitELF(elf []byte, vmType types.VmType) ([]byte, error) {
+	var resp types.CreateElfResponse
+
+	req := &types.CreateElfRequest{
+		Elf:    elf,
+		VmType: vmType,
+	}
+	if err := e.grpcClient.Invoke(context.Background(), "/zkvm_executor.create_elf", req, &resp); err != nil {
+		return nil, fmt.Errorf("failed to submit ELF program: %w", err)
+	}
+
+	return resp.VerifyingKey, nil
 }
 
 func (e *Executor) SaveJob(job *types.Job) error {
