@@ -41,22 +41,19 @@ message SubmitJobRequest {
 // SubmitJobResponse defines the response structure to submit a job to the
 // coprocessing server.
 message SubmitJobResponse {
-  uint64 job_id = 1;
+  uint32 job_id = 1;
 }
 
 // GetResultRequest defines the request structure to get the result of a
 // coprocessing job.
 message GetResultRequest {
-  uint64 job_id = 1;
+  uint32 job_id = 1;
 }
 
 // GetResultResponse defines the response structure to get the result of a
 // coprocessing job.
 message GetResultResponse {
   Job job = 1;
-  bytes result = 2;
-  bytes zkvm_operator_address = 3;
-  bytes zkvm_operator_signature = 4;
 }
 
 // SubmitProgramRequest defines the request structure to submit a new program,
