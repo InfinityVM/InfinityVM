@@ -1,7 +1,9 @@
 package queue_test
 
 import (
+	"slices"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -9,7 +11,7 @@ import (
 )
 
 func TestMemQueue(t *testing.T) {
-	q := queue.NewMemQueue[int]()
+	q := queue.NewMemQueue[int](100)
 	require.Equal(t, 0, q.Size())
 
 	elements := []int{1, 2, 3, 4, 5}
@@ -18,27 +20,34 @@ func TestMemQueue(t *testing.T) {
 	}
 
 	for _, e := range elements {
-		x, err := q.Peek()
-		require.NoError(t, err)
-		require.Equal(t, e, x)
-
-		x, err = q.Pop()
+		x, err := q.Pop()
 		require.NoError(t, err)
 		require.Equal(t, e, x)
 	}
 
 	require.Equal(t, 0, q.Size())
 
-	_, err := q.Peek()
-	require.ErrorIs(t, err, queue.ErrQueueEmpty)
+	for _, e := range elements {
+		require.NoError(t, q.Push(e))
+	}
+
+	err := q.Reset()
+	require.NoError(t, err)
+
+	var processed []int
+	go func() {
+		for j := range q.ListenCh() {
+			processed = append(processed, j)
+		}
+	}()
 
 	for _, e := range elements {
 		require.NoError(t, q.Push(e))
 	}
 
-	err = q.Reset()
-	require.NoError(t, err)
+	require.Eventually(t, func() bool {
+		return slices.Equal(processed, elements)
+	}, time.Second, 10*time.Millisecond)
 
-	_, err = q.Peek()
-	require.ErrorIs(t, err, queue.ErrQueueEmpty)
+	require.NoError(t, q.Close())
 }

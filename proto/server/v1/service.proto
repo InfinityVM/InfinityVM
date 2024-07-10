@@ -31,13 +31,6 @@ service Service {
   }
 }
 
-// JobStatus defines the status of a submitted coprocessor job.
-enum JobStatus {
-  JOB_STATUS_UNSPECIFIED = 0;
-  JOB_STATUS_PENDING = 1;
-  JOB_STATUS_DONE = 2;
-}
-
 // SubmitJobRequest defines the request structure to submit a job to the
 // coprocessing server.
 message SubmitJobRequest {
@@ -60,10 +53,9 @@ message GetResultRequest {
 // coprocessing job.
 message GetResultResponse {
   Job job = 1;
-  JobStatus status = 2;
-  bytes result = 3;
-  bytes zkvm_operator_address = 4;
-  bytes zkvm_operator_signature = 5;
+  bytes result = 2;
+  bytes zkvm_operator_address = 3;
+  bytes zkvm_operator_signature = 4;
 }
 
 // CreateProgramRequest defines the request structure to create a new program.

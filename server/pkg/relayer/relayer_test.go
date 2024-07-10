@@ -18,7 +18,7 @@ func TestRelayerLifecycle(t *testing.T) {
 	defer ctrl.Finish()
 
 	logger := zerolog.New(os.Stdout)
-	broadcastQueue := queue.NewMemQueue[interface{}]()
+	broadcastQueue := queue.NewMemQueue[interface{}](1000)
 	ethClient := testutil.NewMockEthClient(ctrl)
 	coordinator := testutil.NewMockCoordinator(ctrl)
 

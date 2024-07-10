@@ -108,7 +108,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 
 	// Configure Broadcast Queue
 	// TODO: Will need to pass to server
-	broadcastQueue := queue.NewMemQueue[interface{}]()
+	broadcastQueue := queue.NewMemQueue[interface{}](1000)
 
 	workerCount, err := cmd.Flags().GetInt(flagWorkerPool)
 	if err != nil {
