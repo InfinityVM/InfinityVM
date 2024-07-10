@@ -5,7 +5,7 @@ use alloy::{
 use alloy_rlp::Decodable;
 use alloy_sol_types::{sol, SolType};
 use integration::{Clients, Integration};
-use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
+use proto::{ExecuteRequest, ExecuteResponse, JobInputs};
 use risc0_binfmt::compute_image_id;
 
 use executor::DEV_SECRET;
@@ -31,7 +31,7 @@ type SigningPayload = sol! {
     tuple(uint32,bytes32,uint64,bytes,bytes)
 };
 
-fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
+fn result_signing_payload(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
     let program_input_hash = keccak256(&i.program_input);
     SigningPayload::abi_encode(&(
         i.job_id,
@@ -68,7 +68,7 @@ async fn executor_works() {
         let input = 2u64;
         let program_input = VapeNationArg::abi_encode(&input);
 
-        let original_inputs = VerifiedInputs {
+        let original_inputs = JobInputs {
             job_id: 42069,
             program_verifying_key: image_id.as_bytes().to_vec(),
             program_input: program_input.clone(),

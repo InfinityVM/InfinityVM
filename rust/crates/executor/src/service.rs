@@ -5,7 +5,7 @@ use alloy::{
     rlp::Encodable,
     signers::Signer,
 };
-use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
+use proto::{ExecuteRequest, ExecuteResponse, JobInputs};
 use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
 
@@ -104,7 +104,7 @@ type SigningPayload = sol! {
     tuple(uint32,bytes32,uint64,bytes,bytes)
 };
 
-fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
+fn result_signing_payload(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
     let program_input_hash = keccak256(&i.program_input);
     SigningPayload::abi_encode(&(
         i.job_id,

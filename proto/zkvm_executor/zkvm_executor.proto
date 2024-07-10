@@ -7,7 +7,7 @@ service ZkvmExecutor {
 }
 
 // The inputs to the zkvm program that get attested to by the zkvm operator.
-message VerifiedInputs {
+message JobInputs {
   // Job identifier, as defined by the ethos chain job manager contracts.
   uint32 job_id = 1;
   // The verifying key for the program. The executor needs to check
@@ -28,7 +28,7 @@ message ExecuteRequest {
   bytes program_elf = 1;
   // The job inputs for running the program that are attested to by the executor
   // operator to assert faithful execution.
-  VerifiedInputs inputs = 2;
+  JobInputs inputs = 2;
 }
 
 // The results of executing a program
@@ -36,7 +36,7 @@ message ExecuteResponse {
   // The inputs to the program execution request. These need to be included
   // in the attested to payload to ensure that a zk proof can be constructed
   // just using the attested payload.
-  VerifiedInputs inputs = 1;
+  JobInputs inputs = 1;
   // Output of the program specified by the verified inputs.
   bytes raw_output = 2;
   // The ZKVM operator who attests to the job.
