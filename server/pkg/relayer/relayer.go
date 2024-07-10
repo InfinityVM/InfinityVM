@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
@@ -15,10 +14,10 @@ import (
 
 // Relayer monitors the Infinity coprocessor server for completed jobs and submits them to JobManager contract
 type Relayer struct {
-	WorkerPoolCount int
-	QueueService    queue.Queue[*types.Job]
 	EthClient       eth.EthClient
 	Logger          zerolog.Logger
+	workerPoolCount int
+	broadcastQueue  queue.Queue[*types.Job]
 	wg              sync.WaitGroup
 	stopChan        chan struct{}
 	errChan         chan error
@@ -28,10 +27,10 @@ type Relayer struct {
 // Returns a new Relayer
 func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], ethClient eth.EthClient, workerCount int) *Relayer {
 	return &Relayer{
-		WorkerPoolCount: workerCount,
-		QueueService:    queueService,
 		EthClient:       ethClient,
 		Logger:          logger,
+		workerPoolCount: workerCount,
+		broadcastQueue:  queueService,
 		stopChan:        make(chan struct{}),
 		errChan:         make(chan error, 1),
 	}
@@ -39,7 +38,7 @@ func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], eth
 
 // Configure and start Relayer
 func (r *Relayer) Start(ctx context.Context) error {
-	for i := 0; i < r.WorkerPoolCount; i++ {
+	for i := 0; i < r.workerPoolCount; i++ {
 		r.wg.Add(1)
 		go r.processBroadcastedJobs()
 	}
@@ -72,8 +71,8 @@ func (r *Relayer) processBroadcastedJobs() {
 		case <-r.stopChan:
 			return
 		default:
-			if r.QueueService.Size() >= 1 {
-				job, err := r.QueueService.Pop()
+			if r.broadcastQueue.Size() >= 1 {
+				job, err := r.broadcastQueue.Pop()
 				if err != nil {
 					r.Logger.Error().Msgf("error fetching latest job from broadcast queue: %v", err)
 					continue
