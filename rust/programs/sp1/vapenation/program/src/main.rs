@@ -7,11 +7,10 @@ use vapenation_core::{compute_nation_id, VapeNationArg, VapeNationMetadata};
 
 fn main() {
     // read in data as bytes
-    let mut raw_input=sp1_zkvm::io::read_vec();
+    let raw_input=sp1_zkvm::io::read_vec();
 
     // deserialize the bytes to a u64 using rlp encoding
     let input = VapeNationArg::abi_decode(&raw_input, false).unwrap();
-
 
     let phrase = (0..input).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
 

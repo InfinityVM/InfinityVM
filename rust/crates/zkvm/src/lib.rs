@@ -84,7 +84,7 @@ impl Zkvm for Sp1 {
 
     fn execute(program_elf: &[u8], raw_input: &[u8], max_cycles: u64) -> Result<Vec<u8>, Error> {
         let mut stdin = SP1Stdin::new();
-        stdin.write(&raw_input);
+        stdin.write_slice(&raw_input);
 
         let client = ProverClient::new();
         let (public_values,_) = client.execute(program_elf, stdin).
@@ -100,12 +100,13 @@ mod test {
     use crate::{Zkvm,Risc0,Sp1};
     use alloy_rlp::Decodable;
     use alloy_sol_types::SolType;
+    use sp1_sdk::HashableKey;
     use vapenation_core::{VapeNationArg, VapeNationMetadata};
 
     const VAPENATION_ELF_PATH: &str =
         "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
     const VAPENATION_ELF_SP1_PATH: &str =
-        "";
+        "../../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
@@ -158,5 +159,24 @@ mod test {
         assert_eq!(metadata.nation_id, 352380);
         assert_eq!(metadata.points, 5106);
         assert_eq!(metadata.phrase, phrase);
+    }
+
+    #[test]
+    fn sp1_is_correct_verifying_key() {
+        let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
+        let client = sp1_sdk::ProverClient::new();
+
+        // Setup the program.
+        let (_, vk) = client.setup(vapenation_elf.as_slice());
+        let mut image_id= vk.hash_bytes().as_slice().to_vec();
+
+        let correct = Sp1::is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        assert!(correct);
+
+        image_id.pop();
+        image_id.push(255);
+
+        let correct = Sp1::is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        assert!(!correct);
     }
 }

@@ -3,10 +3,12 @@ version = "0.1.0"
 name = "vapenation_guest"
 edition = "2021"
 
+[workspace]
+
 [dependencies]
 serde = { version = "*"}
 alloy-rlp = { version = "*", features = ["derive"] }
 alloy-sol-types = { version = "*" }
 vapenation_core = { path = "../../../risc0/vapenation/core" }
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", tag = "v1.0.7-testnet" }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171" }
 
