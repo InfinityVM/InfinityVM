@@ -1,10 +1,15 @@
 //! gRPC service implementation.
 
-use alloy::{primitives::Signature, rlp::Encodable, signers::Signer};
-use alloy_rlp::RlpEncodable;
+use alloy::{
+    primitives::{keccak256, Signature},
+    rlp::Encodable,
+    signers::Signer,
+};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use std::marker::{PhantomData, Send};
 use zkvm::Zkvm;
+
+use alloy_sol_types::{sol, SolType};
 
 #[derive(thiserror::Error, Debug)]
 enum Error {
@@ -91,26 +96,21 @@ where
     }
 }
 
-/// This gets RLP encoded to construct the singing payload.
-#[derive(Debug, RlpEncodable)]
-struct SigningPayload<'a> {
-    program_verifying_key: &'a [u8],
-    program_input: &'a [u8],
-    max_cycles: u64,
-    raw_output: &'a [u8],
-}
+/// The payload that gets signed to signify that the zkvm executor has faithfully
+/// executed the job.
+///
+/// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
+type SigningPayload = sol! {
+    tuple(uint32,bytes32,uint64,bytes,bytes)
+};
 
 fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
-    let result_len =
-        i.program_input.len() + i.program_verifying_key.len() + raw_output.len() + 64 + 32;
-    let mut out = Vec::with_capacity(result_len);
-    let payload = SigningPayload {
-        program_verifying_key: &i.program_verifying_key,
-        program_input: &i.program_input,
-        max_cycles: i.max_cycles,
+    let program_input_hash = keccak256(&i.program_input);
+    SigningPayload::abi_encode(&(
+        i.job_id,
+        program_input_hash,
+        i.max_cycles,
+        &i.program_verifying_key,
         raw_output,
-    };
-    payload.encode(&mut out);
-
-    out
+    ))
 }

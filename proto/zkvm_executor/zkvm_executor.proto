@@ -8,15 +8,17 @@ service ZkvmExecutor {
 
 // The inputs to the zkvm program that get attested to by the zkvm operator.
 message VerifiedInputs {
+  // Job identifier, as defined by the ethos chain job manager contracts.
+  uint32 job_id = 1;
   // The verifying key for the program. The executor needs to check
   // that this matches up with the program ELF before using it.
-  bytes program_verifying_key = 1;
+  bytes program_verifying_key = 2;
   // The input to the zkvm program. The zkvm program is in charge
   // of deserializing this.
-  bytes program_input = 2;
+  bytes program_input = 3;
   // The maximum amount of cpu cycles. In the future this may
-  // be something closer to gas/opcode coutn.
-  uint64 max_cycles = 3;
+  // be something closer to gas/opcode count.
+  uint64 max_cycles = 4;
   // TODO(zeke): VM type
 }
 
@@ -24,7 +26,8 @@ message VerifiedInputs {
 message ExecuteRequest {
   // The program executable
   bytes program_elf = 1;
-  // The inputs for running the program and 
+  // The job inputs for running the program that are attested to by the executor
+  // operator to assert faithful execution.
   VerifiedInputs inputs = 2;
 }
 
@@ -34,7 +37,7 @@ message ExecuteResponse {
   // in the attested to payload to ensure that a zk proof can be constructed
   // just using the attested payload.
   VerifiedInputs inputs = 1;
-  // Output of the program specified by the verified inputs
+  // Output of the program specified by the verified inputs.
   bytes raw_output = 2;
   // The ZKVM operator who attests to the job.
   // Ethereum address, as the bytes of an EIP-55 checksum string.

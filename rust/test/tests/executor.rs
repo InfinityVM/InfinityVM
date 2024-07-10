@@ -1,9 +1,9 @@
 use alloy::{
-    primitives::{utils::eip191_hash_message, Address, Signature},
+    primitives::{keccak256, utils::eip191_hash_message, Address, Signature},
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
 };
-use alloy_rlp::{Decodable, Encodable, RlpEncodable};
-use alloy_sol_types::SolType;
+use alloy_rlp::Decodable;
+use alloy_sol_types::{sol, SolType};
 use integration::{Clients, Integration};
 use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
 use risc0_binfmt::compute_image_id;
@@ -23,25 +23,23 @@ fn expected_signer_address() -> Address {
     signer.address()
 }
 
-#[derive(Debug, RlpEncodable)]
-struct SigningPayload<'a> {
-    program_verifying_key: &'a [u8],
-    program_input: &'a [u8],
-    max_cycles: u64,
-    raw_output: &'a [u8],
-}
-// We copy and paste this instead of importing so we can detect regressions in the core impl.
-fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
-    let mut out = vec![];
-    let payload = SigningPayload {
-        program_verifying_key: &i.program_verifying_key,
-        program_input: &i.program_input,
-        max_cycles: i.max_cycles,
-        raw_output,
-    };
-    payload.encode(&mut out);
+/// The payload that gets signed to signify that the zkvm executor has faithfully
+/// executed the job.
+///
+/// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
+type SigningPayload = sol! {
+    tuple(uint32,bytes32,uint64,bytes,bytes)
+};
 
-    out
+fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
+    let program_input_hash = keccak256(&i.program_input);
+    SigningPayload::abi_encode(&(
+        i.job_id,
+        program_input_hash,
+        i.max_cycles,
+        &i.program_verifying_key,
+        raw_output,
+    ))
 }
 
 #[test]
@@ -71,6 +69,7 @@ async fn executor_works() {
         let program_input = VapeNationArg::abi_encode(&input);
 
         let original_inputs = VerifiedInputs {
+            job_id: 42069,
             program_verifying_key: image_id.as_bytes().to_vec(),
             program_input: program_input.clone(),
             max_cycles,

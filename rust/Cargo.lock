@@ -1603,6 +1603,7 @@ dependencies = [
  "alloy",
  "alloy-rlp",
  "alloy-signer-local",
+ "alloy-sol-types",
  "clap",
  "k256",
  "prost",
