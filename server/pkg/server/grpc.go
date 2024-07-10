@@ -42,9 +42,6 @@ func (s *Server) SubmitJob(_ context.Context, req *types.SubmitJobRequest) (*typ
 	if len(req.Job.ProgramVerifyingKey) == 0 {
 		return nil, status.Errorf(codes.InvalidArgument, "program verification key must not be empty")
 	}
-	if len(req.Job.ProgramVerifyingKey) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "program verification key must not be empty")
-	}
 
 	if err := s.executor.SubmitJob(req.Job); err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to submit job: %v", err)
