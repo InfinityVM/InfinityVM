@@ -2,7 +2,6 @@
 
 use alloy::{
     primitives::{keccak256, Signature},
-    rlp::Encodable,
     signers::Signer,
 };
 use kvdb::KeyValueDB;
@@ -44,15 +43,13 @@ where
     }
 
     /// Returns an RLP encoded signature over `eip191_hash_message(msg)`
-    // TODO: (leaving this as an easy issue to fix)
-    // https://linear.app/ethos-stake/issue/ETH-378/infinityrust-switch-executor-signature-encoding
     async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
         self.signer
             .sign_message(msg)
             .await
             .map(|sig| {
                 let mut out = Vec::with_capacity(sig.rlp_vrs_len());
-                sig.encode(&mut out);
+                sig.write_rlp_vrs(&mut out);
                 out
             })
             .map_err(Into::into)
