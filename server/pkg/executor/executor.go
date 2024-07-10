@@ -105,18 +105,27 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 		case job := <-jobCh:
 			e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
 
-			// TODO(bez): Execute gRPC call to execute job and set fields based on gRPC
-			// response.
-			// if err := e.grpcClient.Invoke(context.Background(), "/service.ExecuteJob", nil, nil); err != nil {
-			// 	e.logger.Error().Err(err).Msg("failed to execute job")
+			var resp types.ExecuteResponse
 
-			// 	job.Status = types.JobStatus_JOB_STATUS_FAILED
-			// 	if err := e.SaveJob(job); err != nil {
-			// 		e.logger.Error().Err(err).Msg("failed to save job")
-			// 	}
+			req := &types.ExecuteRequest{
+				Inputs: &types.JobInputs{
+					JobId:               job.Id,
+					MaxCycles:           job.MaxCycles,
+					VmType:              job.VmType,
+					ProgramVerifyingKey: job.ProgramVerifyingKey,
+					ProgramInput:        job.Input,
+				},
+			}
+			if err := e.grpcClient.Invoke(context.Background(), "/zkvm_executor.execute", req, &resp); err != nil {
+				e.logger.Error().Err(err).Msg("failed to execute job")
 
-			// 	continue
-			// }
+				job.Status = types.JobStatus_JOB_STATUS_FAILED
+				if err := e.SaveJob(job); err != nil {
+					e.logger.Error().Err(err).Msg("failed to save job")
+				}
+
+				continue
+			}
 
 			job.Status = types.JobStatus_JOB_STATUS_DONE
 			// job.Result = ...
