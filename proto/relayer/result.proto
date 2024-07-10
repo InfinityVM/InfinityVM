@@ -1,0 +1,16 @@
+syntax = "proto3";
+package server.v1;
+
+option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
+
+// ResultMetadata is the expected payload when calling submitResult on the JobManager contract.
+message ResultMetadata {
+  // The result of the job execution by the zkVM
+  bytes result = 1;
+  // Unique identifier of the job
+  uint32 job_id = 2;
+  // Zk program verifying key
+  bytes program_id = 3;
+  // Hash of verified inputs
+  bytes program_input_hash = 4;
+}
