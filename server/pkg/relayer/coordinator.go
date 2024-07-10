@@ -3,6 +3,7 @@ package relayer
 import (
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
+	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
 // Config holds settings for running the Coordinator
@@ -15,12 +16,12 @@ type Config struct {
 // service and the Ethereum client.
 type Coordinator struct {
 	Config       *Config
-	QueueService queue.Queue[interface{}]
+	QueueService queue.Queue[*types.Job]
 	EthClient    *eth.EthClient
 }
 
 // Returns a new Job Coordinator
-func NewCoordinator(c *Config, qs queue.Queue[interface{}], ec *eth.EthClient) *Coordinator {
+func NewCoordinator(c *Config, qs queue.Queue[*types.Job], ec *eth.EthClient) *Coordinator {
 	return &Coordinator{
 		Config:       c,
 		QueueService: qs,

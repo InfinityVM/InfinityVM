@@ -27,8 +27,8 @@ const (
 	// bytes the server can send.
 	DefaultGRPCMaxSendMsgSize = math.MaxInt32
 
-	// QueueSize defines the size of the job queue, which when full, will block.
-	QueueSize = 1024
+	// DefaultQueueSize defines the size of the job queue, which when full, will block.
+	DefaultQueueSize = 1024
 )
 
 // Executor defines the job executor. It is responsible for enqueuing, storing,
