@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"math"
 	"sync"
 
 	"github.com/rs/zerolog"
@@ -17,13 +16,6 @@ import (
 )
 
 const (
-	// DefaultGRPCMaxRecvMsgSize defines the default gRPC max message size in
-	// bytes the server can receive.
-	DefaultGRPCMaxRecvMsgSize = 1024 * 1024 * 10
-
-	// DefaultGRPCMaxSendMsgSize defines the default gRPC max message size in
-	// bytes the server can send.
-	DefaultGRPCMaxSendMsgSize = math.MaxInt32
 
 	// DefaultQueueSize defines the size of the job queue, which when full, will block.
 	DefaultQueueSize = 1024
@@ -37,17 +29,17 @@ type Executor struct {
 	db             db.DB
 	execQueue      queue.Queue[*types.Job]
 	broadcastQueue queue.Queue[*types.Job]
-	executorClient types.ZkvmExecutorClient
+	zkClient       types.ZkvmExecutorClient
 	wg             sync.WaitGroup
 }
 
-func New(logger zerolog.Logger, db db.DB, executorClient types.ZkvmExecutorClient, execQueue, broadcastQueue queue.Queue[*types.Job]) *Executor {
+func New(logger zerolog.Logger, db db.DB, zkClient types.ZkvmExecutorClient, execQueue, broadcastQueue queue.Queue[*types.Job]) *Executor {
 	return &Executor{
 		logger:         logger,
 		db:             db,
 		execQueue:      execQueue,
 		broadcastQueue: broadcastQueue,
-		executorClient: executorClient,
+		zkClient:       zkClient,
 		wg:             sync.WaitGroup{},
 	}
 }
@@ -100,7 +92,7 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 				},
 			}
 
-			resp, err := e.executorClient.Execute(context.Background(), req)
+			resp, err := e.zkClient.Execute(context.Background(), req)
 			if err != nil {
 				e.logger.Error().Err(err).Msg("failed to execute job")
 
@@ -137,7 +129,7 @@ func (e *Executor) SubmitELF(elf []byte, vmType types.VmType) ([]byte, error) {
 		VmType: vmType,
 	}
 
-	resp, err := e.executorClient.CreateElf(context.Background(), req)
+	resp, err := e.zkClient.CreateElf(context.Background(), req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to submit ELF program: %w", err)
 	}
