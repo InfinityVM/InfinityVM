@@ -10,45 +10,46 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
 	types "github.com/ethos-works/InfinityVM/server/pkg/types"
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockEthClient is a mock of EthClient interface.
-type MockEthClient struct {
+// MockEthClientI is a mock of EthClientI interface.
+type MockEthClientI struct {
 	ctrl     *gomock.Controller
-	recorder *MockEthClientMockRecorder
+	recorder *MockEthClientIMockRecorder
 }
 
-// MockEthClientMockRecorder is the mock recorder for MockEthClient.
-type MockEthClientMockRecorder struct {
-	mock *MockEthClient
+// MockEthClientIMockRecorder is the mock recorder for MockEthClientI.
+type MockEthClientIMockRecorder struct {
+	mock *MockEthClientI
 }
 
-// NewMockEthClient creates a new mock instance.
-func NewMockEthClient(ctrl *gomock.Controller) *MockEthClient {
-	mock := &MockEthClient{ctrl: ctrl}
-	mock.recorder = &MockEthClientMockRecorder{mock}
+// NewMockEthClientI creates a new mock instance.
+func NewMockEthClientI(ctrl *gomock.Controller) *MockEthClientI {
+	mock := &MockEthClientI{ctrl: ctrl}
+	mock.recorder = &MockEthClientIMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockEthClient) EXPECT() *MockEthClientMockRecorder {
+func (m *MockEthClientI) EXPECT() *MockEthClientIMockRecorder {
 	return m.recorder
 }
 
 // ExecuteCallback mocks base method.
-func (m *MockEthClient) ExecuteCallback(job *types.Job) error {
+func (m *MockEthClientI) ExecuteCallback(ctx context.Context, job *types.Job) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteCallback", job)
+	ret := m.ctrl.Call(m, "ExecuteCallback", ctx, job)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ExecuteCallback indicates an expected call of ExecuteCallback.
-func (mr *MockEthClientMockRecorder) ExecuteCallback(job any) *gomock.Call {
+func (mr *MockEthClientIMockRecorder) ExecuteCallback(ctx, job any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteCallback", reflect.TypeOf((*MockEthClient)(nil).ExecuteCallback), job)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteCallback", reflect.TypeOf((*MockEthClientI)(nil).ExecuteCallback), ctx, job)
 }

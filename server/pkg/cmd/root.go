@@ -40,9 +40,10 @@ const (
 	flagGRPCEndpoint        = "grpc-endpoint"
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
 	flagZKShimAddress       = "zk-shim-address"
-	flagEthUrl              = "eth-http-url"
-	flagContractAddr        = "eth-job-manager-contract-address"
-	flagRelayerPrivKey      = "relayer-private-key"
+	flagJobManagerAddress   = "job-manager-address"
+
+	EnvEthURL         = "ETH_HTTP_URL"
+	EnvRelayerPrivKey = "RELAYER_PRIVATE_KEY"
 )
 
 const (
@@ -128,22 +129,21 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ethUrl, err := cmd.Flags().GetString(flagEthUrl)
-	if err != nil {
+	ethUrl, err := mustGetEnv(EnvEthURL)
+	if ethUrl == "" {
 		return err
 	}
 
-	contractAddr, err := cmd.Flags().GetString(flagContractAddr)
+	contractAddr, err := cmd.Flags().GetString(flagJobManagerAddress)
 	if err != nil {
 		return err
 	}
-
 	if !common.IsHexAddress(contractAddr) {
 		return fmt.Errorf("invalid Ethereum address: %s", contractAddr)
 	}
 	address := common.HexToAddress(contractAddr)
 
-	pk, err := cmd.Flags().GetString(flagRelayerPrivKey)
+	pk, err := mustGetEnv(EnvRelayerPrivKey)
 	if err != nil {
 		return err
 	}
@@ -311,4 +311,12 @@ func trapSignal(cancel context.CancelFunc, logger zerolog.Logger) {
 		logger.Info().Str("signal", sig.String()).Msg("caught signal; shutting down...")
 		cancel()
 	}()
+}
+
+func mustGetEnv(envVar string) (string, error) {
+	variable := os.Getenv(envVar)
+	if variable == "" {
+		return variable, fmt.Errorf("environment variable %s must be set", envVar)
+	}
+	return variable, nil
 }

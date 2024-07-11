@@ -18,10 +18,11 @@ import (
 )
 
 type EthClientI interface {
-	ExecuteCallback(job *types.Job) error
+	ExecuteCallback(ctx context.Context, job *types.Job) error
 }
 
 type EthClient struct {
+	client          *ethclient.Client
 	signer          *bind.TransactOpts
 	contractService *jm.ContractJobManagerTransactor
 	log             zerolog.Logger
@@ -76,6 +77,7 @@ func NewEthClient(ctx context.Context, log zerolog.Logger, ethHttpUrl, pk string
 	}
 
 	return &EthClient{
+		client:          client,
 		signer:          signer,
 		contractService: contract,
 		log:             log,
@@ -83,7 +85,13 @@ func NewEthClient(ctx context.Context, log zerolog.Logger, ethHttpUrl, pk string
 }
 
 // Executes sequence to build and submit the submitResult transaction to the JobManager contract
-func (c *EthClient) ExecuteCallback(job *types.Job) error {
+func (c *EthClient) ExecuteCallback(ctx context.Context, job *types.Job) error {
+	gasPrice, err := c.client.SuggestGasPrice(ctx)
+	if err != nil {
+		log.Error().Str("error", err.Error()).Msg("failed to retrieve gas price")
+	}
+	c.signer.GasPrice = gasPrice
+
 	// TODO: Do we want to update the job record with the tx hash?
 	tx, err := c.contractService.SubmitResult(c.signer, job.Result, job.ZkvmOperatorSignature)
 	if err != nil {
