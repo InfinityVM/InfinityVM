@@ -3,7 +3,14 @@ package server.v1;
 
 option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
 
+// ============================================================================
 // These types are copied from the ZK shim Proto types temporarily.
+// ============================================================================
+
+service ZkvmExecutor {
+  rpc execute(ExecuteRequest) returns (ExecuteResponse) {}
+  rpc create_elf(CreateElfRequest) returns (CreateElfResponse) {}
+}
 
 // Type of ZKVM to execute
 enum VmType {

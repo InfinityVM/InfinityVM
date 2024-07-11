@@ -9,8 +9,6 @@ import (
 	"sync"
 
 	"github.com/rs/zerolog"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/db"
@@ -39,29 +37,19 @@ type Executor struct {
 	db             db.DB
 	execQueue      queue.Queue[*types.Job]
 	broadcastQueue queue.Queue[*types.Job]
-	grpcClient     *grpc.ClientConn
+	executorClient types.ZkvmExecutorClient
+	wg             sync.WaitGroup
 }
 
-func New(logger zerolog.Logger, db db.DB, zkClientAddr string, execQueue, broadcastQueue queue.Queue[*types.Job]) (*Executor, error) {
-	grpcClient, err := grpc.NewClient(
-		zkClientAddr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithDefaultCallOptions(
-			grpc.MaxCallRecvMsgSize(DefaultGRPCMaxRecvMsgSize),
-			grpc.MaxCallSendMsgSize(DefaultGRPCMaxSendMsgSize),
-		),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create gRPC client: %w", err)
-	}
-
+func New(logger zerolog.Logger, db db.DB, executorClient types.ZkvmExecutorClient, execQueue, broadcastQueue queue.Queue[*types.Job]) *Executor {
 	return &Executor{
 		logger:         logger,
 		db:             db,
 		execQueue:      execQueue,
 		broadcastQueue: broadcastQueue,
-		grpcClient:     grpcClient,
-	}, nil
+		executorClient: executorClient,
+		wg:             sync.WaitGroup{},
+	}
 }
 
 func (e *Executor) SubmitJob(job *types.Job) error {
@@ -81,19 +69,16 @@ func (e *Executor) SubmitJob(job *types.Job) error {
 func (e *Executor) Start(ctx context.Context, numWorkers int) {
 	jobCh := e.execQueue.ListenCh()
 
-	wg := new(sync.WaitGroup)
 	for i := 0; i < numWorkers; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			e.startWorker(ctx, jobCh)
-		}()
+		e.wg.Add(1)
+		go e.startWorker(ctx, jobCh)
 	}
 
-	wg.Wait()
+	e.wg.Wait()
 }
 
 func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
+	defer e.wg.Done()
 	e.logger.Info().Msg("starting worker...")
 
 	for {
@@ -105,8 +90,6 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 		case job := <-jobCh:
 			e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
 
-			var resp types.ExecuteResponse
-
 			req := &types.ExecuteRequest{
 				Inputs: &types.JobInputs{
 					JobId:               job.Id,
@@ -116,7 +99,9 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 					ProgramInput:        job.Input,
 				},
 			}
-			if err := e.grpcClient.Invoke(context.Background(), "/zkvm_executor.execute", req, &resp); err != nil {
+
+			resp, err := e.executorClient.Execute(context.Background(), req)
+			if err != nil {
 				e.logger.Error().Err(err).Msg("failed to execute job")
 
 				job.Status = types.JobStatus_JOB_STATUS_FAILED
@@ -147,13 +132,13 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 
 // SubmitELF submits an ELF to the ZK shim and returns a verification key.
 func (e *Executor) SubmitELF(elf []byte, vmType types.VmType) ([]byte, error) {
-	var resp types.CreateElfResponse
-
 	req := &types.CreateElfRequest{
 		Elf:    elf,
 		VmType: vmType,
 	}
-	if err := e.grpcClient.Invoke(context.Background(), "/zkvm_executor.create_elf", req, &resp); err != nil {
+
+	resp, err := e.executorClient.CreateElf(context.Background(), req)
+	if err != nil {
 		return nil, fmt.Errorf("failed to submit ELF program: %w", err)
 	}
 
