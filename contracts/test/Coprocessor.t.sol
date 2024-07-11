@@ -11,6 +11,7 @@ contract CoprocessorTest is Test {
     MockConsumer public consumer;
 
     uint64 DEFAULT_MAX_CYCLES = 1_000_000;
+    address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0x184c47137933253f49325B851307Ab1017863BD0;
 
     event JobCreated(uint32 indexed jobID, uint64 indexed maxCycles, bytes indexed programID, bytes programInput);
@@ -18,7 +19,7 @@ contract CoprocessorTest is Test {
     event JobCompleted(uint32 indexed jobID, bytes indexed result);
 
     function setUp() public {
-        jobManager = new JobManager(address(0), COPROCESSOR_OPERATOR);
+        jobManager = new JobManager(RELAYER, COPROCESSOR_OPERATOR);
         consumer = new MockConsumer(address(jobManager));
     }
 
@@ -99,7 +100,7 @@ contract CoprocessorTest is Test {
 
         vm.expectEmit(true, true, false, false);
         emit JobCompleted(1, abi.encode(address(0), 10));
-        vm.prank(address(0));
+        vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
 
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(1);
@@ -113,7 +114,7 @@ contract CoprocessorTest is Test {
 
     function testRevertWhen_JobManager_SubmitResultUnauthorized() public {
         test_Consumer_RequestJob();
-        vm.prank(address(1));
+        vm.prank(address(2));
         vm.expectRevert("JobManager.submitResult: caller is not the relayer");
         jobManager.submitResult(abi.encode("resultWithMetadata"), abi.encodePacked("signature"));
     }
@@ -125,7 +126,7 @@ contract CoprocessorTest is Test {
         bytes memory signature = hex"89db44d83f6d32ff87647d9ac8d468b74ac6afdbc76f4ee7cc9260f93e3e48c9617f4ed3e7088e529a78c481fa9d58affb166dbb388e300e42c3de4e7b54d6091b";
 
         vm.expectRevert("JobManager.submitResult: Invalid signature");
-        vm.prank(address(0));
+        vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
     }
 
@@ -136,7 +137,7 @@ contract CoprocessorTest is Test {
         bytes memory signature = hex"88db44d83f6d32ff87647d9ac8d468b74ac6afdbc76f4ee7cc9260f93e3e48c9617f4ed3e7088e529a78c481fa9d58affb166dbb388e300e42c3de4e7b54d6091b";
 
         vm.expectRevert("JobManager.submitResult: job is not in pending state");
-        vm.prank(address(0));
+        vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
     }
 
@@ -147,7 +148,7 @@ contract CoprocessorTest is Test {
         bytes memory signature = hex"1e84e7839672b237541a76feac1ba35e179ab8a325f4c66ca135d7c5ebea3061525e718e2e5f0a5a9803d0e4717bbbad990376874312db3f0db5ce2bed6980ef1b";
 
         vm.expectRevert("JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
-        vm.prank(address(0));
+        vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
     }
 
@@ -158,7 +159,7 @@ contract CoprocessorTest is Test {
         bytes memory signature = hex"599c86688b587cfdd46d187e2a6ccac8aba11d546e3844846ffd9e7ac008ddc84c136b66eda5d1ff9bf440cde2c2793f905807ffd57722fb1db8bdbef74eed1f1b";
 
         vm.expectRevert("JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
-        vm.prank(address(0));
+        vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
     }
 }
