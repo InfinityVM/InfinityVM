@@ -4,7 +4,7 @@ use alloy::{
     primitives::{keccak256, Signature},
     signers::Signer,
 };
-use kvdb::{DBOp, DBTransaction, KeyValueDB};
+use kvdb::{DBTransaction, KeyValueDB};
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
@@ -73,11 +73,10 @@ where
         verifying_key: &[u8],
         program_elf: Vec<u8>,
     ) -> Result<(), tonic::Status> {
-        let key = Sha256::digest(verifying_key).to_vec().into();
+        let key = Sha256::digest(verifying_key);
 
-        let tx = DBTransaction {
-            ops: vec![DBOp::Insert { col: vm_type as u32, key, value: program_elf }],
-        };
+        let mut tx = DBTransaction::new();
+        tx.put_vec(vm_type as u32, key.as_slice(), program_elf);
 
         self.db
             .write(tx)
