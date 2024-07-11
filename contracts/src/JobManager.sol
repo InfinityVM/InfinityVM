@@ -5,7 +5,6 @@ import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED
 import {Consumer} from "./Consumer.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "forge-std/console.sol";
 
 contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
     uint32 public jobIDCounter = 1;
