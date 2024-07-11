@@ -1,0 +1,7 @@
+[package]
+version = "0.1.0"
+name = "sp1-build"
+edition = "2021"
+
+[build-dependencies]
+sp1-helper = { workspace = true }

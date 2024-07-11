@@ -1057,7 +1057,7 @@ dependencies = [
  "bitflags 2.6.0",
  "cexpr",
  "clang-sys",
- "itertools 0.10.5",
+ "itertools 0.12.1",
  "lazy_static",
  "lazycell",
  "log",
@@ -3105,6 +3105,7 @@ dependencies = [
  "proto",
  "rand",
  "risc0-binfmt",
+ "sp1-helper",
  "sp1-sdk",
  "tokio",
  "tonic",
@@ -3324,7 +3325,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e310b3a6b5907f99202fcdb4960ff45b93735d7c7d96b760fcff8db2dc0e103d"
 dependencies = [
  "cfg-if",
- "windows-targets 0.48.5",
+ "windows-targets 0.52.5",
 ]
 
 [[package]]
@@ -5691,6 +5692,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "sp1-build"
+version = "0.1.0"
+dependencies = [
+ "sp1-helper",
+]
+
+[[package]]
 name = "sp1-core"
 version = "0.1.0"
 source = "git+https://github.com/succinctlabs/sp1.git?rev=9a19e0becfe2bd133d3b1bf7070edf90892f7171#9a19e0becfe2bd133d3b1bf7070edf90892f7171"
@@ -5759,6 +5767,15 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 1.0.109",
+]
+
+[[package]]
+name = "sp1-helper"
+version = "0.1.0"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=9a19e0becfe2bd133d3b1bf7070edf90892f7171#9a19e0becfe2bd133d3b1bf7070edf90892f7171"
+dependencies = [
+ "cargo_metadata",
+ "chrono",
 ]
 
 [[package]]
