@@ -3105,6 +3105,7 @@ dependencies = [
  "proto",
  "rand",
  "risc0-binfmt",
+ "sp1-sdk",
  "tokio",
  "tonic",
  "vapenation_core",

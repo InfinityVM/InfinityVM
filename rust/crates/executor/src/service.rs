@@ -69,11 +69,11 @@ where
         let msg = request.into_inner();
         let inputs = msg.inputs.expect("todo");
 
-        let vm = match VmType::try_from(inputs.vm_type)
+        let vm:Box<dyn Zkvm + Send> = match VmType::try_from(inputs.vm_type)
             .map_err(|_| tonic::Status::internal("invalid vm type"))?
         {
             VmType::Risc0 => Box::new(zkvm::Risc0),
-            VmType::Sp1 => unimplemented!(),
+            VmType::Sp1 => Box::new(zkvm::Sp1),
         };
 
         if !vm
