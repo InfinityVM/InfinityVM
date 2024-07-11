@@ -20,6 +20,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
 	"github.com/ethos-works/InfinityVM/server/pkg/executor"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
@@ -131,7 +132,12 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create ZK shim executor client: %w", err)
 	}
 
-	executor := executor.New(logger, nil, zkClient, execQueue, broadcastQueue)
+	db, err := db.NewMemDB()
+	if err != nil {
+		return fmt.Errorf("failed to create database: %w", err)
+	}
+
+	executor := executor.New(logger, db, zkClient, execQueue, broadcastQueue)
 	gRPCServer := server.New(executor)
 
 	// listen for and trap any OS signal to gracefully shutdown and exit
