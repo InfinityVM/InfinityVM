@@ -32,10 +32,10 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         coprocessorOperator = _coprocessorOperator;
     }
 
-    function createJob(bytes calldata programID, bytes calldata programInput) external override returns (uint32 jobID) {
+    function createJob(bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external override returns (uint32 jobID) {
         jobID = jobIDCounter;
-        jobIDToMetadata[jobID] = JobMetadata(programID, msg.sender, JOB_STATE_PENDING);
-        emit JobCreated(jobID, programID, programInput);
+        jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, msg.sender, JOB_STATE_PENDING);
+        emit JobCreated(jobID, maxCycles, programID, programInput);
         jobIDCounter++;
     }
 
@@ -48,6 +48,7 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         // We allow the JobManager owner to also cancel jobs so Ethos admin can veto any jobs
         require(msg.sender == job.caller || msg.sender == owner(), "JobManager.cancelJob: caller is not the job creator or JobManager owner");
 
+        require(job.status == JOB_STATE_PENDING, "JobManager.cancelJob: job is not in pending state");
         job.status = JOB_STATE_CANCELLED;
         jobIDToMetadata[jobID] = job;
 
@@ -56,7 +57,7 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
 
     // This function is called by the relayer
     function submitResult(
-        bytes calldata resultWithMetadata, // Includes result value + job ID + program ID + hash of program input
+        bytes calldata resultWithMetadata, // Includes job ID + program input hash + max cycles + program ID + result value
         bytes calldata signature
     ) external override nonReentrant {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
@@ -67,7 +68,7 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
         // Decode the resultWithMetadata using abi.decode
-        (bytes memory result, uint32 jobID, bytes memory programID, bytes32 programInputHash) = abi.decode(resultWithMetadata, (bytes, uint32, bytes, bytes32));
+        (uint32 jobID, bytes32 programInputHash, uint64 maxCycles, bytes memory programID, bytes memory result) = abi.decode(resultWithMetadata, (uint32, bytes32, uint64, bytes, bytes));
 
         JobMetadata memory job = jobIDToMetadata[jobID];
         require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");

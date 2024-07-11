@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"os"
@@ -17,7 +18,9 @@ import (
 	"github.com/spf13/cobra"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
+	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
 	"github.com/ethos-works/InfinityVM/server/pkg/executor"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
@@ -35,8 +38,17 @@ const (
 	flagLogFormat           = "log-format"
 	flagGRPCEndpoint        = "grpc-endpoint"
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
-	flagWorkerPool          = "worker-pool-count"
 	flagZKShimAddress       = "zk-shim-address"
+)
+
+const (
+	// DefaultGRPCMaxRecvMsgSize defines the default gRPC max message size in
+	// bytes the server can receive.
+	DefaultGRPCMaxRecvMsgSize = 1024 * 1024 * 10
+
+	// DefaultGRPCMaxSendMsgSize defines the default gRPC max message size in
+	// bytes the server can send.
+	DefaultGRPCMaxSendMsgSize = math.MaxInt32
 )
 
 // RootCmd is the root command for the server CLI. All commands stem from the root
@@ -112,19 +124,20 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	workerCount, err := cmd.Flags().GetInt(flagWorkerPool)
-	if err != nil {
-		return err
-	}
-
 	execQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 	broadcastQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 
-	executor, err := executor.New(logger, nil, zkShimAddress, execQueue, broadcastQueue)
+	zkClient, err := createZKClient(zkShimAddress)
 	if err != nil {
-		return fmt.Errorf("failed to create executor: %w", err)
+		return fmt.Errorf("failed to create ZK shim executor client: %w", err)
 	}
 
+	db, err := db.NewMemDB()
+	if err != nil {
+		return fmt.Errorf("failed to create database: %w", err)
+	}
+
+	executor := executor.New(logger, db, zkClient, execQueue, broadcastQueue)
 	gRPCServer := server.New(executor)
 
 	// listen for and trap any OS signal to gracefully shutdown and exit
@@ -138,9 +151,9 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return startGRPCGateway(ctx, logger, gRPCGatewayEndpoint, gRPCServer)
 	})
 
-	g.Go(func() error {
-		return startRelayer(ctx, logger, broadcastQueue, workerCount)
-	})
+	// g.Go(func() error {
+	// 	return startRelayer(ctx, logger, broadcastQueue, workerCount)
+	// })
 
 	// Block main process until all spawned goroutines have gracefully exited and
 	// signal has been captured in the main process or if an error occurs.
@@ -239,6 +252,22 @@ func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[
 	}
 
 	return nil
+}
+
+func createZKClient(zkClientAddr string) (types.ZkvmExecutorClient, error) {
+	grpcClient, err := grpc.NewClient(
+		zkClientAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(DefaultGRPCMaxRecvMsgSize),
+			grpc.MaxCallSendMsgSize(DefaultGRPCMaxSendMsgSize),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create gRPC client: %w", err)
+	}
+
+	return types.NewZkvmExecutorClient(grpcClient), nil
 }
 
 // trapSignal will listen for any OS signal and invoke Done on the main WaitGroup
