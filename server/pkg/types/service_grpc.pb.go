@@ -21,7 +21,7 @@ const _ = grpc.SupportPackageIsVersion8
 const (
 	Service_SubmitJob_FullMethodName     = "/server.v1.Service/SubmitJob"
 	Service_GetResult_FullMethodName     = "/server.v1.Service/GetResult"
-	Service_CreateProgram_FullMethodName = "/server.v1.Service/CreateProgram"
+	Service_SubmitProgram_FullMethodName = "/server.v1.Service/SubmitProgram"
 )
 
 // ServiceClient is the client API for Service service.
@@ -35,8 +35,9 @@ type ServiceClient interface {
 	// GetResult defines the gRPC method for getting the result of a coprocessing
 	// job.
 	GetResult(ctx context.Context, in *GetResultRequest, opts ...grpc.CallOption) (*GetResultResponse, error)
-	// CreateProgram defines the gRPC method for creating/storing a new program.
-	CreateProgram(ctx context.Context, in *CreateProgramRequest, opts ...grpc.CallOption) (*CreateProgramResponse, error)
+	// SubmitProgram defines the gRPC method for submitting a new program to
+	// generate a unique program verification key.
+	SubmitProgram(ctx context.Context, in *SubmitProgramRequest, opts ...grpc.CallOption) (*SubmitProgramResponse, error)
 }
 
 type serviceClient struct {
@@ -67,10 +68,10 @@ func (c *serviceClient) GetResult(ctx context.Context, in *GetResultRequest, opt
 	return out, nil
 }
 
-func (c *serviceClient) CreateProgram(ctx context.Context, in *CreateProgramRequest, opts ...grpc.CallOption) (*CreateProgramResponse, error) {
+func (c *serviceClient) SubmitProgram(ctx context.Context, in *SubmitProgramRequest, opts ...grpc.CallOption) (*SubmitProgramResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(CreateProgramResponse)
-	err := c.cc.Invoke(ctx, Service_CreateProgram_FullMethodName, in, out, cOpts...)
+	out := new(SubmitProgramResponse)
+	err := c.cc.Invoke(ctx, Service_SubmitProgram_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -88,8 +89,9 @@ type ServiceServer interface {
 	// GetResult defines the gRPC method for getting the result of a coprocessing
 	// job.
 	GetResult(context.Context, *GetResultRequest) (*GetResultResponse, error)
-	// CreateProgram defines the gRPC method for creating/storing a new program.
-	CreateProgram(context.Context, *CreateProgramRequest) (*CreateProgramResponse, error)
+	// SubmitProgram defines the gRPC method for submitting a new program to
+	// generate a unique program verification key.
+	SubmitProgram(context.Context, *SubmitProgramRequest) (*SubmitProgramResponse, error)
 	mustEmbedUnimplementedServiceServer()
 }
 
@@ -103,8 +105,8 @@ func (UnimplementedServiceServer) SubmitJob(context.Context, *SubmitJobRequest) 
 func (UnimplementedServiceServer) GetResult(context.Context, *GetResultRequest) (*GetResultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetResult not implemented")
 }
-func (UnimplementedServiceServer) CreateProgram(context.Context, *CreateProgramRequest) (*CreateProgramResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateProgram not implemented")
+func (UnimplementedServiceServer) SubmitProgram(context.Context, *SubmitProgramRequest) (*SubmitProgramResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SubmitProgram not implemented")
 }
 func (UnimplementedServiceServer) mustEmbedUnimplementedServiceServer() {}
 
@@ -155,20 +157,20 @@ func _Service_GetResult_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Service_CreateProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateProgramRequest)
+func _Service_SubmitProgram_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SubmitProgramRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ServiceServer).CreateProgram(ctx, in)
+		return srv.(ServiceServer).SubmitProgram(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: Service_CreateProgram_FullMethodName,
+		FullMethod: Service_SubmitProgram_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServiceServer).CreateProgram(ctx, req.(*CreateProgramRequest))
+		return srv.(ServiceServer).SubmitProgram(ctx, req.(*SubmitProgramRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -189,8 +191,8 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Service_GetResult_Handler,
 		},
 		{
-			MethodName: "CreateProgram",
-			Handler:    _Service_CreateProgram_Handler,
+			MethodName: "SubmitProgram",
+			Handler:    _Service_SubmitProgram_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

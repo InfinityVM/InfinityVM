@@ -2240,8 +2240,11 @@ dependencies = [
  "alloy",
  "alloy-rlp",
  "alloy-signer-local",
+ "alloy-sol-types",
  "clap",
  "k256",
+ "kvdb",
+ "kvdb-memorydb",
  "prost",
  "proto",
  "thiserror",
@@ -3236,6 +3239,25 @@ checksum = "47a3633291834c4fbebf8673acbc1b04ec9d151418ff9b8e26dcd79129928758"
 dependencies = [
  "digest 0.10.7",
  "sha3-asm",
+]
+
+[[package]]
+name = "kvdb"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7d770dcb02bf6835887c3a979b5107a04ff4bbde97a5f0928d27404a155add9"
+dependencies = [
+ "smallvec",
+]
+
+[[package]]
+name = "kvdb-memorydb"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bf7a85fe66f9ff9cd74e169fdd2c94c6e1e74c412c99a73b4df3200b5d3760b2"
+dependencies = [
+ "kvdb",
+ "parking_lot",
 ]
 
 [[package]]

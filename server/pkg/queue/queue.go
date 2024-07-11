@@ -14,10 +14,12 @@ type Queue[T any] interface {
 	Push(T) error
 	// Pop removes a job from the queue.
 	Pop() (T, error)
-	// Peek returns the next job in the queue without removing it.
-	Peek() (T, error)
 	// Reset clears the queue.
 	Reset() error
+	// ListenCh returns a read-only channel that can be used to listen for new jobs.
+	ListenCh() <-chan T
 	// Size returns the number of jobs in the queue.
 	Size() int
+	// Close closes the queue.
+	Close() error
 }

@@ -84,13 +84,6 @@ struct Opts {
     /// Port to listen to listen on
     #[arg(long)]
     port: u16,
-    /// ZKVM variant to run
-    #[arg(
-        long,
-        default_value_t = Zkvm::Risc0,
-        default_missing_value = "risc0"
-    )]
-    zkvm: Zkvm,
     /// Chain ID of where results are expected to get submitted.
     #[arg(long)]
     chain_id: Option<u64>,
@@ -131,15 +124,12 @@ impl Cli {
         let addr = SocketAddrV4::new(opts.ip, opts.port);
         let signer = opts.operator_signer()?;
 
-        let mut builder = tonic::transport::Server::builder();
-        let router = match opts.zkvm{
-            Zkvm::Risc0 => builder.add_service(proto::zkvm_executor_server::ZkvmExecutorServer::new(
-                ZkvmExecutorService::<zkvm::Risc0, _>::new(signer, opts.chain_id))
-            ),
-            Zkvm::Sp1 => builder.add_service(proto::zkvm_executor_server::ZkvmExecutorServer::new(
-                ZkvmExecutorService::<zkvm::Sp1, _>::new(signer, opts.chain_id))
-            )
-        };
+        // TODO(zeke): add option for rocksdb
+        let db = kvdb_memorydb::create(2);
+
+        let executor_service = ZkvmExecutorService::new(signer, opts.chain_id, db);
+
+        let executor = proto::zkvm_executor_server::ZkvmExecutorServer::new(executor_service);
 
         // TODO: figure out reflection service protos
         // let reflector = tonic_reflection::server::Builder::configure()
@@ -147,9 +137,14 @@ impl Cli {
         //     .build()
         //     .expect("failed to start reflector service");
 
-        router
+        tonic::transport::Server::builder()
+            .add_service(executor)
+            // .add_service(reflector)
             .serve(addr.into())
             .await
             .map_err(Into::into)
+        // .serve_with_shutdown(addr, async {
+        //     // TODO
+        // })
     }
 }

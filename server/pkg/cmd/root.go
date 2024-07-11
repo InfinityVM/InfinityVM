@@ -18,6 +18,10 @@ import (
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 
+	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/executor"
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
+	"github.com/ethos-works/InfinityVM/server/pkg/relayer"
 	"github.com/ethos-works/InfinityVM/server/pkg/server"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
@@ -31,6 +35,8 @@ const (
 	flagLogFormat           = "log-format"
 	flagGRPCEndpoint        = "grpc-endpoint"
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
+	flagWorkerPool          = "worker-pool-count"
+	flagZKShimAddress       = "zk-shim-address"
 )
 
 // RootCmd is the root command for the server CLI. All commands stem from the root
@@ -51,6 +57,7 @@ func init() {
 	RootCmd.PersistentFlags().String(flagLogFormat, logLevelText, "logging format [json|text]")
 	RootCmd.Flags().String(flagGRPCEndpoint, "localhost:50051", "The gRPC server endpoint")
 	RootCmd.Flags().String(flagGRPCGatewayEndpoint, "localhost:8080", "The gRPC gateway server endpoint")
+	RootCmd.Flags().String(flagZKShimAddress, "", "The ZK shim endpoint")
 
 	RootCmd.AddCommand(getVersionCmd())
 }
@@ -100,15 +107,39 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	zkShimAddress, err := cmd.Flags().GetString(flagZKShimAddress)
+	if err != nil {
+		return err
+	}
+
+	workerCount, err := cmd.Flags().GetInt(flagWorkerPool)
+	if err != nil {
+		return err
+	}
+
+	execQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
+	broadcastQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
+
+	executor, err := executor.New(logger, nil, zkShimAddress, execQueue, broadcastQueue)
+	if err != nil {
+		return fmt.Errorf("failed to create executor: %w", err)
+	}
+
+	gRPCServer := server.New(executor)
+
 	// listen for and trap any OS signal to gracefully shutdown and exit
 	trapSignal(cancel, logger)
 
 	g.Go(func() error {
-		return startGRPCServer(ctx, logger, "tcp", gRPCEndpoint)
+		return startGRPCServer(ctx, logger, "tcp", gRPCEndpoint, gRPCServer)
 	})
 
 	g.Go(func() error {
-		return startGRPCGateway(ctx, logger, gRPCGatewayEndpoint)
+		return startGRPCGateway(ctx, logger, gRPCGatewayEndpoint, gRPCServer)
+	})
+
+	g.Go(func() error {
+		return startRelayer(ctx, logger, broadcastQueue, workerCount)
 	})
 
 	// Block main process until all spawned goroutines have gracefully exited and
@@ -118,7 +149,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 
 // startGRPCServer starts a gRPC server and listens for incoming requests in a
 // blocking process. It returns an error if the server cannot start.
-func startGRPCServer(ctx context.Context, logger zerolog.Logger, network, listenAddr string, opts ...grpc.ServerOption) error {
+func startGRPCServer(ctx context.Context, logger zerolog.Logger, network, listenAddr string, gRPCServer *server.Server, opts ...grpc.ServerOption) error {
 	l, err := net.Listen(network, listenAddr)
 	if err != nil {
 		return err
@@ -129,7 +160,7 @@ func startGRPCServer(ctx context.Context, logger zerolog.Logger, network, listen
 	}()
 
 	srv := grpc.NewServer(opts...)
-	types.RegisterServiceServer(srv, server.New())
+	types.RegisterServiceServer(srv, gRPCServer)
 
 	srvErrCh := make(chan error, 1)
 
@@ -153,10 +184,10 @@ func startGRPCServer(ctx context.Context, logger zerolog.Logger, network, listen
 	}
 }
 
-func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr string, opts ...runtime.ServeMuxOption) error {
+func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr string, gRPCServer *server.Server, opts ...runtime.ServeMuxOption) error {
 	mux := runtime.NewServeMux(opts...)
 
-	if err := types.RegisterServiceHandlerServer(ctx, mux, server.New()); err != nil {
+	if err := types.RegisterServiceHandlerServer(ctx, mux, gRPCServer); err != nil {
 		return fmt.Errorf("failed to register gRPC gateway server: %w", err)
 	}
 
@@ -191,6 +222,23 @@ func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr str
 			return err
 		}
 	}
+}
+
+// TODO: Determine if we need to inject EthClient
+func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], workerCount int) error {
+	// Configure Eth Client
+	ethClient, err := eth.NewEthClient()
+	if err != nil {
+		return err
+	}
+
+	r := relayer.NewRelayer(logger, queue, ethClient, workerCount)
+
+	if err := r.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start relayer: %w", err)
+	}
+
+	return nil
 }
 
 // trapSignal will listen for any OS signal and invoke Done on the main WaitGroup
