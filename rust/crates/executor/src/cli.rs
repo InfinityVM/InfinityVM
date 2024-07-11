@@ -131,15 +131,14 @@ impl Cli {
 
         let executor = proto::zkvm_executor_server::ZkvmExecutorServer::new(executor_service);
 
-        // TODO: figure out reflection service protos
-        // let reflector = tonic_reflection::server::Builder::configure()
-        //     .register_encoded_file_descriptor_set(TODO)
-        //     .build()
-        //     .expect("failed to start reflector service");
+        let reflector = tonic_reflection::server::Builder::configure()
+            .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
+            .build()
+            .expect("failed to build gRPC reflection service");
 
         tonic::transport::Server::builder()
+            .add_service(reflector)
             .add_service(executor)
-            // .add_service(reflector)
             .serve(addr.into())
             .await
             .map_err(Into::into)
