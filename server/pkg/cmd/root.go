@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -37,6 +38,9 @@ const (
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
 	flagWorkerPool          = "worker-pool-count"
 	flagZKShimAddress       = "zk-shim-address"
+	flagEthUrl              = "eth-http-url"
+	flagContractAddr        = "eth-job-manager-contract-address"
+	flagRelayerPrivKey      = "relayer-private-key"
 )
 
 // RootCmd is the root command for the server CLI. All commands stem from the root
@@ -117,6 +121,31 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ethUrl, err := cmd.Flags().GetString(flagEthUrl)
+	if err != nil {
+		return err
+	}
+
+	contractAddr, err := cmd.Flags().GetString(flagContractAddr)
+	if err != nil {
+		return err
+	}
+
+	if !common.IsHexAddress(contractAddr) {
+		return fmt.Errorf("invalid Ethereum address: %s", contractAddr)
+	}
+	address := common.HexToAddress(contractAddr)
+
+	pk, err := cmd.Flags().GetString(flagRelayerPrivKey)
+	if err != nil {
+		return err
+	}
+
+	ethClient, err := eth.NewEthClient(ctx, logger, ethUrl, pk, address)
+	if err != nil {
+		return err
+	}
+
 	execQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 	broadcastQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 
@@ -139,7 +168,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	})
 
 	g.Go(func() error {
-		return startRelayer(ctx, logger, broadcastQueue, workerCount)
+		return startRelayer(ctx, logger, broadcastQueue, ethClient, workerCount)
 	})
 
 	// Block main process until all spawned goroutines have gracefully exited and
@@ -225,13 +254,7 @@ func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr str
 }
 
 // TODO: Determine if we need to inject EthClient
-func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], workerCount int) error {
-	// Configure Eth Client
-	ethClient, err := eth.NewEthClient()
-	if err != nil {
-		return err
-	}
-
+func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], ethClient eth.EthClient, workerCount int) error {
 	r := relayer.NewRelayer(logger, queue, ethClient, workerCount)
 
 	if err := r.Start(ctx); err != nil {

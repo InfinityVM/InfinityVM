@@ -17,11 +17,11 @@ type Config struct {
 type Coordinator struct {
 	Config       *Config
 	QueueService queue.Queue[*types.Job]
-	EthClient    *eth.EthClient
+	EthClient    eth.EthClient
 }
 
 // Returns a new Job Coordinator
-func NewCoordinator(c *Config, qs queue.Queue[*types.Job], ec *eth.EthClient) *Coordinator {
+func NewCoordinator(c *Config, qs queue.Queue[*types.Job], ec eth.EthClient) *Coordinator {
 	return &Coordinator{
 		Config:       c,
 		QueueService: qs,

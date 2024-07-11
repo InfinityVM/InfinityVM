@@ -17,7 +17,7 @@ type Relayer struct {
 }
 
 // Returns a new Relayer
-func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], ethClient *eth.EthClient, workerCount int) *Relayer {
+func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], ethClient eth.EthClient, workerCount int) *Relayer {
 	config := &Config{
 		workerCount,
 	}
