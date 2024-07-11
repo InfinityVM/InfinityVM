@@ -72,7 +72,7 @@ func (s *Server) SubmitProgram(_ context.Context, req *types.SubmitProgramReques
 		return nil, status.Errorf(codes.InvalidArgument, "empty request")
 	}
 
-	verificationKey, err := s.executor.SubmitELF(req.ProgramElf)
+	verificationKey, err := s.executor.SubmitELF(req.ProgramElf, req.VmType)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get verification key: %v", err)
 	}
