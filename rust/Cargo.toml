@@ -114,11 +114,15 @@ futures = { version = "*" }
 # g
 # h
 hex = { version = "*" }
+home = { version = "*" }
 
 # i
 # j
 # k
 k256 = { version = "*" }
+kvdb = { version = "*" }
+kvdb-rocksdb = { version = "*" }
+kvdb-memorydb = { version = "*" }
 
 # l
 # m
@@ -137,12 +141,14 @@ rand = { version = "*" }
 
 # s
 serde = { version = "1.0", features = ["derive"] }
+sha2 = { version = "*" }
 
 # t
 tonic-build = "*"
 tonic = "*"
 tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time"] }
 thiserror = "*"
+tempfile = "*"
 
 # u
 # v

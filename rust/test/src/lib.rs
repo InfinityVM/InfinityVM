@@ -51,12 +51,16 @@ impl Integration {
         R: Future<Output = ()>,
     {
         // Start executor
+        let rocksdb_dir =
+            tempfile::Builder::new().prefix("infinityvm-test-rocksdb").tempdir().unwrap();
         let executor_port = get_localhost_port();
         let _proc: ProcKill = Command::new(EXECUTOR_DEBUG_BIN)
             .arg("--ip")
             .arg(LOCALHOST)
             .arg("--port")
             .arg(executor_port.to_string())
+            .arg("--rocks-db-dir")
+            .arg(rocksdb_dir.path())
             .arg("dev")
             .spawn()
             .unwrap()

@@ -20,9 +20,10 @@ abstract contract Consumer {
 
     function requestJob(
         bytes memory programID,
-        bytes memory programInput
+        bytes memory programInput,
+        uint64 maxCycles
     ) internal returns (uint32) {
-        uint32 jobID = _jobManager.createJob(programID, programInput);
+        uint32 jobID = _jobManager.createJob(programID, programInput, maxCycles);
         jobIDToProgramInput[jobID] = programInput;
         return jobID;
     }

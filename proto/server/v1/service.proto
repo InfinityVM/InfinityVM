@@ -3,6 +3,7 @@ package server.v1;
 
 import "google/api/annotations.proto";
 import "server/v1/job.proto";
+import "server/v1/zkvm_executor.proto";
 
 option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
 
@@ -22,20 +23,14 @@ service Service {
     option (google.api.http).get = "/v1/server/result/{job_id}";
   }
 
-  // CreateProgram defines the gRPC method for creating/storing a new program.
-  rpc CreateProgram(CreateProgramRequest) returns (CreateProgramResponse) {
+  // SubmitProgram defines the gRPC method for submitting a new program to
+  // generate a unique program verification key.
+  rpc SubmitProgram(SubmitProgramRequest) returns (SubmitProgramResponse) {
     option (google.api.http) = {
-      post: "/v1/server/create_program"
+      post: "/v1/server/submit_program"
       body: "*"
     };
   }
-}
-
-// JobStatus defines the status of a submitted coprocessor job.
-enum JobStatus {
-  JOB_STATUS_UNSPECIFIED = 0;
-  JOB_STATUS_PENDING = 1;
-  JOB_STATUS_DONE = 2;
 }
 
 // SubmitJobRequest defines the request structure to submit a job to the
@@ -47,33 +42,33 @@ message SubmitJobRequest {
 // SubmitJobResponse defines the response structure to submit a job to the
 // coprocessing server.
 message SubmitJobResponse {
-  uint64 job_id = 1;
+  uint32 job_id = 1;
 }
 
 // GetResultRequest defines the request structure to get the result of a
 // coprocessing job.
 message GetResultRequest {
-  uint64 job_id = 1;
+  uint32 job_id = 1;
 }
 
 // GetResultResponse defines the response structure to get the result of a
 // coprocessing job.
 message GetResultResponse {
   Job job = 1;
-  JobStatus status = 2;
-  bytes result = 3;
-  bytes zkvm_operator_address = 4;
-  bytes zkvm_operator_signature = 5;
 }
 
-// CreateProgramRequest defines the request structure to create a new program.
-message CreateProgramRequest {
-  // The zkVM program to execute compute against.
-  bytes program = 1;
+// SubmitProgramRequest defines the request structure to submit a new program,
+// which contains the compiled ELF blob.
+message SubmitProgramRequest {
+  // The compiled zkVM program ELF.
+  bytes program_elf = 1;
+  // Type of ZKVM to execute
+  VmType vm_type = 2;
 }
 
-// CreateProgramResponse defines the response structure to create a new program.
-message CreateProgramResponse {
-  // The ZK program to execute compute against
-  int64 program_id = 1;
+// SubmitProgramResponse defines the response structure to generate a unique
+// program verification key.
+message SubmitProgramResponse {
+  // The ZK program verification key
+  bytes program_verifying_key = 1;
 }

@@ -1,11 +1,13 @@
 use alloy::{
-    primitives::{utils::eip191_hash_message, Address, Signature},
+    primitives::{keccak256, utils::eip191_hash_message, Address, Signature},
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
 };
-use alloy_rlp::{Decodable, Encodable, RlpEncodable};
-use alloy_sol_types::SolType;
+use alloy_rlp::Decodable;
+use alloy_sol_types::{sol, SolType};
 use integration::{Clients, Integration};
-use proto::{ExecuteRequest, ExecuteResponse, VerifiedInputs};
+use proto::{
+    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
+};
 use risc0_binfmt::compute_image_id;
 
 use executor::DEV_SECRET;
@@ -23,25 +25,23 @@ fn expected_signer_address() -> Address {
     signer.address()
 }
 
-#[derive(Debug, RlpEncodable)]
-struct SigningPayload<'a> {
-    program_verifying_key: &'a [u8],
-    program_input: &'a [u8],
-    max_cycles: u64,
-    raw_output: &'a [u8],
-}
-// We copy and paste this instead of importing so we can detect regressions in the core impl.
-fn result_signing_payload(i: &VerifiedInputs, raw_output: &[u8]) -> Vec<u8> {
-    let mut out = vec![];
-    let payload = SigningPayload {
-        program_verifying_key: &i.program_verifying_key,
-        program_input: &i.program_input,
-        max_cycles: i.max_cycles,
-        raw_output,
-    };
-    payload.encode(&mut out);
+/// The payload that gets signed to signify that the zkvm executor has faithfully
+/// executed the job. Also the result payload the job manager contract expects.
+///
+/// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
+type ResultWithMetadata = sol! {
+    tuple(uint32,bytes32,uint64,bytes,bytes)
+};
 
-    out
+fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
+    let program_input_hash = keccak256(&i.program_input);
+    ResultWithMetadata::abi_encode(&(
+        i.job_id,
+        program_input_hash,
+        i.max_cycles,
+        &i.program_verifying_key,
+        raw_output,
+    ))
 }
 
 #[test]
@@ -65,22 +65,36 @@ async fn executor_works() {
     async fn test(mut clients: Clients) {
         // Construct the request
         let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
-        let image_id = compute_image_id(&vapenation_elf).unwrap();
+        let image_id = compute_image_id(&vapenation_elf).unwrap().as_bytes().to_vec();
         let max_cycles = 32 * 1024 * 1024;
         let input = 2u64;
         let program_input = VapeNationArg::abi_encode(&input);
 
-        let original_inputs = VerifiedInputs {
-            program_verifying_key: image_id.as_bytes().to_vec(),
+        let create_elf_request =
+            CreateElfRequest { program_elf: vapenation_elf, vm_type: VmType::Risc0.into() };
+        let CreateElfResponse { verifying_key } =
+            clients.executor.create_elf(create_elf_request).await.unwrap().into_inner();
+        assert_eq!(verifying_key, image_id);
+
+        let original_inputs = JobInputs {
+            job_id: 42069,
+            program_verifying_key: image_id,
             program_input: program_input.clone(),
             max_cycles,
+            vm_type: VmType::Risc0.into(),
         };
-        let request =
-            ExecuteRequest { program_elf: vapenation_elf, inputs: Some(original_inputs.clone()) };
+        let request = ExecuteRequest { inputs: Some(original_inputs.clone()) };
 
         // Make a request and wait for the response
-        let ExecuteResponse { inputs, raw_output, zkvm_operator_address, zkvm_operator_signature } =
-            clients.executor.execute(request).await.unwrap().into_inner();
+
+        let r = clients.executor.execute(request).await.unwrap().into_inner();
+        let ExecuteResponse {
+            inputs,
+            raw_output,
+            result_with_metadata,
+            zkvm_operator_address,
+            zkvm_operator_signature,
+        } = r;
 
         // Verify address
         let address = {
@@ -90,9 +104,9 @@ async fn executor_works() {
         assert_eq!(address, expected_signer_address());
 
         // Verify signature
-        // TODO: https://linear.app/ethos-stake/issue/ETH-378/infinityrust-switch-executor-signature-encoding
-        let sig = Signature::decode(&mut &zkvm_operator_signature[..]).unwrap();
-        let signing_payload = result_signing_payload(&original_inputs, &raw_output);
+        let sig = Signature::decode_rlp_vrs(&mut &zkvm_operator_signature[..]).unwrap();
+        let signing_payload = abi_encode_result_with_metadata(&original_inputs, &raw_output);
+        assert_eq!(result_with_metadata, signing_payload);
 
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
         assert_eq!(recovered1, expected_signer_address());

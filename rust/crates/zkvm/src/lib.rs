@@ -14,16 +14,29 @@ pub enum Error {
 
 /// Something that can execute programs and generate ZK proofs for them.
 pub trait Zkvm {
-    /// Check if the verifying key can be derived from program elf.
-    fn is_correct_verifying_key(
-        program_elf: &[u8],
-        program_verifying_key: &[u8],
-    ) -> Result<bool, Error>;
+    /// Derive the verifying key from an elf
+    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
 
     /// Execute the program and return the raw output.
     ///
     /// This does _not_ check that the verifying key is correct.
-    fn execute(program_elf: &[u8], raw_input: &[u8], max_cycles: u64) -> Result<Vec<u8>, Error>;
+    fn execute(
+        &self,
+        program_elf: &[u8],
+        raw_input: &[u8],
+        max_cycles: u64,
+    ) -> Result<Vec<u8>, Error>;
+
+    /// Check if the verifying key can be derived from program elf.
+    fn is_correct_verifying_key(
+        &self,
+        program_elf: &[u8],
+        program_verifying_key: &[u8],
+    ) -> Result<bool, Error> {
+        let derived_verifying_key = self.derive_verifying_key(program_elf)?;
+
+        Ok(derived_verifying_key == program_verifying_key)
+    }
 
     // methods for pessimists
     // fn prove()
@@ -35,17 +48,18 @@ pub trait Zkvm {
 pub struct Risc0;
 
 impl Zkvm for Risc0 {
-    fn is_correct_verifying_key(
-        program_elf: &[u8],
-        program_verifying_key: &[u8],
-    ) -> Result<bool, Error> {
-        let image_id = compute_image_id(program_elf)?;
-        let is_correct = image_id.as_bytes() == program_verifying_key;
+    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
+        let image_id = compute_image_id(program_elf)?.as_bytes().to_vec();
 
-        Ok(is_correct)
+        Ok(image_id)
     }
 
-    fn execute(program_elf: &[u8], raw_input: &[u8], max_cycles: u64) -> Result<Vec<u8>, Error> {
+    fn execute(
+        &self,
+        program_elf: &[u8],
+        raw_input: &[u8],
+        max_cycles: u64,
+    ) -> Result<Vec<u8>, Error> {
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
             .write_slice(raw_input)
@@ -77,7 +91,7 @@ mod test {
         let raw_input = VapeNationArg::abi_encode(&input);
 
         let max_cycles = 32 * 1024 * 1024;
-        let raw_result = Risc0::execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
+        let raw_result = &Risc0.execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
 
         let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
         let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
@@ -93,13 +107,13 @@ mod test {
         let mut image_id =
             risc0_binfmt::compute_image_id(&vapenation_elf).unwrap().as_bytes().to_vec();
 
-        let correct = Risc0::is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
         assert!(correct);
 
         image_id.pop();
         image_id.push(255);
 
-        let correct = Risc0::is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
 
         assert!(!correct);
     }
