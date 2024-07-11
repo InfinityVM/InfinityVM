@@ -6,10 +6,7 @@ contracts/cache/
 contracts/out/
 
 # Ignores development broadcast logs
-!/contracts/broadcast
-contracts/broadcast/*/31337/
-contracts/broadcast/*/17000/
-contracts/broadcast/**/dry-run/
+contracts/broadcast/**
 
 # Dotenv file
 contracts/.env
