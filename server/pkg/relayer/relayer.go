@@ -12,6 +12,11 @@ import (
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
+const (
+	// DefaultWorkerCount is the number of concurrent workers available to process broadcasted Jobs
+	DefaultWorkerCount = 3
+)
+
 // Relayer monitors the Infinity coprocessor server for completed jobs and submits them to JobManager contract
 type Relayer struct {
 	EthClient       eth.EthClientI
@@ -35,6 +40,8 @@ func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], eth
 
 // Configure and start Relayer
 func (r *Relayer) Start(ctx context.Context) error {
+	r.Logger.Info().Msg("starting relayer...")
+
 	for i := 0; i < r.workerPoolCount; i++ {
 		r.wg.Add(1)
 		go r.processBroadcastedJobs(ctx)
@@ -54,12 +61,14 @@ func (r *Relayer) Start(ctx context.Context) error {
 
 func (r *Relayer) Stop() {
 	r.wg.Wait()
-	r.Logger.Info().Msg("stopped relayer coordinator")
+	r.Logger.Info().Msg("stopping relayer...")
 }
 
 // Fetch and execute Jobs
 func (r *Relayer) processBroadcastedJobs(ctx context.Context) {
 	defer r.wg.Done()
+	r.Logger.Info().Msg("starting relayer worker...")
+
 	for {
 		select {
 		case <-ctx.Done():
