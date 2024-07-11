@@ -73,7 +73,7 @@ build:
 $(BUILD_DIR)/:
 	mkdir -p $(BUILD_DIR)/
 
-.PHONY: build build-linux-amd64 build-linux-arm64
+.PHONY: build
 
 clean:
 	rm -rf \
