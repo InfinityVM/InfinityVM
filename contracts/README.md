@@ -48,7 +48,7 @@ $ anvil
 ### Deploy
 
 ```shell
-$ forge script script/Coprocessor.s.sol:CoprocessorScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ forge script script/CoprocessorDeployer.s.sol:CoprocessorDeployer --rpc-url <your_rpc_url> --private-key <your_private_key>
 ```
 
 ### Cast
