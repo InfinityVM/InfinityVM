@@ -8,15 +8,15 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-rand.workspace = true
-tonic.workspace = true
-tokio.workspace = true
-futures.workspace = true
-risc0-binfmt.workspace = true
-alloy.workspace = true
-alloy-rlp.workspace = true
-alloy-sol-types.workspace = true
-sp1-sdk.workspace = true
+rand = { workspace = true }
+tonic = { workspace = true }
+tokio = { workspace = true }
+futures = { workspace = true }
+risc0-binfmt = { workspace = true }
+alloy = { workspace = true }
+alloy-rlp = { workspace = true }
+alloy-sol-types = { workspace = true }
+sp1-sdk = { workspace = true }
 
 executor = { path = "../crates/executor" }
 proto = { path = "../crates/proto"}
