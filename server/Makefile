@@ -1,5 +1,7 @@
 #!/usr/bin/make -f
 
+BUILD_DIR = $(CURDIR)/build
+
 ###############################################################################
 ###                          Tools & Dependencies                           ###
 ###############################################################################
@@ -58,3 +60,23 @@ mock-gen:
 	@mockgen -source=pkg/types/zkvm_executor_grpc.pb.go -package mock -destination pkg/mock/zk_executor_client.go ZkvmExecutorClient
 
 .PHONY: mock-gen
+
+###############################################################################
+###                                  Build                                  ###
+###############################################################################
+
+BUILD_TARGETS := build install
+
+build: 
+	go build -o $(BUILD_DIR)/
+
+$(BUILD_DIR)/:
+	mkdir -p $(BUILD_DIR)/
+
+.PHONY: build build-linux-amd64 build-linux-arm64
+
+clean:
+	rm -rf \
+	$(BUILD_DIR)/ 
+
+.PHONY: clean
