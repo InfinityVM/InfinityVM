@@ -84,13 +84,6 @@ struct Opts {
     /// Port to listen to listen on
     #[arg(long)]
     port: u16,
-    /// ZKVM variant to run
-    #[arg(
-        long,
-        default_value_t = Zkvm::Risc0,
-        default_missing_value = "risc0"
-    )]
-    zkvm: Zkvm,
     /// Chain ID of where results are expected to get submitted.
     #[arg(long)]
     chain_id: Option<u64>,
@@ -131,10 +124,10 @@ impl Cli {
         let addr = SocketAddrV4::new(opts.ip, opts.port);
         let signer = opts.operator_signer()?;
 
-        let executor_service = match opts.zkvm {
-            Zkvm::Risc0 => ZkvmExecutorService::<zkvm::Risc0, _>::new(signer, opts.chain_id),
-            Zkvm::Sp1 => unimplemented!(),
-        };
+        // TODO(zeke): add option for rocksdb
+        let db = kvdb_memorydb::create(2);
+
+        let executor_service = ZkvmExecutorService::new(signer, opts.chain_id, db);
 
         let executor = proto::zkvm_executor_server::ZkvmExecutorServer::new(executor_service);
 

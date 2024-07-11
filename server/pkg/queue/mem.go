@@ -1,74 +1,44 @@
 package queue
 
-import (
-	"container/list"
-	"sync"
-)
-
 // MemQueue is an in-memory thread-safe implementation of the Queue interface
-// using FIFO order.
+// using FIFO order, using a channel as the underlying data structure. Pushing
+// will block if the queue is full.
 type MemQueue[T any] struct {
-	mu        sync.RWMutex
-	container *list.List
+	container chan T
 }
 
-func NewMemQueue[T any]() Queue[T] {
+func NewMemQueue[T any](size int) Queue[T] {
 	return &MemQueue[T]{
-		container: list.New(),
+		container: make(chan T, size),
 	}
 }
 
 func (m *MemQueue[T]) Push(x T) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	m.container.PushBack(x)
+	m.container <- x
 	return nil
 }
 
 func (m *MemQueue[T]) Pop() (T, error) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	var result T
-
-	x := m.container.Front()
-	if x == nil {
-		return result, ErrQueueEmpty
-	}
-
-	result = x.Value.(T)
-
-	m.container.Remove(x)
-	return result, nil
-}
-
-func (m *MemQueue[T]) Peek() (T, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	var result T
-
-	x := m.container.Front()
-	if x == nil {
-		return result, ErrQueueEmpty
-	}
-
-	result = x.Value.(T)
-	return result, nil
+	return <-m.container, nil
 }
 
 func (m *MemQueue[T]) Reset() error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
+	size := cap(m.container)
+	close(m.container)
 
-	m.container = m.container.Init()
+	m.container = make(chan T, size)
 	return nil
 }
 
 func (m *MemQueue[T]) Size() int {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
+	return len(m.container)
+}
 
-	return m.container.Len()
+func (m *MemQueue[T]) ListenCh() <-chan T {
+	return m.container
+}
+
+func (m *MemQueue[T]) Close() error {
+	close(m.container)
+	return nil
 }
