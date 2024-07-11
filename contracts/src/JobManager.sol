@@ -48,6 +48,7 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         // We allow the JobManager owner to also cancel jobs so Ethos admin can veto any jobs
         require(msg.sender == job.caller || msg.sender == owner(), "JobManager.cancelJob: caller is not the job creator or JobManager owner");
 
+        require(job.status == JOB_STATE_PENDING, "JobManager.cancelJob: job is not in pending state");
         job.status = JOB_STATE_CANCELLED;
         jobIDToMetadata[jobID] = job;
 
