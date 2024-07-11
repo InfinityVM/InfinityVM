@@ -237,7 +237,8 @@ func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr str
 	}
 }
 
-// TODO: Determine if we need to inject EthClient
+// TODO: Determine if we need to inject EthClientI
+// nolint:unused
 func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], workerCount int) error {
 	// Configure Eth Client
 	ethClient, err := eth.NewEthClient()

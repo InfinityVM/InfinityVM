@@ -6,13 +6,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
+
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/mock"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
-	"github.com/ethos-works/InfinityVM/server/pkg/testutils"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
@@ -22,7 +24,7 @@ func TestRelayerLifecycle(t *testing.T) {
 
 	logger := zerolog.New(os.Stdout)
 	broadcastQueue := queue.NewMemQueue[*types.Job](1000)
-	ethClient := testutils.NewMockEthClient(ctrl)
+	ethClient := mock.NewMockEthClientI(ctrl)
 	errChan := make(chan error, 1)
 
 	relayer := NewRelayer(logger, broadcastQueue, ethClient, 10)
@@ -64,7 +66,7 @@ func TestProcessBroadcastedJobFailure(t *testing.T) {
 
 	logger := zerolog.New(os.Stdout)
 	broadcastQueue := queue.NewMemQueue[*types.Job](100)
-	ethClient := testutils.NewMockEthClient(ctrl)
+	ethClient := mock.NewMockEthClientI(ctrl)
 	errChan := make(chan error, 1)
 
 	job := &types.Job{}

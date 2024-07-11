@@ -1,30 +1,30 @@
 package eth
 
-type EthClient interface {
+type EthClientI interface {
 	ExecuteCallback(job interface{}) error
 }
 
-type InfEthClient struct{}
+type EthClient struct{}
 
-// Returns a new EthClient
+// Returns a new EthClientI
 // TODO: Configure contract address, signing key, etc
-func NewEthClient() (*InfEthClient, error) {
-	return &InfEthClient{}, nil
+func NewEthClient() (*EthClient, error) {
+	return &EthClient{}, nil
 }
 
 // Executes sequence to build and submit the submitResult transaction to the JobManager contract
-func (c *InfEthClient) ExecuteCallback(job interface{}) error {
+func (c *EthClient) ExecuteCallback(job interface{}) error {
 	return nil
 }
 
 // Call JobManager Contract with signed Result
 // nolint:unused
-func (c *InfEthClient) submitResult() {
+func (c *EthClient) submitResult() {
 	panic("not implemented!")
 }
 
 // Fetch inputs for a given Job
 // nolint:unused
-func (c *InfEthClient) getJobInputs() {
+func (c *EthClient) getJobInputs() {
 	panic("not implemented!")
 }

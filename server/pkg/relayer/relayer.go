@@ -14,24 +14,21 @@ import (
 
 // Relayer monitors the Infinity coprocessor server for completed jobs and submits them to JobManager contract
 type Relayer struct {
-	EthClient       eth.EthClient
+	EthClient       eth.EthClientI
 	Logger          zerolog.Logger
 	workerPoolCount int
 	broadcastQueue  queue.Queue[*types.Job]
 	wg              sync.WaitGroup
-	stopChan        chan struct{}
 	errChan         chan error
-	stopOnce        sync.Once
 }
 
 // Returns a new Relayer
-func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], ethClient eth.EthClient, workerCount int) *Relayer {
+func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], ethClient eth.EthClientI, workerCount int) *Relayer {
 	return &Relayer{
 		EthClient:       ethClient,
 		Logger:          logger,
 		workerPoolCount: workerCount,
 		broadcastQueue:  queueService,
-		stopChan:        make(chan struct{}),
 		errChan:         make(chan error, 1),
 	}
 }
@@ -40,7 +37,7 @@ func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], eth
 func (r *Relayer) Start(ctx context.Context) error {
 	for i := 0; i < r.workerPoolCount; i++ {
 		r.wg.Add(1)
-		go r.processBroadcastedJobs()
+		go r.processBroadcastedJobs(ctx)
 	}
 
 	select {
@@ -56,19 +53,16 @@ func (r *Relayer) Start(ctx context.Context) error {
 }
 
 func (r *Relayer) Stop() {
-	r.stopOnce.Do(func() {
-		close(r.stopChan)
-	})
 	r.wg.Wait()
 	r.Logger.Info().Msg("stopped relayer coordinator")
 }
 
 // Fetch and execute Jobs
-func (r *Relayer) processBroadcastedJobs() {
+func (r *Relayer) processBroadcastedJobs(ctx context.Context) {
 	defer r.wg.Done()
 	for {
 		select {
-		case <-r.stopChan:
+		case <-ctx.Done():
 			return
 		default:
 			if r.broadcastQueue.Size() >= 1 {
