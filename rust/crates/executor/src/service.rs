@@ -144,6 +144,7 @@ where
         tonic_request: tonic::Request<CreateElfRequest>,
     ) -> Result<tonic::Response<CreateElfResponse>, tonic::Status> {
         let request = tonic_request.into_inner();
+
         let vm = self.vm(request.vm_type)?;
 
         let verifying_key = vm
