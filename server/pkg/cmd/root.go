@@ -37,7 +37,6 @@ const (
 	flagLogFormat           = "log-format"
 	flagGRPCEndpoint        = "grpc-endpoint"
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
-	flagWorkerPool          = "worker-pool-count"
 	flagZKShimAddress       = "zk-shim-address"
 )
 
@@ -124,11 +123,6 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	workerCount, err := cmd.Flags().GetInt(flagWorkerPool)
-	if err != nil {
-		return err
-	}
-
 	execQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 	broadcastQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 
@@ -151,9 +145,9 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return startGRPCGateway(ctx, logger, gRPCGatewayEndpoint, gRPCServer)
 	})
 
-	g.Go(func() error {
-		return startRelayer(ctx, logger, broadcastQueue, workerCount)
-	})
+	// g.Go(func() error {
+	// 	return startRelayer(ctx, logger, broadcastQueue, workerCount)
+	// })
 
 	// Block main process until all spawned goroutines have gracefully exited and
 	// signal has been captured in the main process or if an error occurs.
