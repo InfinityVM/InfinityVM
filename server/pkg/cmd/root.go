@@ -127,10 +127,11 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	execQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 	broadcastQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 
-	zkClient, err := createZKClient(zkShimAddress)
+	zkClient, clientConn, err := createZKClient(zkShimAddress)
 	if err != nil {
 		return fmt.Errorf("failed to create ZK shim executor client: %w", err)
 	}
+	defer clientConn.Close()
 
 	db, err := db.NewMemDB()
 	if err != nil {
@@ -149,6 +150,11 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 
 	g.Go(func() error {
 		return startGRPCGateway(ctx, logger, gRPCGatewayEndpoint, gRPCServer)
+	})
+
+	g.Go(func() error {
+		executor.Start(ctx, 4)
+		return nil
 	})
 
 	// g.Go(func() error {
@@ -255,8 +261,8 @@ func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[
 	return nil
 }
 
-func createZKClient(zkClientAddr string) (types.ZkvmExecutorClient, error) {
-	grpcClient, err := grpc.NewClient(
+func createZKClient(zkClientAddr string) (types.ZkvmExecutorClient, *grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(
 		zkClientAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithDefaultCallOptions(
@@ -265,10 +271,10 @@ func createZKClient(zkClientAddr string) (types.ZkvmExecutorClient, error) {
 		),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create gRPC client: %w", err)
+		return nil, nil, fmt.Errorf("failed to create gRPC client: %w", err)
 	}
 
-	return types.NewZkvmExecutorClient(grpcClient), nil
+	return types.NewZkvmExecutorClient(conn), conn, nil
 }
 
 // trapSignal will listen for any OS signal and invoke Done on the main WaitGroup

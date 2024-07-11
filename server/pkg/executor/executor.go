@@ -80,7 +80,8 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 			return
 
 		case job := <-jobCh:
-			e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
+			logger := e.logger.With().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Logger()
+			logger.Info().Msg("executing job...")
 
 			req := &types.ExecuteRequest{
 				Inputs: &types.JobInputs{
@@ -94,15 +95,17 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 
 			resp, err := e.zkClient.Execute(context.Background(), req)
 			if err != nil {
-				e.logger.Error().Err(err).Msg("failed to execute job")
+				logger.Error().Err(err).Msg("failed to execute job")
 
 				job.Status = types.JobStatus_JOB_STATUS_FAILED
 				if err := e.SaveJob(job); err != nil {
-					e.logger.Error().Err(err).Msg("failed to save job")
+					logger.Error().Err(err).Msg("failed to save job")
 				}
 
 				continue
 			}
+
+			logger.Info().Str("result", hex.EncodeToString(resp.ResultWithMetadata)).Msg("job executed successfully")
 
 			job.Status = types.JobStatus_JOB_STATUS_DONE
 			job.Result = resp.ResultWithMetadata
@@ -110,13 +113,14 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 			job.ZkvmOperatorSignature = resp.ZkvmOperatorSignature
 
 			if err := e.SaveJob(job); err != nil {
-				e.logger.Error().Err(err).Msg("failed to save job")
+				logger.Error().Err(err).Msg("failed to save job")
 				continue
 			}
 
 			// push to broadcast queue
+			logger.Info().Msg("pushing finished job to broadcast queue")
 			if err := e.broadcastQueue.Push(job); err != nil {
-				e.logger.Error().Err(err).Msg("failed to push job to broadcast queue")
+				logger.Error().Err(err).Msg("failed to push job to broadcast queue")
 			}
 		}
 	}
