@@ -32,16 +32,16 @@ func (s *Server) SubmitJob(_ context.Context, req *types.SubmitJobRequest) (*typ
 
 	// verify fields
 	if req.Job.MaxCycles == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "max cycles must be positive")
+		return nil, status.Errorf(codes.InvalidArgument, "job max cycles must be positive")
 	}
 	if req.Job.Id == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "contract ID must be positive")
+		return nil, status.Errorf(codes.InvalidArgument, "job ID must be positive")
 	}
 	if len(req.Job.ContractAddress) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "contract address must not be empty")
+		return nil, status.Errorf(codes.InvalidArgument, "job contract address must not be empty")
 	}
 	if len(req.Job.ProgramVerifyingKey) == 0 {
-		return nil, status.Errorf(codes.InvalidArgument, "program verification key must not be empty")
+		return nil, status.Errorf(codes.InvalidArgument, "job program verification key must not be empty")
 	}
 
 	if err := s.executor.SubmitJob(req.Job); err != nil {
@@ -73,7 +73,7 @@ func (s *Server) SubmitProgram(_ context.Context, req *types.SubmitProgramReques
 		return nil, status.Errorf(codes.InvalidArgument, "empty request")
 	}
 
-	verificationKey, err := s.executor.SubmitELF(req.ProgramElf)
+	verificationKey, err := s.executor.SubmitELF(req.ProgramElf, req.VmType)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get verification key: %v", err)
 	}

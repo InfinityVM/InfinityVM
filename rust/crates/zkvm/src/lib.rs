@@ -14,12 +14,8 @@ pub enum Error {
 
 /// Something that can execute programs and generate ZK proofs for them.
 pub trait Zkvm {
-    /// Check if the verifying key can be derived from program elf.
-    fn is_correct_verifying_key(
-        &self,
-        program_elf: &[u8],
-        program_verifying_key: &[u8],
-    ) -> Result<bool, Error>;
+    /// Derive the verifying key from an elf
+    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
 
     /// Execute the program and return the raw output.
     ///
@@ -31,6 +27,17 @@ pub trait Zkvm {
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
+    /// Check if the verifying key can be derived from program elf.
+    fn is_correct_verifying_key(
+        &self,
+        program_elf: &[u8],
+        program_verifying_key: &[u8],
+    ) -> Result<bool, Error> {
+        let derived_verifying_key = self.derive_verifying_key(program_elf)?;
+
+        Ok(derived_verifying_key == program_verifying_key)
+    }
+
     // methods for pessimists
     // fn prove()
     // fn verify()
@@ -41,15 +48,10 @@ pub trait Zkvm {
 pub struct Risc0;
 
 impl Zkvm for Risc0 {
-    fn is_correct_verifying_key(
-        &self,
-        program_elf: &[u8],
-        program_verifying_key: &[u8],
-    ) -> Result<bool, Error> {
-        let image_id = compute_image_id(program_elf)?;
-        let is_correct = image_id.as_bytes() == program_verifying_key;
+    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
+        let image_id = compute_image_id(program_elf)?.as_bytes().to_vec();
 
-        Ok(is_correct)
+        Ok(image_id)
     }
 
     fn execute(

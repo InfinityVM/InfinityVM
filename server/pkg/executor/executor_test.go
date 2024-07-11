@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/executor"
+	"github.com/ethos-works/InfinityVM/server/pkg/mock"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/ethos-works/InfinityVM/server/pkg/testutils"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
@@ -22,8 +24,11 @@ func TestExecutor(t *testing.T) {
 	execQueue := queue.NewMemQueue[*types.Job](1024)
 	broadcastQueue := queue.NewMemQueue[*types.Job](1024)
 
-	exec, err := executor.New(logger, db, "", execQueue, broadcastQueue)
-	require.NoError(t, err)
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	executorClientMock := mock.NewMockZkvmExecutorClient(mockCtrl)
+	exec := executor.New(logger, db, executorClientMock, execQueue, broadcastQueue)
 
 	// create cancelable context and start executor
 	ctx, cancel := context.WithCancel(context.Background())
@@ -41,6 +46,8 @@ func TestExecutor(t *testing.T) {
 
 	err = exec.SubmitJob(job)
 	require.NoError(t, err)
+
+	executorClientMock.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any()).Return(&types.ExecuteResponse{}, nil)
 
 	require.Eventually(t, func() bool {
 		job, err := exec.GetJob(job.Id)

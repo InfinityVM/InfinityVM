@@ -17,18 +17,18 @@ import (
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
-type EthClient interface {
+type EthClientI interface {
 	ExecuteCallback(job *types.Job) error
 }
 
-type InfEthClient struct {
+type EthClient struct {
 	signer          *bind.TransactOpts
 	contractService *jm.ContractJobManagerTransactor
 	log             zerolog.Logger
 }
 
-// Returns a new EthClient
-func NewEthClient(ctx context.Context, log zerolog.Logger, ethHttpUrl, pk string, jobManagerAddress common.Address) (*InfEthClient, error) {
+// Returns a new EthClientI
+func NewEthClient(ctx context.Context, log zerolog.Logger, ethHttpUrl, pk string, jobManagerAddress common.Address) (*EthClient, error) {
 	client, err := ethclient.Dial(ethHttpUrl)
 	if err != nil {
 		return nil, &FatalClientError{fmt.Sprintf("failed to create ETH client: %v", err)}
@@ -75,7 +75,7 @@ func NewEthClient(ctx context.Context, log zerolog.Logger, ethHttpUrl, pk string
 		return nil, &FatalClientError{fmt.Sprintf("unable to initialize contract instance: %v", err)}
 	}
 
-	return &InfEthClient{
+	return &EthClient{
 		signer:          signer,
 		contractService: contract,
 		log:             log,
@@ -83,7 +83,7 @@ func NewEthClient(ctx context.Context, log zerolog.Logger, ethHttpUrl, pk string
 }
 
 // Executes sequence to build and submit the submitResult transaction to the JobManager contract
-func (c *InfEthClient) ExecuteCallback(job *types.Job) error {
+func (c *EthClient) ExecuteCallback(job *types.Job) error {
 	// TODO: Do we want to update the job record with the tx hash?
 	tx, err := c.contractService.SubmitResult(c.signer, job.Result, job.ZkvmOperatorSignature)
 	if err != nil {
