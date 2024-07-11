@@ -6,6 +6,8 @@ type DB interface {
 	Set([]byte, []byte) error
 	// Get retrieves the value for the given key.
 	Get([]byte) ([]byte, error)
+	// Has checks if the key exists in the database.
+	Has(key []byte) (bool, error)
 	// Delete removes the key/value pair from the database.
 	Delete([]byte) error
 	// Close closes the database connection.

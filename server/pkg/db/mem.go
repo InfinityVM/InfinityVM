@@ -62,6 +62,26 @@ func (db *MemDB) Get(key []byte) ([]byte, error) {
 	return []byte(result), nil
 }
 
+func (db *MemDB) Has(key []byte) (bool, error) {
+	err := db.db.View(func(tx *buntdb.Tx) error {
+		_, err := tx.Get(string(key))
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		if errors.Is(err, buntdb.ErrNotFound) {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to get key: %w", err)
+	}
+
+	return true, nil
+}
+
 func (db *MemDB) Delete(key []byte) error {
 	err := db.db.Update(func(tx *buntdb.Tx) error {
 		_, err := tx.Delete(string(key))
