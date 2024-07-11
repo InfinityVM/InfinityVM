@@ -6,8 +6,11 @@ import {Consumer} from "./Consumer.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "forge-std/console.sol";
+import "./Utils.sol";
 
 contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
+    using Utils for uint;
+
     uint32 public jobIDCounter = 1;
     address relayer;
     // This operator is a registered entity that will eventually require some bond from participants
@@ -64,7 +67,7 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
 
         // Recover the signer address
-        bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithMetadata.length, resultWithMetadata));
+        bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithMetadata.length.uintToString(), resultWithMetadata));
         address signer = recoverSigner(messageHash, signature);
         require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
