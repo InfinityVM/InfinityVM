@@ -84,6 +84,7 @@ pub struct Sp1;
 
 impl Zkvm for Sp1 {
     fn is_correct_verifying_key(
+        &self,
         program_elf: &[u8],
         program_verifying_key: &[u8],
     ) -> Result<bool, Error> {
@@ -94,7 +95,12 @@ impl Zkvm for Sp1 {
         Ok(is_correct)
     }
 
-    fn execute(program_elf: &[u8], raw_input: &[u8], max_cycles: u64) -> Result<Vec<u8>, Error> {
+    fn execute(
+        &self,
+        program_elf: &[u8],
+        raw_input: &[u8],
+        max_cycles: u64
+    ) -> Result<Vec<u8>, Error> {
         let mut stdin = SP1Stdin::new();
         stdin.write_slice(&raw_input);
 
@@ -163,7 +169,7 @@ mod test {
         let raw_input = VapeNationArg::abi_encode(&input);
 
         let max_cycles = 32 * 1024 * 1024;
-        let raw_result = Sp1::execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
+        let raw_result = &Sp1.execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
 
         let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
         let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
@@ -182,13 +188,13 @@ mod test {
         let (_, vk) = client.setup(vapenation_elf.as_slice());
         let mut image_id= vk.hash_bytes().as_slice().to_vec();
 
-        let correct = Sp1::is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
         assert!(correct);
 
         image_id.pop();
         image_id.push(255);
 
-        let correct = Sp1::is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
         assert!(!correct);
     }
 }
