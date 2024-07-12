@@ -9,7 +9,7 @@ use proto::{ExecuteRequest, ExecuteResponse, JobInputs, VmType};
 use risc0_binfmt::compute_image_id;
 
 use executor::DEV_SECRET;
-use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
+use sp1_sdk::{HashableKey, ProverClient};
 use vapenation_core::{VapeNationArg, VapeNationMetadata};
 use vapenation_methods::{VAPENATION_GUEST_ELF, VAPENATION_GUEST_ID, VAPENATION_GUEST_PATH};
 
@@ -126,13 +126,19 @@ async fn executor_risc0_works() {
         assert_eq!(metadata.phrase, phrase);
     }
 
-    async fn test_sp1(mut clients: Clients) {
+    Integration::run(test).await;
+}
+
+#[tokio::test]
+#[ignore]
+async fn executor_sp1_works() {
+    async fn test(mut clients: Clients) {
         // Construct the request
         let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
         let client = ProverClient::new();
 
         let (_, vk) = client.setup(vapenation_elf.as_slice());
-        let image_id= vk.hash_bytes().to_vec();
+        let image_id = vk.hash_bytes().to_vec();
         let max_cycles = 32 * 1024 * 1024;
         let input = 2u64;
         let program_input = VapeNationArg::abi_encode(&input);
