@@ -2,29 +2,25 @@
 
 use risc0_binfmt::compute_image_id;
 use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
+use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
 use thiserror::Error;
-use sp1_sdk::{ProverClient, SP1Stdin, HashableKey};
 
 /// The error
 #[derive(Error, Debug)]
 pub enum Error {
     /// Error from the Risc0 sdk
     #[error("Risc0 error: {source}")]
-    Risc0{source: anyhow::Error},
+    Risc0 { source: anyhow::Error },
 
     /// Error from the Sp1 sdk
     #[error("Sp1 error: {source}")]
-    Sp1{source: anyhow::Error}
- }
+    Sp1 { source: anyhow::Error },
+}
 
 /// Something that can execute programs and generate ZK proofs for them.
 pub trait Zkvm {
-    /// Check if the verifying key can be derived from program elf.
-    fn is_correct_verifying_key(
-        &self,
-        program_elf: &[u8],
-        program_verifying_key: &[u8],
-    ) -> Result<bool, Error>;
+    /// Derive the verifying key from an elf
+    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
 
     /// Execute the program and return the raw output.
     ///
@@ -36,6 +32,17 @@ pub trait Zkvm {
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
+    /// Check if the verifying key can be derived from program elf.
+    fn is_correct_verifying_key(
+        &self,
+        program_elf: &[u8],
+        program_verifying_key: &[u8],
+    ) -> Result<bool, Error> {
+        let derived_verifying_key = self.derive_verifying_key(program_elf)?;
+
+        Ok(derived_verifying_key == program_verifying_key)
+    }
+
     // methods for pessimists
     // fn prove()
     // fn verify()
@@ -46,16 +53,13 @@ pub trait Zkvm {
 pub struct Risc0;
 
 impl Zkvm for Risc0 {
-    fn is_correct_verifying_key(
-        &self,
-        program_elf: &[u8],
-        program_verifying_key: &[u8],
-    ) -> Result<bool, Error> {
-        let image_id = compute_image_id(program_elf).
-            map_err(|source| Error::Risc0 {source})?;
-        let is_correct = image_id.as_bytes() == program_verifying_key;
+    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
+        let image_id = compute_image_id(program_elf)
+            .map_err(|source| Error::Risc0 { source })?
+            .as_bytes()
+            .to_vec();
 
-        Ok(is_correct)
+        Ok(image_id)
     }
 
     fn execute(
@@ -67,12 +71,13 @@ impl Zkvm for Risc0 {
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
             .write_slice(raw_input)
-            .build().map_err(|source|Error::Risc0{source})?;
+            .build()
+            .map_err(|source| Error::Risc0 { source })?;
 
         let prover = LocalProver::new("locals only");
 
-        let prove_info = prover.execute(env, program_elf).
-            map_err(|source| Error::Risc0 {source})?;
+        let prove_info =
+            prover.execute(env, program_elf).map_err(|source| Error::Risc0 { source })?;
 
         Ok(prove_info.journal.bytes)
     }
@@ -83,31 +88,27 @@ impl Zkvm for Risc0 {
 pub struct Sp1;
 
 impl Zkvm for Sp1 {
-    fn is_correct_verifying_key(
-        &self,
-        program_elf: &[u8],
-        program_verifying_key: &[u8],
-    ) -> Result<bool, Error> {
-        let client = ProverClient::new();
-        let (_, vk) = client.setup(program_elf);
-        let is_correct = vk.hash_bytes() == program_verifying_key;
+    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
+        let (_, vk) = ProverClient::new().setup(program_elf);
 
-        Ok(is_correct)
+        Ok(vk.hash_bytes().to_vec())
     }
 
     fn execute(
         &self,
         program_elf: &[u8],
         raw_input: &[u8],
-        max_cycles: u64
+        max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
         let mut stdin = SP1Stdin::new();
         stdin.write_slice(&raw_input);
 
         let client = ProverClient::new();
-        let (public_values,_) = client.execute(program_elf, stdin).
-            max_cycles(max_cycles).
-            run().map_err(|source| Error::Sp1 {source})?;
+        let (public_values, _) = client
+            .execute(program_elf, stdin)
+            .max_cycles(max_cycles)
+            .run()
+            .map_err(|source| Error::Sp1 { source })?;
 
         Ok(public_values.to_vec())
     }
@@ -115,7 +116,7 @@ impl Zkvm for Sp1 {
 
 #[cfg(test)]
 mod test {
-    use crate::{Zkvm,Risc0,Sp1};
+    use crate::{Risc0, Sp1, Zkvm};
     use alloy_rlp::Decodable;
     use alloy_sol_types::SolType;
     use sp1_sdk::HashableKey;
@@ -187,7 +188,7 @@ mod test {
 
         // setup
         let (_, vk) = client.setup(vapenation_elf.as_slice());
-        let mut image_id= vk.hash_bytes().as_slice().to_vec();
+        let mut image_id = vk.hash_bytes().as_slice().to_vec();
 
         let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
         assert!(correct);

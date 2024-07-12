@@ -150,6 +150,12 @@ async fn executor_sp1_works() {
         let input = 2u64;
         let program_input = VapeNationArg::abi_encode(&input);
 
+        let create_elf_request =
+            CreateElfRequest { program_elf: vapenation_elf, vm_type: VmType::Sp1.into() };
+        let CreateElfResponse { verifying_key } =
+            clients.executor.create_elf(create_elf_request).await.unwrap().into_inner();
+        assert_eq!(verifying_key, image_id);
+
         let original_inputs = JobInputs {
             job_id: 42069,
             program_verifying_key: image_id,
@@ -157,8 +163,7 @@ async fn executor_sp1_works() {
             max_cycles,
             vm_type: VmType::Sp1.into(),
         };
-        let request =
-            ExecuteRequest { program_elf: vapenation_elf, inputs: Some(original_inputs.clone()) };
+        let request = ExecuteRequest { inputs: Some(original_inputs.clone()) };
 
         // Make a request and wait for the response
 
