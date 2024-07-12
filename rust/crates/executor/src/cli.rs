@@ -169,10 +169,11 @@ impl Cli {
                 db,
             )))
         };
+        let reflector = tonic_reflection::server::Builder::configure()
+            .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
+            .build()
+            .expect("failed to build gRPC reflection service");
 
-        router.serve(addr.into()).await.map_err(Into::into)
-        // .serve_with_shutdown(addr, async {
-        //     // TODO
-        // })
+        router.add_service(reflector).serve(addr.into()).await.map_err(Into::into)
     }
 }
