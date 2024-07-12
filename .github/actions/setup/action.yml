@@ -26,6 +26,6 @@ runs:
           SP1_DIR: "~/.sp1"
         run: |
           curl -L https://sp1.succinct.xyz | bash
-          chmod +x /sp1/bin/sp1up
+          chmod +x ~/.sp1/bin/sp1up
           ~/.sp1/bin/sp1up
           cargo prove --version
