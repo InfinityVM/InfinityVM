@@ -3,7 +3,7 @@
 //! - write the output to files
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    tonic_build::compile_protos("../../../proto/zkvm_executor/zkvm_executor.proto")?;
+    tonic_build::compile_protos("../../../proto/server/v1/zkvm_executor.proto")?;
 
     Ok(())
 }

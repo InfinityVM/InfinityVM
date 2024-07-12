@@ -123,6 +123,7 @@ mod test {
 
     const VAPENATION_ELF_PATH: &str =
         "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
+
     const VAPENATION_ELF_SP1_PATH: &str =
         "../../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
 
@@ -184,7 +185,7 @@ mod test {
         let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
         let client = sp1_sdk::ProverClient::new();
 
-        // Setup the program.
+        // setup
         let (_, vk) = client.setup(vapenation_elf.as_slice());
         let mut image_id= vk.hash_bytes().as_slice().to_vec();
 

@@ -1,16 +1,20 @@
 package eth
 
+type EthClientI interface {
+	ExecuteCallback(job interface{}) error
+}
+
 type EthClient struct{}
 
-// Returns a new EthClient
+// Returns a new EthClientI
 // TODO: Configure contract address, signing key, etc
 func NewEthClient() (*EthClient, error) {
 	return &EthClient{}, nil
 }
 
 // Executes sequence to build and submit the submitResult transaction to the JobManager contract
-func (c *EthClient) ExecuteCallback() {
-	panic("not implemented!")
+func (c *EthClient) ExecuteCallback(job interface{}) error {
+	return nil
 }
 
 // Call JobManager Contract with signed Result

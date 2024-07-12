@@ -16,8 +16,8 @@ risc0-binfmt = { workspace = true }
 alloy = { workspace = true }
 alloy-rlp = { workspace = true }
 alloy-sol-types = { workspace = true }
+tempfile = { workspace = true }
 sp1-sdk = { workspace = true }
-sp1-helper = { workspace = true }
 
 executor = { path = "../crates/executor" }
 proto = { path = "../crates/proto"}

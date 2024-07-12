@@ -5,7 +5,9 @@ use alloy::{
 use alloy_rlp::Decodable;
 use alloy_sol_types::{sol, SolType};
 use integration::{Clients, Integration};
-use proto::{ExecuteRequest, ExecuteResponse, JobInputs, VmType};
+use proto::{
+    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
+};
 use risc0_binfmt::compute_image_id;
 
 use executor::DEV_SECRET;
@@ -67,20 +69,25 @@ async fn executor_risc0_works() {
     async fn test(mut clients: Clients) {
         // Construct the request
         let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
-        let image_id = compute_image_id(&vapenation_elf).unwrap();
+        let image_id = compute_image_id(&vapenation_elf).unwrap().as_bytes().to_vec();
         let max_cycles = 32 * 1024 * 1024;
         let input = 2u64;
         let program_input = VapeNationArg::abi_encode(&input);
 
+        let create_elf_request =
+            CreateElfRequest { program_elf: vapenation_elf, vm_type: VmType::Risc0.into() };
+        let CreateElfResponse { verifying_key } =
+            clients.executor.create_elf(create_elf_request).await.unwrap().into_inner();
+        assert_eq!(verifying_key, image_id);
+
         let original_inputs = JobInputs {
             job_id: 42069,
-            program_verifying_key: image_id.as_bytes().to_vec(),
+            program_verifying_key: image_id,
             program_input: program_input.clone(),
             max_cycles,
             vm_type: VmType::Risc0.into(),
         };
-        let request =
-            ExecuteRequest { program_elf: vapenation_elf, inputs: Some(original_inputs.clone()) };
+        let request = ExecuteRequest { inputs: Some(original_inputs.clone()) };
 
         // Make a request and wait for the response
 

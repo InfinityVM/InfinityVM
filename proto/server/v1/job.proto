@@ -1,6 +1,8 @@
 syntax = "proto3";
 package server.v1;
 
+import "server/v1/zkvm_executor.proto";
+
 option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
 
 // JobStatus defines the status of a submitted coprocessor job.
@@ -18,18 +20,20 @@ message Job {
   uint32 id = 1;
   // The ZK program verification key
   bytes program_verifying_key = 2;
+  // Type of ZKVM to execute
+  VmType vm_type = 3;
   // Program execution input
-  bytes input = 3;
+  bytes input = 4;
   // The address of the contract to execute a callback with a result with
-  bytes contract_address = 4;
+  bytes contract_address = 5;
   // CPU cycle limit for job execution
-  uint64 max_cycles = 5;
+  uint64 max_cycles = 6;
   // The result of job execution
-  bytes result = 6;
+  bytes result = 7;
   // The address of the operator that executed the job
-  bytes zkvm_operator_address = 7;
+  bytes zkvm_operator_address = 8;
   // The signature of the operator that executed the job
-  bytes zkvm_operator_signature = 8;
+  bytes zkvm_operator_signature = 9;
   // The status of the job.
-  JobStatus status = 9;
+  JobStatus status = 10;
 }
