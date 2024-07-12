@@ -1,4 +1,4 @@
-//! Script for generating ABI-encoded response + signature to the coprocessor contract tests
+//! Helper script to generate ABI-encoded response + signature for the coprocessor contract tests
 use scripts::signer::ResultSigner;
 
 #[tokio::main]

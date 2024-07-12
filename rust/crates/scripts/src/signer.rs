@@ -12,10 +12,11 @@ use proto::JobInputs;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
+/// Script to generate ABI-encoded response + signature for the coprocessor contract tests
 pub struct ResultSigner;
 
 impl ResultSigner {
-    /// Run the ResultSigner to sign an ABI-encoded response from the coprocessor
+    /// Run the ResultSigner
     pub async fn run() {
         let zero_addr_str = "0x0000000000000000000000000000000000000000";
         let zero_addr: Address = Address::parse_checksummed(zero_addr_str, None).unwrap();

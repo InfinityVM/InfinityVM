@@ -166,6 +166,8 @@ pub type ResultWithMetadata = sol! {
     tuple(uint32,bytes32,uint64,bytes,bytes)
 };
 
+/// Returns an ABI-encoded result with metadata. This ABI-encoded response will be
+/// signed by the operator.
 pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
     let program_input_hash = keccak256(&i.program_input);
     ResultWithMetadata::abi_encode_params(&(
