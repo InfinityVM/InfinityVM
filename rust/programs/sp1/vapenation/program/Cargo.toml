@@ -11,4 +11,3 @@ alloy-rlp = { version = "*", features = ["derive"] }
 alloy-sol-types = { version = "*" }
 vapenation_core = { path = "../../../risc0/vapenation/core" }
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171" }
-
