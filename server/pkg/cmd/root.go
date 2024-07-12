@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
@@ -39,6 +40,10 @@ const (
 	flagGRPCEndpoint        = "grpc-endpoint"
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
 	flagZKShimAddress       = "zk-shim-address"
+	flagJobManagerAddress   = "job-manager-address"
+	flagEthUrl              = "eth-rpc-url"
+
+	EnvRelayerPrivKey = "RELAYER_PRIVATE_KEY"
 )
 
 const (
@@ -70,6 +75,8 @@ func init() {
 	RootCmd.Flags().String(flagGRPCEndpoint, "localhost:50051", "The gRPC server endpoint")
 	RootCmd.Flags().String(flagGRPCGatewayEndpoint, "localhost:8080", "The gRPC gateway server endpoint")
 	RootCmd.Flags().String(flagZKShimAddress, "", "The ZK shim endpoint")
+	RootCmd.Flags().String(flagJobManagerAddress, "", "The JobManager contract address")
+	RootCmd.Flags().String(flagEthUrl, "", "The ethereum http url")
 
 	RootCmd.AddCommand(getVersionCmd())
 }
@@ -124,6 +131,30 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	ethUrl, err := cmd.Flags().GetString(flagEthUrl)
+	if err != nil {
+		return err
+	}
+
+	contractAddr, err := cmd.Flags().GetString(flagJobManagerAddress)
+	if err != nil {
+		return err
+	}
+	if !common.IsHexAddress(contractAddr) {
+		return fmt.Errorf("invalid Ethereum address: %s", contractAddr)
+	}
+	address := common.HexToAddress(contractAddr)
+
+	pk, err := mustGetEnv(EnvRelayerPrivKey)
+	if err != nil {
+		return err
+	}
+
+	ethClient, err := eth.NewEthClient(ctx, logger, ethUrl, pk, address)
+	if err != nil {
+		return err
+	}
+
 	execQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 	broadcastQueue := queue.NewMemQueue[*types.Job](executor.DefaultQueueSize)
 
@@ -158,7 +189,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	})
 
 	g.Go(func() error {
-		return startRelayer(ctx, logger, broadcastQueue, relayer.DefaultWorkerCount)
+		return startRelayer(ctx, logger, broadcastQueue, ethClient, relayer.DefaultWorkerCount)
 	})
 
 	// Block main process until all spawned goroutines have gracefully exited and
@@ -244,17 +275,10 @@ func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr str
 }
 
 // TODO: Determine if we need to inject EthClientI
-
-func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], workerCount int) error {
-	// Configure Eth Client
-	ethClient, err := eth.NewEthClient()
-	if err != nil {
-		return err
-	}
-
+func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], ethClient eth.EthClientI, workerCount int) error {
 	r := relayer.NewRelayer(logger, queue, ethClient, workerCount)
 
-	if err = r.Start(ctx); err != nil {
+	if err := r.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start relayer: %w", err)
 	}
 
@@ -289,4 +313,12 @@ func trapSignal(cancel context.CancelFunc, logger zerolog.Logger) {
 		logger.Info().Str("signal", sig.String()).Msg("caught signal; shutting down...")
 		cancel()
 	}()
+}
+
+func mustGetEnv(envVar string) (string, error) {
+	variable := os.Getenv(envVar)
+	if variable == "" {
+		return variable, fmt.Errorf("environment variable %s must be set", envVar)
+	}
+	return variable, nil
 }
