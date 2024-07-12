@@ -45,6 +45,14 @@ func New(logger zerolog.Logger, db db.DB, zkClient types.ZkvmExecutorClient, exe
 }
 
 func (e *Executor) SubmitJob(job *types.Job) error {
+	ok, err := e.HasJob(job.Id)
+	if err != nil {
+		return fmt.Errorf("failed to check if job exists: %w", err)
+	}
+	if ok {
+		return fmt.Errorf("job with ID %d already exists", job.Id)
+	}
+
 	job.Status = types.JobStatus_JOB_STATUS_PENDING
 
 	if err := e.SaveJob(job); err != nil {
@@ -151,6 +159,13 @@ func (e *Executor) SaveJob(job *types.Job) error {
 	}
 
 	return e.db.Set(idBz, bz)
+}
+
+func (e *Executor) HasJob(id uint32) (bool, error) {
+	idBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(idBz, id)
+
+	return e.db.Has(idBz)
 }
 
 func (e *Executor) GetJob(id uint32) (*types.Job, error) {
