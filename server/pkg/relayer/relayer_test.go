@@ -38,9 +38,6 @@ func TestRelayerLifecycle(t *testing.T) {
 	}
 	require.Equal(t, broadcastQueue.Size(), 3)
 
-
-	//defer cancel()
-
 	go func() {
 		errChan <- relayer.Start(ctx)
 	}()

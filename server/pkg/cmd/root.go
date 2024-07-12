@@ -41,8 +41,8 @@ const (
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
 	flagZKShimAddress       = "zk-shim-address"
 	flagJobManagerAddress   = "job-manager-address"
+	flagEthUrl              = "eth-http-url"
 
-	EnvEthURL         = "ETH_HTTP_URL"
 	EnvRelayerPrivKey = "RELAYER_PRIVATE_KEY"
 )
 
@@ -75,6 +75,8 @@ func init() {
 	RootCmd.Flags().String(flagGRPCEndpoint, "localhost:50051", "The gRPC server endpoint")
 	RootCmd.Flags().String(flagGRPCGatewayEndpoint, "localhost:8080", "The gRPC gateway server endpoint")
 	RootCmd.Flags().String(flagZKShimAddress, "", "The ZK shim endpoint")
+	RootCmd.Flags().String(flagJobManagerAddress, "", "The JobManager contract address")
+	RootCmd.Flags().String(flagEthUrl, "", "The ethereum http url")
 
 	RootCmd.AddCommand(getVersionCmd())
 }
@@ -129,8 +131,8 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ethUrl, err := mustGetEnv(EnvEthURL)
-	if ethUrl == "" {
+	ethUrl, err := cmd.Flags().GetString(flagEthUrl)
+	if err != nil {
 		return err
 	}
 
