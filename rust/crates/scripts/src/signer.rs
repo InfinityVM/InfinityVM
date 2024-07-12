@@ -8,6 +8,7 @@ use alloy::{
 use alloy_sol_types::{abi, sol, SolType};
 use k256::ecdsa::SigningKey;
 use proto::JobInputs;
+use executor::service::{ResultWithMetadata, abi_encode_result_with_metadata};
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -49,25 +50,10 @@ type AddressWithBalance = sol! {
     tuple(address,uint256)
 };
 
-type ResultWithMetadata = sol! {
-    tuple(uint32,bytes32,uint64,bytes,bytes)
-};
-
 fn abi_encode_address(address: Address) -> Vec<u8> {
     AddressEncodeable::abi_encode(&address)
 }
 
 fn abi_encode_address_with_balance(address: Address, balance: U256) -> Vec<u8> {
     AddressWithBalance::abi_encode(&(address, balance))
-}
-
-fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
-    let program_input_hash = keccak256(&i.program_input);
-    ResultWithMetadata::abi_encode_params(&(
-        i.job_id,
-        program_input_hash,
-        i.max_cycles,
-        &i.program_verifying_key,
-        raw_output,
-    ))
 }
