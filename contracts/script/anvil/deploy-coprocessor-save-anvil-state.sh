@@ -11,7 +11,7 @@ cd "$parent_path"
 # start an anvil instance
 anvil --dump-state coprocessor-deployed-anvil-state.json &
 cd ..
-forge script script/CoprocessorDeployer.s.sol:CoprocessorDeployer --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
+forge script CoprocessorDeployer.s.sol:CoprocessorDeployer --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
 # we also do this here to make sure the relayer has funds to submit results to the JobManager contract
 cast send 0xaF6Bcd673C742723391086C1e91f0B29141D2381 --value 10ether --private-key 0x2a871d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d409c6
 # kill anvil to save its state
