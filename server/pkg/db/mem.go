@@ -65,11 +65,7 @@ func (db *MemDB) Get(key []byte) ([]byte, error) {
 func (db *MemDB) Has(key []byte) (bool, error) {
 	err := db.db.View(func(tx *buntdb.Tx) error {
 		_, err := tx.Get(string(key))
-		if err != nil {
-			return err
-		}
-
-		return nil
+		return err
 	})
 	if err != nil {
 		if errors.Is(err, buntdb.ErrNotFound) {
