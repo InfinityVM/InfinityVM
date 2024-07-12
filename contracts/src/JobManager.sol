@@ -66,6 +66,7 @@ contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
 
         // Recover the signer address
+        // resultWithMetadata.length needs to be converted to string since the EIP-191 standard requires this 
         bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithMetadata.length.uintToString(), resultWithMetadata));
         address signer = recoverSigner(messageHash, signature);
         require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
