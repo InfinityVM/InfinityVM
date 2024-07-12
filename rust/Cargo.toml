@@ -144,8 +144,9 @@ serde = { version = "1.0", features = ["derive"] }
 sha2 = { version = "*" }
 
 # t
-tonic-build = "*"
-tonic = "*"
+tonic-build = { version = "0.12"}
+tonic = { version = "0.12", features = ["transport"], default-features = false }
+tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
 tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time"] }
 thiserror = "*"
 tempfile = "*"
