@@ -8,13 +8,19 @@ use thiserror::Error;
 /// The error
 #[derive(Error, Debug)]
 pub enum Error {
-    /// Error from the Risc0 sdk
+    /// Error from the Risc0
     #[error("Risc0 error: {source}")]
-    Risc0 { source: anyhow::Error },
+    Risc0 {
+        /// The underlying error from Risc0
+        source: anyhow::Error
+    },
 
-    /// Error from the Sp1 sdk
+    /// Error from the Sp1
     #[error("Sp1 error: {source}")]
-    Sp1 { source: anyhow::Error },
+    Sp1 {
+        /// The underlying error from the Sp1
+        source: anyhow::Error
+    },
 }
 
 /// Something that can execute programs and generate ZK proofs for them.
