@@ -174,8 +174,6 @@ impl Cli {
             .build()
             .expect("failed to build gRPC reflection service");
 
-        router
-            .add_service(reflector)
-            .serve(addr.into()).await.map_err(Into::into)
+        router.add_service(reflector).serve(addr.into()).await.map_err(Into::into)
     }
 }
