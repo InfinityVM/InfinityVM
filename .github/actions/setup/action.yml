@@ -22,8 +22,10 @@ runs:
 
       - name: Install sp1 tooling
         shell: bash
+        env:
+          SP1_DIR: "/sp1"
         run: |
           curl -L https://sp1.succinct.xyz | bash
-          source /home/runner/.bashrc
-          sp1up
+          chmod +x /sp1/bin/sp1up
+          /sp1/bin/sp1up
           cargo prove --version
