@@ -21,7 +21,7 @@ contract CoprocessorDeployer is Script, Utils {
     }
 
     function _deployCoprocessorContracts() internal {
-        jobManager = new JobManager(msg.sender, msg.sender);
+        jobManager = new JobManager(0xaF6Bcd673C742723391086C1e91f0B29141D2381, msg.sender);
         consumer = new MockConsumer(address(jobManager));
 
         // WRITE JSON DATA
