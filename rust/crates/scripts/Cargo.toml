@@ -12,7 +12,6 @@ alloy = { workspace = true }
 alloy-signer-local = { workspace = true }
 alloy-sol-types = { workspace = true }
 alloy-rlp = { workspace = true }
-clap = "3.0"  # Assuming you are using clap for `Parser` derive macro
 k256 = { workspace = true }
 
 proto = { path = "../proto" }
