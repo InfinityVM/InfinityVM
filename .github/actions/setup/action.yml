@@ -23,9 +23,9 @@ runs:
       - name: Install sp1 tooling
         shell: bash
         env:
-          SP1_DIR: "/sp1"
+          SP1_DIR: "~/.sp1"
         run: |
           curl -L https://sp1.succinct.xyz | bash
           chmod +x /sp1/bin/sp1up
-          /sp1/bin/sp1up
+          ~/.sp1/bin/sp1up
           cargo prove --version
