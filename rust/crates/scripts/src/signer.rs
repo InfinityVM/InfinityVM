@@ -1,6 +1,9 @@
 use alloy::{
     primitives::{hex, keccak256, Address, Signature, Uint, U256},
-    signers::{local::{LocalSigner, PrivateKeySigner}, Signer}
+    signers::{
+        local::{LocalSigner, PrivateKeySigner},
+        Signer,
+    },
 };
 use alloy_sol_types::{abi, sol, SolType};
 use k256::ecdsa::SigningKey;
@@ -32,7 +35,7 @@ impl ResultSigner {
         let decoded = hex::decode("").unwrap(); // Replace with your actual private key
         let signer = K256LocalSigner::from_slice(&decoded).unwrap();
         let signature = signer.sign_message(&encoded_data).await.unwrap();
-        
+
         println!("Encoded Data: {}", hex::encode(&encoded_data));
         println!("Signature: {}", hex::encode(signature.as_bytes()));
     }
