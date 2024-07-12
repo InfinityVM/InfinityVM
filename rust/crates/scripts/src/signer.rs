@@ -46,13 +46,13 @@ type AddressEncodeable = sol! {
     address
 };
 
-type AddressWithBalance = sol! {
-    tuple(address,uint256)
-};
-
 fn abi_encode_address(address: Address) -> Vec<u8> {
     AddressEncodeable::abi_encode(&address)
 }
+
+type AddressWithBalance = sol! {
+    tuple(address,uint256)
+};
 
 fn abi_encode_address_with_balance(address: Address, balance: U256) -> Vec<u8> {
     AddressWithBalance::abi_encode(&(address, balance))
