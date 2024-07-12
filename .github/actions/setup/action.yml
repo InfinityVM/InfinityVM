@@ -24,5 +24,5 @@ runs:
         shell: bash
         run: |
           curl -L https://sp1.succinct.xyz | bash
-          sp1up
+          ~/.sp1/bin/sp1up
           cargo prove --version
