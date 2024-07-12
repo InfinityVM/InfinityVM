@@ -3,10 +3,11 @@ package server
 import (
 	"context"
 
-	"github.com/ethos-works/InfinityVM/server/pkg/executor"
-	"github.com/ethos-works/InfinityVM/server/pkg/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/ethos-works/InfinityVM/server/pkg/executor"
+	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
 var _ types.ServiceServer = &Server{}
