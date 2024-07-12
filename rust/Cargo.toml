@@ -9,6 +9,7 @@ members = [
 	"crates/zkvm",
 	"test",
 	"programs/risc0/vapenation/methods",
+	"crates/scripts",
 	"programs/sp1/build"
 	# "programs/risc0/vapenation/core"
 ]

@@ -1,0 +1,21 @@
+[package]
+name = "scripts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tokio = { workspace = true }
+alloy = { workspace = true }
+alloy-signer-local = { workspace = true }
+alloy-sol-types = { workspace = true }
+alloy-rlp = { workspace = true }
+k256 = { workspace = true }
+
+proto = { path = "../proto" }
+executor = { path = "../executor" }
+
+[lints]
+workspace = true

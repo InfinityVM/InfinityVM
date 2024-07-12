@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSD-3-Clause-Clear
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
 // CONSTANTS
@@ -8,7 +8,7 @@ uint8 constant JOB_STATE_COMPLETED = 3;
 
 interface IJobManager {
     // EVENTS
-    event JobCreated(uint32 indexed jobID, uint64 indexed maxCycles, bytes programID, bytes programInput);
+    event JobCreated(uint32 indexed jobID, uint64 maxCycles, bytes indexed programID, bytes programInput);
     event JobCancelled(uint32 indexed jobID);
     event JobCompleted(uint32 indexed jobID, bytes result);
 
