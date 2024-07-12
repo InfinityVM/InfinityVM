@@ -3,6 +3,7 @@ package eth
 import (
 	"context"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 
@@ -97,6 +98,6 @@ func (c *EthClient) ExecuteCallback(ctx context.Context, job *types.Job) error {
 	if err != nil {
 		return fmt.Errorf("error submitting result to JobManager contract: %v", err)
 	}
-	log.Info().Bytes("tx", tx.Hash().Bytes()).Msg("successfully submitted result to JobManager contract")
+	log.Info().Str("tx", hex.EncodeToString(tx.Hash().Bytes())).Msg("successfully submitted result to JobManager contract")
 	return nil
 }

@@ -41,7 +41,7 @@ const (
 	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
 	flagZKShimAddress       = "zk-shim-address"
 	flagJobManagerAddress   = "job-manager-address"
-	flagEthUrl              = "eth-http-url"
+	flagEthUrl              = "eth-rpc-url"
 
 	EnvRelayerPrivKey = "RELAYER_PRIVATE_KEY"
 )
