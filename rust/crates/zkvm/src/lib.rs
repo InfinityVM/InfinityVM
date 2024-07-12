@@ -12,14 +12,14 @@ pub enum Error {
     #[error("Risc0 error: {source}")]
     Risc0 {
         /// The underlying error from Risc0
-        source: anyhow::Error
+        source: anyhow::Error,
     },
 
     /// Error from the Sp1
     #[error("Sp1 error: {source}")]
     Sp1 {
         /// The underlying error from the Sp1
-        source: anyhow::Error
+        source: anyhow::Error,
     },
 }
 
