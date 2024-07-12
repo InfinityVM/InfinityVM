@@ -3,6 +3,7 @@ package server.v1;
 
 import "google/api/annotations.proto";
 import "server/v1/job.proto";
+import "server/v1/zkvm_executor.proto";
 
 option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
 
@@ -61,6 +62,8 @@ message GetResultResponse {
 message SubmitProgramRequest {
   // The compiled zkVM program ELF.
   bytes program_elf = 1;
+  // Type of ZKVM to execute
+  VmType vm_type = 2;
 }
 
 // SubmitProgramResponse defines the response structure to generate a unique

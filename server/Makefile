@@ -48,3 +48,14 @@ proto-lint:
 	@buf lint ../proto/ --error-format=json
 
 .PHONY: proto-all proto-gen proto-format proto-lint
+
+###############################################################################
+###                                  Mocks                                  ###
+###############################################################################
+
+mock-gen:
+	@echo "--> Generating mocks..."
+	@mockgen -source=pkg/types/zkvm_executor_grpc.pb.go -package mock -destination pkg/mock/zk_executor_client.go ZkvmExecutorClient
+	@mockgen -source=pkg/eth/eth_client.go  -package=mock -destination=pkg/mock/eth_client.go EthClient
+
+.PHONY: mock-gen

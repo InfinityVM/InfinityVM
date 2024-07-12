@@ -9,8 +9,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .file_descriptor_set_path(out_dir.join("zkvm_executor_descriptor.bin"))
         .compile(
-            &["../../../proto/zkvm_executor/zkvm_executor.proto"],
-            &["../../../proto/zkvm_executor/"],
+            &["../../../proto/server/v1/zkvm_executor.proto"],
+            &["../../../proto/server/v1"],
         )
         .unwrap();
 
