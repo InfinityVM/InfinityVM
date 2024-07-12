@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BSD-3-Clause-Clear
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
 import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED} from "./IJobManager.sol";
