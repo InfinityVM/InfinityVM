@@ -3,7 +3,7 @@
 use alloy::hex;
 
 pub mod cli;
-mod service;
+pub mod service;
 
 /// Executor operators private key for development
 pub const DEV_SECRET: [u8; 32] =
