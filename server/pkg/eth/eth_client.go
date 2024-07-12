@@ -28,7 +28,7 @@ type EthClient struct {
 	log             zerolog.Logger
 }
 
-// Returns a new EthClientI
+// Returns a new EthClient
 func NewEthClient(ctx context.Context, log zerolog.Logger, ethHttpUrl, pk string, jobManagerAddress common.Address) (*EthClient, error) {
 	client, err := ethclient.Dial(ethHttpUrl)
 	if err != nil {
