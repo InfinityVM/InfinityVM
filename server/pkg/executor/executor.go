@@ -137,8 +137,8 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 // SubmitELF submits an ELF to the ZK shim and returns a verification key.
 func (e *Executor) SubmitELF(elf []byte, vmType types.VmType) ([]byte, error) {
 	req := &types.CreateElfRequest{
-		Elf:    elf,
-		VmType: vmType,
+		ProgramElf: elf,
+		VmType:     vmType,
 	}
 
 	resp, err := e.zkClient.CreateElf(context.Background(), req)
