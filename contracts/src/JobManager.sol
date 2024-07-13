@@ -22,6 +22,8 @@ contract JobManager is
     address coprocessorOperator;
 
     mapping(uint32 => JobMetadata) public jobIDToMetadata;
+    // storage gap for upgradeability
+    uint256[50] private __GAP;
 
     constructor(address _relayer, address _coprocessorOperator) {
         relayer = _relayer;
