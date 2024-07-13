@@ -4,10 +4,16 @@ pragma solidity ^0.8.13;
 import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED} from "./IJobManager.sol";
 import {Consumer} from "./Consumer.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "./Utils.sol";
 
-contract JobManager is IJobManager, OwnableUpgradeable, ReentrancyGuard {
+contract JobManager is 
+    IJobManager,
+    Initializable,
+    OwnableUpgradeable, 
+    ReentrancyGuard
+{
     using Utils for uint;
 
     uint32 public jobIDCounter = 1;
