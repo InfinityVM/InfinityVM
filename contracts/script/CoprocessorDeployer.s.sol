@@ -6,10 +6,10 @@ import {JobManager} from "../src/JobManager.sol";
 import {IJobManager} from "../src/IJobManager.sol";
 import {Consumer} from "../src/Consumer.sol";
 import {MockConsumer} from "../test/mocks/MockConsumer.sol";
+import {Utils} from "./utils/Utils.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "./utils/EmptyContract.sol";
-import "./utils/Utils.sol";
 
 // To deploy and verify:
 // forge script script/CoprocessorDeployer.s.sol:CoprocessorDeployer --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast -vvvv
