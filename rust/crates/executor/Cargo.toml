@@ -19,9 +19,6 @@ alloy-rlp = { workspace = true }
 clap = { workspace = true }
 k256 = { workspace = true }
 thiserror = { workspace = true }
-kvdb = { workspace = true }
-kvdb-memorydb = { workspace = true }
-kvdb-rocksdb = { workspace = true }
 sha2 = { workspace = true }
 home = { workspace = true }
 reth-libmdbx = { workspace = true }
