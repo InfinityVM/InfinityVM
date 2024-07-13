@@ -189,7 +189,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	})
 
 	g.Go(func() error {
-		return startRelayer(ctx, logger, broadcastQueue, ethClient, relayer.DefaultWorkerCount)
+		return startRelayer(ctx, logger, broadcastQueue, ethClient, db, relayer.DefaultWorkerCount)
 	})
 
 	// Block main process until all spawned goroutines have gracefully exited and
@@ -274,9 +274,8 @@ func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr str
 	}
 }
 
-// TODO: Determine if we need to inject EthClientI
-func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], ethClient eth.EthClientI, workerCount int) error {
-	r := relayer.NewRelayer(logger, queue, ethClient, workerCount)
+func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], ethClient eth.EthClientI, db db.DB, workerCount int) error {
+	r := relayer.NewRelayer(logger, queue, ethClient, db, workerCount)
 
 	if err := r.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start relayer: %w", err)

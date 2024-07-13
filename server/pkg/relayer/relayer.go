@@ -2,11 +2,15 @@ package relayer
 
 import (
 	"context"
+	"encoding/binary"
+	"fmt"
 	"sync"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 
+	"github.com/rs/zerolog"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
@@ -21,6 +25,7 @@ const (
 type Relayer struct {
 	EthClient       eth.EthClientI
 	Logger          zerolog.Logger
+	db              db.DB
 	workerPoolCount int
 	broadcastQueue  queue.Queue[*types.Job]
 	wg              sync.WaitGroup
@@ -28,10 +33,11 @@ type Relayer struct {
 }
 
 // Returns a new Relayer
-func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], ethClient eth.EthClientI, workerCount int) *Relayer {
+func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], ethClient eth.EthClientI, db db.DB, workerCount int) *Relayer {
 	return &Relayer{
 		EthClient:       ethClient,
 		Logger:          logger,
+		db:              db,
 		workerPoolCount: workerCount,
 		broadcastQueue:  queueService,
 		errChan:         make(chan error, 1),
@@ -80,7 +86,7 @@ func (r *Relayer) processBroadcastedJobs(ctx context.Context) {
 					r.Logger.Error().Msgf("error fetching latest job from broadcast queue: %v", err)
 					continue
 				}
-				err = r.EthClient.ExecuteCallback(ctx, job)
+				txHash, err := r.EthClient.ExecuteCallback(ctx, job)
 				if err != nil {
 					r.Logger.Error().Msgf("error executing eth callback: %v", err)
 					if _, ok := err.(*eth.FatalClientError); ok {
@@ -89,8 +95,25 @@ func (r *Relayer) processBroadcastedJobs(ctx context.Context) {
 					}
 					continue
 				}
-				log.Info().Msg("successfully executed eth callback")
+				r.Logger.Info().Msg("successfully executed eth callback")
+				if err = updateJobTxHash(r.db, job, txHash); err != nil {
+					r.Logger.Error().Err(err).Msg("error updating job with transaction hash")
+				}
 			}
 		}
 	}
+}
+
+func updateJobTxHash(db db.DB, job *types.Job, txHash []byte) error {
+	idBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(idBz, job.Id)
+
+	job.TransactionHash = txHash
+
+	bz, err := proto.Marshal(job)
+	if err != nil {
+		return fmt.Errorf("failed to marshal job: %w", err)
+	}
+
+	return db.Set(idBz, bz)
 }

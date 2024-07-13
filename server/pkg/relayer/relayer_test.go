@@ -2,18 +2,22 @@ package relayer
 
 import (
 	"context"
+	"encoding/binary"
+	"fmt"
 	"os"
 	"testing"
 	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
+	"github.com/ethos-works/InfinityVM/server/pkg/db"
+	"google.golang.org/protobuf/proto"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
 	"github.com/ethos-works/InfinityVM/server/pkg/mock"
 	"github.com/ethos-works/InfinityVM/server/pkg/queue"
 	"github.com/ethos-works/InfinityVM/server/pkg/types"
+	"github.com/rs/zerolog"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
 func TestRelayerLifecycle(t *testing.T) {
@@ -25,16 +29,21 @@ func TestRelayerLifecycle(t *testing.T) {
 	ethClient := mock.NewMockEthClientI(ctrl)
 	errChan := make(chan error, 1)
 
-	relayer := NewRelayer(logger, broadcastQueue, ethClient, 10)
+	db, err := db.NewMemDB()
+	require.NoError(t, err)
+
+	relayer := NewRelayer(logger, broadcastQueue, ethClient, db, 10)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	for i := 1; i <= 3; i++ {
-		job := &types.Job{}
+		job := &types.Job{
+			Id: uint32(i),
+		}
 		err := broadcastQueue.Push(job)
 		require.NoError(t, err)
-		ethClient.EXPECT().ExecuteCallback(ctx, job).Return(nil).Times(1)
-
+		txId := make([]byte, job.Id)
+		ethClient.EXPECT().ExecuteCallback(ctx, job).Return(txId, nil).Times(1)
 	}
 	require.Equal(t, broadcastQueue.Size(), 3)
 
@@ -50,6 +59,11 @@ func TestRelayerLifecycle(t *testing.T) {
 		case err := <-errChan:
 			require.NoError(t, err)
 			require.Equal(t, broadcastQueue.Size(), 0)
+			for i := 1; i <= 3; i++ {
+				j, err := getJob(db, uint32(i))
+				require.NoError(t, err)
+				require.Equal(t, j.TransactionHash, make([]byte, i))
+			}
 			return true
 		default:
 			return false
@@ -66,15 +80,18 @@ func TestProcessBroadcastedJobFailure(t *testing.T) {
 	ethClient := mock.NewMockEthClientI(ctrl)
 	errChan := make(chan error, 1)
 
-	job := &types.Job{}
-	err := broadcastQueue.Push(job)
+	db, err := db.NewMemDB()
 	require.NoError(t, err)
 
-	relayer := NewRelayer(logger, broadcastQueue, ethClient, 10)
+	job := &types.Job{}
+	err = broadcastQueue.Push(job)
+	require.NoError(t, err)
+
+	relayer := NewRelayer(logger, broadcastQueue, ethClient, db, 10)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ethClient.EXPECT().ExecuteCallback(ctx, job).Return(eth.NewFatalClientError("service unavailable")).Times(1)
+	ethClient.EXPECT().ExecuteCallback(ctx, job).Return(nil, eth.NewFatalClientError("service unavailable")).Times(1)
 
 	go func() {
 		errChan <- relayer.Start(ctx)
@@ -92,4 +109,21 @@ func TestProcessBroadcastedJobFailure(t *testing.T) {
 			return false
 		}
 	}, 2*time.Second, 100*time.Millisecond)
+}
+
+func getJob(db db.DB, id uint32) (*types.Job, error) {
+	idBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(idBz, id)
+
+	bz, err := db.Get(idBz)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get job: %w", err)
+	}
+
+	job := new(types.Job)
+	if err := proto.Unmarshal(bz, job); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal job: %w", err)
+	}
+
+	return job, nil
 }

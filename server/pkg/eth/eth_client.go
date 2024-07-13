@@ -19,7 +19,7 @@ import (
 )
 
 type EthClientI interface {
-	ExecuteCallback(ctx context.Context, job *types.Job) error
+	ExecuteCallback(ctx context.Context, job *types.Job) ([]byte, error)
 }
 
 type EthClient struct {
@@ -86,18 +86,17 @@ func NewEthClient(ctx context.Context, log zerolog.Logger, ethHttpUrl, pk string
 }
 
 // Executes sequence to build and submit the submitResult transaction to the JobManager contract
-func (c *EthClient) ExecuteCallback(ctx context.Context, job *types.Job) error {
+func (c *EthClient) ExecuteCallback(ctx context.Context, job *types.Job) ([]byte, error) {
 	gasPrice, err := c.client.SuggestGasPrice(ctx)
 	if err != nil {
 		log.Error().Str("error", err.Error()).Msg("failed to retrieve gas price")
 	}
 	c.signer.GasPrice = gasPrice
 
-	// TODO: Do we want to update the job record with the tx hash?
 	tx, err := c.contractService.SubmitResult(c.signer, job.Result, job.ZkvmOperatorSignature)
 	if err != nil {
-		return fmt.Errorf("error submitting result to JobManager contract: %v", err)
+		return nil, fmt.Errorf("error submitting result to JobManager contract: %v", err)
 	}
 	log.Info().Str("tx", hex.EncodeToString(tx.Hash().Bytes())).Msg("successfully submitted result to JobManager contract")
-	return nil
+	return tx.Hash().Bytes(), nil
 }
