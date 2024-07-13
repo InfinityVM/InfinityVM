@@ -2,15 +2,18 @@
 
 use proto::VmType;
 use reth_db::{
-    mdbx::{self, DatabaseArguments},
+    create_db,
+    mdbx::DatabaseArguments,
     models::ClientVersion,
     transaction::{DbTx, DbTxMut},
-    Database, DatabaseEnv, DatabaseError,
+    Database, DatabaseEnv, DatabaseError, TableType,
 };
-use std::{path::Path, sync::Arc};
-use tables::{Elf, ElfKey};
+use reth_libmdbx::DatabaseFlags;
+use std::{ops::Deref, path::Path, sync::Arc};
+use tables::ElfKey;
 
-mod tables;
+/// Database tables
+pub mod tables;
 
 /// DB module errors
 #[derive(thiserror::Error, Debug)]
@@ -33,7 +36,7 @@ pub fn write_elf<D: Database>(
     db: Arc<D>,
     vm_type: VmType,
     verifying_key: &[u8],
-    elf: Elf,
+    elf: Vec<u8>,
 ) -> Result<(), Error> {
     use crate::db::tables::{Risc0ElfTable, Sp1ElfTable};
 
@@ -59,7 +62,7 @@ pub fn read_elf<D: Database>(
     db: Arc<D>,
     vm_type: &VmType,
     verifying_key: &[u8],
-) -> Result<Option<Elf>, Error> {
+) -> Result<Option<Vec<u8>>, Error> {
     use crate::db::tables::{Risc0ElfTable, Sp1ElfTable};
 
     let tx = db.tx()?;
@@ -82,8 +85,29 @@ pub fn read_elf<D: Database>(
 
 /// Open a DB at `path`. Creates the DB if it does not exist.
 pub fn init_db<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
-    let db_args = DatabaseArguments::new(ClientVersion::default());
-    // TODO(zeke): get this to use our tables, not reth tables
-    let env = mdbx::init_db(path, db_args)?;
-    Ok(Arc::new(env))
+    let client_version = ClientVersion::default();
+    let args = DatabaseArguments::new(client_version.clone());
+
+    let db = create_db(path, args)?;
+    db.record_client_version(client_version)?;
+
+    {
+        // This logic is largely from reth's `create_tables` fn, but uses our tables
+        // instead of their's
+        let tx = db.deref().begin_rw_txn().map_err(|e| DatabaseError::InitTx(e.into()))?;
+
+        for table in crate::db::tables::Tables::ALL {
+            let flags = match table.table_type() {
+                TableType::Table => DatabaseFlags::default(),
+                TableType::DupSort => DatabaseFlags::DUP_SORT,
+            };
+
+            tx.create_db(Some(table.name()), flags)
+                .map_err(|e| DatabaseError::CreateTable(e.into()))?;
+        }
+
+        tx.commit().map_err(|e| DatabaseError::Commit(e.into()))?;
+    }
+
+    Ok(Arc::new(db))
 }

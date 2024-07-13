@@ -7,11 +7,11 @@ use std::fmt;
 
 /// Key to a table storing ELFs. The first byte of the key is the vm type
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub struct ElfKey([u8; 32]);
+pub struct ElfKey(pub [u8; 32]);
 
 impl ElfKey {
     /// New [Self]
-    pub fn new(vm_type: u8, verifying_key: &[u8]) -> Self {
+    pub(crate) fn new(vm_type: u8, verifying_key: &[u8]) -> Self {
         let mut inner: [u8; 32] = Sha256::digest(verifying_key).into();
         inner[0] = vm_type;
 
@@ -35,13 +35,10 @@ impl Decode for ElfKey {
     }
 }
 
-/// Elf persisted as vec
-pub type Elf = Vec<u8>;
-
 reth_db::tables! {
     /// Stores risc0 Elf files
-    table Risc0ElfTable<Key = ElfKey, Value = Elf>;
+    table Risc0ElfTable<Key = ElfKey, Value = Vec<u8>>;
 
     /// Stores sp1 Elf files
-    table Sp1ElfTable<Key = ElfKey, Value = Elf>;
+    table Sp1ElfTable<Key = ElfKey, Value = Vec<u8>>;
 }
