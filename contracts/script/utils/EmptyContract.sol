@@ -1,8 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.12;
 
 contract EmptyContract {
-    function foo() public pure returns (uint256) {
-        return 0;
+    address private _owner;
+
+    constructor() {
+        _owner = msg.sender;
     }
+
+    function owner() public view returns (address) {
+        return _owner;
+    }
+
 }
