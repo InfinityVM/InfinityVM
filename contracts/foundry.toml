@@ -7,6 +7,7 @@ libs = ["lib"]
 
 remappings = [
     "@openzeppelin-upgrades/=lib/openzeppelin-contracts-upgradeable/",
+    "@openzeppelin/=lib/openzeppelin-contracts/",
 ]
 
 fs_permissions = [{ access = "read-write", path = "./"}]
