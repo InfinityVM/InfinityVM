@@ -39,3 +39,7 @@ test-all:
 	@# and run the ignored tests
 	cargo build && \
 	cargo test -- --ignored
+
+.PHONY: build
+build:
+	cargo build
