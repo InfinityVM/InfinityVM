@@ -18,12 +18,9 @@ RUN LEDGER_ENABLED=false BUILD_TAGS=muslc LINK_STATICALLY=true make build \
   && (file /code/server/build/server | grep "statically linked")
 
 # --------------------------------------------------------
-FROM debian:10.13
+FROM alpine:3.20
 
-RUN apt-get update && apt-get install -y gpg curl make jq apt-transport-https software-properties-common wget
-
-RUN wget https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -O /usr/bin/yq &&\
-        chmod +x /usr/bin/yq
+RUN apk update && apk add --no-cache ca-certificates
 
 COPY --from=go-builder /code/server/build/server /usr/bin/server
 
