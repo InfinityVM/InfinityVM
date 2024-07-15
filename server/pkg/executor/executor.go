@@ -16,9 +16,11 @@ import (
 )
 
 const (
-
 	// DefaultQueueSize defines the size of the job queue, which when full, will block.
 	DefaultQueueSize = 1024
+
+	// DefaultWorkerCount defines the number of workers to start for processing jobs.
+	DefaultWorkerCount = 4
 )
 
 // Executor defines the job executor. It is responsible for enqueuing, storing,
@@ -45,6 +47,14 @@ func New(logger zerolog.Logger, db db.DB, zkClient types.ZkvmExecutorClient, exe
 }
 
 func (e *Executor) SubmitJob(job *types.Job) error {
+	ok, err := e.HasJob(job.Id)
+	if err != nil {
+		return fmt.Errorf("failed to check if job exists: %w", err)
+	}
+	if ok {
+		return fmt.Errorf("job with ID %d already exists", job.Id)
+	}
+
 	job.Status = types.JobStatus_JOB_STATUS_PENDING
 
 	if err := e.SaveJob(job); err != nil {
@@ -80,7 +90,8 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 			return
 
 		case job := <-jobCh:
-			e.logger.Info().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Msg("executing job...")
+			logger := e.logger.With().Str("program_verifying_key", hex.EncodeToString(job.ProgramVerifyingKey)).Uint32("job_id", job.Id).Logger()
+			logger.Info().Msg("executing job...")
 
 			req := &types.ExecuteRequest{
 				Inputs: &types.JobInputs{
@@ -94,15 +105,17 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 
 			resp, err := e.zkClient.Execute(context.Background(), req)
 			if err != nil {
-				e.logger.Error().Err(err).Msg("failed to execute job")
+				logger.Error().Err(err).Msg("failed to execute job")
 
 				job.Status = types.JobStatus_JOB_STATUS_FAILED
 				if err := e.SaveJob(job); err != nil {
-					e.logger.Error().Err(err).Msg("failed to save job")
+					logger.Error().Err(err).Msg("failed to save job")
 				}
 
 				continue
 			}
+
+			logger.Info().Str("result", hex.EncodeToString(resp.ResultWithMetadata)).Msg("job executed successfully")
 
 			job.Status = types.JobStatus_JOB_STATUS_DONE
 			job.Result = resp.ResultWithMetadata
@@ -110,13 +123,14 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 			job.ZkvmOperatorSignature = resp.ZkvmOperatorSignature
 
 			if err := e.SaveJob(job); err != nil {
-				e.logger.Error().Err(err).Msg("failed to save job")
+				logger.Error().Err(err).Msg("failed to save job")
 				continue
 			}
 
 			// push to broadcast queue
+			logger.Info().Msg("pushing finished job to broadcast queue")
 			if err := e.broadcastQueue.Push(job); err != nil {
-				e.logger.Error().Err(err).Msg("failed to push job to broadcast queue")
+				logger.Error().Err(err).Msg("failed to push job to broadcast queue")
 			}
 		}
 	}
@@ -125,8 +139,8 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 // SubmitELF submits an ELF to the ZK shim and returns a verification key.
 func (e *Executor) SubmitELF(elf []byte, vmType types.VmType) ([]byte, error) {
 	req := &types.CreateElfRequest{
-		Elf:    elf,
-		VmType: vmType,
+		ProgramElf: elf,
+		VmType:     vmType,
 	}
 
 	resp, err := e.zkClient.CreateElf(context.Background(), req)
@@ -147,6 +161,13 @@ func (e *Executor) SaveJob(job *types.Job) error {
 	}
 
 	return e.db.Set(idBz, bz)
+}
+
+func (e *Executor) HasJob(id uint32) (bool, error) {
+	idBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(idBz, id)
+
+	return e.db.Has(idBz)
 }
 
 func (e *Executor) GetJob(id uint32) (*types.Job, error) {

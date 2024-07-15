@@ -4,4 +4,8 @@
 // lints it complains about
 #![allow(clippy::all, clippy::missing_const_for_fn, unreachable_pub)]
 
-tonic::include_proto!("zkvm_executor");
+tonic::include_proto!("server.v1");
+
+/// Reflection
+pub const FILE_DESCRIPTOR_SET: &[u8] =
+    tonic::include_file_descriptor_set!("zkvm_executor_descriptor");

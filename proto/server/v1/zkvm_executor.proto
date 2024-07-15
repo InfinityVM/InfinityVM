@@ -37,8 +37,6 @@ message JobInputs {
 
 // A request to execute a zkvm program.
 message ExecuteRequest {
-  // The program executable
-  bytes program_elf = 1;
   // The job inputs for running the program that are attested to by the executor
   // operator to assert faithful execution.
   JobInputs inputs = 2;
@@ -65,7 +63,7 @@ message ExecuteResponse {
 
 message CreateElfRequest {
   // Raw bytes of the ELF.
-  bytes elf = 1;
+  bytes program_elf = 1;
   // The type of ZKVM the ELF targets for execution.
   VmType vm_type = 2;
 }
