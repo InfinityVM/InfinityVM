@@ -16,9 +16,11 @@ import (
 )
 
 const (
-
 	// DefaultQueueSize defines the size of the job queue, which when full, will block.
 	DefaultQueueSize = 1024
+
+	// DefaultWorkerCount defines the number of workers to start for processing jobs.
+	DefaultWorkerCount = 4
 )
 
 // Executor defines the job executor. It is responsible for enqueuing, storing,
