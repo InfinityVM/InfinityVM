@@ -1,15 +1,15 @@
 //! gRPC service implementation.
 
+use crate::db;
 use alloy::{
     primitives::{keccak256, Signature},
     signers::Signer,
 };
-use kvdb::{DBTransaction, KeyValueDB};
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
-use sha2::{Digest, Sha256};
-use std::marker::Send;
+use reth_db::Database;
+use std::{marker::Send, sync::Arc};
 use zkvm::Zkvm;
 
 use alloy_sol_types::{sol, SolType};
@@ -26,15 +26,15 @@ enum Error {
 pub(crate) struct ZkvmExecutorService<S, D> {
     signer: S,
     chain_id: Option<u64>,
-    db: D,
+    db: Arc<D>,
 }
 
 impl<S, D> ZkvmExecutorService<S, D>
 where
     S: Signer<Signature> + Send + Sync + 'static,
-    D: KeyValueDB,
+    D: Database,
 {
-    pub(crate) const fn new(signer: S, chain_id: Option<u64>, db: D) -> Self {
+    pub(crate) const fn new(signer: S, chain_id: Option<u64>, db: Arc<D>) -> Self {
         Self { signer, chain_id, db }
     }
 
@@ -56,7 +56,7 @@ where
             .map_err(Into::into)
     }
 
-    fn vm(&self, vm_type: i32) -> Result<Box<dyn Zkvm + Send>, tonic::Status> {
+    fn vm(&self, vm_type: i32) -> Result<(Box<dyn Zkvm + Send>, VmType), tonic::Status> {
         let vm_type =
             VmType::try_from(vm_type).map_err(|_| tonic::Status::internal("invalid vm type"))?;
         let vm = match vm_type {
@@ -64,34 +64,7 @@ where
             VmType::Sp1 => unimplemented!(),
         };
 
-        Ok(vm)
-    }
-
-    fn write_elf(
-        &self,
-        vm_type: i32,
-        verifying_key: &[u8],
-        program_elf: Vec<u8>,
-    ) -> Result<(), tonic::Status> {
-        let key = Sha256::digest(verifying_key);
-
-        let mut tx = DBTransaction::new();
-        tx.put_vec(vm_type as u32, key.as_slice(), program_elf);
-
-        self.db
-            .write(tx)
-            .map_err(|e| tonic::Status::internal(format!("failed to write to db: {e}")))
-    }
-
-    fn read_elf(&self, vm_type: i32, verifying_key: &[u8]) -> Result<Vec<u8>, tonic::Status> {
-        let key = Sha256::digest(verifying_key).to_vec();
-
-        self.db
-            .get(vm_type as u32, &key)
-            .map_err(|e| tonic::Status::internal(format!("failed to read from db: {e}")))?
-            .ok_or_else(|| {
-                tonic::Status::invalid_argument("could not find program ELF with verifying key")
-            })
+        Ok((vm, vm_type))
     }
 }
 
@@ -99,7 +72,7 @@ where
 impl<S, D> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<S, D>
 where
     S: Signer<Signature> + Send + Sync + 'static,
-    D: KeyValueDB + 'static,
+    D: Database + 'static,
 {
     async fn execute(
         &self,
@@ -108,8 +81,16 @@ where
         let msg = request.into_inner();
         let inputs = msg.inputs.expect("todo");
 
-        let vm = self.vm(inputs.vm_type)?;
-        let program_elf = self.read_elf(inputs.vm_type, &inputs.program_verifying_key)?;
+        let (vm, vm_type) = self.vm(inputs.vm_type)?;
+        let program_elf = db::read_elf(self.db.clone(), &vm_type, &inputs.program_verifying_key)
+            .map_err(|e| format!("failed reading elf: {e}"))
+            .map_err(tonic::Status::internal)?
+            .ok_or_else(|| {
+                tonic::Status::invalid_argument(format!(
+                    "could not find elf for vm={}",
+                    inputs.vm_type,
+                ))
+            })?;
 
         if !vm.is_correct_verifying_key(&program_elf, &inputs.program_verifying_key).expect("todo")
         {
@@ -128,6 +109,7 @@ where
             .await
             .map_err(|e| format!("signing error: {e:?}"))
             .map_err(tonic::Status::internal)?;
+
         let response = ExecuteResponse {
             inputs: Some(inputs),
             result_with_metadata,
@@ -145,13 +127,15 @@ where
     ) -> Result<tonic::Response<CreateElfResponse>, tonic::Status> {
         let request = tonic_request.into_inner();
 
-        let vm = self.vm(request.vm_type)?;
+        let (vm, vm_type) = self.vm(request.vm_type)?;
 
         let verifying_key = vm
             .derive_verifying_key(&request.program_elf)
             .map_err(|_| tonic::Status::invalid_argument("failed to derive verifying key"))?;
 
-        self.write_elf(request.vm_type, &verifying_key, request.program_elf)?;
+        db::write_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
+            .map_err(|e| format!("failed writing elf: {e}"))
+            .map_err(tonic::Status::internal)?;
 
         let response = CreateElfResponse { verifying_key };
         Ok(tonic::Response::new(response))
