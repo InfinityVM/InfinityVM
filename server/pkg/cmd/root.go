@@ -41,7 +41,7 @@ const (
 	flagGRPCGatewayAddress = "grpc-gateway-address"
 	flagZKShimAddress      = "zk-shim-address"
 	flagJobManagerAddress  = "job-manager-address"
-	flagEthRPCAddress      = "eth-rpc-url"
+	flagEthRPCAddress      = "eth-rpc-address"
 
 	EnvRelayerPrivKey = "RELAYER_PRIVATE_KEY"
 )
@@ -147,8 +147,8 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	if !common.IsHexAddress(contractAddr) {
 		return fmt.Errorf("invalid Ethereum address: %s", contractAddr)
 	}
-	address := common.HexToAddress(contractAddr)
 
+	address := common.HexToAddress(contractAddr)
 	pk, err := mustGetEnv(EnvRelayerPrivKey)
 	if err != nil {
 		return err
@@ -173,8 +173,8 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create database: %w", err)
 	}
 
-	executor := executor.New(logger, db, zkClient, execQueue, broadcastQueue)
-	gRPCServer := server.New(executor)
+	exec := executor.New(logger, db, zkClient, execQueue, broadcastQueue)
+	gRPCServer := server.New(exec)
 
 	// listen for and trap any OS signal to gracefully shutdown and exit
 	trapSignal(cancel, logger)
@@ -188,7 +188,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	})
 
 	g.Go(func() error {
-		executor.Start(ctx, 4)
+		exec.Start(ctx, executor.DefaultWorkerCount)
 		return nil
 	})
 
