@@ -4,7 +4,7 @@ use alloy::hex;
 
 pub mod cli;
 pub mod db;
-mod service;
+pub mod service;
 
 /// Executor operators private key for development
 pub const DEV_SECRET: [u8; 32] =

@@ -16,9 +16,11 @@ import (
 )
 
 const (
-
 	// DefaultQueueSize defines the size of the job queue, which when full, will block.
 	DefaultQueueSize = 1024
+
+	// DefaultWorkerCount defines the number of workers to start for processing jobs.
+	DefaultWorkerCount = 4
 )
 
 // Executor defines the job executor. It is responsible for enqueuing, storing,
@@ -137,8 +139,8 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 // SubmitELF submits an ELF to the ZK shim and returns a verification key.
 func (e *Executor) SubmitELF(elf []byte, vmType types.VmType) ([]byte, error) {
 	req := &types.CreateElfRequest{
-		Elf:    elf,
-		VmType: vmType,
+		ProgramElf: elf,
+		VmType:     vmType,
 	}
 
 	resp, err := e.zkClient.CreateElf(context.Background(), req)

@@ -1,5 +1,30 @@
 #!/usr/bin/make -f
 
+export VERSION := $(shell echo $(shell git describe --always --match "v*") | sed 's/^v//')
+export COMMIT := $(shell git log -1 --format='%H')
+BUILDDIR ?= $(CURDIR)/build
+
+###############################################################################
+###                                  Build                                  ###
+###############################################################################
+
+ldflags = -X github.com/ethos-works/InfinityVM/server/pkg/cmd.Version=$(VERSION) \
+		  -X github.com/ethos-works/InfinityVM/server/pkg/cmd.Commit=$(COMMIT)
+
+BUILD_FLAGS := -ldflags '$(ldflags)'
+
+BUILD_TARGETS := build
+
+build: BUILD_ARGS=-o $(BUILDDIR)/infinity-server
+
+$(BUILD_TARGETS): go.sum $(BUILDDIR)/
+	@go $@ -mod=readonly $(BUILD_FLAGS) $(BUILD_ARGS) main.go
+
+$(BUILDDIR)/:
+	@mkdir -p $(BUILDDIR)/
+
+.PHONY: build
+
 ###############################################################################
 ###                          Tools & Dependencies                           ###
 ###############################################################################
@@ -56,6 +81,6 @@ proto-lint:
 mock-gen:
 	@echo "--> Generating mocks..."
 	@mockgen -source=pkg/types/zkvm_executor_grpc.pb.go -package mock -destination pkg/mock/zk_executor_client.go ZkvmExecutorClient
-	@mockgen -source=pkg/eth/eth_client.go  -package=mock -destination=pkg/mock/eth_client.go EthClient
+	@mockgen -source=pkg/eth/eth_client.go -package=mock -destination=pkg/mock/eth_client.go EthClient
 
 .PHONY: mock-gen
