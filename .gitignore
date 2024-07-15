@@ -10,3 +10,9 @@ contracts/broadcast/**
 
 # Dotenv file
 contracts/.env
+
+# Server Build Artifacts
+server/build
+
+# Rust Build Artifacts
+rust/target
