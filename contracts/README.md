@@ -64,3 +64,8 @@ $ forge --help
 $ anvil --help
 $ cast --help
 ```
+
+### Generate Go Bindings
+```shell
+$ ./generate_bindings.sh
+```

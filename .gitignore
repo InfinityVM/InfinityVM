@@ -4,6 +4,9 @@
 # Compiler files
 contracts/cache/
 contracts/out/
+contracts/data/
+
+server/build
 
 # Ignores development broadcast logs
 contracts/broadcast/**

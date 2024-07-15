@@ -10,8 +10,10 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
+	types "github.com/ethos-works/InfinityVM/server/pkg/types"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -39,15 +41,15 @@ func (m *MockEthClientI) EXPECT() *MockEthClientIMockRecorder {
 }
 
 // ExecuteCallback mocks base method.
-func (m *MockEthClientI) ExecuteCallback(job any) error {
+func (m *MockEthClientI) ExecuteCallback(ctx context.Context, job *types.Job) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExecuteCallback", job)
+	ret := m.ctrl.Call(m, "ExecuteCallback", ctx, job)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // ExecuteCallback indicates an expected call of ExecuteCallback.
-func (mr *MockEthClientIMockRecorder) ExecuteCallback(job any) *gomock.Call {
+func (mr *MockEthClientIMockRecorder) ExecuteCallback(ctx, job any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteCallback", reflect.TypeOf((*MockEthClientI)(nil).ExecuteCallback), job)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteCallback", reflect.TypeOf((*MockEthClientI)(nil).ExecuteCallback), ctx, job)
 }

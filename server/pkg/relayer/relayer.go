@@ -80,7 +80,7 @@ func (r *Relayer) processBroadcastedJobs(ctx context.Context) {
 					r.Logger.Error().Msgf("error fetching latest job from broadcast queue: %v", err)
 					continue
 				}
-				err = r.EthClient.ExecuteCallback(job)
+				err = r.EthClient.ExecuteCallback(ctx, job)
 				if err != nil {
 					r.Logger.Error().Msgf("error executing eth callback: %v", err)
 					if _, ok := err.(*eth.FatalClientError); ok {

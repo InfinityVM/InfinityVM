@@ -26,18 +26,17 @@ func TestRelayerLifecycle(t *testing.T) {
 	errChan := make(chan error, 1)
 
 	relayer := NewRelayer(logger, broadcastQueue, ethClient, 10)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	for i := 1; i <= 3; i++ {
 		job := &types.Job{}
 		err := broadcastQueue.Push(job)
 		require.NoError(t, err)
-		ethClient.EXPECT().ExecuteCallback(job).Return(nil).Times(1)
+		ethClient.EXPECT().ExecuteCallback(ctx, job).Return(nil).Times(1)
 
 	}
 	require.Equal(t, broadcastQueue.Size(), 3)
-
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 
 	go func() {
 		errChan <- relayer.Start(ctx)
@@ -75,7 +74,7 @@ func TestProcessBroadcastedJobFailure(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ethClient.EXPECT().ExecuteCallback(job).Return(eth.NewFatalClientError("service unavailable")).Times(1)
+	ethClient.EXPECT().ExecuteCallback(ctx, job).Return(eth.NewFatalClientError("service unavailable")).Times(1)
 
 	go func() {
 		errChan <- relayer.Start(ctx)
