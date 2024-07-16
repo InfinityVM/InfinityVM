@@ -4,7 +4,10 @@ use executor::cli::Cli;
 
 #[tokio::main]
 async fn main() -> Result<(), impl std::error::Error> {
-    tracing_subscriber::fmt().with_max_level(tracing::Level::TRACE).compact().init();
+    tracing_subscriber::fmt()
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .compact()
+        .init();
 
     Cli::run().await
 }
