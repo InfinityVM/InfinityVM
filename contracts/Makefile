@@ -47,4 +47,7 @@ request-job: ## Request a job from the coprocessor
 print-job-metadata: ## Print the metadata of the job
 	./script/cli/print-job-metadata.sh $(or $(jobID),$(DEFAULT_JOB_ID))
 
+cancel-job: ## Cancel a job
+	./script/cli/cancel-job.sh $(or $(jobID),$(DEFAULT_JOB_ID))
+
 __CLI__: ##
