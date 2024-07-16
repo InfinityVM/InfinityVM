@@ -1,22 +1,20 @@
 use alloy::{
-    primitives::{hex, keccak256, Address, Signature, Uint, U256},
-    signers::{
-        local::{LocalSigner, PrivateKeySigner},
-        Signer,
-    },
+    primitives::{hex, Address, Uint, U256},
+    signers::{local::LocalSigner, Signer},
 };
-use alloy_sol_types::{abi, sol, SolType};
-use executor::service::{abi_encode_result_with_metadata, ResultWithMetadata};
+use alloy_sol_types::{sol, SolType};
+use executor::service::abi_encode_result_with_metadata;
 use k256::ecdsa::SigningKey;
 use proto::JobInputs;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// Script to generate ABI-encoded response + signature for the coprocessor contract tests
+#[derive(Debug)]
 pub struct ResultSigner;
 
 impl ResultSigner {
-    /// Run the ResultSigner
+    /// Run the `ResultSigner`
     pub async fn run() {
         let zero_addr_str = "0x0000000000000000000000000000000000000000";
         let zero_addr: Address = Address::parse_checksummed(zero_addr_str, None).unwrap();
@@ -25,12 +23,12 @@ impl ResultSigner {
             job_id: 1,
             program_input: abi_encode_address(zero_addr),
             max_cycles: 1_000_000,
-            program_verifying_key: "programID".as_bytes().to_vec(),
+            program_verifying_key: b"programID".to_vec(),
             vm_type: 0,
         };
 
         // Encode the result with metadata
-        let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10).into());
+        let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
         let encoded_data = abi_encode_result_with_metadata(&job_inputs, &raw_output);
 
         // Sign the message

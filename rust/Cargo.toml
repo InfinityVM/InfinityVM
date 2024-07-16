@@ -109,6 +109,8 @@ clap = { version = "*", features = ["derive"] }
 
 # d
 # e
+eyre = { version = "*" }
+
 # f
 futures = { version = "*" }
 
@@ -121,9 +123,6 @@ home = { version = "*" }
 # j
 # k
 k256 = { version = "*" }
-kvdb = { version = "*" }
-kvdb-rocksdb = { version = "*" }
-kvdb-memorydb = { version = "*" }
 
 # l
 # m
@@ -139,6 +138,9 @@ risc0-build = { version = "1.0.1" }
 risc0-binfmt = "*"
 rand_core = { version = "*" }
 rand = { version = "*" }
+reth-libmdbx = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", features = ["return-borrowed", "default"] }
+reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f" }
+reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f" }
 
 # s
 serde = { version = "1.0", features = ["derive"] }

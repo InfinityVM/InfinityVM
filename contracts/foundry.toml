@@ -2,11 +2,13 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+solc_version = "0.8.13"
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
 
 remappings = [
     "@openzeppelin-upgrades/=lib/openzeppelin-contracts-upgradeable/",
+    "@openzeppelin/=lib/openzeppelin-contracts/",
 ]
 
 fs_permissions = [{ access = "read-write", path = "./"}]
