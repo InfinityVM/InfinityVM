@@ -1,0 +1,4 @@
+/rust/target
+/server/build
+
+go build -mod=readonly -tags muslc -ldflags -linkmode=external -extldflags "-Wl,-z,muldefs -static -o build/server 

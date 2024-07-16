@@ -1,29 +1,6 @@
 #!/usr/bin/make -f
 
-export VERSION := $(shell echo $(shell git describe --always --match "v*") | sed 's/^v//')
-export COMMIT := $(shell git log -1 --format='%H')
 BUILDDIR ?= $(CURDIR)/build
-
-###############################################################################
-###                                  Build                                  ###
-###############################################################################
-
-ldflags = -X github.com/ethos-works/InfinityVM/server/pkg/cmd.Version=$(VERSION) \
-		  -X github.com/ethos-works/InfinityVM/server/pkg/cmd.Commit=$(COMMIT)
-
-BUILD_FLAGS := -ldflags '$(ldflags)'
-
-BUILD_TARGETS := build
-
-build: BUILD_ARGS=-o $(BUILDDIR)/infinity-server
-
-$(BUILD_TARGETS): go.sum $(BUILDDIR)/
-	@go $@ -mod=readonly $(BUILD_FLAGS) $(BUILD_ARGS) main.go
-
-$(BUILDDIR)/:
-	@mkdir -p $(BUILDDIR)/
-
-.PHONY: build
 
 ###############################################################################
 ###                          Tools & Dependencies                           ###
@@ -94,8 +71,11 @@ BUILD_TARGETS := build install
 build: 
 	go build -o $(BUILD_DIR)/
 
+build-static:
+	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o build/server
+
 $(BUILD_DIR)/:
-	mkdir -p $(BUILD_DIR)/
+	mkdir -p /
 
 .PHONY: build
 
