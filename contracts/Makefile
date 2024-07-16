@@ -8,6 +8,7 @@ DEFAULT_RELAYER_ADDRESS=0xaF6Bcd673C742723391086C1e91f0B29141D2381
 DEFAULT_COPROCESSOR_OPERATOR_ADDRESS=0xaF6Bcd673C742723391086C1e91f0B29141D2381
 DEFAULT_PROGRAM_ID=0x1234
 DEFAULT_BALANCE_ADDRESS=0xa5889624184923c0c4CFC3499CbeA659e34f7809
+DEFAULT_JOB_ID=1
 
 -----------------------------: ## 
 
@@ -36,5 +37,8 @@ print-coprocessor-operator-address: ## Print the coprocessor operator address st
 
 request-job: ## Request a job from the coprocessor
 	./script/cli/request-job.sh $(or $(programID),$(DEFAULT_PROGRAM_ID)) $(or $(balanceAddress),$(DEFAULT_BALANCE_ADDRESS))
+
+print-job-metadata: ## Print the metadata of the job
+	./script/cli/print-job-metadata.sh $(or $(jobID),$(DEFAULT_JOB_ID))
 
 __CLI__: ##
