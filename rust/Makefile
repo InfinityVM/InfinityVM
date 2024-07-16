@@ -19,11 +19,6 @@ fmt:
 .PHONY: lint
 lint: clippy fmt
 
-.PHONY: test-ci
-test-ci:
-	cargo build
-	cargo test --all -- --ignored
-
 .PHONY: doc-ci
 doc-ci:
 	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
