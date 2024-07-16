@@ -17,7 +17,7 @@ contract JobManager is
 {
     using Utils for uint;
 
-    uint32 public jobIDCounter = 1;
+    uint32 public jobIDCounter;
     address public relayer;
     // This operator is a registered entity that will eventually require some bond from participants
     address public coprocessorOperator;
@@ -34,6 +34,7 @@ contract JobManager is
         _transferOwnership(initialOwner);
         relayer = _relayer;
         coprocessorOperator = _coprocessorOperator;
+        jobIDCounter = 1;
     }
 
     function setRelayer(address _relayer) external onlyOwner {
@@ -56,6 +57,7 @@ contract JobManager is
         jobID = jobIDCounter;
         jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, msg.sender, JOB_STATE_PENDING);
         emit JobCreated(jobID, maxCycles, programID, programInput);
+        JobMetadata memory job = jobIDToMetadata[jobID];
         jobIDCounter++;
     }
 
