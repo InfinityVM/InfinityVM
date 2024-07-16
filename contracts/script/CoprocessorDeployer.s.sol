@@ -25,28 +25,19 @@ contract CoprocessorDeployer is Script, Utils {
         // deploy proxy admin for ability to upgrade proxy contracts
         coprocessorProxyAdmin = new ProxyAdmin();
 
-        EmptyContract emptyContract = new EmptyContract();
-
+        jobManagerImplementation = new JobManager();
         jobManager = JobManager(
             address(
                 new TransparentUpgradeableProxy(
-                    address(emptyContract),
+                    address(jobManagerImplementation),
                     address(coprocessorProxyAdmin),
-                    ""
+                    abi.encodeWithSelector(
+                        jobManager.initializeJobManager.selector,
+                        msg.sender,
+                        relayer,
+                        coprocessorOperator
+                    )
                 )
-            )
-        );
-
-        jobManagerImplementation = new JobManager(relayer, coprocessorOperator);
-
-        coprocessorProxyAdmin.upgradeAndCall(
-            TransparentUpgradeableProxy(
-                payable(address(jobManager))
-            ),
-            address(jobManagerImplementation),
-            abi.encodeWithSelector(
-                jobManager.initializeJobManager.selector,
-                jobManager.owner()
             )
         );
 
@@ -83,7 +74,7 @@ contract CoprocessorDeployer is Script, Utils {
         // serialize all the data
         string memory finalJson = vm.serializeString(
             parent_object,
-            "deployed_addresses",
+            deployed_addresses,
             deployed_addresses_output
         );
 
