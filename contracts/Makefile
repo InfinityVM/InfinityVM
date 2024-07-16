@@ -20,8 +20,14 @@ test-contracts: ## runs all forge tests
 deploy-coprocessor-contracts-to-anvil-and-save-state: ## Deploy coprocessor contracts and save Anvil state
 	./script/cli/deploy-coprocessor-save-anvil-state.sh $(or $(relayerAddress),$(DEFAULT_RELAYER_ADDRESS)) $(or $(coprocessorOperatorAddress),$(DEFAULT_COPROCESSOR_OPERATOR_ADDRESS))
 
+request-job-on-anvil-and-save-state: ## Request a job from the coprocessor and save Anvil state
+	./script/cli/request-job-save-anvil-state.sh $(or $(programID),$(DEFAULT_PROGRAM_ID)) $(or $(balanceAddress),$(DEFAULT_BALANCE_ADDRESS))
+
 start-anvil-chain-with-coprocessor-deployed: ## Start anvil with coprocessor contracts deployed
 	anvil --load-state script/anvil-states/coprocessor-deployed-anvil-state.json --host 0.0.0.0
+
+start-anvil-chain-with-coprocessor-deployed-and-job-requested: ## Start anvil with coprocessor contracts deployed and job requested
+	anvil --load-state script/anvil-states/coprocessor-deployed-and-job-requested-anvil-state.json --host 0.0.0.0
 
 set-relayer-address: ## Set the relayer address in JobManager
 	./script/cli/set-relayer-address.sh $(or $(relayerAddress),$(DEFAULT_RELAYER_ADDRESS))
