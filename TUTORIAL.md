@@ -33,7 +33,7 @@ $ git clone git@github.com:Ethos-Works/InfinityVM.git
 
 ### ZK Shim
 
-Note, before proceeding, you must have RISC Zero installed. Please see [here](https://dev.risczero.com/api/zkvm/install)
+> Note: before proceeding, you must have RISC Zero installed. Please see [here](https://dev.risczero.com/api/zkvm/install)
 for instructions.
 
 First, build the shim's dependencies:
@@ -48,6 +48,24 @@ To start the ZK shim server:
 $ cargo run -p executor -- --ip 127.0.0.1 --port 3001 dev
 ```
 
+### Anvil
+> Note: A local instance of Anvil must be running with the deployed contracts as a prerequisite of running the server.
+
+Generate chain state by running:
+```shell!
+make deploy-coprocessor-contracts-to-anvil-and-save-state
+```
+
+Start Anvil
+```shell!
+make  start-anvil-chain-with-coprocessor-deployed
+```
+
+Export the JobManager contract address needed to start the relayer:
+```shell!
+export CONTRACT_ADDR=$(make print-relayer-address)
+```
+
 ### Server
 
 First, build the coprocesser server binary:
@@ -56,10 +74,17 @@ First, build the coprocesser server binary:
 $ cd server && make build
 ```
 
-Before starting the server, you must export the relayer's private key:
+Before starting the server, you must export the relayer's private key.
+
+The default private key is `0c7ec7aefb80022c0025be1e72dadb0679aa294cb1db453b2e7b5da8616b4e31`
 
 ```shell!
 export RELAYER_PRIVATE_KEY=...
+```
+
+Export the Eth RPC endpoint
+```shell!
+export ETH_RPC=127.0.0.1:8545
 ```
 
 To start the coprocesser server:
@@ -67,8 +92,8 @@ To start the coprocesser server:
 ```shell!
 $ ./build/infinity-server \
     --zk-shim-address localhost:3001 \
-    --job-manager-address <0x...> \
-    --eth-rpc-address <http://...>
+    --job-manager-address $CONTRACT_ADDR \
+    --eth-rpc-address $ETH_RPC
 ```
 
 ### Programs and Jobs
