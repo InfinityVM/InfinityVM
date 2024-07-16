@@ -53,8 +53,6 @@ jobs:
         uses: ./.github/actions/setup
 
       - run: make -C rust test-all
-        env:
-          RUSTFLAGS: -Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native
         if: env.GIT_DIFF
 
   fmt:
