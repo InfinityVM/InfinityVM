@@ -1,9 +1,8 @@
 //! gRPC service implementation.
 
 use crate::db;
-use alloy::primitives::Address;
 use alloy::{
-    primitives::{keccak256, Signature},
+    primitives::{keccak256, Address, Signature},
     signers::Signer,
 };
 use base64::prelude::*;
