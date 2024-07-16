@@ -1,24 +1,22 @@
-# Base image with necessary tools and Rust setup
-FROM amd64/ubuntu:20.04 as chef
+FROM debian:bookworm-slim as chef
 WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN uname -m
 # Install dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    clang \
-    curl \
-    libssl-dev \
-    pkg-config \
-    cmake \
     build-essential \
-    protobuf-compiler \
     ca-certificates \
-    libclang-dev \
+    clang \
+    cmake \
+    curl \
     git \
-    python3 \
-    ninja-build && \
+    libclang-dev  \
+    libssl-dev \
+    ninja-build \
+    pkg-config \
+    protobuf-compiler \
+    python3 &&\
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
@@ -29,23 +27,25 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN rustup toolchain install nightly
 
 # Install Cargo Binstall and Risc0
-RUN cargo install cargo-binstall
+RUN cargo install cargo-binstall cargo-chef
 RUN cargo binstall -y --force cargo-risczero
 
 # Set RUSTFLAGS environment variable
-ENV RUSTFLAGS="-C link-arg=-lgcc"
+# ENV RUSTFLAGS="-C link-arg=-lgcc"
 # Install the Risc0 toolchain
-RUN cargo risczero install
+RUN cargo risczero build-toolchain
 
 # Prepare Cargo Chef
 FROM chef as planner
 COPY rust /app/rust
 COPY proto /app/proto
+ENV LIBCLANG_PATH=/usr/lib/x86_64-linux-gnu
 RUN cargo chef prepare --recipe-path recipe.json
 
 # Cache dependencies
 FROM chef as cacher
 COPY --from=planner /app/recipe.json recipe.json
+ENV LIBCLANG_PATH=/usr/lib/x86_64-linux-gnu
 RUN cargo chef cook --release --recipe-path recipe.json
 
 # Build the application
@@ -53,6 +53,7 @@ FROM chef AS builder
 COPY --from=cacher /app/target /app/target
 COPY rust /app/rust
 COPY proto /app/proto
+ENV LIBCLANG_PATH=/usr/lib/x86_64-linux-gnu
 RUN cargo build --release --locked --manifest-path /app/rust/Cargo.toml
 
 # Final image with only the necessary runtime environment
