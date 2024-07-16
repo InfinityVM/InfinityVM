@@ -10,9 +10,7 @@ use std::{
 use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 
-use crate::{service::ZkvmExecutorService, DEV_SECRET};
-
-const DB_COLUMNS: u32 = 32;
+use crate::{db, service::ZkvmExecutorService, DEV_SECRET};
 
 /// Errors from the executor CLI
 #[derive(thiserror::Error, Debug)]
@@ -35,6 +33,9 @@ pub enum Error {
     /// errors from alloy signer local crate
     #[error(transparent)]
     SignerLocal(#[from] alloy_signer_local::LocalSignerError),
+    /// executor database error
+    #[error("executor database: {0}")]
+    Database(#[from] db::Error),
 }
 
 type K256LocalSigner = LocalSigner<SigningKey>;
@@ -77,7 +78,7 @@ struct Secret {
     secret: String,
 }
 
-fn rocks_db() -> String {
+fn db_dir() -> String {
     let mut p = home::home_dir().expect("could not find users home dir");
     p.push(".config");
     p.push("ethos");
@@ -85,7 +86,7 @@ fn rocks_db() -> String {
     p.push("ethos-dev0");
     p.push("zkvm-executor");
     p.push("db");
-    p.into_os_string().into_string().expect("could not create default rocks db path")
+    p.into_os_string().into_string().expect("could not create default db path")
 }
 
 /// Zkvm execution service.
@@ -101,15 +102,12 @@ struct Opts {
     /// Chain ID of where results are expected to get submitted.
     #[arg(long)]
     chain_id: Option<u64>,
-    /// Run a slow in memory DB
-    #[arg(long, conflicts_with = "rocks_db_dir")]
-    slow_memory_db: bool,
-    /// Path to the directory to include rocks db
+    /// Path to the directory to include db
     #[arg(
         long,
-        default_value_t = rocks_db()
+        default_value_t = db_dir()
     )]
-    rocks_db_dir: String,
+    db_dir: String,
     #[command(subcommand)]
     operator_key: Operator,
 }
@@ -147,33 +145,20 @@ impl Cli {
         let addr = SocketAddrV4::new(opts.ip, opts.port);
         let signer = opts.operator_signer()?;
 
-        let mut server_builder = tonic::transport::Server::builder();
+        let db = db::init_db(opts.db_dir)?;
+        // TODO: info!(db at ..)
+        let executor = ZkvmExecutorService::new(signer, opts.chain_id, db);
 
-        let router = if opts.slow_memory_db {
-            let db = kvdb_memorydb::create(DB_COLUMNS);
-            dbg!("using memory db");
-
-            server_builder.add_service(ZkvmExecutorServer::new(ZkvmExecutorService::new(
-                signer,
-                opts.chain_id,
-                db,
-            )))
-        } else {
-            let config = kvdb_rocksdb::DatabaseConfig::with_columns(DB_COLUMNS);
-            let db = kvdb_rocksdb::Database::open(&config, &opts.rocks_db_dir).unwrap();
-            dbg!(&opts.rocks_db_dir);
-
-            server_builder.add_service(ZkvmExecutorServer::new(ZkvmExecutorService::new(
-                signer,
-                opts.chain_id,
-                db,
-            )))
-        };
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
             .build()
             .expect("failed to build gRPC reflection service");
 
-        router.add_service(reflector).serve(addr.into()).await.map_err(Into::into)
+        tonic::transport::Server::builder()
+            .add_service(ZkvmExecutorServer::new(executor))
+            .add_service(reflector)
+            .serve(addr.into())
+            .await
+            .map_err(Into::into)
     }
 }

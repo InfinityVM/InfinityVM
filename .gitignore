@@ -6,8 +6,13 @@ contracts/cache/
 contracts/out/
 contracts/data/
 
+server/build
+
 # Ignores development broadcast logs
 contracts/broadcast/**
 
 # Dotenv file
 contracts/.env
+
+# ide
+.idea

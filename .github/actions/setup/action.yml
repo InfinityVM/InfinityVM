@@ -19,3 +19,15 @@ runs:
           cargo binstall cargo-risczero -y
           cargo risczero install
           cargo risczero --version
+
+      - name: Install sp1 tooling
+        shell: bash
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          echo "$HOME/.config/.sp1/bin" >> $GITHUB_PATH
+
+      - name: Check sp1 version
+        shell: bash
+        run: |
+          sp1up
+          cargo prove --version

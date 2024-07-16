@@ -35,13 +35,13 @@ const (
 	logLevelJSON = "json"
 	logLevelText = "text"
 
-	flagLogLevel            = "log-level"
-	flagLogFormat           = "log-format"
-	flagGRPCEndpoint        = "grpc-endpoint"
-	flagGRPCGatewayEndpoint = "grpc-gateway-endpoint"
-	flagZKShimAddress       = "zk-shim-address"
-	flagJobManagerAddress   = "job-manager-address"
-	flagEthUrl              = "eth-rpc-url"
+	flagLogLevel           = "log-level"
+	flagLogFormat          = "log-format"
+	flagGRPCAddress        = "grpc-address"
+	flagGRPCGatewayAddress = "grpc-gateway-address"
+	flagZKShimAddress      = "zk-shim-address"
+	flagJobManagerAddress  = "job-manager-address"
+	flagEthRPCAddress      = "eth-rpc-address"
 
 	EnvRelayerPrivKey = "RELAYER_PRIVATE_KEY"
 )
@@ -72,11 +72,15 @@ Completed jobs are then executed against the corresponding smart contract on Inf
 func init() {
 	RootCmd.PersistentFlags().String(flagLogLevel, zerolog.InfoLevel.String(), "logging level")
 	RootCmd.PersistentFlags().String(flagLogFormat, logLevelText, "logging format [json|text]")
-	RootCmd.Flags().String(flagGRPCEndpoint, "localhost:50051", "The gRPC server endpoint")
-	RootCmd.Flags().String(flagGRPCGatewayEndpoint, "localhost:8080", "The gRPC gateway server endpoint")
-	RootCmd.Flags().String(flagZKShimAddress, "", "The ZK shim endpoint")
+	RootCmd.Flags().String(flagGRPCAddress, "localhost:50051", "The gRPC server address")
+	RootCmd.Flags().String(flagGRPCGatewayAddress, "localhost:8080", "The gRPC gateway server address")
+	RootCmd.Flags().String(flagZKShimAddress, "", "The ZK shim address")
 	RootCmd.Flags().String(flagJobManagerAddress, "", "The JobManager contract address")
-	RootCmd.Flags().String(flagEthUrl, "", "The ethereum http url")
+	RootCmd.Flags().String(flagEthRPCAddress, "", "The Ethereum RPC address")
+
+	RootCmd.MarkFlagRequired(flagZKShimAddress)
+	RootCmd.MarkFlagRequired(flagJobManagerAddress)
+	RootCmd.MarkFlagRequired(flagEthRPCAddress)
 
 	RootCmd.AddCommand(getVersionCmd())
 }
@@ -116,12 +120,12 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 
 	defer cancel()
 
-	gRPCEndpoint, err := cmd.Flags().GetString(flagGRPCEndpoint)
+	gRPCEndpoint, err := cmd.Flags().GetString(flagGRPCAddress)
 	if err != nil {
 		return err
 	}
 
-	gRPCGatewayEndpoint, err := cmd.Flags().GetString(flagGRPCGatewayEndpoint)
+	gRPCGatewayEndpoint, err := cmd.Flags().GetString(flagGRPCGatewayAddress)
 	if err != nil {
 		return err
 	}
@@ -131,7 +135,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	ethUrl, err := cmd.Flags().GetString(flagEthUrl)
+	ethUrl, err := cmd.Flags().GetString(flagEthRPCAddress)
 	if err != nil {
 		return err
 	}
@@ -143,8 +147,8 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	if !common.IsHexAddress(contractAddr) {
 		return fmt.Errorf("invalid Ethereum address: %s", contractAddr)
 	}
-	address := common.HexToAddress(contractAddr)
 
+	address := common.HexToAddress(contractAddr)
 	pk, err := mustGetEnv(EnvRelayerPrivKey)
 	if err != nil {
 		return err
@@ -169,8 +173,8 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to create database: %w", err)
 	}
 
-	executor := executor.New(logger, db, zkClient, execQueue, broadcastQueue)
-	gRPCServer := server.New(executor)
+	exec := executor.New(logger, db, zkClient, execQueue, broadcastQueue)
+	gRPCServer := server.New(exec)
 
 	// listen for and trap any OS signal to gracefully shutdown and exit
 	trapSignal(cancel, logger)
@@ -184,7 +188,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	})
 
 	g.Go(func() error {
-		executor.Start(ctx, 4)
+		exec.Start(ctx, executor.DefaultWorkerCount)
 		return nil
 	})
 
