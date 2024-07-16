@@ -107,7 +107,7 @@ impl Zkvm for Sp1 {
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
         let mut stdin = SP1Stdin::new();
-        stdin.write_slice(&raw_input);
+        stdin.write_slice(raw_input);
 
         let client = ProverClient::new();
         let (public_values, _) = client
