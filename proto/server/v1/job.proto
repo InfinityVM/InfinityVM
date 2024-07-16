@@ -3,8 +3,6 @@ package server.v1;
 
 import "server/v1/zkvm_executor.proto";
 
-option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
-
 // JobStatus defines the status of a submitted coprocessor job.
 enum JobStatus {
   JOB_STATUS_UNSPECIFIED = 0;

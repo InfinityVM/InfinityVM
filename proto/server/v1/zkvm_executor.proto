@@ -1,8 +1,6 @@
 syntax = "proto3";
 package server.v1;
 
-option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
-
 // ============================================================================
 // These types are copied from the ZK shim Proto types temporarily.
 // ============================================================================

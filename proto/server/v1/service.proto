@@ -5,8 +5,6 @@ import "google/api/annotations.proto";
 import "server/v1/job.proto";
 import "server/v1/zkvm_executor.proto";
 
-option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
-
 // Service defines the gRPC service for the coprocessing server.
 service Service {
   // SubmitJob defines the gRPC method for submitting a coprocessing job.
