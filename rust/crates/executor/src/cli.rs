@@ -148,10 +148,14 @@ impl Cli {
         let signer = opts.operator_signer()?;
 
         let db = db::init_db(opts.db_dir.clone())?;
-        info!(db_path=opts.db_dir,"db initialized");
+        info!(db_path = opts.db_dir, "db initialized");
 
         let executor = ZkvmExecutorService::new(signer, opts.chain_id, db);
-        info!(chain_id=opts.chain_id,signer=executor.signer_address().to_string(),"executor initialized");
+        info!(
+            chain_id = opts.chain_id,
+            signer = executor.signer_address().to_string(),
+            "executor initialized"
+        );
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)

@@ -105,7 +105,7 @@ alloy-rlp = { version = "*" }
 alloy-sol-types = { version = "*" }
 
 # b
-base64 = {version = "*"}
+base64 = { version = "*"}
 # c
 clap = { version = "*", features = ["derive"] }
 

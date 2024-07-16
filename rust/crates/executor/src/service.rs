@@ -1,18 +1,18 @@
 //! gRPC service implementation.
 
 use crate::db;
+use alloy::primitives::Address;
 use alloy::{
     primitives::{keccak256, Signature},
     signers::Signer,
 };
+use base64::prelude::*;
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
 use reth_db::Database;
 use std::{marker::Send, sync::Arc};
-use alloy::primitives::Address;
 use zkvm::Zkvm;
-use base64::prelude::*;
 
 use alloy_sol_types::{sol, SolType};
 use tracing::{error, info, instrument};
@@ -41,7 +41,7 @@ where
         Self { signer, chain_id, db }
     }
 
-    pub(crate) fn signer_address(&self)->Address{
+    pub(crate) fn signer_address(&self) -> Address {
         self.signer.address()
     }
 
@@ -88,7 +88,7 @@ where
     ) -> Result<tonic::Response<ExecuteResponse>, tonic::Status> {
         let msg = request.into_inner();
         let inputs = msg.inputs.expect("todo");
-        info!(job_id=inputs.job_id,vm_type=inputs.vm_type.to_string(),"new job received");
+        info!(job_id = inputs.job_id, vm_type = inputs.vm_type.to_string(), "new job received");
 
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
         let program_elf = db::read_elf(self.db.clone(), &vm_type, &inputs.program_verifying_key)
@@ -103,7 +103,11 @@ where
 
         if !vm.is_correct_verifying_key(&program_elf, &inputs.program_verifying_key).expect("todo")
         {
-            error!(job_id=inputs.job_id,verifying_key=BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice()),"incorrect program verifying key");
+            error!(
+                job_id = inputs.job_id,
+                verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice()),
+                "incorrect program verifying key"
+            );
             return Err(tonic::Status::invalid_argument("bad verifying key"));
         }
 
@@ -148,7 +152,11 @@ where
             .map_err(|e| format!("failed writing elf: {e}"))
             .map_err(tonic::Status::internal)?;
 
-        info!(vm_type=request.vm_type.to_string(),verifying_key=BASE64_STANDARD.encode(verifying_key.as_slice()),"new program");
+        info!(
+            vm_type = request.vm_type.to_string(),
+            verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice()),
+            "new program"
+        );
 
         let response = CreateElfResponse { verifying_key };
         Ok(tonic::Response::new(response))
