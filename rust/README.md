@@ -15,13 +15,18 @@ rustup toolchain install nightly
 ```
 
 Proto
-
+- MacOS
 ```sh
 # install protobuf compilation tools
 brew update
 brew install protobuf
 ```
-
+- Debian/Ubuntu
+```sh
+# install protobuf compilation tools
+apt-get update
+apt-get install install protobuf-compiler
+```
 Risc0
 
 ```sh
