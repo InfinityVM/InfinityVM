@@ -1,11 +1,8 @@
 version: v1
+managed:
+  enabled: true
 plugins:
-  - plugin: go
-    out: ..
-  - plugin: go-grpc
-    out: ..
-  - name: grpc-gateway
-    out: ..
-    opt:
-      - logtostderr=true
-      - generate_unbound_methods=true
+  - plugin: buf.build/community/neoeinstein-prost:v0.3.1
+    out: ../rust/crates/proto/src
+  - plugin: buf.build/community/neoeinstein-tonic:v0.4.0
+    out: ../rust/crates/proto/src
