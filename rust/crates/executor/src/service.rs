@@ -80,16 +80,18 @@ where
     S: Signer<Signature> + Send + Sync + 'static,
     D: Database + 'static,
 {
-    #[instrument(skip(self))]
+    #[instrument(skip(self, request))]
     async fn execute(
         &self,
         request: tonic::Request<ExecuteRequest>,
     ) -> Result<tonic::Response<ExecuteResponse>, tonic::Status> {
         let msg = request.into_inner();
         let inputs = msg.inputs.expect("todo");
-        info!(job_id = inputs.job_id, vm_type = inputs.vm_type.to_string(), "new job received");
 
+        let verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
+        info!(inputs.job_id, vm_type = vm_type.as_str_name(), verifying_key, "new job received");
+
         let program_elf = db::read_elf(self.db.clone(), &vm_type, &inputs.program_verifying_key)
             .map_err(|e| format!("failed reading elf: {e}"))
             .map_err(tonic::Status::internal)?
@@ -102,11 +104,7 @@ where
 
         if !vm.is_correct_verifying_key(&program_elf, &inputs.program_verifying_key).expect("todo")
         {
-            error!(
-                job_id = inputs.job_id,
-                verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice()),
-                "incorrect program verifying key"
-            );
+            error!(inputs.job_id, verifying_key, "incorrect program verifying key");
             return Err(tonic::Status::invalid_argument("bad verifying key"));
         }
 
@@ -134,7 +132,7 @@ where
         Ok(tonic::Response::new(response))
     }
 
-    #[instrument(skip(self))]
+    #[instrument(skip(self, tonic_request))]
     async fn create_elf(
         &self,
         tonic_request: tonic::Request<CreateElfRequest>,
@@ -143,18 +141,18 @@ where
 
         let (vm, vm_type) = self.vm(request.vm_type)?;
 
-        let verifying_key = vm
-            .derive_verifying_key(&request.program_elf)
-            .map_err(|_| tonic::Status::invalid_argument("failed to derive verifying key"))?;
+        let verifying_key = vm.derive_verifying_key(&request.program_elf).map_err(|e| {
+            tonic::Status::invalid_argument(format!("failed to derive verifying key {e}"))
+        })?;
 
         db::write_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
-            .map_err(|e| format!("failed writing elf: {e}"))
+            .map_err(|e| format!("failed writing elf {e}"))
             .map_err(tonic::Status::internal)?;
 
         info!(
-            vm_type = request.vm_type.to_string(),
+            vm_type = vm_type.as_str_name(),
             verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice()),
-            "new program"
+            "new elf program"
         );
 
         let response = CreateElfResponse { verifying_key };
