@@ -59,9 +59,9 @@ where
     fn vm(&self, vm_type: i32) -> Result<(Box<dyn Zkvm + Send>, VmType), tonic::Status> {
         let vm_type =
             VmType::try_from(vm_type).map_err(|_| tonic::Status::internal("invalid vm type"))?;
-        let vm = match vm_type {
+        let vm: Box<dyn Zkvm + Send> = match vm_type {
             VmType::Risc0 => Box::new(zkvm::Risc0),
-            VmType::Sp1 => unimplemented!(),
+            VmType::Sp1 => Box::new(zkvm::Sp1),
         };
 
         Ok((vm, vm_type))

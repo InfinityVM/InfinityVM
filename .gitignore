@@ -13,3 +13,6 @@ contracts/broadcast/**
 
 # Dotenv file
 contracts/.env
+
+# ide
+.idea
