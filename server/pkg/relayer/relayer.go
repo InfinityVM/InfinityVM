@@ -2,13 +2,9 @@ package relayer
 
 import (
 	"context"
-	"encoding/binary"
-	"fmt"
 	"sync"
 
-
 	"github.com/rs/zerolog"
-	"google.golang.org/protobuf/proto"
 
 	"github.com/ethos-works/InfinityVM/server/pkg/db"
 	"github.com/ethos-works/InfinityVM/server/pkg/eth"
@@ -30,10 +26,17 @@ type Relayer struct {
 	broadcastQueue  queue.Queue[*types.Job]
 	wg              sync.WaitGroup
 	errChan         chan error
+	updateJob       func(db db.DB, job *types.Job) error
 }
 
 // Returns a new Relayer
-func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], ethClient eth.EthClientI, db db.DB, workerCount int) *Relayer {
+func NewRelayer(
+	logger zerolog.Logger,
+	queueService queue.Queue[*types.Job],
+	ethClient eth.EthClientI,
+	db db.DB, workerCount int,
+	updateJobCallback func(db db.DB, job *types.Job) error,
+) *Relayer {
 	return &Relayer{
 		EthClient:       ethClient,
 		Logger:          logger,
@@ -41,6 +44,7 @@ func NewRelayer(logger zerolog.Logger, queueService queue.Queue[*types.Job], eth
 		workerPoolCount: workerCount,
 		broadcastQueue:  queueService,
 		errChan:         make(chan error, 1),
+		updateJob:       updateJobCallback,
 	}
 }
 
@@ -96,24 +100,11 @@ func (r *Relayer) processBroadcastedJobs(ctx context.Context) {
 					continue
 				}
 				r.Logger.Info().Msg("successfully executed eth callback")
-				if err = updateJobTxHash(r.db, job, txHash); err != nil {
+				job.TransactionHash = txHash
+				if err = r.updateJob(r.db, job); err != nil {
 					r.Logger.Error().Err(err).Msg("error updating job with transaction hash")
 				}
 			}
 		}
 	}
-}
-
-func updateJobTxHash(db db.DB, job *types.Job, txHash []byte) error {
-	idBz := make([]byte, 4)
-	binary.BigEndian.PutUint32(idBz, job.Id)
-
-	job.TransactionHash = txHash
-
-	bz, err := proto.Marshal(job)
-	if err != nil {
-		return fmt.Errorf("failed to marshal job: %w", err)
-	}
-
-	return db.Set(idBz, bz)
 }

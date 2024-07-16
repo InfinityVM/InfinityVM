@@ -78,9 +78,9 @@ func init() {
 	RootCmd.Flags().String(flagJobManagerAddress, "", "The JobManager contract address")
 	RootCmd.Flags().String(flagEthRPCAddress, "", "The Ethereum RPC address")
 
-	RootCmd.MarkFlagRequired(flagZKShimAddress)
-	RootCmd.MarkFlagRequired(flagJobManagerAddress)
-	RootCmd.MarkFlagRequired(flagEthRPCAddress)
+	RootCmd.MarkFlagRequired(flagZKShimAddress)     //nolint:errcheck
+	RootCmd.MarkFlagRequired(flagJobManagerAddress) //nolint:errcheck
+	RootCmd.MarkFlagRequired(flagEthRPCAddress)     //nolint:errcheck
 
 	RootCmd.AddCommand(getVersionCmd())
 }
@@ -193,7 +193,7 @@ func rootCmdHandler(cmd *cobra.Command, args []string) error {
 	})
 
 	g.Go(func() error {
-		return startRelayer(ctx, logger, broadcastQueue, ethClient, db, relayer.DefaultWorkerCount)
+		return startRelayer(ctx, logger, broadcastQueue, ethClient, db, relayer.DefaultWorkerCount, executor.SaveJob)
 	})
 
 	// Block main process until all spawned goroutines have gracefully exited and
@@ -278,8 +278,16 @@ func startGRPCGateway(ctx context.Context, logger zerolog.Logger, listenAddr str
 	}
 }
 
-func startRelayer(ctx context.Context, logger zerolog.Logger, queue queue.Queue[*types.Job], ethClient eth.EthClientI, db db.DB, workerCount int) error {
-	r := relayer.NewRelayer(logger, queue, ethClient, db, workerCount)
+func startRelayer(
+	ctx context.Context,
+	logger zerolog.Logger,
+	queue queue.Queue[*types.Job],
+	ethClient eth.EthClientI,
+	db db.DB,
+	workerCount int,
+	updateJobCallback func(db db.DB, job *types.Job) error,
+) error {
+	r := relayer.NewRelayer(logger, queue, ethClient, db, workerCount, updateJobCallback)
 
 	if err := r.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start relayer: %w", err)

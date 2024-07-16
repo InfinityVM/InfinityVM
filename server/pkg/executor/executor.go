@@ -57,7 +57,7 @@ func (e *Executor) SubmitJob(job *types.Job) error {
 
 	job.Status = types.JobStatus_JOB_STATUS_PENDING
 
-	if err := e.SaveJob(job); err != nil {
+	if err := SaveJob(e.db, job); err != nil {
 		return fmt.Errorf("failed to save job: %w", err)
 	}
 
@@ -108,7 +108,7 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 				logger.Error().Err(err).Msg("failed to execute job")
 
 				job.Status = types.JobStatus_JOB_STATUS_FAILED
-				if err := e.SaveJob(job); err != nil {
+				if err := SaveJob(e.db, job); err != nil {
 					logger.Error().Err(err).Msg("failed to save job")
 				}
 
@@ -122,7 +122,7 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 			job.ZkvmOperatorAddress = resp.ZkvmOperatorAddress
 			job.ZkvmOperatorSignature = resp.ZkvmOperatorSignature
 
-			if err := e.SaveJob(job); err != nil {
+			if err := SaveJob(e.db, job); err != nil {
 				logger.Error().Err(err).Msg("failed to save job")
 				continue
 			}
@@ -151,7 +151,7 @@ func (e *Executor) SubmitELF(elf []byte, vmType types.VmType) ([]byte, error) {
 	return resp.VerifyingKey, nil
 }
 
-func (e *Executor) SaveJob(job *types.Job) error {
+func SaveJob(db db.DB, job *types.Job) error {
 	idBz := make([]byte, 4)
 	binary.BigEndian.PutUint32(idBz, job.Id)
 
@@ -160,7 +160,7 @@ func (e *Executor) SaveJob(job *types.Job) error {
 		return fmt.Errorf("failed to marshal job: %w", err)
 	}
 
-	return e.db.Set(idBz, bz)
+	return db.Set(idBz, bz)
 }
 
 func (e *Executor) HasJob(id uint32) (bool, error) {

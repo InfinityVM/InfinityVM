@@ -8,16 +8,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ethos-works/InfinityVM/server/pkg/db"
-	"google.golang.org/protobuf/proto"
-
-	"github.com/ethos-works/InfinityVM/server/pkg/eth"
-	"github.com/ethos-works/InfinityVM/server/pkg/mock"
-	"github.com/ethos-works/InfinityVM/server/pkg/queue"
-	"github.com/ethos-works/InfinityVM/server/pkg/types"
 	"github.com/rs/zerolog"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"google.golang.org/protobuf/proto"
+
+	"github.com/ethos-works/InfinityVM/server/pkg/db"
+	"github.com/ethos-works/InfinityVM/server/pkg/eth"
+	"github.com/ethos-works/InfinityVM/server/pkg/executor"
+	"github.com/ethos-works/InfinityVM/server/pkg/mock"
+	"github.com/ethos-works/InfinityVM/server/pkg/queue"
+	"github.com/ethos-works/InfinityVM/server/pkg/types"
 )
 
 func TestRelayerLifecycle(t *testing.T) {
@@ -32,7 +33,7 @@ func TestRelayerLifecycle(t *testing.T) {
 	db, err := db.NewMemDB()
 	require.NoError(t, err)
 
-	relayer := NewRelayer(logger, broadcastQueue, ethClient, db, 10)
+	relayer := NewRelayer(logger, broadcastQueue, ethClient, db, 10, executor.SaveJob)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -87,7 +88,7 @@ func TestProcessBroadcastedJobFailure(t *testing.T) {
 	err = broadcastQueue.Push(job)
 	require.NoError(t, err)
 
-	relayer := NewRelayer(logger, broadcastQueue, ethClient, db, 10)
+	relayer := NewRelayer(logger, broadcastQueue, ethClient, db, 10, executor.SaveJob)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
