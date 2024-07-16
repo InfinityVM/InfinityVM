@@ -10,6 +10,7 @@ use proto::{
 };
 use reth_db::Database;
 use std::{marker::Send, sync::Arc};
+use alloy::primitives::Address;
 use zkvm::Zkvm;
 
 use alloy_sol_types::{sol, SolType};
@@ -36,6 +37,10 @@ where
 {
     pub(crate) const fn new(signer: S, chain_id: Option<u64>, db: Arc<D>) -> Self {
         Self { signer, chain_id, db }
+    }
+
+    pub fn signer_address(&self)->Address{
+        self.signer.address()
     }
 
     /// Checksum address (hex string), as bytes.

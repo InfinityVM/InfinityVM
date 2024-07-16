@@ -9,6 +9,7 @@ use std::{
 
 use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
+use tracing::{info, instrument};
 
 use crate::{db, service::ZkvmExecutorService, DEV_SECRET};
 
@@ -139,15 +140,18 @@ pub struct Cli;
 
 impl Cli {
     /// Run the CLI
+    #[instrument]
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
         let addr = SocketAddrV4::new(opts.ip, opts.port);
         let signer = opts.operator_signer()?;
 
-        let db = db::init_db(opts.db_dir)?;
-        // TODO: info!(db at ..)
+        let db = db::init_db(opts.db_dir.clone())?;
+        info!(db_path=opts.db_dir,"db initialized");
+
         let executor = ZkvmExecutorService::new(signer, opts.chain_id, db);
+        info!(chain_id=opts.chain_id,signer=executor.signer_address().to_string(),"executor initialized");
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)

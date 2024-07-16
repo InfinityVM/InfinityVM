@@ -154,9 +154,11 @@ sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0bec
 tonic-build = { version = "0.12"}
 tonic = { version = "0.12", features = ["transport"], default-features = false }
 tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
-tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time"] }
+tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time","tracing"] }
 thiserror = "*"
 tempfile = "*"
+tracing = "*"
+tracing-subscriber = "*"
 
 # u
 # v
