@@ -6512,6 +6512,7 @@ dependencies = [
  "cfg-if",
  "getrandom 0.2.15",
  "lazy_static",
+ "libm",
  "once_cell",
  "rand 0.8.5",
  "serde",

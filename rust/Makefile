@@ -21,8 +21,8 @@ lint: clippy fmt
 
 .PHONY: test-ci
 test-ci:
-	RUSTFLAGS=$(RUSTFLAGS) cargo build --release && \
-	RUSTFLAGS=$(RUSTFLAGS) cargo test --all --release -- --ignored
+	cargo build
+	cargo test --all -- --ignored
 
 .PHONY: doc-ci
 doc-ci:
@@ -39,5 +39,5 @@ doc:
 test-all:
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
-	RUSFLAGS=$(RUSTFLAGS) cargo build --release && \
-	RUSFLAGS=$(RUSFLAGS) cargo test --release -- --ignored
+	RUSTFLAGS=$(RUSTFLAGS) cargo build && \
+	RUSTFLAGS=$(RUSTFLAGS) cargo test -- --ignored
