@@ -10,8 +10,8 @@ contract MockConsumer is Consumer {
 
     constructor(address jobManager) Consumer(jobManager) {}
 
-    function requestBalance(address addr) public returns (uint32) {
-        return requestJob("programID", abi.encode(addr), 1_000_000);
+    function requestBalance(bytes calldata programID, address addr) public returns (uint32) {
+        return requestJob(programID, abi.encode(addr), 1_000_000);
     }
 
     function getBalance(address addr) public view returns (uint256) {

@@ -35,7 +35,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function test_Consumer_RequestJob() public {
         vm.expectEmit(true, true, true, true);
         emit JobCreated(1, DEFAULT_MAX_CYCLES, "programID", abi.encode(address(0)));
-        uint32 jobID = consumer.requestBalance(address(0));
+        uint32 jobID = consumer.requestBalance("programID", address(0));
         assertEq(jobID, 1);
         assertEq(consumer.getProgramInputsForJob(jobID), abi.encode(address(0)));
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);

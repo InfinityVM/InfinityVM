@@ -57,7 +57,6 @@ contract JobManager is
         jobID = jobIDCounter;
         jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, msg.sender, JOB_STATE_PENDING);
         emit JobCreated(jobID, maxCycles, programID, programInput);
-        JobMetadata memory job = jobIDToMetadata[jobID];
         jobIDCounter++;
     }
 
