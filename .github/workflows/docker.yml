@@ -62,7 +62,8 @@ jobs:
         uses: docker/build-push-action@v6
         if: env.GIT_DIFF
         with:
-          context: server
+          context: .
+          file: Dockerfile.server
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -71,18 +72,20 @@ jobs:
         with:
           PATTERNS: |
             .github/workflows/docker.yml
-            server/*.go
-            server/**/*.go
-            server/go.mod
-            server/go.sum
-            server/Makefile
-            server/Dockerfile
+            rust/Cargo.toml
+            rust/Cargo.lock
+            rust/**/Cargo.toml
+            rust/**/Cargo.lock
+            rust/**/*.rs
+            rust/**/.dockerignore
+            rust/rustfmt.toml
       - id: docker-push-rust
         name: Tag Docker image and push to Google Artifact Registry
         uses: docker/build-push-action@v6
         if: env.GIT_DIFF
         with:
-          context: rust
+          context: .
+          file: Dockerfile.executor
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
