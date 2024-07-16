@@ -2320,6 +2320,7 @@ dependencies = [
  "alloy-rlp",
  "alloy-signer-local",
  "alloy-sol-types",
+ "base64 0.22.1",
  "clap",
  "eyre",
  "home",
