@@ -19,7 +19,7 @@ use vapenation_methods::{VAPENATION_GUEST_ELF, VAPENATION_GUEST_ID, VAPENATION_G
 // on these integration tests.
 
 const VAPENATION_ELF_PATH: &str =
-    "../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
+    "../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest";
 
 const VAPENATION_ELF_SP1_PATH: &str =
     "../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
@@ -52,9 +52,9 @@ fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> 
 #[ignore]
 fn invariants() {
     VAPENATION_GUEST_PATH
-        .contains("/target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest");
+        .contains("/target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest");
     VAPENATION_ELF_PATH
-        .contains("/target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest");
+        .contains("/target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest");
 
     let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
     let image_id = compute_image_id(&vapenation_elf).unwrap();
