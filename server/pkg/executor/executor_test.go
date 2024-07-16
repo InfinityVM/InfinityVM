@@ -50,7 +50,7 @@ func TestExecutor(t *testing.T) {
 	executorClientMock.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any()).Return(&types.ExecuteResponse{}, nil)
 
 	require.Eventually(t, func() bool {
-		job, err := exec.GetJob(job.Id)
+		job, err := executor.GetJob(db, job.Id)
 		require.NoError(t, err)
 
 		return job.Status == types.JobStatus_JOB_STATUS_DONE

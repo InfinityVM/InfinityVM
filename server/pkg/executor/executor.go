@@ -28,7 +28,7 @@ const (
 // executor, which will consume submitted jobs from the queue.
 type Executor struct {
 	logger         zerolog.Logger
-	db             db.DB
+	DB             db.DB
 	execQueue      queue.Queue[*types.Job]
 	broadcastQueue queue.Queue[*types.Job]
 	zkClient       types.ZkvmExecutorClient
@@ -38,7 +38,7 @@ type Executor struct {
 func New(logger zerolog.Logger, db db.DB, zkClient types.ZkvmExecutorClient, execQueue, broadcastQueue queue.Queue[*types.Job]) *Executor {
 	return &Executor{
 		logger:         logger,
-		db:             db,
+		DB:             db,
 		execQueue:      execQueue,
 		broadcastQueue: broadcastQueue,
 		zkClient:       zkClient,
@@ -57,7 +57,7 @@ func (e *Executor) SubmitJob(job *types.Job) error {
 
 	job.Status = types.JobStatus_JOB_STATUS_PENDING
 
-	if err := SaveJob(e.db, job); err != nil {
+	if err := SaveJob(e.DB, job); err != nil {
 		return fmt.Errorf("failed to save job: %w", err)
 	}
 
@@ -108,7 +108,7 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 				logger.Error().Err(err).Msg("failed to execute job")
 
 				job.Status = types.JobStatus_JOB_STATUS_FAILED
-				if err := SaveJob(e.db, job); err != nil {
+				if err := SaveJob(e.DB, job); err != nil {
 					logger.Error().Err(err).Msg("failed to save job")
 				}
 
@@ -122,7 +122,7 @@ func (e *Executor) startWorker(ctx context.Context, jobCh <-chan *types.Job) {
 			job.ZkvmOperatorAddress = resp.ZkvmOperatorAddress
 			job.ZkvmOperatorSignature = resp.ZkvmOperatorSignature
 
-			if err := SaveJob(e.db, job); err != nil {
+			if err := SaveJob(e.DB, job); err != nil {
 				logger.Error().Err(err).Msg("failed to save job")
 				continue
 			}
@@ -151,30 +151,18 @@ func (e *Executor) SubmitELF(elf []byte, vmType types.VmType) ([]byte, error) {
 	return resp.VerifyingKey, nil
 }
 
-func SaveJob(db db.DB, job *types.Job) error {
-	idBz := make([]byte, 4)
-	binary.BigEndian.PutUint32(idBz, job.Id)
-
-	bz, err := proto.Marshal(job)
-	if err != nil {
-		return fmt.Errorf("failed to marshal job: %w", err)
-	}
-
-	return db.Set(idBz, bz)
-}
-
 func (e *Executor) HasJob(id uint32) (bool, error) {
 	idBz := make([]byte, 4)
 	binary.BigEndian.PutUint32(idBz, id)
 
-	return e.db.Has(idBz)
+	return e.DB.Has(idBz)
 }
 
-func (e *Executor) GetJob(id uint32) (*types.Job, error) {
+func GetJob(db db.DB, id uint32) (*types.Job, error) {
 	idBz := make([]byte, 4)
 	binary.BigEndian.PutUint32(idBz, id)
 
-	bz, err := e.db.Get(idBz)
+	bz, err := db.Get(idBz)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get job: %w", err)
 	}
@@ -185,4 +173,16 @@ func (e *Executor) GetJob(id uint32) (*types.Job, error) {
 	}
 
 	return job, nil
+}
+
+func SaveJob(db db.DB, job *types.Job) error {
+	idBz := make([]byte, 4)
+	binary.BigEndian.PutUint32(idBz, job.Id)
+
+	bz, err := proto.Marshal(job)
+	if err != nil {
+		return fmt.Errorf("failed to marshal job: %w", err)
+	}
+
+	return db.Set(idBz, bz)
 }

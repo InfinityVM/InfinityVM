@@ -60,7 +60,7 @@ func (s *Server) GetResult(_ context.Context, req *types.GetResultRequest) (*typ
 		return nil, status.Errorf(codes.InvalidArgument, "contract ID must be positive")
 	}
 
-	job, err := s.executor.GetJob(req.JobId)
+	job, err := executor.GetJob(s.executor.DB, req.JobId)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "failed to get job (%d): %v", req.JobId, err)
 	}
