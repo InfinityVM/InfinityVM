@@ -7,6 +7,7 @@ import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/Ownabl
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import "./Utils.sol";
+import {Script, console} from "forge-std/Script.sol";
 
 contract JobManager is 
     IJobManager,
@@ -16,31 +17,40 @@ contract JobManager is
 {
     using Utils for uint;
 
-    uint32 public jobIDCounter = 1;
-    address relayer;
+    uint32 internal jobIDCounter;
+    address public relayer;
     // This operator is a registered entity that will eventually require some bond from participants
-    address coprocessorOperator;
+    address public coprocessorOperator;
 
     mapping(uint32 => JobMetadata) public jobIDToMetadata;
     // storage gap for upgradeability
     uint256[50] private __GAP;
 
-    constructor(address _relayer, address _coprocessorOperator) {
-        relayer = _relayer;
-        coprocessorOperator = _coprocessorOperator;
+    constructor() {
         _disableInitializers();
     }
 
-    function initializeJobManager(address initialOwner) public initializer {
+    function initializeJobManager(address initialOwner, address _relayer, address _coprocessorOperator) public initializer {
         _transferOwnership(initialOwner);
+        relayer = _relayer;
+        coprocessorOperator = _coprocessorOperator;
+        jobIDCounter = 1;
     }
 
     function setRelayer(address _relayer) external onlyOwner {
         relayer = _relayer;
     }
 
+    function getRelayer() external view returns (address) {
+        return relayer;
+    }
+
     function setCoprocessorOperator(address _coprocessorOperator) external onlyOwner {
         coprocessorOperator = _coprocessorOperator;
+    }
+
+    function getCoprocessorOperator() external view returns (address) {
+        return coprocessorOperator;
     }
 
     function createJob(bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external override returns (uint32 jobID) {
