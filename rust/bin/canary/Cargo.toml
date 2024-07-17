@@ -10,8 +10,11 @@ name = "canary"
 path = "src/main.rs"
 
 [dependencies]
+alphanet-node = { git = "https://github.com/emostov/alphanet.git", branch = "bump-deps"}
+reth = { workspace = true, features = ["optimism"] }
+reth-node-optimism = { workspace = true }
+reth-cli-util = { workspace = true }
+
 clap = { workspace = true }
 tracing = { workspace = true }
 tikv-jemallocator = { version = "0.5", features = ["background_threads_runtime_support"], default-features = false }
-reth = { workspace = true, features = ["optimism"] }
-alphanet-node = { git = "git@github.com:paradigmxyz/alphanet.git", rev = "c"}

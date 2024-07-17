@@ -5,7 +5,7 @@ rust-version = "1.79"
 
 [workspace]
 members = [
-	# "bin/canary",
+	"bin/canary",
 	"crates/executor",
 	"crates/zkvm",
 	"crates/scripts",
@@ -138,10 +138,11 @@ risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
 risc0-build = { version = "1", default-features = false }
 risc0-binfmt = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
-reth = { git = "https://github.com/paradigmxyz/reth.git", rev = "539b4e4", default-features = false }
-reth-node-optimism = { git = "https://github.com/paradigmxyz/reth.git", rev = "539b4e4", default-features = false}
-reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "539b4e4", features = ["mdbx"], default-features = false}
-reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "539b4e4", default-features = false }
+reth = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false }
+reth-cli-util = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false }
+reth-node-optimism = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false}
+reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", features = ["mdbx"], default-features = false}
+reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false }
 
 # s
 serde = { version = "1.0", features = ["derive"], default-features = false }
