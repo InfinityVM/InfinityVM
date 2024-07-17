@@ -31,7 +31,7 @@ doc:
 
 .PHONY: build-release
 build-release:
-	@RUSTFLAGS="-C opt-level=3 -C debug-assertions -C overflow-checks=y -C debuginfo=0 -C target-cpu=native" cargo build --release
+	RUSTFLAGS=$(RUSTFLAGS) cargo build --release
 
 # Use this for iterating on integration tests
 .PHONY: test-all

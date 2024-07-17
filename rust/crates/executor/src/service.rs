@@ -153,7 +153,7 @@ where
         })?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        if db::read_elf(self.db.clone(), &vm_type, &verifying_key).is_ok() {
+        if db::read_elf(self.db.clone(), &vm_type, &verifying_key).unwrap().is_some(){
             return Err(tonic::Status::invalid_argument(format!(
                 "elf with verifying key {base64_verifying_key} already exists"
             )));
