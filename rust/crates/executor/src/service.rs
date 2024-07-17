@@ -128,6 +128,14 @@ where
             .map_err(|e| format!("signing error: {e:?}"))
             .map_err(tonic::Status::internal)?;
 
+        info!(
+            inputs.job_id,
+            vm_type = vm_type.as_str_name(),
+            verifying_key = base64_verifying_key,
+            raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
+            "job complete"
+        );
+
         let response = ExecuteResponse {
             inputs: Some(inputs),
             result_with_metadata,
@@ -153,7 +161,7 @@ where
         })?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        if db::read_elf(self.db.clone(), &vm_type, &verifying_key).unwrap().is_some(){
+        if db::read_elf(self.db.clone(), &vm_type, &verifying_key).unwrap().is_some() {
             return Err(tonic::Status::invalid_argument(format!(
                 "elf with verifying key {base64_verifying_key} already exists"
             )));
