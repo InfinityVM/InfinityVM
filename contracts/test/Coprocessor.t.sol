@@ -5,11 +5,9 @@ import {Test, console} from "forge-std/Test.sol";
 import {JobManager} from "../src/JobManager.sol";
 import {Consumer} from "../src/Consumer.sol";
 import {MockConsumer} from "./mocks/MockConsumer.sol";
+import {CoprocessorDeployer} from "../script/CoprocessorDeployer.s.sol";
 
-contract CoprocessorTest is Test {
-    JobManager public jobManager;
-    MockConsumer public consumer;
-
+contract CoprocessorTest is Test, CoprocessorDeployer {
     uint64 DEFAULT_MAX_CYCLES = 1_000_000;
     address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0x184c47137933253f49325B851307Ab1017863BD0;
@@ -19,8 +17,7 @@ contract CoprocessorTest is Test {
     event JobCompleted(uint32 indexed jobID, bytes result);
 
     function setUp() public {
-        jobManager = new JobManager(RELAYER, COPROCESSOR_OPERATOR);
-        consumer = new MockConsumer(address(jobManager));
+        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR);
     }
 
     function test_JobManager_CreateJob() public {
@@ -38,7 +35,7 @@ contract CoprocessorTest is Test {
     function test_Consumer_RequestJob() public {
         vm.expectEmit(true, true, true, true);
         emit JobCreated(1, DEFAULT_MAX_CYCLES, "programID", abi.encode(address(0)));
-        uint32 jobID = consumer.requestBalance(address(0));
+        uint32 jobID = consumer.requestBalance("programID", address(0));
         assertEq(jobID, 1);
         assertEq(consumer.getProgramInputsForJob(jobID), abi.encode(address(0)));
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
@@ -48,7 +45,7 @@ contract CoprocessorTest is Test {
         assertEq(jobMetadata.status, 1);
     }
 
-        function test_JobManager_CancelJobByConsumer() public {
+    function test_JobManager_CancelJobByConsumer() public {
         test_Consumer_RequestJob();
         vm.expectEmit(true, false, false, false);
         emit JobCancelled(1);

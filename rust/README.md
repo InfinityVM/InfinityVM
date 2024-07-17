@@ -36,6 +36,14 @@ cargo risczero install
 cargo risczero --version
 ```
 
+Sp1
+
+```sh
+curl -L https://sp1.succinct.xyz | bash
+sp1up
+cargo prove --version
+```
+
 **Iterating**
 
 View docs

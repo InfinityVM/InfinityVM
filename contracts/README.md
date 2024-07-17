@@ -1,69 +1,56 @@
-## Foundry
+## Coprocessor contracts
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+### Overview
 
-Foundry consists of:
+- `JobManager.sol`: Shared contract for all coprocessor consumers. Coprocessor job requests and result submission goes through this contract.
+- `Consumer.sol`: Interface that can be inherited by coprocessor consumers
+- `MockConsumer.sol`: Example of a coprocessor consumer contract which inherits `Consumer` (used in tests and CLI)
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### Dependencies
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+You will need [foundry](https://book.getfoundry.sh/getting-started/installation) and [zap-pretty](https://github.com/maoueh/zap-pretty).
+```
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+go install github.com/maoueh/zap-pretty@latest
 ```
 
-### Test
+If you're facing errors when running any of the commands below, you might need to upgrade Foundry using `foundryup`.
 
-```shell
-$ forge test
+### Run tests for contracts
+
+```
+make test-contracts
 ```
 
-### Format
+### Loom
 
-```shell
-$ forge fmt
+Info on the anvil states and CLI commands is available in the [Loom here](https://www.loom.com/share/a4ddf4c5cccc407c8ae8c06eca4c72be?sid=2c2f3f03-e48f-4e09-984e-db9082d69ee9).
+
+### Deploy tooling and Anvil states
+
+To deploy the coprocessor contracts to anvil and save anvil state, you can run:
+```
+make deploy-coprocessor-contracts-to-anvil-and-save-state
 ```
 
-### Gas Snapshots
-
-```shell
-$ forge snapshot
+To request a hard-coded job and save this in the anvil state, you can run:
+```
+make request-job-on-anvil-and-save-state
 ```
 
-### Anvil
-
-```shell
-$ anvil
+You can then use one of these commands to start Anvil from either of the saved states:
+```
+make start-anvil-chain-with-coprocessor-deployed
+OR
+make start-anvil-chain-with-coprocessor-deployed-and-job-requested
 ```
 
-### Deploy
+### CLI
 
-```shell
-$ forge script script/CoprocessorDeployer.s.sol:CoprocessorDeployer --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+All the CLI commands along with relevant comments and parameters are listed in the `Makefile`.
 
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+If you would like to use different values for any of the parameters, you can pass these in through the CLI or by changing the default values in the `Makefile`.
 
 ### Generate Go Bindings
 ```shell
