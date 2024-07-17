@@ -17,12 +17,6 @@ components:
 
 In the next iteration of the coprocessor, these components will be unified.
 
-## Contracts
-
-You can read more on how to deploy and interact with the coprocessor contracts in Anvil in `contracts/README.md`.
-
-All CLI commands for interacting with contracts along with relevant comments and parameters are listed in `contracts/Makefile`.
-
 ## Rollup Chain
 
 <!-- TODO: Describe how to spin up rollup and deploy necessary contract(s) -->
@@ -71,6 +65,12 @@ Export the JobManager contract address needed to start the relayer:
 ```shell!
 export CONTRACT_ADDR=$(make print-relayer-address)
 ```
+
+## Contracts
+
+You can read more on how to deploy and interact with the coprocessor contracts in anvil in `contracts/README.md`.
+
+All CLI commands for interacting with contracts along with relevant comments and parameters are listed in `contracts/Makefile`.
 
 ### Server
 
