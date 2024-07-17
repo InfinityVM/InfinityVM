@@ -5,9 +5,9 @@ rust-version.workspace = true
 edition.workspace = true
 
 [dependencies]
-tonic.workspace = true
-prost.workspace = true
-tokio.workspace = true
+tonic = { workspace = true }
+prost = { workspace = true }
+tokio = { workspace = true }
 
 [build-dependencies]
-tonic-build.workspace = true
+tonic-build = { workspace = true }

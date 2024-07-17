@@ -26,4 +26,7 @@ interface IJobManager {
     function cancelJob(uint32 jobID) external;
     function submitResult(bytes calldata resultWithMetadata, bytes calldata signature) external;
     function setRelayer(address _relayer) external;
+    function getRelayer() external view returns (address);
+    function setCoprocessorOperator(address _coprocessorOperator) external;
+    function getCoprocessorOperator() external view returns (address);
 }

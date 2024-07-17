@@ -3,12 +3,11 @@
 use proto::VmType;
 use reth_db::{
     create_db,
-    mdbx::DatabaseArguments,
+    mdbx::{DatabaseArguments, DatabaseFlags},
     models::ClientVersion,
     transaction::{DbTx, DbTxMut},
     Database, DatabaseEnv, DatabaseError, TableType,
 };
-use reth_libmdbx::DatabaseFlags;
 use std::{ops::Deref, path::Path, sync::Arc};
 use tables::ElfKey;
 
