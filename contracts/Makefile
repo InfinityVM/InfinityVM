@@ -4,9 +4,9 @@
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-DEFAULT_RELAYER_ADDRESS=0xaF6Bcd673C742723391086C1e91f0B29141D2381
-DEFAULT_COPROCESSOR_OPERATOR_ADDRESS=0xaF6Bcd673C742723391086C1e91f0B29141D2381
-DEFAULT_PROGRAM_ID=0x1234
+DEFAULT_RELAYER_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+DEFAULT_COPROCESSOR_OPERATOR_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+DEFAULT_PROGRAM_ID=programID
 DEFAULT_BALANCE_ADDRESS=0xa5889624184923c0c4CFC3499CbeA659e34f7809
 DEFAULT_JOB_ID=1
 
@@ -49,5 +49,8 @@ print-job-metadata: ## Print the metadata of the job
 
 cancel-job: ## Cancel a job
 	./script/cli/cancel-job.sh $(or $(jobID),$(DEFAULT_JOB_ID))
+
+submit-result: ## Submit a result for a job (can be generated using rust/crates/scripts/signer.rs)
+	./script/cli/submit-result.sh $(or $(resultWithMetadata),$(DEFAULT_RESULT_WITH_METADATA)) $(or $(signature),$(DEFAULT_SIGNATURE))
 
 __CLI__: ##

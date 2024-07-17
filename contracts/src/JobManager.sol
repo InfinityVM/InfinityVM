@@ -17,7 +17,7 @@ contract JobManager is
 {
     using Utils for uint;
 
-    uint32 public jobIDCounter;
+    uint32 internal jobIDCounter;
     address public relayer;
     // This operator is a registered entity that will eventually require some bond from participants
     address public coprocessorOperator;

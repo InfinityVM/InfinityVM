@@ -45,7 +45,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         assertEq(jobMetadata.status, 1);
     }
 
-        function test_JobManager_CancelJobByConsumer() public {
+    function test_JobManager_CancelJobByConsumer() public {
         test_Consumer_RequestJob();
         vm.expectEmit(true, false, false, false);
         emit JobCancelled(1);

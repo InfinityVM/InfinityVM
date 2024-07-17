@@ -3,8 +3,8 @@
 RPC_URL=${RPC_URL:-http://localhost:8545}
 PRIVATE_KEY=${PRIVATE_KEY:-0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80}
 CHAIN_ID=${CHAIN_ID:-31337}
-RELAYER=${1:-0xaF6Bcd673C742723391086C1e91f0B29141D2381}
-COPROCESSOR_OPERATOR=${2:-0xaF6Bcd673C742723391086C1e91f0B29141D2381}
+RELAYER=${1:-0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266}
+COPROCESSOR_OPERATOR=${2:-0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266}
 
 # cd to the directory of this script so that this can be run from anywhere
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
