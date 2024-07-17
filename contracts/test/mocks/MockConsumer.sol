@@ -10,6 +10,10 @@ contract MockConsumer is Consumer {
 
     constructor(address jobManager) Consumer(jobManager) {}
 
+    // It doesn't really make sense for the contract to accept programID
+    // as a parameter here (this would usually be hard-coded), but we do
+    // it here so we can pass in arbitrary program IDs while testing and
+    // in the CLI.
     function requestBalance(bytes calldata programID, address addr) public returns (uint32) {
         return requestJob(programID, abi.encode(addr), 1_000_000);
     }
