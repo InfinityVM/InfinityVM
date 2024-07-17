@@ -21,5 +21,5 @@ sp1-sdk = { workspace = true }
 
 executor = { path = "../crates/executor" }
 proto = { path = "../crates/proto"}
-vapenation_methods = { path = "../programs/risc0/vapenation/methods"}
-vapenation_core = { path = "../programs/risc0/vapenation/core"}
+vapenation-methods = { path = "../programs/risc0/vapenation/methods"}
+vapenation-core = { path = "../programs/common/vapenation-core"}
