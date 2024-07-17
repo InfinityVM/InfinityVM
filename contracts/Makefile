@@ -53,4 +53,10 @@ cancel-job: ## Cancel a job
 submit-result: ## Submit a result for a job (can be generated using rust/crates/scripts/signer.rs)
 	./script/cli/submit-result.sh $(or $(resultWithMetadata),$(DEFAULT_RESULT_WITH_METADATA)) $(or $(signature),$(DEFAULT_SIGNATURE))
 
+print-balance: ## Print the balance of an address in the Consumer contract
+	./script/cli/print-balance.sh $(or $(balanceAddress),$(DEFAULT_BALANCE_ADDRESS))
+
+print-job-result: ## Print the result of a job
+	./script/cli/print-job-result.sh $(or $(jobID),$(DEFAULT_JOB_ID))
+
 __CLI__: ##
