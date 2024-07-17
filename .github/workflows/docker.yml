@@ -33,18 +33,6 @@ jobs:
           registry: us-docker.pkg.dev
           username: _json_key
           password: '${{ secrets.ARTIFACT_REGISTRY_CREDENTIALS }}'
-      - name: Docker Metadata Pull
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            us-docker.pkg.dev/ethos-artifacts/docker/ethos
-          tags: |
-            type=semver,pattern={{version}}
-            type=sha,enable=true,priority=100,prefix=,suffix=,format=long
-            type=ref,enable=true,priority=600,prefix=,suffix=,event=branch
-            type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
-            type=ref,enable=true,priority=600,prefix=,suffix=,event=tag
 
       - uses: technote-space/get-diff-action@v6.1.2
         id: server-diff
@@ -57,6 +45,19 @@ jobs:
             server/go.sum
             server/Makefile
             server/Dockerfile
+      - name: Docker Metadata Pull
+        id: server-meta
+        if: env.GIT_DIFF
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            us-docker.pkg.dev/ethos-artifacts/docker/coproc-server
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha,enable=true,priority=100,prefix=,suffix=,format=long
+            type=ref,enable=true,priority=600,prefix=,suffix=,event=branch
+            type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
+            type=ref,enable=true,priority=600,prefix=,suffix=,event=tag
       - id: docker-push-server
         name: Tag Docker image and push to Google Artifact Registry
         uses: docker/build-push-action@v6
@@ -79,6 +80,19 @@ jobs:
             rust/**/*.rs
             rust/**/.dockerignore
             rust/rustfmt.toml
+      - name: Docker Metadata Pull
+        id: rust-meta
+        if: env.GIT_DIFF
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            us-docker.pkg.dev/ethos-artifacts/docker/coproc-zkvm
+          tags: |
+            type=semver,pattern={{version}}
+            type=sha,enable=true,priority=100,prefix=,suffix=,format=long
+            type=ref,enable=true,priority=600,prefix=,suffix=,event=branch
+            type=ref,enable=true,priority=600,prefix=pr-,suffix=,event=pr
+            type=ref,enable=true,priority=600,prefix=,suffix=,event=tag
       - id: docker-push-rust
         name: Tag Docker image and push to Google Artifact Registry
         uses: docker/build-push-action@v6

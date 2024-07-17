@@ -1,28 +1,26 @@
 FROM us-docker.pkg.dev/ethos-artifacts/docker/risc0-builder:latest as chef
 WORKDIR /app
+COPY rust /app/rust
+COPY proto /app/proto
+
+RUN rustup default nightly
+ENV LIBCLANG_PATH=/usr/lib/aarch64-linux-gnu
 
 # Prepare Cargo Chef
 FROM chef as planner
-COPY rust /app/rust
-COPY proto /app/proto
 WORKDIR /app/rust
-ENV LIBCLANG_PATH=/usr/lib/aarch64-linux-gnu
-RUN cargo chef prepare --recipe-path recipe.json
+RUN cargo +nightly chef prepare --recipe-path recipe.json
 
 # Cache dependencies
 FROM chef as cacher
 WORKDIR /app/rust
 COPY --from=planner /app/rust/recipe.json recipe.json
-ENV LIBCLANG_PATH=/usr/lib/aarch64-linux-gnu
-RUN cargo chef cook --release --recipe-path recipe.json
+RUN cargo +nightly chef cook --release --recipe-path recipe.json
 
 # Build the application
 FROM chef AS builder
-COPY --from=cacher /app/target /app/target
-COPY rust /app/rust
-COPY proto /app/proto
-ENV LIBCLANG_PATH=/usr/lib/aarch64-linux-gnu
-RUN cargo build --release --locked --manifest-path /app/rust/Cargo.toml
+COPY --from=cacher /app/rust/target /app/rust/target
+RUN cargo +nightly build --release --locked --manifest-path /app/rust/Cargo.toml
 
 # Final image with only the necessary runtime environment
 FROM debian:bookworm-slim
