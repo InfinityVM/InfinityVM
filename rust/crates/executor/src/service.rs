@@ -103,7 +103,7 @@ where
             .ok_or_else(|| {
                 tonic::Status::invalid_argument(format!(
                     "could not find elf for vm={}",
-                    inputs.vm_type,
+                    vm_type.as_str_name(),
                 ))
             })?;
 
