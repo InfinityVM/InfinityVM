@@ -1,0 +1,14 @@
+[package]
+version = "0.1.0"
+name = "vapenation-guest"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+serde = { version = "1", features = ["serde_derive"], default-features = false }
+alloy-rlp = { version = "0.3", features = ["derive"], default-features = false }
+alloy-sol-types = { version = "0.7", default-features = false }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["lib"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
+
+vapenation-core = { path = "../../../common/vapenation-core" }
