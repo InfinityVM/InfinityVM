@@ -1,3 +1,5 @@
+RUSTFLAGS = '-Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native'
+
 .PHONY: clippy-ci
 clippy-ci:
 	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
@@ -16,11 +18,6 @@ fmt:
 
 .PHONY: lint
 lint: clippy fmt
-
-.PHONY: test-ci
-test-ci:
-	cargo build
-	cargo test --all -- --ignored
 
 .PHONY: doc-ci
 doc-ci:
@@ -41,5 +38,5 @@ build-release:
 test-all:
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
-	cargo build && \
-	cargo test -- --ignored
+	RUSTFLAGS=$(RUSTFLAGS) cargo build && \
+	RUSTFLAGS=$(RUSTFLAGS) cargo test -- --ignored

@@ -98,68 +98,66 @@ significant_drop_tightening = "allow"
 
 [workspace.dependencies]
 # a
-anyhow = "*"
-alloy = { version = "*", features = ["network", "signer-local", "signer-keystore", "rlp"]}
-alloy-signer-local = { version = "*" }
-alloy-rlp = { version = "*" }
-alloy-sol-types = { version = "*" }
+anyhow = { version = "1", default-features = false }
+alloy = { version = "0.1", features = ["network", "signer-local", "signer-keystore", "rlp"], default-features = false }
+alloy-signer-local = { version = "0.1", default-features = false }
+alloy-rlp = { version = "0.3", default-features = false }
+alloy-sol-types = { version = "0.7", default-features = false }
 
 # b
-base64 = { version = "*"}
+base64 = { version = "0.22.1"}
 # c
-clap = { version = "*", features = ["derive"] }
+clap = { version = "4", features = ["derive"], default-features = false }
 
 # d
 # e
-eyre = { version = "*" }
+eyre = { version = "0.6", default-features = false }
 
 # f
-futures = { version = "*" }
+futures = { version = "0.3", default-features = false }
 
 # g
 # h
-hex = { version = "*" }
-home = { version = "*" }
+hex = { version = "0.4", default-features = false }
+home = { version = "0.5", default-features = false }
 
 # i
 # j
 # k
-k256 = { version = "*" }
+k256 = { version = "0.13", default-features = false }
 
 # l
 # m
 # n
 # o
 # p
-prost = "*"
+prost = { version = "0.13", default-features = false }
 
 # q
 # r
-risc0-zkvm = { version = "1.0.1", features = ["prove"] }
-risc0-build = { version = "1.0.1" }
-risc0-binfmt = "*"
-rand_core = { version = "*" }
-rand = { version = "*" }
-reth-libmdbx = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", features = ["return-borrowed", "default"] }
-reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f" }
-reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f" }
+risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
+risc0-build = { version = "1", default-features = false }
+risc0-binfmt = { version = "1", default-features = false }
+rand = { version = "0.8", default-features = false }
+reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", features = ["mdbx"], default-features = false}
+reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", default-features = false }
 
 # s
-serde = { version = "1.0", features = ["derive"] }
-sha2 = { version = "*" }
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171" }
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171" }
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171" }
+serde = { version = "1.0", features = ["derive"], default-features = false }
+sha2 = { version = "0.10", default-features = false }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["libm"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
 
 # t
-tonic-build = { version = "0.12"}
+tonic-build = { version = "0.12", features = ["prost", "transport"], default-features = false }
 tonic = { version = "0.12", features = ["transport"], default-features = false }
 tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
-tokio = { version = "*", features = ["rt-multi-thread", "macros", "sync", "time","tracing"] }
-thiserror = "*"
-tempfile = "*"
-tracing = "*"
-tracing-subscriber = "*"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"], default-features = false }
+thiserror = { version = "1", default-features = false }
+tempfile = { version = "3", default-features = false }
+tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
 
 # u
 # v
