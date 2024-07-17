@@ -80,6 +80,8 @@ jobs:
             rust/**/*.rs
             rust/**/.dockerignore
             rust/rustfmt.toml
+          platforms: |
+            "linux/amd64"
       - name: Docker Metadata Pull
         id: rust-meta
         if: env.GIT_DIFF
@@ -103,3 +105,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          platforms: |
+            "linux/amd64"
