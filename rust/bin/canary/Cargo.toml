@@ -1,0 +1,17 @@
+[package]
+name = "canary"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+default-run = "canary"
+
+[[bin]]
+name = "canary"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+tracing = { workspace = true }
+tikv-jemallocator = { version = "0.5", features = ["background_threads_runtime_support"], default-features = false }
+reth = { workspace = true, features = ["optimism"] }
+alphanet-node = { git = "git@github.com:paradigmxyz/alphanet.git", rev = "c"}
