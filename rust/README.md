@@ -70,6 +70,11 @@ Integration tests
 make test-all
 ```
 
+To change Rust log level
+```sh
+export RUST_LOG="<log-level>"
+```
+
 ### VSCode
 
 If you are working in VSCode, try installing the rust-analyzer extension. We recommend the following settings:
