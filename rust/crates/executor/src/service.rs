@@ -161,11 +161,15 @@ where
         })?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        if db::read_elf(self.db.clone(), &vm_type, &verifying_key).unwrap().is_some() {
+        if db::read_elf(self.db.clone(), &vm_type, &verifying_key)
+            .map_err(|e| format!("failed reading elf: {e}"))
+            .map_err(tonic::Status::internal)?
+            .is_some()
+        {
             return Err(tonic::Status::invalid_argument(format!(
                 "elf with verifying key {base64_verifying_key} already exists"
             )));
-        };
+        }
 
         db::write_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
             .map_err(|e| format!("failed writing elf {e}"))
