@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "./utils/EmptyContract.sol";
 
 // To deploy and verify:
-// forge script script/CoprocessorDeployer.s.sol:CoprocessorDeployer --rpc-url $RPC_URL --private-key $PRIVATE_KEY --broadcast -vvvv
+// forge script CoprocessorDeployer.s.sol:CoprocessorDeployer --sig "deployCoprocessorContracts(address relayer, address coprocessorOperator)" $RELAYER $COPROCESSOR_OPERATOR --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
 contract CoprocessorDeployer is Script, Utils {
 
     ProxyAdmin public coprocessorProxyAdmin;
@@ -20,38 +20,24 @@ contract CoprocessorDeployer is Script, Utils {
     IJobManager public jobManagerImplementation;
     MockConsumer public consumer;
 
-    function run() public {
+    function deployCoprocessorContracts(address relayer, address coprocessorOperator) public {
         vm.startBroadcast();
-        _deployCoprocessorContracts();
-        vm.stopBroadcast();
-    }
-
-    function _deployCoprocessorContracts() internal {
         // deploy proxy admin for ability to upgrade proxy contracts
         coprocessorProxyAdmin = new ProxyAdmin();
 
-        EmptyContract emptyContract = new EmptyContract();
-
+        jobManagerImplementation = new JobManager();
         jobManager = JobManager(
             address(
                 new TransparentUpgradeableProxy(
-                    address(emptyContract),
+                    address(jobManagerImplementation),
                     address(coprocessorProxyAdmin),
-                    ""
+                    abi.encodeWithSelector(
+                        jobManager.initializeJobManager.selector,
+                        msg.sender,
+                        relayer,
+                        coprocessorOperator
+                    )
                 )
-            )
-        );
-
-        jobManagerImplementation = new JobManager(msg.sender, msg.sender);
-
-        coprocessorProxyAdmin.upgradeAndCall(
-            TransparentUpgradeableProxy(
-                payable(address(jobManager))
-            ),
-            address(jobManagerImplementation),
-            abi.encodeWithSelector(
-                jobManager.initializeJobManager.selector,
-                jobManager.owner()
             )
         );
 
@@ -73,6 +59,12 @@ contract CoprocessorDeployer is Script, Utils {
             address(jobManagerImplementation)
         );
 
+        vm.serializeAddress(
+            deployed_addresses,
+            "coprocessorProxyAdmin",
+            address(coprocessorProxyAdmin)
+        );
+
         string memory deployed_addresses_output = vm.serializeAddress(
             deployed_addresses,
             "consumer",
@@ -82,11 +74,12 @@ contract CoprocessorDeployer is Script, Utils {
         // serialize all the data
         string memory finalJson = vm.serializeString(
             parent_object,
-            "deployed_addresses",
+            deployed_addresses,
             deployed_addresses_output
         );
 
         writeOutput(finalJson, "coprocessor_deployment_output");
+        vm.stopBroadcast();
     }
 
 }

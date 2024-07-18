@@ -28,6 +28,10 @@ abstract contract Consumer {
         return jobID;
     }
 
+    function cancelJob(uint32 jobID) internal {
+        _jobManager.cancelJob(jobID);
+    }
+
     function getProgramInputsForJob(uint32 jobID) public view returns (bytes memory) {
         return jobIDToProgramInput[jobID];
     }
