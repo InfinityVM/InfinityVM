@@ -85,6 +85,7 @@ enum_glob_use = "warn"
 # quite mature enough for use in our codebase and some we don't really want.
 # Explicitly listing should make it easier to fix in the future.
 as_ptr_cast_mut = "allow"
+blocks_in_conditions = "allow"
 cognitive_complexity = "allow"
 collection_is_never_read = "allow"
 debug_assert_with_mut_call = "allow"
