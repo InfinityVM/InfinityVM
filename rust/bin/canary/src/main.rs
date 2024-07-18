@@ -1,6 +1,6 @@
 //! # Canary - a Reth based OP stack rollup
 //!
-//! This borrows largely for [Reth Alphanet)[https://github.com/paradigmxyz/alphanet]
+//! This borrows largely for Reth Alphanet.
 //!
 //! ## Feature Flags
 //!

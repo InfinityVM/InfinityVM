@@ -705,7 +705,7 @@ dependencies = [
 [[package]]
 name = "alphanet-node"
 version = "0.0.0"
-source = "git+https://github.com/emostov/alphanet.git?branch=bump-deps#e5dc1329f520abcaaf9b9a4d5a9c98fcc6d6f82e"
+source = "git+https://github.com/paradigmxyz/alphanet.git#9419176f3b633b06eb0bde5861f41729f72e7bda"
 dependencies = [
  "alphanet-precompile",
  "eip3074-instructions",
@@ -719,7 +719,7 @@ dependencies = [
 [[package]]
 name = "alphanet-precompile"
 version = "0.0.0"
-source = "git+https://github.com/emostov/alphanet.git?branch=bump-deps#e5dc1329f520abcaaf9b9a4d5a9c98fcc6d6f82e"
+source = "git+https://github.com/paradigmxyz/alphanet.git#9419176f3b633b06eb0bde5861f41729f72e7bda"
 dependencies = [
  "p256",
  "reth",
@@ -2756,7 +2756,7 @@ dependencies = [
 [[package]]
 name = "eip3074-instructions"
 version = "0.1.0"
-source = "git+https://github.com/emostov/eip3074-instructions.git?branch=bump-revm#a4e9a5962861cec3bd363582d0ac1e31e383a35c"
+source = "git+https://github.com/paradigmxyz/eip3074-instructions.git#5629b523b9022408b1d7a623849026704050dae8"
 dependencies = [
  "revm",
 ]

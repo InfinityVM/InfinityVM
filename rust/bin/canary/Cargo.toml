@@ -10,7 +10,7 @@ name = "canary"
 path = "src/main.rs"
 
 [dependencies]
-alphanet-node = { git = "https://github.com/emostov/alphanet.git", branch = "bump-deps"}
+alphanet-node = { git = "https://github.com/paradigmxyz/alphanet.git" }
 reth = { workspace = true, features = ["optimism"] }
 reth-node-optimism = { workspace = true }
 reth-cli-util = { workspace = true }
@@ -18,3 +18,24 @@ reth-cli-util = { workspace = true }
 clap = { workspace = true }
 tracing = { workspace = true }
 tikv-jemallocator = { version = "0.5", features = ["background_threads_runtime_support"], default-features = false }
+
+[target.'cfg(not(windows))'.dependencies]
+tikv-jemallocator = { version = "0.5", optional = true }
+
+[features]
+default = [
+  "jemalloc",
+  "reth/optimism",
+  "reth-node-optimism/optimism",
+]
+
+asm-keccak = ["reth/asm-keccak"]
+
+jemalloc = ["dep:tikv-jemallocator"]
+jemalloc-prof = ["jemalloc", "tikv-jemallocator?/profiling"]
+
+min-error-logs = ["tracing/release_max_level_error"]
+min-warn-logs = ["tracing/release_max_level_warn"]
+min-info-logs = ["tracing/release_max_level_info"]
+min-debug-logs = ["tracing/release_max_level_debug"]
+min-trace-logs = ["tracing/release_max_level_trace"]
