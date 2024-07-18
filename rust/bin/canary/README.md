@@ -47,7 +47,7 @@ You will probably want to add the `op-node/bin` dir to your path. So macos users
 First, setup a reth "data directory" for the canary dev node:
 
 ```sh
-mkdir -p "$HOME/.config/ethos/network/canary-dev/reth"
+mkdir -p "$HOME/.config/ethos/networks/canary-dev/reth"
 ```
 
 Start the Canary node in development "mining" mode:
@@ -55,7 +55,7 @@ Start the Canary node in development "mining" mode:
 ```sh
 canary node
     --dev \
-    --datadir "$HOME/.config/ethos/network/canary-dev/reth" \
+    --datadir "$HOME/.config/ethos/networks/canary-dev/reth" \
 ```
 
 ### Running Consensus Client + Execution
