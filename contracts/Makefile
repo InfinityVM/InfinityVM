@@ -4,7 +4,7 @@
 help:
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-DEFAULT_RELAYER_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+DEFAULT_RELAYER_ADDRESS=0xaF6Bcd673C742723391086C1e91f0B29141D2381
 DEFAULT_COPROCESSOR_OPERATOR_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 DEFAULT_PROGRAM_ID=programID
 DEFAULT_BALANCE_ADDRESS=0xa5889624184923c0c4CFC3499CbeA659e34f7809
@@ -27,10 +27,10 @@ request-job-on-anvil-and-save-state: ## Request a job from the coprocessor and s
 	./script/cli/request-job-save-anvil-state.sh $(or $(programID),$(DEFAULT_PROGRAM_ID)) $(or $(balanceAddress),$(DEFAULT_BALANCE_ADDRESS))
 
 start-anvil-chain-with-coprocessor-deployed: ## Start anvil with coprocessor contracts deployed
-	anvil --load-state script/anvil-states/coprocessor-deployed-anvil-state.json --host 0.0.0.0
+	anvil --load-state script/anvil-states/coprocessor-deployed-anvil-state.json
 
 start-anvil-chain-with-coprocessor-deployed-and-job-requested: ## Start anvil with coprocessor contracts deployed and job requested
-	anvil --load-state script/anvil-states/coprocessor-deployed-and-job-requested-anvil-state.json --host 0.0.0.0
+	anvil --load-state script/anvil-states/coprocessor-deployed-and-job-requested-anvil-state.json
 
 set-relayer-address: ## Set the relayer address in JobManager
 	./script/cli/set-relayer-address.sh $(or $(relayerAddress),$(DEFAULT_RELAYER_ADDRESS))
