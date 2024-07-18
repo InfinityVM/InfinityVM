@@ -1,29 +1,6 @@
 #!/usr/bin/make -f
 
-export VERSION := $(shell echo $(shell git describe --always --match "v*") | sed 's/^v//')
-export COMMIT := $(shell git log -1 --format='%H')
 BUILDDIR ?= $(CURDIR)/build
-
-###############################################################################
-###                                  Build                                  ###
-###############################################################################
-
-ldflags = -X github.com/ethos-works/InfinityVM/server/pkg/cmd.Version=$(VERSION) \
-		  -X github.com/ethos-works/InfinityVM/server/pkg/cmd.Commit=$(COMMIT)
-
-BUILD_FLAGS := -ldflags '$(ldflags)'
-
-BUILD_TARGETS := build
-
-build: BUILD_ARGS=-o $(BUILDDIR)/infinity-server
-
-$(BUILD_TARGETS): go.sum $(BUILDDIR)/
-	@go $@ -mod=readonly $(BUILD_FLAGS) $(BUILD_ARGS) main.go
-
-$(BUILDDIR)/:
-	@mkdir -p $(BUILDDIR)/
-
-.PHONY: build
 
 ###############################################################################
 ###                          Tools & Dependencies                           ###
@@ -84,3 +61,26 @@ mock-gen:
 	@mockgen -source=pkg/eth/eth_client.go -package=mock -destination=pkg/mock/eth_client.go EthClient
 
 .PHONY: mock-gen
+
+###############################################################################
+###                                  Build                                  ###
+###############################################################################
+
+BUILD_TARGETS := build install
+
+.PHONY: build
+build: 
+	go build -o $(BUILD_DIR)/
+
+.PHONY: build-static
+build-static:
+	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o build/server
+
+$(BUILD_DIR)/:
+	mkdir -p /
+
+clean:
+	rm -rf \
+	$(BUILD_DIR)/ 
+
+.PHONY: clean

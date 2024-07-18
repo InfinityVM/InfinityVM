@@ -14,5 +14,8 @@ contracts/broadcast/**
 # Dotenv file
 contracts/.env
 
+# Rust Build Artifacts
+rust/target
+
 # ide
 .idea
