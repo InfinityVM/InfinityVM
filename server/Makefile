@@ -68,16 +68,16 @@ mock-gen:
 
 BUILD_TARGETS := build install
 
+.PHONY: build
 build: 
 	go build -o $(BUILD_DIR)/
 
+.PHONY: build-static
 build-static:
 	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o build/server
 
 $(BUILD_DIR)/:
 	mkdir -p /
-
-.PHONY: build
 
 clean:
 	rm -rf \
