@@ -36,3 +36,7 @@ test-all:
 	@# and run the ignored tests
 	RUSTFLAGS=$(RUSTFLAGS) cargo build && \
 	RUSTFLAGS=$(RUSTFLAGS) cargo test -- --ignored
+
+.PHONY: build
+build:
+	cargo build

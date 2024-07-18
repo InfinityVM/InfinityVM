@@ -1,0 +1,27 @@
+FROM us-docker.pkg.dev/ethos-artifacts/docker/risc0-builder:latest AS chef
+WORKDIR /app
+COPY rust /app/rust
+COPY proto /app/proto
+
+RUN rustup default nightly
+ENV LIBCLANG_PATH=/usr/lib/x86_64-linux-gnu
+
+FROM chef AS planner
+WORKDIR /app/rust
+RUN cargo +nightly chef prepare --recipe-path recipe.json
+
+FROM chef AS cacher
+WORKDIR /app/rust
+COPY --from=planner /app/rust/recipe.json recipe.json
+RUN cargo +nightly chef cook --release --recipe-path recipe.json
+
+FROM chef AS builder
+COPY --from=cacher /app/rust/target /app/rust/target
+RUN cargo +nightly build --release --locked --manifest-path /app/rust/Cargo.toml
+
+FROM debian:bookworm-slim
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/rust/target/release/executor /usr/local/bin/executor
+CMD ["executor", "version"]
