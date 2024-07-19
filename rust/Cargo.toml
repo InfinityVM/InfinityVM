@@ -10,6 +10,7 @@ members = [
 	"test",
 	"programs/risc0/vapenation/methods",
 	"crates/scripts",
+	"crates/cmd",
 	"programs/sp1/build"
 	# "programs/risc0/vapenation/core"
 ]
@@ -106,7 +107,7 @@ alloy-sol-types = { version = "0.7", default-features = false }
 
 # b
 # c
-clap = { version = "4", features = ["derive"], default-features = false }
+clap = { version = "4", features = ["derive"] }
 
 # d
 # e
@@ -155,6 +156,8 @@ tonic-reflection = { version = "0.12", features = ["server"], default-features =
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"], default-features = false }
 thiserror = { version = "1", default-features = false }
 tempfile = { version = "3", default-features = false }
+tracing = { version = "0.1" }
+tracing-subscriber = { version = "0.3" }
 
 # u
 # v
