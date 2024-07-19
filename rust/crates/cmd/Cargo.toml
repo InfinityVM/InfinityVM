@@ -5,6 +5,7 @@ rust-version.workspace = true
 edition.workspace = true
 
 [dependencies]
+alloy = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 tonic = { workspace = true }
