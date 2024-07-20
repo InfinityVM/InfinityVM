@@ -2196,7 +2196,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tonic",
- "tonic-build",
  "tonic-reflection",
  "zkvm",
 ]
@@ -6043,6 +6042,23 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.71",
+]
+
+[[package]]
+name = "server"
+version = "0.0.1"
+dependencies = [
+ "clap",
+ "home",
+ "prost 0.13.1",
+ "proto",
+ "serde",
+ "thiserror",
+ "tokio",
+ "tonic",
+ "tonic-build",
+ "tonic-reflection",
+ "zkvm",
 ]
 
 [[package]]
