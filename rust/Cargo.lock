@@ -6056,7 +6056,6 @@ dependencies = [
  "thiserror",
  "tokio",
  "tonic",
- "tonic-build",
  "tonic-reflection",
  "zkvm",
 ]

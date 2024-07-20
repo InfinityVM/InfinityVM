@@ -19,6 +19,3 @@ serde = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
-
-[build-dependencies]
-tonic-build = { workspace = true }

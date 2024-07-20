@@ -7,5 +7,4 @@
 tonic::include_proto!("server.v1");
 
 /// Reflection
-pub const FILE_DESCRIPTOR_SET: &[u8] =
-    tonic::include_file_descriptor_set!("zkvm_executor_descriptor");
+pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("descriptor");
