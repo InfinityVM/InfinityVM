@@ -11,7 +11,6 @@ members = [
 	"test",
 	"programs/risc0/vapenation/methods",
 	"crates/scripts",
-	"crates/cmd",
 	"programs/sp1/build"
 	# "programs/risc0/vapenation/core"
 ]
