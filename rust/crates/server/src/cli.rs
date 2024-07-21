@@ -74,6 +74,8 @@ impl Cli {
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
+        // TODO (Maanav): add logging
+
         let relayer_private_key =
             std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
 
@@ -94,6 +96,6 @@ impl Cli {
             .await
             .map_err(Into::into)
 
-        // TODO: add gRPC gateway?
+        // TODO (Maanav): add gRPC gateway?
     }
 }
