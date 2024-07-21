@@ -51,7 +51,6 @@ struct Opts {
     #[arg(long, default_value = "127.0.0.1:8080")]
     grpc_gateway_address: String,
 
-    // TODO: make required
     /// ZK shim address
     #[arg(long, required = true)]
     zk_shim_address: String,
