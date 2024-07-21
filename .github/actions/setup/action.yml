@@ -29,6 +29,9 @@ runs:
       - name: Check sp1 version
         shell: bash
         run: |
+          find $HOME -name sp1up
+          echo "Checking PATH:"
+          echo $PATH
           source /home/runner/.bashrc
           sp1up
           cargo prove --version
