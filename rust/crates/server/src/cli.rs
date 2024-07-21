@@ -2,11 +2,12 @@
 
 use alloy::{primitives::{hex, Address}, signers::local::LocalSigner};
 use std::{
-    net::{Ipv4Addr, SocketAddrV4},
+    net::{Ipv4Addr, SocketAddrV4, SocketAddr},
     path::PathBuf,
 };
 
 use clap::{Parser, Subcommand, ValueEnum};
+use crate::{service::Server};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -19,7 +20,12 @@ pub enum Error {
     /// private key was not valid hex
     #[error("Environment variable {} must be set", ENV_RELAYER_PRIV_KEY)]
     RelayerPrivKeyNotSet,
-
+    /// invalid gRPC address
+    #[error("Invalid gRPC address")]
+    InvalidGrpcAddress,
+    /// grpc server failure
+    #[error("grpc server failure: {0}")]
+    GrpcServer(#[from] tonic::transport::Error),
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -50,14 +56,14 @@ struct Opts {
     /// gRPC server address
     #[arg(
         long,
-        default_value = "localhost:50051"
+        default_value = "127.0.0.1:50051"
     )]
     grpc_address: String,
 
     /// gRPC gateway server address
     #[arg(
         long,
-        default_value = "localhost:8080"
+        default_value = "127.0.0.1:8080"
     )]
     grpc_gateway_address: String,
 
@@ -85,8 +91,23 @@ impl Cli {
         let opts = Opts::parse();    
     
         let relayer_private_key = std::env::var(ENV_RELAYER_PRIV_KEY)
-        .map_err(|_| Error::RelayerPrivKeyNotSet)?;       
+            .map_err(|_| Error::RelayerPrivKeyNotSet)?;
 
-        Ok(())
+        // Parse the gRPC address
+        let grpc_addr: SocketAddrV4 = opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
+
+        let reflector = tonic_reflection::server::Builder::configure()
+            .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
+            .build()
+            .expect("failed to build gRPC reflection service");
+
+        println!("Starting gRPC server at: {}", grpc_addr);
+        tonic::transport::Server::builder()
+            .add_service(proto::service_server::ServiceServer::new(Server::new()))
+            .add_service(reflector)
+            .serve(grpc_addr.into())
+            .await.map_err(Into::into)
+        
+        // TODO: add gRPC gateway?
     }
 }
