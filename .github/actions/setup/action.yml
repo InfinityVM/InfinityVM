@@ -29,5 +29,6 @@ runs:
       - name: Check sp1 version
         shell: bash
         run: |
+          source /home/runner/.bashrc
           sp1up
           cargo prove --version
