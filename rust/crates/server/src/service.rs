@@ -4,7 +4,7 @@ use proto::{
 };
 use tonic::{Request, Response, Status};
 
-/// Use me!
+/// gRPC service server
 #[derive(Debug)]
 pub struct Server;
 
