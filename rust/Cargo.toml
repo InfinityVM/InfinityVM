@@ -107,7 +107,7 @@ alloy-sol-types = { version = "0.7", default-features = false }
 
 # b
 # c
-clap = { version = "4", features = ["derive"] }
+clap = { version = "4", features = ["derive"], default-features = false }
 
 # d
 # e

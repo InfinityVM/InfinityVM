@@ -53,9 +53,9 @@ impl proto::service_server::Service for Server {
     /// job.
     async fn get_result(
         &self,
-        _request: tonic::Request<GetResultRequest>,
+        request: tonic::Request<GetResultRequest>,
     ) -> std::result::Result<tonic::Response<GetResultResponse>, tonic::Status> {
-        let req = _request.into_inner();
+        let req = request.into_inner();
         if req.job_id == 0 {
             return Err(tonic::Status::invalid_argument("job ID must be positive"));
         }
@@ -69,9 +69,9 @@ impl proto::service_server::Service for Server {
     /// generate a unique program verification key.
     async fn submit_program(
         &self,
-        _request: tonic::Request<SubmitProgramRequest>,
+        request: tonic::Request<SubmitProgramRequest>,
     ) -> std::result::Result<tonic::Response<SubmitProgramResponse>, tonic::Status> {
-        let req = _request.into_inner();
+        let req = request.into_inner();
         if req.program_elf.is_empty() {
             return Err(tonic::Status::invalid_argument("program elf must not be empty"));
         }
