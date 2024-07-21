@@ -1,6 +1,6 @@
 //! The binary for running the server
 
-use cmd::cli::Cli;
+use server::cli::Cli;
 
 #[tokio::main]
 async fn main() -> Result<(), impl std::error::Error> {

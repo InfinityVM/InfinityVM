@@ -5,6 +5,8 @@ use proto::{
     SubmitProgramResponse,
 };
 
+pub mod cli;
+
 /// Use me!
 #[derive(Debug)]
 pub struct Server;
