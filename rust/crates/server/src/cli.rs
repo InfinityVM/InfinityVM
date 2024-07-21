@@ -1,16 +1,10 @@
 //! CLI for zkvm executor gRPC server.
 
-use alloy::{
-    primitives::{hex, Address},
-    signers::local::LocalSigner,
-};
-use std::{
-    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
-    path::PathBuf,
-};
+use alloy::primitives::Address;
+use std::net::SocketAddrV4;
 
 use crate::service::Server;
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, ValueEnum};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 

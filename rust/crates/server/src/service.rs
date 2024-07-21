@@ -1,6 +1,6 @@
 use proto::{
-    GetResultRequest, GetResultResponse, Job, SubmitJobRequest, SubmitJobResponse,
-    SubmitProgramRequest, SubmitProgramResponse,
+    GetResultRequest, GetResultResponse, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
+    SubmitProgramResponse,
 };
 use tonic::{Request, Response, Status};
 
