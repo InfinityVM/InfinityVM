@@ -8,9 +8,15 @@ use tonic::{Request, Response, Status};
 #[derive(Debug)]
 pub struct Server;
 
+impl Default for Server {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Server {
     /// Create a new server.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 }

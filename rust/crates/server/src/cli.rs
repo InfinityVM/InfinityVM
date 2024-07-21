@@ -8,9 +8,6 @@ use clap::{Parser, ValueEnum};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
-const DEFAULT_GRPC_MAX_RECV_MSG_SIZE: usize = 1024 * 1024 * 10;
-const DEFAULT_GRPC_MAX_SEND_MSG_SIZE: usize = std::usize::MAX;
-
 /// Errors from the gRPC Server CLI
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -55,7 +52,7 @@ struct Opts {
     #[arg(long, required = true)]
     zk_shim_address: String,
 
-    /// JobManager contract address
+    /// `JobManager` contract address
     #[arg(long, required = true)]
     job_manager_address: Address,
 
@@ -75,7 +72,7 @@ impl Cli {
 
         // TODO (Maanav): add logging
 
-        let relayer_private_key =
+        let _relayer_private_key =
             std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
 
         // Parse the gRPC address
