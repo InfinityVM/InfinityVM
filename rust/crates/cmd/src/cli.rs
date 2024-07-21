@@ -33,7 +33,6 @@ enum LoggingFormat {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Opts {
-
     /// Logging level
     #[arg(
         long,
@@ -76,7 +75,7 @@ struct Opts {
     eth_rpc_address: String,
 }
 
-/// Command line interface for running the executor gRPC server.
+/// Command line interface for running the gRPC server.
 #[derive(Parser, Debug)]
 pub struct Cli;
 
