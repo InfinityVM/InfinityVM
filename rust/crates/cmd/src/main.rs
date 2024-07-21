@@ -73,22 +73,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         )
         .get_matches();
 
-    let log_level: &String = matches.get_one(FLAG_LOG_LEVEL).unwrap();
-    let log_format: &String = matches.get_one(FLAG_LOG_FORMAT).unwrap();
-
-    let filter = EnvFilter::try_new(log_level)?;
-    let subscriber: Box<dyn tracing::Subscriber + Send + Sync> = match log_format.as_str() {
-        LOG_LEVEL_JSON => Box::new(FmtSubscriber::builder()
-            .json()
-            .with_env_filter(filter)
-            .finish()),
-        LOG_LEVEL_TEXT => Box::new(FmtSubscriber::builder()
-            .with_env_filter(filter)
-            .finish()),
-        _ => return Err(format!("Invalid logging format: {}", log_format).into()),
-    };
-    tracing::subscriber::set_global_default(subscriber)?;
-
     let grpc_address: &String = matches.get_one(FLAG_GRPC_ADDRESS).unwrap();
     let grpc_gateway_address: &String = matches.get_one(FLAG_GRPC_GATEWAY_ADDRESS).unwrap();
     let zk_shim_address: &String = matches.get_one(FLAG_ZK_SHIM_ADDRESS).unwrap();
