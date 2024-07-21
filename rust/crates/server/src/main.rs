@@ -6,4 +6,3 @@ use server::cli::Cli;
 async fn main() -> Result<(), impl std::error::Error> {
     Cli::run().await
 }
-

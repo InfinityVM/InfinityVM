@@ -1,13 +1,16 @@
 //! CLI for zkvm executor gRPC server.
 
-use alloy::{primitives::{hex, Address}, signers::local::LocalSigner};
+use alloy::{
+    primitives::{hex, Address},
+    signers::local::LocalSigner,
+};
 use std::{
-    net::{Ipv4Addr, SocketAddrV4, SocketAddr},
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     path::PathBuf,
 };
 
+use crate::service::Server;
 use clap::{Parser, Subcommand, ValueEnum};
-use crate::{service::Server};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -34,37 +37,24 @@ enum LoggingFormat {
     Text,
 }
 
-
 /// gRPC service.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Opts {
     /// Logging level
-    #[arg(
-        long,
-        default_value = "info"
-    )]
+    #[arg(long, default_value = "info")]
     log_level: String,
 
     /// Logging format
-    #[arg(
-        long,
-        default_value = "text"
-    )]
+    #[arg(long, default_value = "text")]
     log_format: LoggingFormat,
 
     /// gRPC server address
-    #[arg(
-        long,
-        default_value = "127.0.0.1:50051"
-    )]
+    #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
 
     /// gRPC gateway server address
-    #[arg(
-        long,
-        default_value = "127.0.0.1:8080"
-    )]
+    #[arg(long, default_value = "127.0.0.1:8080")]
     grpc_gateway_address: String,
 
     // TODO: make required
@@ -88,13 +78,14 @@ pub struct Cli;
 impl Cli {
     /// Run the CLI
     pub async fn run() -> Result<(), Error> {
-        let opts = Opts::parse();    
-    
-        let relayer_private_key = std::env::var(ENV_RELAYER_PRIV_KEY)
-            .map_err(|_| Error::RelayerPrivKeyNotSet)?;
+        let opts = Opts::parse();
+
+        let relayer_private_key =
+            std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
 
         // Parse the gRPC address
-        let grpc_addr: SocketAddrV4 = opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
+        let grpc_addr: SocketAddrV4 =
+            opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
@@ -106,8 +97,9 @@ impl Cli {
             .add_service(proto::service_server::ServiceServer::new(Server::new()))
             .add_service(reflector)
             .serve(grpc_addr.into())
-            .await.map_err(Into::into)
-        
+            .await
+            .map_err(Into::into)
+
         // TODO: add gRPC gateway?
     }
 }

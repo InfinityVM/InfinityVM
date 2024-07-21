@@ -1,9 +1,8 @@
 use proto::{
-    GetResultRequest, GetResultResponse, Job, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest, SubmitProgramResponse
+    GetResultRequest, GetResultResponse, Job, SubmitJobRequest, SubmitJobResponse,
+    SubmitProgramRequest, SubmitProgramResponse,
 };
-use tonic::{
-    Request, Response, Status
-};
+use tonic::{Request, Response, Status};
 
 /// Use me!
 #[derive(Debug)]
@@ -23,7 +22,8 @@ impl proto::service_server::Service for Server {
         &self,
         request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
-        let job = request.into_inner().job.ok_or_else(|| Status::invalid_argument("empty request"))?;
+        let job =
+            request.into_inner().job.ok_or_else(|| Status::invalid_argument("empty request"))?;
 
         // verify fields
         if job.max_cycles == 0 {
@@ -39,15 +39,15 @@ impl proto::service_server::Service for Server {
         }
 
         if job.program_verifying_key.is_empty() {
-            return Err(tonic::Status::invalid_argument("job program verification key must not be empty"));
+            return Err(tonic::Status::invalid_argument(
+                "job program verification key must not be empty",
+            ));
         }
 
         // TODO: Implement executor in Rust
         // executor.submit_job(job)
 
-        Ok(Response::new(SubmitJobResponse {
-            job_id: job.id,
-        }))
+        Ok(Response::new(SubmitJobResponse { job_id: job.id }))
     }
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.
@@ -63,9 +63,7 @@ impl proto::service_server::Service for Server {
         // TODO: Implement executor in Rust
         // let job = executor.get_job(job_id)
 
-        Ok(tonic::Response::new(GetResultResponse {
-            job: None,
-        }))
+        Ok(tonic::Response::new(GetResultResponse { job: None }))
     }
     /// SubmitProgram defines the gRPC method for submitting a new program to
     /// generate a unique program verification key.
@@ -77,12 +75,10 @@ impl proto::service_server::Service for Server {
         if req.program_elf.is_empty() {
             return Err(tonic::Status::invalid_argument("program elf must not be empty"));
         }
-        
+
         // TODO: Implement executor in Rust
         // let verifying_key = executor.submit_elf(req.program_elf, req.vm_type);
 
-        Ok(tonic::Response::new(SubmitProgramResponse {
-            program_verifying_key: vec![],
-        }))
+        Ok(tonic::Response::new(SubmitProgramResponse { program_verifying_key: vec![] }))
     }
 }
