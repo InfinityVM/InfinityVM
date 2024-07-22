@@ -1,10 +1,20 @@
 //! CLI for zkvm executor gRPC server.
 
 use alloy::primitives::Address;
-use std::net::SocketAddrV4;
+use proto::service_client::ServiceClient;
 
 use crate::service::Server;
 use clap::{Parser, ValueEnum};
+
+use hyper::{Body, Request, Response, Server as HttpServer, Method, StatusCode};
+use hyper::service::{make_service_fn, service_fn};
+use std::convert::Infallible;
+use std::net::{SocketAddr, SocketAddrV4};
+use tonic::transport::Channel;
+use tonic::Request as TonicRequest;
+use proto::{
+    GetResultRequest, SubmitJobRequest, SubmitProgramRequest,
+};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -85,13 +95,94 @@ impl Cli {
             .expect("failed to build gRPC reflection service");
 
         println!("Starting gRPC server at: {}", grpc_addr);
-        tonic::transport::Server::builder()
+        let grpc_server = tonic::transport::Server::builder()
             .add_service(proto::service_server::ServiceServer::new(Server::new()))
             .add_service(reflector)
-            .serve(grpc_addr.into())
-            .await
-            .map_err(Into::into)
+            .serve(grpc_addr.into());
 
         // TODO: add HTTP gateway for gRPC server
+        let grpc_gateway_addr: SocketAddr = opts.grpc_gateway_address.parse().unwrap();
+        let grpc_addr_str = format!("http://{}", grpc_addr);
+
+        let make_svc = make_service_fn(move |_conn| {
+            let grpc_addr_str = grpc_addr_str.clone();
+            async {
+                Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
+                    let grpc_addr_str = grpc_addr_str.clone();
+                    async move {
+                        match (req.method(), req.uri().path()) {
+                            (&Method::POST, "/submit_job") => {
+                                let client = ServiceClient::connect(grpc_addr_str.clone()).await.unwrap();
+                                Self::handle_submit_job(client, req).await
+                            },
+                            (&Method::POST, "/get_result") => {
+                                let client = ServiceClient::connect(grpc_addr_str.clone()).await.unwrap();
+                                Self::handle_get_result(client, req).await
+                            },
+                            (&Method::POST, "/submit_program") => {
+                                let client = ServiceClient::connect(grpc_addr_str.clone()).await.unwrap();
+                                Self::handle_submit_program(client, req).await
+                            },
+                            _ => Ok::<_, Infallible>(Response::builder()
+                                .status(StatusCode::NOT_FOUND)
+                                .body(Body::from("Not Found"))
+                                .unwrap()),
+                        }
+                    }
+                }))
+            }
+        });
+
+        let http_server = HttpServer::bind(&grpc_gateway_addr).serve(make_svc);
+
+        println!("Starting HTTP server at: {}", grpc_gateway_addr);
+
+        tokio::select! {
+            res = grpc_server => {
+                if let Err(e) = res {
+                    eprintln!("gRPC server error: {}", e);
+                }
+            }
+            res = http_server => {
+                if let Err(e) = res {
+                    eprintln!("HTTP server error: {}", e);
+                }
+            }
+        }    
+
+        Ok(())
+    }
+
+    async fn handle_submit_job(
+        mut client: ServiceClient<Channel>,
+        req: Request<Body>
+    ) -> Result<Response<Body>, Infallible> {
+        let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
+        let submit_job_request: SubmitJobRequest = serde_json::from_slice(&whole_body).unwrap();
+        let response = client.submit_job(TonicRequest::new(submit_job_request)).await.unwrap();
+        let response_body = serde_json::to_string(&response.into_inner()).unwrap();
+        Ok(Response::new(Body::from(response_body)))
+    }
+
+    async fn handle_get_result(
+        mut client: ServiceClient<Channel>,
+        req: Request<Body>
+    ) -> Result<Response<Body>, Infallible> {
+        let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
+        let get_result_request: GetResultRequest = serde_json::from_slice(&whole_body).unwrap();
+        let response = client.get_result(TonicRequest::new(get_result_request)).await.unwrap();
+        let response_body = serde_json::to_string(&response.into_inner()).unwrap();
+        Ok(Response::new(Body::from(response_body)))
+    }
+    
+    async fn handle_submit_program(
+        mut client: ServiceClient<Channel>,
+        req: Request<Body>
+    ) -> Result<Response<Body>, Infallible> {
+        let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
+        let submit_program_request: SubmitProgramRequest = serde_json::from_slice(&whole_body).unwrap();
+        let response = client.submit_program(TonicRequest::new(submit_program_request)).await.unwrap();
+        let response_body = serde_json::to_string(&response.into_inner()).unwrap();
+        Ok(Response::new(Body::from(response_body)))
     }
 }

@@ -146,6 +146,7 @@ reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f"
 
 # s
 serde = { version = "1.0", features = ["derive"], default-features = false }
+serde_json = { version = "1.0" }
 sha2 = { version = "0.10", default-features = false }
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["libm"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }

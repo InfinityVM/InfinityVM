@@ -28,30 +28,29 @@ impl proto::service_server::Service for Server {
         &self,
         request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
-        let job =
-            request.into_inner().job.ok_or_else(|| Status::invalid_argument("empty request"))?;
+        let req = request.into_inner();
 
         // verify fields
-        if job.max_cycles == 0 {
+        if req.max_cycles == 0 {
             return Err(Status::invalid_argument("job max cycles must be positive"));
         }
 
-        if job.id == 0 {
+        if req.id == 0 {
             return Err(Status::invalid_argument("job ID must be positive"));
         }
 
-        if job.contract_address.is_empty() {
+        if req.contract_address.is_empty() {
             return Err(Status::invalid_argument("job contract address must not be empty"));
         }
 
-        if job.program_verifying_key.is_empty() {
+        if req.program_verifying_key.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
 
         // TODO: Implement executor in Rust
         // executor.submit_job(job)
 
-        Ok(Response::new(SubmitJobResponse { job_id: job.id }))
+        Ok(Response::new(SubmitJobResponse { job_id: req.id }))
     }
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.
