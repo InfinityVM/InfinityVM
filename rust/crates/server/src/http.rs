@@ -1,12 +1,13 @@
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Method, Request, Response, Server as HttpServer, StatusCode};
-use proto::service_client::ServiceClient;
-use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest};
+use hyper::{
+    service::{make_service_fn, service_fn},
+    Body, Method, Request, Response, Server as HttpServer, StatusCode,
+};
+use proto::{
+    service_client::ServiceClient, GetResultRequest, SubmitJobRequest, SubmitProgramRequest,
+};
 use serde_json;
-use std::convert::Infallible;
-use std::net::SocketAddr;
-use tonic::transport::Channel;
-use tonic::Request as TonicRequest;
+use std::{convert::Infallible, net::SocketAddr};
+use tonic::{transport::Channel, Request as TonicRequest};
 
 /// Starts HTTP gateway for gRPC server.
 pub async fn run_http_server(
