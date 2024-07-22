@@ -1,6 +1,6 @@
 //! CLI for zkvm executor gRPC server.
 
-use crate::{http::run_http_server, service::Server};
+use crate::{gateway::run_grpc_gateway, service::Server};
 use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
 use std::net::{SocketAddr, SocketAddrV4};
@@ -91,9 +91,9 @@ impl Cli {
             .add_service(reflector)
             .serve(grpc_addr.into());
 
-        // Start HTTP gateway for gRPC server
-        println!("Starting HTTP server at: {}", grpc_gateway_addr);
-        let http_server = run_http_server(grpc_addr_str, grpc_gateway_addr);
+        // Start gRPC gateway
+        println!("Starting gRPC gateway at: {}", grpc_gateway_addr);
+        let grpc_gateway = run_grpc_gateway(grpc_addr_str, grpc_gateway_addr);
 
         tokio::select! {
             res = grpc_server => {
@@ -101,9 +101,9 @@ impl Cli {
                     eprintln!("gRPC server error: {}", e);
                 }
             }
-            res = http_server => {
+            res = grpc_gateway => {
                 if let Err(e) = res {
-                    eprintln!("HTTP server error: {}", e);
+                    eprintln!("gRPC gateway error: {}", e);
                 }
             }
         }

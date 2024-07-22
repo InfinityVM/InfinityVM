@@ -1,6 +1,6 @@
 use hyper::{
     service::{make_service_fn, service_fn},
-    Body, Method, Request, Response, Server as HttpServer, StatusCode,
+    Body, Method, Request, Response, Server, StatusCode,
 };
 use proto::{
     service_client::ServiceClient, GetResultRequest, SubmitJobRequest, SubmitProgramRequest,
@@ -9,8 +9,8 @@ use serde_json;
 use std::{convert::Infallible, net::SocketAddr};
 use tonic::{transport::Channel, Request as TonicRequest};
 
-/// Starts HTTP gateway for gRPC server.
-pub async fn run_http_server(
+/// Starts gRPC gateway.
+pub async fn run_grpc_gateway(
     grpc_addr: String,
     grpc_gateway_addr: SocketAddr,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -45,8 +45,8 @@ pub async fn run_http_server(
         }
     });
 
-    let http_server = HttpServer::bind(&grpc_gateway_addr).serve(make_svc);
-    http_server.await?;
+    let grpc_gateway = Server::bind(&grpc_gateway_addr).serve(make_svc);
+    grpc_gateway.await?;
 
     Ok(())
 }

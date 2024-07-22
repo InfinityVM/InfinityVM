@@ -2,7 +2,7 @@
 
 /// CLI scaffolding
 pub mod cli;
-/// HTTP gateway
-pub mod http;
+/// gRPC gateway
+pub mod gateway;
 /// gRPC Server
 pub mod service;
