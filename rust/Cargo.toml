@@ -6,6 +6,7 @@ rust-version = "1.79"
 [workspace]
 members = [
 	"crates/executor",
+	"crates/server",
 	"crates/zkvm",
 	"test",
 	"programs/risc0/vapenation/methods",
