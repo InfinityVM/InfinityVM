@@ -19,7 +19,6 @@ home = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 hyper = { workspace = true }
-warp = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
