@@ -1,6 +1,6 @@
 #!/usr/bin/make -f
 
-BUILDDIR ?= $(CURDIR)/build
+BUILD_DIR ?= $(CURDIR)/build
 
 ###############################################################################
 ###                          Tools & Dependencies                           ###

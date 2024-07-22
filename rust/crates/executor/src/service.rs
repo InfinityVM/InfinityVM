@@ -2,9 +2,10 @@
 
 use crate::db;
 use alloy::{
-    primitives::{keccak256, Signature},
+    primitives::{keccak256, Address, Signature},
     signers::Signer,
 };
+use base64::prelude::*;
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
@@ -13,6 +14,7 @@ use std::{marker::Send, sync::Arc};
 use zkvm::Zkvm;
 
 use alloy_sol_types::{sol, SolType};
+use tracing::{error, info, instrument};
 
 #[derive(thiserror::Error, Debug)]
 enum Error {
@@ -36,6 +38,10 @@ where
 {
     pub(crate) const fn new(signer: S, chain_id: Option<u64>, db: Arc<D>) -> Self {
         Self { signer, chain_id, db }
+    }
+
+    pub(crate) fn signer_address(&self) -> Address {
+        self.signer.address()
     }
 
     /// Checksum address (hex string), as bytes.
@@ -74,6 +80,7 @@ where
     S: Signer<Signature> + Send + Sync + 'static,
     D: Database + 'static,
 {
+    #[instrument(skip(self, request), err(Debug))]
     async fn execute(
         &self,
         request: tonic::Request<ExecuteRequest>,
@@ -81,20 +88,31 @@ where
         let msg = request.into_inner();
         let inputs = msg.inputs.expect("todo");
 
+        let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
+        info!(
+            inputs.job_id,
+            vm_type = vm_type.as_str_name(),
+            verifying_key = base64_verifying_key,
+            "new job received"
+        );
+
         let program_elf = db::read_elf(self.db.clone(), &vm_type, &inputs.program_verifying_key)
             .map_err(|e| format!("failed reading elf: {e}"))
             .map_err(tonic::Status::internal)?
             .ok_or_else(|| {
                 tonic::Status::invalid_argument(format!(
                     "could not find elf for vm={}",
-                    inputs.vm_type,
+                    vm_type.as_str_name(),
                 ))
             })?;
 
         if !vm.is_correct_verifying_key(&program_elf, &inputs.program_verifying_key).expect("todo")
         {
-            return Err(tonic::Status::invalid_argument("bad verifying key"));
+            return Err(tonic::Status::invalid_argument(format!(
+                "bad verifying key {}",
+                base64_verifying_key
+            )));
         }
 
         let raw_output = vm
@@ -110,6 +128,14 @@ where
             .map_err(|e| format!("signing error: {e:?}"))
             .map_err(tonic::Status::internal)?;
 
+        info!(
+            inputs.job_id,
+            vm_type = vm_type.as_str_name(),
+            verifying_key = base64_verifying_key,
+            raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
+            "job complete"
+        );
+
         let response = ExecuteResponse {
             inputs: Some(inputs),
             result_with_metadata,
@@ -121,6 +147,7 @@ where
         Ok(tonic::Response::new(response))
     }
 
+    #[instrument(skip(self, tonic_request), err(Debug))]
     async fn create_elf(
         &self,
         tonic_request: tonic::Request<CreateElfRequest>,
@@ -129,13 +156,30 @@ where
 
         let (vm, vm_type) = self.vm(request.vm_type)?;
 
-        let verifying_key = vm
-            .derive_verifying_key(&request.program_elf)
-            .map_err(|_| tonic::Status::invalid_argument("failed to derive verifying key"))?;
+        let verifying_key = vm.derive_verifying_key(&request.program_elf).map_err(|e| {
+            tonic::Status::invalid_argument(format!("failed to derive verifying key {e}"))
+        })?;
+
+        let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
+        if db::read_elf(self.db.clone(), &vm_type, &verifying_key)
+            .map_err(|e| format!("failed reading elf: {e}"))
+            .map_err(tonic::Status::internal)?
+            .is_some()
+        {
+            return Err(tonic::Status::invalid_argument(format!(
+                "elf with verifying key {base64_verifying_key} already exists"
+            )));
+        }
 
         db::write_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
-            .map_err(|e| format!("failed writing elf: {e}"))
+            .map_err(|e| format!("failed writing elf {e}"))
             .map_err(tonic::Status::internal)?;
+
+        info!(
+            vm_type = vm_type.as_str_name(),
+            verifying_key = base64_verifying_key,
+            "new elf program"
+        );
 
         let response = CreateElfResponse { verifying_key };
         Ok(tonic::Response::new(response))

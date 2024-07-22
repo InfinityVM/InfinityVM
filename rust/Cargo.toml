@@ -6,6 +6,7 @@ rust-version = "1.79"
 [workspace]
 members = [
 	"crates/executor",
+	"crates/server",
 	"crates/zkvm",
 	"test",
 	"programs/risc0/vapenation/methods",
@@ -85,6 +86,7 @@ enum_glob_use = "warn"
 # quite mature enough for use in our codebase and some we don't really want.
 # Explicitly listing should make it easier to fix in the future.
 as_ptr_cast_mut = "allow"
+blocks_in_conditions = "allow"
 cognitive_complexity = "allow"
 collection_is_never_read = "allow"
 debug_assert_with_mut_call = "allow"
@@ -105,6 +107,7 @@ alloy-rlp = { version = "0.3", default-features = false }
 alloy-sol-types = { version = "0.7", default-features = false }
 
 # b
+base64 = { version = "0.22.1"}
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
 
@@ -155,6 +158,8 @@ tonic-reflection = { version = "0.12", features = ["server"], default-features =
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"], default-features = false }
 thiserror = { version = "1", default-features = false }
 tempfile = { version = "3", default-features = false }
+tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt", "json"] }
 
 # u
 # v
