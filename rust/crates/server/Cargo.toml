@@ -8,6 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+alloy = { workspace = true }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
 prost = { workspace = true }
