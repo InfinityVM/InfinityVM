@@ -31,12 +31,10 @@ pub async fn run_grpc_gateway(
                         (&Method::POST, "/submit_program") => {
                             handle_submit_program(service_client2, req).await
                         }
-                        _ => Ok::<_, Infallible>(
-                            Response::builder()
-                                .status(StatusCode::NOT_FOUND)
-                                .body(Body::from("Not Found"))
-                                .unwrap(),
-                        ),
+                        _ => Ok(Response::builder()
+                            .status(StatusCode::NOT_FOUND)
+                            .body(Body::from("Not Found"))
+                            .unwrap()),
                     }
                 }
             }))
