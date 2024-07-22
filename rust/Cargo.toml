@@ -166,6 +166,8 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt", "jso
 # u
 # v
 # w
+warp = { version = "0.3", default-features = false }
+
 # x
 # y
 # z
