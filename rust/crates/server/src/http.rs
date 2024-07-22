@@ -8,6 +8,7 @@ use std::net::SocketAddr;
 use tonic::transport::Channel;
 use tonic::Request as TonicRequest;
 
+/// Starts HTTP gateway for gRPC server
 pub async fn run_http_server(
     grpc_addr: String,
     grpc_gateway_addr: SocketAddr,
