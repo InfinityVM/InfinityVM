@@ -11,27 +11,25 @@ use tonic::{transport::Channel, Request as TonicRequest};
 
 /// Starts gRPC gateway.
 pub async fn run_grpc_gateway(
-    grpc_addr: String,
     grpc_gateway_addr: SocketAddr,
+    service_client: ServiceClient<Channel>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // let client
     let make_svc = make_service_fn(move |_conn| {
-        let grpc_addr = grpc_addr.clone();
+        let service_client1 = service_client.clone();
         async {
             Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                let grpc_addr = grpc_addr.clone();
+                let service_client2 = service_client1.clone();
                 async move {
                     match (req.method(), req.uri().path()) {
                         (&Method::POST, "/submit_job") => {
-                            let client = ServiceClient::connect(grpc_addr.clone()).await.unwrap();
-                            handle_submit_job(client, req).await
+                            handle_submit_job(service_client2.clone(), req).await
                         }
                         (&Method::POST, "/get_result") => {
-                            let client = ServiceClient::connect(grpc_addr.clone()).await.unwrap();
-                            handle_get_result(client, req).await
+                            handle_get_result(service_client2, req).await
                         }
                         (&Method::POST, "/submit_program") => {
-                            let client = ServiceClient::connect(grpc_addr.clone()).await.unwrap();
-                            handle_submit_program(client, req).await
+                            handle_submit_program(service_client2, req).await
                         }
                         _ => Ok::<_, Infallible>(
                             Response::builder()

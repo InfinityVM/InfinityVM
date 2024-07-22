@@ -3,6 +3,7 @@
 use crate::{gateway::run_grpc_gateway, service::Server};
 use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
+use proto::service_client::ServiceClient;
 use std::net::{SocketAddr, SocketAddrV4};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
@@ -93,7 +94,9 @@ impl Cli {
 
         // Start gRPC gateway
         println!("Starting gRPC gateway at: {}", grpc_gateway_addr);
-        let grpc_gateway = run_grpc_gateway(grpc_addr_str, grpc_gateway_addr);
+        let grpc_client =
+            ServiceClient::connect(grpc_addr_str).await.expect("gRPC client failed to connect");
+        let grpc_gateway = run_grpc_gateway(grpc_gateway_addr, grpc_client);
 
         tokio::select! {
             res = grpc_server => {
