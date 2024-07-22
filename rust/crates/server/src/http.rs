@@ -1,16 +1,17 @@
-use hyper::{Body, Request, Response, Server as HttpServer, Method, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Method, Request, Response, Server as HttpServer, StatusCode};
+use proto::service_client::ServiceClient;
+use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest};
+use serde_json;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use tonic::transport::Channel;
 use tonic::Request as TonicRequest;
-use proto::service_client::ServiceClient;
-use serde_json;
-use proto::{
-    GetResultRequest, SubmitJobRequest, SubmitProgramRequest,
-};
 
-pub async fn run_http_server(grpc_addr: String, grpc_gateway_addr: SocketAddr) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn run_http_server(
+    grpc_addr: String,
+    grpc_gateway_addr: SocketAddr,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let make_svc = make_service_fn(move |_conn| {
         let grpc_addr = grpc_addr.clone();
         async {
@@ -21,19 +22,21 @@ pub async fn run_http_server(grpc_addr: String, grpc_gateway_addr: SocketAddr) -
                         (&Method::POST, "/submit_job") => {
                             let client = ServiceClient::connect(grpc_addr.clone()).await.unwrap();
                             handle_submit_job(client, req).await
-                        },
+                        }
                         (&Method::POST, "/get_result") => {
                             let client = ServiceClient::connect(grpc_addr.clone()).await.unwrap();
                             handle_get_result(client, req).await
-                        },
+                        }
                         (&Method::POST, "/submit_program") => {
                             let client = ServiceClient::connect(grpc_addr.clone()).await.unwrap();
                             handle_submit_program(client, req).await
-                        },
-                        _ => Ok::<_, Infallible>(Response::builder()
-                            .status(StatusCode::NOT_FOUND)
-                            .body(Body::from("Not Found"))
-                            .unwrap()),
+                        }
+                        _ => Ok::<_, Infallible>(
+                            Response::builder()
+                                .status(StatusCode::NOT_FOUND)
+                                .body(Body::from("Not Found"))
+                                .unwrap(),
+                        ),
                     }
                 }
             }))
@@ -48,7 +51,7 @@ pub async fn run_http_server(grpc_addr: String, grpc_gateway_addr: SocketAddr) -
 
 async fn handle_submit_job(
     mut client: ServiceClient<Channel>,
-    req: Request<Body>
+    req: Request<Body>,
 ) -> Result<Response<Body>, Infallible> {
     let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
     let submit_job_request: SubmitJobRequest = serde_json::from_slice(&whole_body).unwrap();
@@ -59,7 +62,7 @@ async fn handle_submit_job(
 
 async fn handle_get_result(
     mut client: ServiceClient<Channel>,
-    req: Request<Body>
+    req: Request<Body>,
 ) -> Result<Response<Body>, Infallible> {
     let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
     let get_result_request: GetResultRequest = serde_json::from_slice(&whole_body).unwrap();
@@ -70,7 +73,7 @@ async fn handle_get_result(
 
 async fn handle_submit_program(
     mut client: ServiceClient<Channel>,
-    req: Request<Body>
+    req: Request<Body>,
 ) -> Result<Response<Body>, Infallible> {
     let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
     let submit_program_request: SubmitProgramRequest = serde_json::from_slice(&whole_body).unwrap();

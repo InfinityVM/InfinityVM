@@ -7,10 +7,7 @@ use std::{env, path::PathBuf};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     tonic_build::configure()
-        .type_attribute(
-            "server.v1.Job",
-            "#[derive(serde::Serialize, serde::Deserialize)]",
-        )
+        .type_attribute("server.v1.Job", "#[derive(serde::Serialize, serde::Deserialize)]")
         .type_attribute(
             "server.v1.SubmitJobRequest",
             "#[derive(serde::Serialize, serde::Deserialize)]",

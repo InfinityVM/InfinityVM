@@ -3,12 +3,12 @@
 use alloy::primitives::Address;
 use proto::service_client::ServiceClient;
 
-use crate::service::Server;
 use crate::http::run_http_server;
+use crate::service::Server;
 use clap::{Parser, ValueEnum};
 
-use hyper::{Body, Request, Response, Server as HttpServer, Method, StatusCode};
 use hyper::service::{make_service_fn, service_fn};
+use hyper::{Body, Method, Request, Response, Server as HttpServer, StatusCode};
 use std::convert::Infallible;
 use std::net::{SocketAddr, SocketAddrV4};
 use tonic::transport::Channel;
