@@ -29,6 +29,10 @@ doc:
 	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps --open
 
+.PHONY: build-release
+build-release:
+	RUSTFLAGS=$(RUSTFLAGS) cargo build --release
+
 # Use this for iterating on integration tests
 .PHONY: test-all
 test-all:
