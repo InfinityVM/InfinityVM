@@ -18,8 +18,8 @@ thiserror = { workspace = true }
 home = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-hyper = "0.14"
-warp = "0.3"
+hyper = { workspace = true }
+warp = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
