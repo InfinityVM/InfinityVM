@@ -45,9 +45,7 @@ impl proto::service_server::Service for Server {
         }
 
         if job.program_verifying_key.is_empty() {
-            return Err(Status::invalid_argument(
-                "job program verification key must not be empty",
-            ));
+            return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
 
         // TODO: Implement executor in Rust
