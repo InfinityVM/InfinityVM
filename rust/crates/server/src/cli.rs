@@ -92,6 +92,6 @@ impl Cli {
             .await
             .map_err(Into::into)
 
-        // TODO (Maanav): add gRPC gateway?
+        // TODO: add HTTP gateway for gRPC server
     }
 }
