@@ -1,8 +1,8 @@
 //! CLI for zkvm executor gRPC server.
 
-use alloy::primitives::Address;
 use crate::http::run_http_server;
 use crate::service::Server;
+use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
 use std::net::{SocketAddr, SocketAddrV4};
 
