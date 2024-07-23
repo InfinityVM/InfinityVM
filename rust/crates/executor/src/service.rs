@@ -20,6 +20,22 @@ use tracing::{error, info, instrument};
 enum Error {
     #[error("signer error: {0}")]
     Signer(#[from] alloy::signers::Error),
+    #[error("invalid VM type")]
+    InvalidVmType,
+    #[error("failed reading elf: {0}")]
+    ElfReadFailed(#[from] db::Error),
+    #[error("failed writing elf: {0}")]
+    ElfWriteFailed(String),
+    #[error("could not find elf for vm={0}")]
+    ElfNotFound(String),
+    #[error("elf with verifying key {0} already exists")]
+    ElfAlreadyExists(String),
+    #[error("bad verifying key {0}")]
+    InvalidVerifyingKey(String),
+    #[error("failed to derive verifying key {0}")]
+    VerifyingKeyDerivationFailed(String),
+    #[error("zkvm execute error: {0}")]
+    ZkvmExecuteFailed(#[from] zkvm::Error),
 }
 
 ///  The implementation of the `ZkvmExecutor` trait
@@ -62,9 +78,8 @@ where
             .map_err(Into::into)
     }
 
-    fn vm(&self, vm_type: i32) -> Result<(Box<dyn Zkvm + Send>, VmType), tonic::Status> {
-        let vm_type =
-            VmType::try_from(vm_type).map_err(|_| tonic::Status::internal("invalid vm type"))?;
+    fn vm(&self, vm_type: i32) -> Result<(Box<dyn Zkvm + Send>, VmType), Error> {
+        let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
         let vm: Box<dyn Zkvm + Send> = match vm_type {
             VmType::Risc0 => Box::new(zkvm::Risc0),
             VmType::Sp1 => Box::new(zkvm::Sp1),
@@ -72,21 +87,9 @@ where
 
         Ok((vm, vm_type))
     }
-}
 
-#[tonic::async_trait]
-impl<S, D> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<S, D>
-where
-    S: Signer<Signature> + Send + Sync + 'static,
-    D: Database + 'static,
-{
-    #[instrument(skip(self, request), err(Debug))]
-    async fn execute(
-        &self,
-        request: tonic::Request<ExecuteRequest>,
-    ) -> Result<tonic::Response<ExecuteResponse>, tonic::Status> {
-        let msg = request.into_inner();
-        let inputs = msg.inputs.expect("todo");
+    async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
+        let inputs = request.inputs.expect("todo");
 
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
@@ -98,35 +101,26 @@ where
         );
 
         let program_elf = db::read_elf(self.db.clone(), &vm_type, &inputs.program_verifying_key)
-            .map_err(|e| format!("failed reading elf: {e}"))
-            .map_err(tonic::Status::internal)?
+            .map_err(Error::ElfReadFailed)?
             .ok_or_else(|| {
-                tonic::Status::invalid_argument(format!(
-                    "could not find elf for vm={}",
-                    vm_type.as_str_name(),
-                ))
+                Error::ElfNotFound(format!("could not find elf for vm={}", vm_type.as_str_name(),))
             })?;
 
         if !vm.is_correct_verifying_key(&program_elf, &inputs.program_verifying_key).expect("todo")
         {
-            return Err(tonic::Status::invalid_argument(format!(
+            return Err(Error::InvalidVerifyingKey(format!(
                 "bad verifying key {}",
-                base64_verifying_key
+                base64_verifying_key,
             )));
         }
 
         let raw_output = vm
             .execute(&program_elf, &inputs.program_input, inputs.max_cycles)
-            .map_err(|e| format!("zkvm execute error: {e:?}"))
-            .map_err(tonic::Status::invalid_argument)?;
+            .map_err(Error::ZkvmExecuteFailed)?;
 
         let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output);
 
-        let zkvm_operator_signature = self
-            .sign_message(&result_with_metadata)
-            .await
-            .map_err(|e| format!("signing error: {e:?}"))
-            .map_err(tonic::Status::internal)?;
+        let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
             inputs.job_id,
@@ -144,6 +138,61 @@ where
             raw_output,
         };
 
+        Ok(response)
+    }
+
+    async fn create_elf_handler(
+        &self,
+        request: CreateElfRequest,
+    ) -> Result<CreateElfResponse, Error> {
+        let (vm, vm_type) = self.vm(request.vm_type)?;
+
+        let verifying_key = vm
+            .derive_verifying_key(&request.program_elf)
+            .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
+
+        let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
+        if db::read_elf(self.db.clone(), &vm_type, &verifying_key)
+            .map_err(Error::ElfReadFailed)?
+            .is_some()
+        {
+            return Err(Error::ElfAlreadyExists(format!(
+                "elf with verifying key {} already exists",
+                base64_verifying_key,
+            )));
+        }
+
+        db::write_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
+            .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
+
+        info!(
+            vm_type = vm_type.as_str_name(),
+            verifying_key = base64_verifying_key,
+            "new elf program"
+        );
+
+        let response = CreateElfResponse { verifying_key };
+
+        Ok(response)
+    }
+}
+
+#[tonic::async_trait]
+impl<S, D> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<S, D>
+where
+    S: Signer<Signature> + Send + Sync + 'static,
+    D: Database + 'static,
+{
+    #[instrument(skip(self, request), err(Debug))]
+    async fn execute(
+        &self,
+        request: tonic::Request<ExecuteRequest>,
+    ) -> Result<tonic::Response<ExecuteResponse>, tonic::Status> {
+        let msg = request.into_inner();
+        let response = self
+            .execute_handler(msg)
+            .await
+            .map_err(|e| tonic::Status::internal(format!("error in execute {e}")))?;
         Ok(tonic::Response::new(response))
     }
 
@@ -153,35 +202,10 @@ where
         tonic_request: tonic::Request<CreateElfRequest>,
     ) -> Result<tonic::Response<CreateElfResponse>, tonic::Status> {
         let request = tonic_request.into_inner();
-
-        let (vm, vm_type) = self.vm(request.vm_type)?;
-
-        let verifying_key = vm.derive_verifying_key(&request.program_elf).map_err(|e| {
-            tonic::Status::invalid_argument(format!("failed to derive verifying key {e}"))
-        })?;
-
-        let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        if db::read_elf(self.db.clone(), &vm_type, &verifying_key)
-            .map_err(|e| format!("failed reading elf: {e}"))
-            .map_err(tonic::Status::internal)?
-            .is_some()
-        {
-            return Err(tonic::Status::invalid_argument(format!(
-                "elf with verifying key {base64_verifying_key} already exists"
-            )));
-        }
-
-        db::write_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
-            .map_err(|e| format!("failed writing elf {e}"))
-            .map_err(tonic::Status::internal)?;
-
-        info!(
-            vm_type = vm_type.as_str_name(),
-            verifying_key = base64_verifying_key,
-            "new elf program"
-        );
-
-        let response = CreateElfResponse { verifying_key };
+        let response = self
+            .create_elf_handler(request)
+            .await
+            .map_err(|e| tonic::Status::internal(format!("error in create_elf {e}")))?;
         Ok(tonic::Response::new(response))
     }
 }
