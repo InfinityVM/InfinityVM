@@ -109,7 +109,8 @@ alloy-rlp = { version = "0.3", default-features = false }
 alloy-sol-types = { version = "0.7", default-features = false }
 
 # b
-base64 = { version = "0.22.1"}
+base64 = { version = "0.22.1" }
+
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
 
