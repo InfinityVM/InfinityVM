@@ -1,9 +1,8 @@
 //! CLI for zkvm executor gRPC server.
 
-use crate::{gateway::run_grpc_gateway, service::Server};
+use crate::{gateway2::HttpGrpcGateway, service::Server};
 use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
-use proto::service_client::ServiceClient;
 use std::net::{SocketAddr, SocketAddrV4};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
@@ -86,17 +85,14 @@ impl Cli {
             .build()
             .expect("failed to build gRPC reflection service");
 
-        println!("Starting gRPC server at: {}", grpc_addr);
+        tracing::info!("starting gRPC server at {}", grpc_addr);
         let grpc_server = tonic::transport::Server::builder()
             .add_service(proto::service_server::ServiceServer::new(Server::new()))
             .add_service(reflector)
             .serve(grpc_addr.into());
 
         // Start gRPC gateway
-        println!("Starting gRPC gateway at: {}", grpc_gateway_addr);
-        let grpc_client =
-            ServiceClient::connect(grpc_addr_str).await.expect("gRPC client failed to connect");
-        let grpc_gateway = run_grpc_gateway(grpc_gateway_addr, grpc_client);
+        let http_gateway = HttpGrpcGateway::new(grpc_addr_str, grpc_gateway_addr).serve();
 
         tokio::select! {
             res = grpc_server => {
@@ -104,9 +100,9 @@ impl Cli {
                     eprintln!("gRPC server error: {}", e);
                 }
             }
-            res = grpc_gateway => {
+            res = http_gateway => {
                 if let Err(e) = res {
-                    eprintln!("gRPC gateway error: {}", e);
+                    eprintln!("gRPC gateway error: {:?}", e);
                 }
             }
         }

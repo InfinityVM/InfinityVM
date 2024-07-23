@@ -4,10 +4,14 @@
 
 use std::{env, path::PathBuf};
 
+const SERDE_SER_DER_DERIVE: &str = "#[derive(serde::Serialize, serde::Deserialize)]";
+const SERDE_RENAME_CAMELCASE: &str = "#[serde(rename_all = \"camelCase\")]";
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     tonic_build::configure()
-        .type_attribute(".server", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .type_attribute(".server", SERDE_SER_DER_DERIVE)
+        .type_attribute(".server", SERDE_RENAME_CAMELCASE)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .compile(
             &[

@@ -6052,6 +6052,7 @@ name = "server"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "axum",
  "clap",
  "home",
  "hyper 0.14.30",
@@ -6063,6 +6064,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tonic-reflection",
+ "tracing",
  "zkvm",
 ]
 
