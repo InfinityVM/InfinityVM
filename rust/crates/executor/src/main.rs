@@ -1,6 +1,6 @@
 //! The binary for running the server
 
-use executor::cli::Cli;
+use zkvm_executor::cli::Cli;
 
 #[tokio::main]
 async fn main() -> Result<(), impl std::error::Error> {

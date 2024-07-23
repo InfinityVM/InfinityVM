@@ -15,7 +15,7 @@ alloy-rlp = { workspace = true }
 k256 = { workspace = true }
 
 proto = { path = "../proto" }
-executor = { path = "../executor" }
+zkvm-executor = { path = "../executor" }
 
 [lints]
 workspace = true

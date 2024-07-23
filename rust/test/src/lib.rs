@@ -51,7 +51,7 @@ impl Integration {
         R: Future<Output = ()>,
     {
         // Start executor
-        let db_dir = tempfile::Builder::new().prefix("infinityvm-test-db").tempdir().unwrap();
+        let db_dir = tempfile::Builder::new().prefix("zkvm-executor-test-db").tempdir().unwrap();
         let executor_port = get_localhost_port();
         let _proc: ProcKill = Command::new(EXECUTOR_DEBUG_BIN)
             .arg("--ip")
