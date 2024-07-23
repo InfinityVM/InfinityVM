@@ -93,9 +93,9 @@ impl HttpGrpcGateway {
 
         let listener = tokio::net::TcpListener::bind(self.listen_addr).await?;
 
-        tracing::info!("REST gRPC Gateway listening on {}", listener.local_addr().unwrap());
+        tracing::info!("REST gRPC Gateway listening on {}", listener.local_addr()?);
 
-        axum::serve(listener, app).await.expect("todo");
+        axum::serve(listener, app).await?;
 
         Ok(())
     }
