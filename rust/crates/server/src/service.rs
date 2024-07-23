@@ -28,8 +28,8 @@ impl proto::service_server::Service for Server {
         &self,
         request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
-        let job =
-            request.into_inner().job.ok_or_else(|| Status::invalid_argument("empty request"))?;
+        let req = request.into_inner();
+        let job = req.job.ok_or_else(|| Status::invalid_argument("missing job"))?;
 
         // verify fields
         if job.max_cycles == 0 {

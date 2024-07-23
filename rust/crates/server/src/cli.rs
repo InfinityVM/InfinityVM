@@ -1,10 +1,9 @@
 //! CLI for zkvm executor gRPC server.
 
-use alloy::primitives::Address;
-use std::net::SocketAddrV4;
-
 use crate::service::Server;
+use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
+use std::net::SocketAddrV4;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -44,10 +43,6 @@ struct Opts {
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
 
-    /// gRPC gateway server address
-    #[arg(long, default_value = "127.0.0.1:8080")]
-    grpc_gateway_address: String,
-
     /// ZK shim address
     #[arg(long, required = true)]
     zk_shim_address: String,
@@ -75,7 +70,7 @@ impl Cli {
         let _relayer_private_key =
             std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
 
-        // Parse the gRPC address
+        // Parse the addresses for gRPC server and gateway
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
 
@@ -84,14 +79,13 @@ impl Cli {
             .build()
             .expect("failed to build gRPC reflection service");
 
-        println!("Starting gRPC server at: {}", grpc_addr);
+        tracing::info!("starting gRPC server at {}", grpc_addr);
         tonic::transport::Server::builder()
             .add_service(proto::service_server::ServiceServer::new(Server::new()))
             .add_service(reflector)
             .serve(grpc_addr.into())
-            .await
-            .map_err(Into::into)
+            .await?;
 
-        // TODO: add HTTP gateway for gRPC server
+        Ok(())
     }
 }

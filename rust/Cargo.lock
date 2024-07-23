@@ -2175,34 +2175,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "executor"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "alloy-rlp",
- "alloy-signer-local",
- "alloy-sol-types",
- "base64 0.22.1",
- "clap",
- "eyre",
- "home",
- "k256",
- "prost 0.13.1",
- "proto",
- "reth-db",
- "reth-db-api",
- "serde",
- "sha2",
- "thiserror",
- "tokio",
- "tonic",
- "tonic-reflection",
- "tracing",
- "tracing-subscriber 0.3.18",
- "zkvm",
-]
-
-[[package]]
 name = "eyre"
 version = "0.6.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2786,6 +2758,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "http-gateway"
+version = "0.0.1"
+dependencies = [
+ "axum",
+ "clap",
+ "prost 0.13.1",
+ "proto",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tonic",
+ "tracing",
+ "zkvm",
+]
+
+[[package]]
 name = "httparse"
 version = "1.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3066,7 +3055,6 @@ dependencies = [
  "alloy",
  "alloy-rlp",
  "alloy-sol-types",
- "executor",
  "futures",
  "proto",
  "rand 0.8.5",
@@ -3077,6 +3065,7 @@ dependencies = [
  "tonic",
  "vapenation-core",
  "vapenation-methods",
+ "zkvm-executor",
 ]
 
 [[package]]
@@ -4488,6 +4477,7 @@ name = "proto"
 version = "0.0.1"
 dependencies = [
  "prost 0.13.1",
+ "serde",
  "tokio",
  "tonic",
  "tonic-build",
@@ -5791,10 +5781,10 @@ dependencies = [
  "alloy-rlp",
  "alloy-signer-local",
  "alloy-sol-types",
- "executor",
  "k256",
  "proto",
  "tokio",
+ "zkvm-executor",
 ]
 
 [[package]]
@@ -6056,10 +6046,12 @@ dependencies = [
  "prost 0.13.1",
  "proto",
  "serde",
+ "serde_json",
  "thiserror",
  "tokio",
  "tonic",
  "tonic-reflection",
+ "tracing",
  "zkvm",
 ]
 
@@ -7978,6 +7970,34 @@ dependencies = [
  "sp1-zkvm",
  "thiserror",
  "vapenation-core",
+]
+
+[[package]]
+name = "zkvm-executor"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "alloy-rlp",
+ "alloy-signer-local",
+ "alloy-sol-types",
+ "base64 0.22.1",
+ "clap",
+ "eyre",
+ "home",
+ "k256",
+ "prost 0.13.1",
+ "proto",
+ "reth-db",
+ "reth-db-api",
+ "serde",
+ "sha2",
+ "thiserror",
+ "tokio",
+ "tonic",
+ "tonic-reflection",
+ "tracing",
+ "tracing-subscriber 0.3.18",
+ "zkvm",
 ]
 
 [[package]]

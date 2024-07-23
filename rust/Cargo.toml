@@ -6,13 +6,14 @@ rust-version = "1.79"
 [workspace]
 members = [
 	"crates/executor",
+	"crates/http-gateway",
+	"crates/proto",
+	"crates/scripts",
 	"crates/server",
 	"crates/zkvm",
 	"test",
 	"programs/risc0/vapenation/methods",
-	"crates/scripts",
 	"programs/sp1/build"
-	# "programs/risc0/vapenation/core"
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -101,13 +102,15 @@ significant_drop_tightening = "allow"
 [workspace.dependencies]
 # a
 anyhow = { version = "1", default-features = false }
+axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 alloy = { version = "0.1", features = ["network", "signer-local", "signer-keystore", "rlp"], default-features = false }
 alloy-signer-local = { version = "0.1", default-features = false }
 alloy-rlp = { version = "0.3", default-features = false }
 alloy-sol-types = { version = "0.7", default-features = false }
 
 # b
-base64 = { version = "0.22.1"}
+base64 = { version = "0.22.1" }
+
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
 
@@ -146,6 +149,7 @@ reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f"
 
 # s
 serde = { version = "1.0", features = ["derive"], default-features = false }
+serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", default-features = false }
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["libm"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }

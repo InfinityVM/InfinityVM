@@ -1,4 +1,4 @@
-//! Better then your ZKVM.
+//! ZKVM trait and implementations. The trait should abstract over any complexities to specific VMs.
 
 use risc0_binfmt::compute_image_id;
 use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};

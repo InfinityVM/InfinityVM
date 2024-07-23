@@ -14,7 +14,7 @@ use tonic::transport::Channel;
 use proto::zkvm_executor_client::ZkvmExecutorClient;
 
 const LOCALHOST: &str = "127.0.0.1";
-const EXECUTOR_DEBUG_BIN: &str = "../target/debug/executor";
+const EXECUTOR_DEBUG_BIN: &str = "../target/debug/zkvm-executor";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
@@ -51,7 +51,7 @@ impl Integration {
         R: Future<Output = ()>,
     {
         // Start executor
-        let db_dir = tempfile::Builder::new().prefix("infinityvm-test-db").tempdir().unwrap();
+        let db_dir = tempfile::Builder::new().prefix("zkvm-executor-test-db").tempdir().unwrap();
         let executor_port = get_localhost_port();
         let _proc: ProcKill = Command::new(EXECUTOR_DEBUG_BIN)
             .arg("--ip")

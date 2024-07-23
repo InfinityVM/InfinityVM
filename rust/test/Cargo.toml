@@ -19,7 +19,7 @@ alloy-sol-types = { workspace = true }
 tempfile = { workspace = true }
 sp1-sdk = { workspace = true }
 
-executor = { path = "../crates/executor" }
+zkvm-executor = { path = "../crates/executor" }
 proto = { path = "../crates/proto"}
 vapenation-methods = { path = "../programs/risc0/vapenation/methods"}
 vapenation-core = { path = "../programs/common/vapenation-core"}

@@ -36,6 +36,7 @@ service Service {
 // SubmitJobRequest defines the request structure to submit a job to the
 // coprocessing server.
 message SubmitJobRequest {
+  // The zkvm job to run.
   Job job = 1;
 }
 

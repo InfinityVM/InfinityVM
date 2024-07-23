@@ -3,9 +3,9 @@ use alloy::{
     signers::{local::LocalSigner, Signer},
 };
 use alloy_sol_types::{sol, SolType};
-use executor::service::abi_encode_result_with_metadata;
 use k256::ecdsa::SigningKey;
 use proto::JobInputs;
+use zkvm_executor::service::abi_encode_result_with_metadata;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 

@@ -17,11 +17,11 @@ RUN cargo +nightly chef cook --release --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=cacher /app/rust/target /app/rust/target
-RUN cargo +nightly build --release --locked --manifest-path /app/rust/Cargo.toml
+RUN cargo +nightly build --release --locked --manifest-path /app/rust/crates/executor/Cargo.toml
 
 FROM debian:bookworm-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
     rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/rust/target/release/executor /usr/local/bin/executor
-CMD ["executor", "version"]
+COPY --from=builder /app/rust/target/release/zkvm-executor /usr/local/bin/zkvm-executor
+CMD ["zkvm-executor", "version"]
