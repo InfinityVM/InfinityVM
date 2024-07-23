@@ -10,10 +10,10 @@ use proto::{
 };
 use risc0_binfmt::compute_image_id;
 
-use zkvm_executor::DEV_SECRET;
 use sp1_sdk::{HashableKey, ProverClient};
 use vapenation_core::{VapeNationArg, VapeNationMetadata};
 use vapenation_methods::{VAPENATION_GUEST_ELF, VAPENATION_GUEST_ID, VAPENATION_GUEST_PATH};
+use zkvm_executor::DEV_SECRET;
 
 // WARNING: read the integration test readme to learn about common footguns while iterating
 // on these integration tests.
