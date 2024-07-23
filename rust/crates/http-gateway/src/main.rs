@@ -1,4 +1,4 @@
-//! The binary for running the server
+//! Binary for running the http gateway.
 
 use http_gateway::Cli;
 

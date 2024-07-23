@@ -1,4 +1,4 @@
-//! REST Gateway proxy for the gRPC service
+//! Implementation of the gateway itself.
 
 use std::net::SocketAddr;
 

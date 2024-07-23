@@ -1,4 +1,4 @@
-//! HTTP gateway is a reverse proxy that exposes an HTTP interface to the zkvm-executor gRPC routes.
+//! HTTP gateway is a reverse proxy that exposes an HTTP interface to the coprocessor-node gRPC routes.
 
 use clap::Parser;
 use std::net::SocketAddr;
@@ -11,7 +11,7 @@ pub enum Error {
     /// Failure to connect to gRPC server
     #[error("failed to connect to grpc server: {0}")]
     ConnectionFailure(String),
-    /// IO error
+    /// Network IO error
     #[error(transparent)]
     StdIO(#[from] std::io::Error),
     /// invalid gRPC address
