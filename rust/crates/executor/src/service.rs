@@ -23,7 +23,7 @@ enum Error {
     #[error("invalid VM type")]
     InvalidVmType,
     #[error("failed reading elf: {0}")]
-    ElfReadFailed(String),
+    ElfReadFailed(#[from] db::Error),
     #[error("failed writing elf: {0}")]
     ElfWriteFailed(String),
     #[error("could not find elf for vm={0}")]
@@ -35,9 +35,7 @@ enum Error {
     #[error("failed to derive verifying key {0}")]
     VerifyingKeyDerivationFailed(String),
     #[error("zkvm execute error: {0}")]
-    ZkvmExecuteError(String),
-    #[error("signing error: {0}")]
-    MsgSigningError(String),
+    ZkvmExecuteError(#[from] zkvm::Error),
 }
 
 ///  The implementation of the `ZkvmExecutor` trait
@@ -103,7 +101,7 @@ where
         );
 
         let program_elf = db::read_elf(self.db.clone(), &vm_type, &inputs.program_verifying_key)
-            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
+            .map_err(Error::ElfReadFailed)?
             .ok_or_else(|| {
                 Error::ElfNotFound(format!("could not find elf for vm={}", vm_type.as_str_name(),))
             })?;
@@ -118,14 +116,11 @@ where
 
         let raw_output = vm
             .execute(&program_elf, &inputs.program_input, inputs.max_cycles)
-            .map_err(|e| Error::ZkvmExecuteError(e.to_string()))?;
+            .map_err(Error::ZkvmExecuteError)?;
 
         let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output);
 
-        let zkvm_operator_signature = self
-            .sign_message(&result_with_metadata)
-            .await
-            .map_err(|e| Error::MsgSigningError(e.to_string()))?;
+        let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
             inputs.job_id,
@@ -158,7 +153,7 @@ where
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
         if db::read_elf(self.db.clone(), &vm_type, &verifying_key)
-            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
+            .map_err(Error::ElfReadFailed)?
             .is_some()
         {
             return Err(Error::ElfAlreadyExists(format!(
