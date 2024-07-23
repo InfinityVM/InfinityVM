@@ -2,9 +2,21 @@
 
 use alloy::primitives::Address;
 use std::net::SocketAddrV4;
-
+use alloy::dyn_abi::DynSolType::Int;
+use alloy::providers::{ProviderBuilder, WsConnect};
+use alloy::rpc::types::Filter;
+use alloy::rpc::types::trace::filter;
+use alloy::sol;
+use alloy::sol_types::SolValue;
+use alloy::transports::{TransportError, TransportErrorKind};
 use crate::service::Server;
 use clap::{Parser, ValueEnum};
+use tonic::codegen::tokio_stream::StreamExt;
+use tonic::{IntoRequest, Status};
+use proto::{ExecuteRequest, Job, JobInputs, SubmitJobRequest, SubmitJobResponse};
+use proto::zkvm_executor_server::ZkvmExecutor;
+use proto::zkvm_executor_client::ZkvmExecutorClient;
+use proto::service_client::ServiceClient;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -20,6 +32,12 @@ pub enum Error {
     /// grpc server failure
     #[error("grpc server failure: {0}")]
     GrpcServer(#[from] tonic::transport::Error),
+
+    #[error("event listener failure: {0}")]
+    EventlistenerError(#[from] TransportError),
+
+    #[error("event listener failure: {0}")]
+    EventlistenerSolError(#[from] alloy::sol_types::Error),
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -59,6 +77,9 @@ struct Opts {
     /// Ethereum RPC address
     #[arg(long, required = true)]
     eth_rpc_address: String,
+
+    #[arg(long, required = true)]
+    eth_rpc: String,
 }
 
 /// Command line interface for running the gRPC server.
@@ -84,6 +105,10 @@ impl Cli {
             .build()
             .expect("failed to build gRPC reflection service");
 
+        tokio::spawn(async move {
+            event_subscriber(opts.eth_rpc,opts.job_manager_address).await
+        });
+
         println!("Starting gRPC server at: {}", grpc_addr);
         tonic::transport::Server::builder()
             .add_service(proto::service_server::ServiceServer::new(Server::new()))
@@ -94,4 +119,34 @@ impl Cli {
 
         // TODO: add HTTP gateway for gRPC server
     }
+}
+
+
+// TODO: fix
+sol!(
+    #[allow(missing_docs)]
+    #[sol(rpc, bytecode = "")]
+    contract JobManager {
+        event JobCreated(uint32 indexed jobID, uint64 maxCycles, bytes indexed programID, bytes programInput);
+    }
+);
+
+async fn event_subscriber(rpc_url: String, job_manager: Address) -> Result<(), Error>  {
+
+    // Create the provider.
+    let ws = WsConnect::new(rpc_url);
+    let provider = ProviderBuilder::new().on_ws(ws).await.map_err(|e|Error::EventlistenerError(e))?;
+
+    let contract = JobManager::new(job_manager, provider.clone());
+
+    let job_created_filter = contract.JobCreated_filter().watch().await.map_err(|e|Error::EventlistenerError(e))?;
+    let mut stream = job_created_filter.into_stream().take(2);
+
+    while let Some(other) = stream.next().await{
+        let event = other.map_err(|e|Error::EventlistenerSolError(e))?;
+        // TODO:
+
+    }
+
+    Ok(())
 }

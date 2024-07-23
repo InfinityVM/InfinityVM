@@ -31,3 +31,5 @@ base64 = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
+
+futures-util = "0.3.30"

@@ -101,7 +101,16 @@ significant_drop_tightening = "allow"
 [workspace.dependencies]
 # a
 anyhow = { version = "1", default-features = false }
-alloy = { version = "0.1", features = ["network", "signer-local", "signer-keystore", "rlp"], default-features = false }
+alloy = { version = "0.1", features = [
+	"full",
+	"network", "signer-local", "signer-keystore", "rlp",
+	"node-bindings",
+	"rpc-types-debug",
+	"rpc-types-trace",
+	"json-rpc",
+	"rpc-client",
+	"transport-ws"
+], default-features = false }
 alloy-signer-local = { version = "0.1", default-features = false }
 alloy-rlp = { version = "0.3", default-features = false }
 alloy-sol-types = { version = "0.7", default-features = false }

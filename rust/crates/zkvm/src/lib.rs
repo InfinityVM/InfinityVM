@@ -9,18 +9,12 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum Error {
     /// Error from the Risc0
-    #[error("Risc0 error: {source}")]
-    Risc0 {
-        /// The underlying error from Risc0
-        source: anyhow::Error,
-    },
+    #[error("Risc0 error: {0}")]
+    Risc0 (anyhow::Error),
 
     /// Error from the Sp1
-    #[error("Sp1 error: {source}")]
-    Sp1 {
-        /// The underlying error from the Sp1
-        source: anyhow::Error,
-    },
+    #[error("Sp1 error: {0}")]
+    Sp1 (anyhow::Error),
 }
 
 /// Something that can execute programs and generate ZK proofs for them.
@@ -61,7 +55,7 @@ pub struct Risc0;
 impl Zkvm for Risc0 {
     fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
         let image_id = compute_image_id(program_elf)
-            .map_err(|source| Error::Risc0 { source })?
+            .map_err(|e| Error::Risc0(e))?
             .as_bytes()
             .to_vec();
 
@@ -78,12 +72,12 @@ impl Zkvm for Risc0 {
             .session_limit(Some(max_cycles))
             .write_slice(raw_input)
             .build()
-            .map_err(|source| Error::Risc0 { source })?;
+            .map_err(|e| Error::Risc0(e))?;
 
         let prover = LocalProver::new("locals only");
 
         let prove_info =
-            prover.execute(env, program_elf).map_err(|source| Error::Risc0 { source })?;
+            prover.execute(env, program_elf).map_err(|e| Error::Risc0(e) )?;
 
         Ok(prove_info.journal.bytes)
     }
@@ -114,7 +108,7 @@ impl Zkvm for Sp1 {
             .execute(program_elf, stdin)
             .max_cycles(max_cycles)
             .run()
-            .map_err(|source| Error::Sp1 { source })?;
+            .map_err(|e| Error::Sp1(e))?;
 
         Ok(public_values.to_vec())
     }
