@@ -1,9 +1,9 @@
 //! CLI for zkvm executor gRPC server.
 
-use crate::{gateway::HttpGrpcGateway, service::Server};
+use crate::service::Server;
 use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
-use std::net::{SocketAddr, SocketAddrV4};
+use std::net::SocketAddrV4;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -43,10 +43,6 @@ struct Opts {
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
 
-    /// gRPC gateway server address
-    #[arg(long, default_value = "127.0.0.1:8080")]
-    grpc_gateway_address: String,
-
     /// ZK shim address
     #[arg(long, required = true)]
     zk_shim_address: String,
@@ -77,8 +73,6 @@ impl Cli {
         // Parse the addresses for gRPC server and gateway
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
-        let grpc_addr_str = format!("http://{}", grpc_addr);
-        let grpc_gateway_addr: SocketAddr = opts.grpc_gateway_address.parse().unwrap();
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
@@ -86,26 +80,11 @@ impl Cli {
             .expect("failed to build gRPC reflection service");
 
         tracing::info!("starting gRPC server at {}", grpc_addr);
-        let grpc_server = tonic::transport::Server::builder()
+        tonic::transport::Server::builder()
             .add_service(proto::service_server::ServiceServer::new(Server::new()))
             .add_service(reflector)
-            .serve(grpc_addr.into());
-
-        // Start gRPC gateway
-        let http_gateway = HttpGrpcGateway::new(grpc_addr_str, grpc_gateway_addr).serve();
-
-        tokio::select! {
-            res = grpc_server => {
-                if let Err(e) = res {
-                    eprintln!("gRPC server error: {}", e);
-                }
-            }
-            res = http_gateway => {
-                if let Err(e) = res {
-                    eprintln!("gRPC gateway error: {:?}", e);
-                }
-            }
-        }
+            .serve(grpc_addr.into())
+            .await?;
 
         Ok(())
     }

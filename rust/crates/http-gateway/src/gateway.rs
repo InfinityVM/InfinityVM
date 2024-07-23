@@ -15,17 +15,11 @@ use axum::{
     Json, Router,
 };
 
+use crate::Error;
+
 const SUBMIT_JOB: &str = "submit_job";
 const GET_RESULT: &str = "get_result";
 const SUBMIT_PROGRAM: &str = "submit_program";
-
-#[derive(thiserror::Error, Debug)]
-pub(crate) enum Error {
-    #[error("failed to connect to grpc server: {0}")]
-    ConnectionFailure(String),
-    #[error(transparent)]
-    StdIO(#[from] std::io::Error),
-}
 
 /// Error response from the gateway
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -64,8 +58,11 @@ impl IntoResponse for ErrorResponse {
 }
 
 /// REST Gateway proxy
-pub(crate) struct HttpGrpcGateway {
+#[derive(Debug)]
+pub struct HttpGrpcGateway {
+    /// gRPC address to proxy requests to.
     grpc_addr: String,
+    /// Address to listen for HTTP requests on.
     listen_addr: SocketAddr,
 }
 

@@ -1,4 +1,4 @@
-//! Better then your ZKVM.
+//! Different ZKVM implementations.
 
 use risc0_binfmt::compute_image_id;
 use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
