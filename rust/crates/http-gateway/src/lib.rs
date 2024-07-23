@@ -5,7 +5,7 @@ use std::net::SocketAddr;
 
 pub mod gateway;
 
-/// Error for http gateway
+/// Errors for the HTTP gateway.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     /// Failure to connect to gRPC server
@@ -19,7 +19,7 @@ pub enum Error {
     InvalidGrpcAddress(#[from] std::net::AddrParseError),
 }
 
-/// CLI options for running the gate
+/// CLI options for running the HTTP gateway.
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Opts {

@@ -26,7 +26,7 @@ const SUBMIT_PROGRAM: &str = "submit_program";
 pub struct ErrorResponse {
     /// Error message
     pub message: String,
-    /// Grpc status code
+    /// gRPC status code
     pub grpc_code: i32,
 }
 
@@ -69,12 +69,12 @@ pub struct HttpGrpcGateway {
 type Client = ServiceClient<Channel>;
 
 impl HttpGrpcGateway {
-    /// Connect the create the gateway by connecting it to the gRPC service
+    /// Create the gateway struct. Does not perform any network IO.
     pub(crate) const fn new(grpc_addr: String, listen_addr: SocketAddr) -> Self {
         Self { grpc_addr, listen_addr }
     }
 
-    /// Run the service
+    /// Run the the HTTP gateway.
     pub(crate) async fn serve(self) -> Result<(), Error> {
         let grpc_client = ServiceClient::<Channel>::connect(self.grpc_addr.clone())
             .await
