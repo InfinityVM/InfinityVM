@@ -1,4 +1,5 @@
-//! HTTP gateway is a reverse proxy that exposes an HTTP interface to the coprocessor-node gRPC routes.
+//! HTTP gateway is a reverse proxy that exposes an HTTP interface to the coprocessor-node gRPC
+//! routes.
 
 use clap::Parser;
 use std::net::SocketAddr;
