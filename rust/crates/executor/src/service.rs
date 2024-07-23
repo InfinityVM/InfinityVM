@@ -35,7 +35,7 @@ enum Error {
     #[error("failed to derive verifying key {0}")]
     VerifyingKeyDerivationFailed(String),
     #[error("zkvm execute error: {0}")]
-    ZkvmExecuteError(#[from] zkvm::Error),
+    ZkvmExecuteFailed(#[from] zkvm::Error),
 }
 
 ///  The implementation of the `ZkvmExecutor` trait
@@ -116,7 +116,7 @@ where
 
         let raw_output = vm
             .execute(&program_elf, &inputs.program_input, inputs.max_cycles)
-            .map_err(Error::ZkvmExecuteError)?;
+            .map_err(Error::ZkvmExecuteFailed)?;
 
         let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output);
 
@@ -192,7 +192,7 @@ where
         let response = self
             .execute_handler(msg)
             .await
-            .map_err(|e| tonic::Status::internal(format!("error in execute {}", e.to_string())))?;
+            .map_err(|e| tonic::Status::internal(format!("error in execute {e}")))?;
         Ok(tonic::Response::new(response))
     }
 
@@ -203,7 +203,7 @@ where
     ) -> Result<tonic::Response<CreateElfResponse>, tonic::Status> {
         let request = tonic_request.into_inner();
         let response = self.create_elf_handler(request).await.map_err(|e| {
-            tonic::Status::internal(format!("error in create_elf {}", e.to_string()))
+            tonic::Status::internal(format!("error in create_elf {e}"))
         })?;
         Ok(tonic::Response::new(response))
     }
