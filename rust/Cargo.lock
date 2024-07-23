@@ -6041,10 +6041,8 @@ name = "server"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "axum",
  "clap",
  "home",
- "hyper 0.14.30",
  "prost 0.13.1",
  "proto",
  "serde",

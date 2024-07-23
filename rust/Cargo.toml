@@ -5,15 +5,15 @@ rust-version = "1.79"
 
 [workspace]
 members = [
-	"crates/http-gateway",
 	"crates/executor",
+	"crates/http-gateway",
+	"crates/proto",
+	"crates/scripts",
 	"crates/server",
 	"crates/zkvm",
 	"test",
 	"programs/risc0/vapenation/methods",
-	"crates/scripts",
 	"programs/sp1/build"
-	# "programs/risc0/vapenation/core"
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -102,6 +102,7 @@ significant_drop_tightening = "allow"
 [workspace.dependencies]
 # a
 anyhow = { version = "1", default-features = false }
+axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 alloy = { version = "0.1", features = ["network", "signer-local", "signer-keystore", "rlp"], default-features = false }
 alloy-signer-local = { version = "0.1", default-features = false }
 alloy-rlp = { version = "0.3", default-features = false }
@@ -123,7 +124,6 @@ futures = { version = "0.3", default-features = false }
 # h
 hex = { version = "0.4", default-features = false }
 home = { version = "0.5", default-features = false }
-hyper = { version = "0.14", features = ["server", "http2"], default-features = false }
 
 # i
 # j

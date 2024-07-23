@@ -8,7 +8,6 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 alloy = { workspace = true }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
@@ -19,7 +18,6 @@ thiserror = { workspace = true }
 home = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-hyper = { workspace = true }
 tracing = { workspace = true }
 
 proto = { path = "../proto" }
