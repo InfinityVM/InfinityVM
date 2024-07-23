@@ -20,3 +20,4 @@ serde = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
+log = "0.4.22"

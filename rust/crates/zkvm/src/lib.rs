@@ -10,11 +10,11 @@ use thiserror::Error;
 pub enum Error {
     /// Error from the Risc0
     #[error("Risc0 error: {0}")]
-    Risc0 (anyhow::Error),
+    Risc0(anyhow::Error),
 
     /// Error from the Sp1
     #[error("Sp1 error: {0}")]
-    Sp1 (anyhow::Error),
+    Sp1(anyhow::Error),
 }
 
 /// Something that can execute programs and generate ZK proofs for them.
@@ -54,10 +54,8 @@ pub struct Risc0;
 
 impl Zkvm for Risc0 {
     fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-        let image_id = compute_image_id(program_elf)
-            .map_err(|e| Error::Risc0(e))?
-            .as_bytes()
-            .to_vec();
+        let image_id =
+            compute_image_id(program_elf).map_err(|e| Error::Risc0(e))?.as_bytes().to_vec();
 
         Ok(image_id)
     }
@@ -76,8 +74,7 @@ impl Zkvm for Risc0 {
 
         let prover = LocalProver::new("locals only");
 
-        let prove_info =
-            prover.execute(env, program_elf).map_err(|e| Error::Risc0(e) )?;
+        let prove_info = prover.execute(env, program_elf).map_err(|e| Error::Risc0(e))?;
 
         Ok(prove_info.journal.bytes)
     }

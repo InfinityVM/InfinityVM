@@ -1,22 +1,20 @@
 //! CLI for zkvm executor gRPC server.
 
+use crate::cli::JobManager::JobManagerEvents::JobCreated;
+use crate::service::Server;
 use alloy::primitives::Address;
-use std::net::SocketAddrV4;
-use alloy::dyn_abi::DynSolType::Int;
 use alloy::providers::{ProviderBuilder, WsConnect};
-use alloy::rpc::types::Filter;
-use alloy::rpc::types::trace::filter;
+
 use alloy::sol;
 use alloy::sol_types::SolValue;
-use alloy::transports::{TransportError, TransportErrorKind};
-use crate::service::Server;
+use alloy::transports::TransportError;
 use clap::{Parser, ValueEnum};
+use proto::{service_client::ServiceClient, zkvm_executor_server::ZkvmExecutor};
+use proto::{Job, SubmitJobRequest};
+use std::fmt::Debug;
+use std::net::SocketAddrV4;
 use tonic::codegen::tokio_stream::StreamExt;
-use tonic::{IntoRequest, Status};
-use proto::{ExecuteRequest, Job, JobInputs, SubmitJobRequest, SubmitJobResponse};
-use proto::zkvm_executor_server::ZkvmExecutor;
-use proto::zkvm_executor_client::ZkvmExecutorClient;
-use proto::service_client::ServiceClient;
+use tonic::IntoRequest;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -105,9 +103,7 @@ impl Cli {
             .build()
             .expect("failed to build gRPC reflection service");
 
-        tokio::spawn(async move {
-            event_subscriber(opts.eth_rpc,opts.job_manager_address).await
-        });
+        tokio::spawn(async move { event_subscriber(opts.eth_rpc, opts.job_manager_address).await });
 
         println!("Starting gRPC server at: {}", grpc_addr);
         tonic::transport::Server::builder()
@@ -121,31 +117,49 @@ impl Cli {
     }
 }
 
-
 // TODO: fix
 sol!(
     #[allow(missing_docs)]
-    #[sol(rpc, bytecode = "")]
+    #[sol(rpc)]
     contract JobManager {
         event JobCreated(uint32 indexed jobID, uint64 maxCycles, bytes indexed programID, bytes programInput);
     }
 );
 
-async fn event_subscriber(rpc_url: String, job_manager: Address) -> Result<(), Error>  {
-
+async fn event_subscriber(rpc_url: String, job_manager: Address) -> Result<(), Error> {
     // Create the provider.
     let ws = WsConnect::new(rpc_url);
-    let provider = ProviderBuilder::new().on_ws(ws).await.map_err(|e|Error::EventlistenerError(e))?;
+    let provider =
+        ProviderBuilder::new().on_ws(ws).await.map_err(|e| Error::EventlistenerError(e))?;
 
     let contract = JobManager::new(job_manager, provider.clone());
+    let job_created_filter =
+        contract.JobCreated_filter().watch().await.map_err(|e| Error::EventlistenerError(e))?;
 
-    let job_created_filter = contract.JobCreated_filter().watch().await.map_err(|e|Error::EventlistenerError(e))?;
     let mut stream = job_created_filter.into_stream().take(2);
+    // TODO: modify for changes to server and relayer
+    let mut executor_client = ServiceClient::connect("http://[::1]:50051").await?;
 
-    while let Some(other) = stream.next().await{
-        let event = other.map_err(|e|Error::EventlistenerSolError(e))?;
-        // TODO:
+    while let Some(event) = stream.next().await {
+        let (job, _) = event.map_err(|e| Error::EventlistenerSolError(e))?;
 
+        let request = SubmitJobRequest {
+            job: Some(Job {
+                id: job.jobID,
+                program_verifying_key: job.programID.to_vec(),
+                vm_type: 0,
+                input: job.programInput.to_vec(),
+                contract_address: job_manager.to_vec(),
+                max_cycles: job.maxCycles,
+                result: vec![],
+                zkvm_operator_address: vec![],
+                zkvm_operator_signature: vec![],
+                status: 0,
+            }),
+        };
+
+        let resp = executor_client.submit_job(request).await.unwrap();
+        println!("job_id {}", resp.into_inner().job_id);
     }
 
     Ok(())
