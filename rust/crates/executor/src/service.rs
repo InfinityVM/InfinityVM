@@ -202,9 +202,10 @@ where
         tonic_request: tonic::Request<CreateElfRequest>,
     ) -> Result<tonic::Response<CreateElfResponse>, tonic::Status> {
         let request = tonic_request.into_inner();
-        let response = self.create_elf_handler(request).await.map_err(|e| {
-            tonic::Status::internal(format!("error in create_elf {e}"))
-        })?;
+        let response = self
+            .create_elf_handler(request)
+            .await
+            .map_err(|e| tonic::Status::internal(format!("error in create_elf {e}")))?;
         Ok(tonic::Response::new(response))
     }
 }
