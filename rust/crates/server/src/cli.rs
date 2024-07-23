@@ -1,6 +1,6 @@
 //! CLI for zkvm executor gRPC server.
 
-use crate::{gateway2::HttpGrpcGateway, service::Server};
+use crate::{gateway::HttpGrpcGateway, service::Server};
 use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
 use std::net::{SocketAddr, SocketAddrV4};

@@ -1,81 +1,136 @@
-use hyper::{
-    service::{make_service_fn, service_fn},
-    Body, Method, Request, Response, Server, StatusCode,
-};
+//! REST Gateway proxy for the gRPC service
+
+use std::net::SocketAddr;
+
 use proto::{
-    service_client::ServiceClient, GetResultRequest, SubmitJobRequest, SubmitProgramRequest,
+    service_client::ServiceClient, GetResultRequest, GetResultResponse, SubmitJobRequest,
+    SubmitJobResponse, SubmitProgramRequest, SubmitProgramResponse,
 };
-use serde_json;
-use std::{convert::Infallible, net::SocketAddr};
-use tonic::{transport::Channel, Request as TonicRequest};
+use tonic::transport::Channel;
 
-/// Starts gRPC gateway.
-pub async fn run_grpc_gateway(
-    grpc_gateway_addr: SocketAddr,
-    service_client: ServiceClient<Channel>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // let client
-    let make_svc = make_service_fn(move |_conn| {
-        let service_client1 = service_client.clone();
-        async {
-            Ok::<_, Infallible>(service_fn(move |req: Request<Body>| {
-                let service_client2 = service_client1.clone();
-                async move {
-                    match (req.method(), req.uri().path()) {
-                        (&Method::POST, "/submit_job") => {
-                            handle_submit_job(service_client2.clone(), req).await
-                        }
-                        (&Method::POST, "/get_result") => {
-                            handle_get_result(service_client2, req).await
-                        }
-                        (&Method::POST, "/submit_program") => {
-                            handle_submit_program(service_client2, req).await
-                        }
-                        _ => Ok(Response::builder()
-                            .status(StatusCode::NOT_FOUND)
-                            .body(Body::from("Not Found"))
-                            .unwrap()),
-                    }
-                }
-            }))
-        }
-    });
+use axum::{
+    extract::{DefaultBodyLimit, State},
+    response::{IntoResponse, Response},
+    routing::post,
+    Json, Router,
+};
 
-    let grpc_gateway = Server::bind(&grpc_gateway_addr).serve(make_svc);
-    grpc_gateway.await?;
+const SUBMIT_JOB: &str = "submit_job";
+const GET_RESULT: &str = "get_result";
+const SUBMIT_PROGRAM: &str = "submit_program";
 
-    Ok(())
+#[derive(thiserror::Error, Debug)]
+pub(crate) enum Error {
+    #[error("failed to connect to grpc server: {0}")]
+    ConnectionFailure(String),
+    #[error(transparent)]
+    StdIO(#[from] std::io::Error),
 }
 
-async fn handle_submit_job(
-    mut client: ServiceClient<Channel>,
-    req: Request<Body>,
-) -> Result<Response<Body>, Infallible> {
-    let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
-    let submit_job_request: SubmitJobRequest = serde_json::from_slice(&whole_body).unwrap();
-    let response = client.submit_job(TonicRequest::new(submit_job_request)).await.unwrap();
-    let response_body = serde_json::to_string(&response.into_inner()).unwrap();
-    Ok(Response::new(Body::from(response_body)))
+/// Error response from the gateway
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct ErrorResponse {
+    /// Error message
+    pub message: String,
+    /// Grpc status code
+    pub grpc_code: i32,
 }
 
-async fn handle_get_result(
-    mut client: ServiceClient<Channel>,
-    req: Request<Body>,
-) -> Result<Response<Body>, Infallible> {
-    let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
-    let get_result_request: GetResultRequest = serde_json::from_slice(&whole_body).unwrap();
-    let response = client.get_result(TonicRequest::new(get_result_request)).await.unwrap();
-    let response_body = serde_json::to_string(&response.into_inner()).unwrap();
-    Ok(Response::new(Body::from(response_body)))
+impl From<tonic::Status> for ErrorResponse {
+    fn from(s: tonic::Status) -> Self {
+        Self { message: s.message().to_owned(), grpc_code: s.code() as i32 }
+    }
 }
 
-async fn handle_submit_program(
-    mut client: ServiceClient<Channel>,
-    req: Request<Body>,
-) -> Result<Response<Body>, Infallible> {
-    let whole_body = hyper::body::to_bytes(req.into_body()).await.unwrap();
-    let submit_program_request: SubmitProgramRequest = serde_json::from_slice(&whole_body).unwrap();
-    let response = client.submit_program(TonicRequest::new(submit_program_request)).await.unwrap();
-    let response_body = serde_json::to_string(&response.into_inner()).unwrap();
-    Ok(Response::new(Body::from(response_body)))
+impl IntoResponse for ErrorResponse {
+    fn into_response(self) -> Response {
+        use axum::http::StatusCode;
+        use tonic::Code;
+
+        // https://github.com/grpc/grpc/blob/master/doc/http-grpc-status-mapping.md
+        let grpc_code = Code::from_i32(self.grpc_code);
+        let http = match grpc_code {
+            Code::Internal => StatusCode::BAD_REQUEST,
+            Code::Unauthenticated => StatusCode::UNAUTHORIZED,
+            Code::PermissionDenied => StatusCode::FORBIDDEN,
+            Code::Unimplemented => StatusCode::NOT_FOUND,
+            Code::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
+            Code::Unknown => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => StatusCode::CONFLICT,
+        };
+
+        (http, Json(self)).into_response()
+    }
+}
+
+/// REST Gateway proxy
+pub(crate) struct HttpGrpcGateway {
+    grpc_addr: String,
+    listen_addr: SocketAddr,
+}
+
+type Client = ServiceClient<Channel>;
+
+impl HttpGrpcGateway {
+    /// Connect the create the gateway by connecting it to the gRPC service
+    pub(crate) const fn new(grpc_addr: String, listen_addr: SocketAddr) -> Self {
+        Self { grpc_addr, listen_addr }
+    }
+
+    /// Run the service
+    pub(crate) async fn serve(self) -> Result<(), Error> {
+        let grpc_client = ServiceClient::<Channel>::connect(self.grpc_addr.clone())
+            .await
+            .map_err(|e| Error::ConnectionFailure(e.to_string()))?;
+
+        let app = Router::new()
+            .route(&self.path(SUBMIT_JOB), post(Self::submit_job))
+            .route(&self.path(GET_RESULT), post(Self::get_result))
+            .route(&self.path(SUBMIT_PROGRAM), post(Self::submit_program))
+            // make sure we can accept request bodies larger then 2mb
+            .layer(DefaultBodyLimit::disable())
+            .with_state(grpc_client);
+
+        let listener = tokio::net::TcpListener::bind(self.listen_addr).await?;
+
+        tracing::info!("REST gRPC Gateway listening on {}", listener.local_addr().unwrap());
+
+        axum::serve(listener, app).await.expect("todo");
+
+        Ok(())
+    }
+
+    fn path(&self, resource: &str) -> String {
+        format!("/{resource}")
+    }
+
+    async fn submit_job(
+        State(mut client): State<Client>,
+        Json(body): Json<SubmitJobRequest>,
+    ) -> Result<Json<SubmitJobResponse>, ErrorResponse> {
+        let tonic_request = tonic::Request::new(body);
+        let response = client.submit_job(tonic_request).await?.into_inner();
+
+        Ok(Json(response))
+    }
+
+    async fn get_result(
+        State(mut client): State<Client>,
+        Json(body): Json<GetResultRequest>,
+    ) -> Result<Json<GetResultResponse>, ErrorResponse> {
+        let tonic_request = tonic::Request::new(body);
+        let response = client.get_result(tonic_request).await?.into_inner();
+
+        Ok(Json(response))
+    }
+
+    async fn submit_program(
+        State(mut client): State<Client>,
+        Json(body): Json<SubmitProgramRequest>,
+    ) -> Result<Json<SubmitProgramResponse>, ErrorResponse> {
+        let tonic_request = tonic::Request::new(body);
+        let response = client.submit_program(tonic_request).await?.into_inner();
+
+        Ok(Json(response))
+    }
 }
