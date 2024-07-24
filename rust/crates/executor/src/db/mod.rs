@@ -9,7 +9,7 @@ use reth_db::{
     Database, DatabaseEnv, DatabaseError, TableType,
 };
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::ElfKey;
+use tables::{ElfKey, ElfWithMeta};
 
 /// Database tables
 pub mod tables;
@@ -37,20 +37,12 @@ pub fn write_elf<D: Database>(
     verifying_key: &[u8],
     elf: Vec<u8>,
 ) -> Result<(), Error> {
-    use crate::db::tables::{Risc0ElfTable, Sp1ElfTable};
+    use crate::db::tables::ElfTable;
+    let elf_with_meta = ElfWithMeta { vm_type: VmType as u8, elf };
+    let key = ElfKey::new(verifying_key);
 
     let tx = db.tx_mut()?;
-    match vm_type as VmType {
-        VmType::Sp1 => {
-            let key = ElfKey::new(VmType::Sp1 as u8, verifying_key);
-            tx.put::<Sp1ElfTable>(key, elf)?;
-        }
-        VmType::Risc0 => {
-            let key = ElfKey::new(VmType::Risc0 as u8, verifying_key);
-            tx.put::<Risc0ElfTable>(key, elf)?;
-        }
-    }
-
+    tx.put::<ElfTable>(key, elf_with_meta)?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -59,23 +51,13 @@ pub fn write_elf<D: Database>(
 /// Read in an ELF file from the database. None if it does not exist
 pub fn read_elf<D: Database>(
     db: Arc<D>,
-    vm_type: &VmType,
     verifying_key: &[u8],
-) -> Result<Option<Vec<u8>>, Error> {
-    use crate::db::tables::{Risc0ElfTable, Sp1ElfTable};
+) -> Result<Option<ElfWithMeta>, Error> {
+    use crate::db::tables::ElfTable;
+    let key = ElfKey::new(verifying_key);
 
     let tx = db.tx()?;
-    let result = match vm_type {
-        VmType::Sp1 => {
-            let key = ElfKey::new(VmType::Sp1 as u8, verifying_key);
-            tx.get::<Sp1ElfTable>(key)
-        }
-        VmType::Risc0 => {
-            let key = ElfKey::new(VmType::Risc0 as u8, verifying_key);
-            tx.get::<Risc0ElfTable>(key)
-        }
-    };
-
+    let result = tx.get::<ElfTable>(key);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 

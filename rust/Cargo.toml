@@ -146,6 +146,7 @@ risc0-binfmt = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
 reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", features = ["mdbx"], default-features = false}
 reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", default-features = false }
+reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", default-features = false }
 
 # s
 serde = { version = "1.0", features = ["derive"], default-features = false }
