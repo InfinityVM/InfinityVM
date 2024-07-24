@@ -3,8 +3,8 @@
 use std::net::SocketAddr;
 
 use proto::{
-    service_client::ServiceClient, GetResultRequest, GetResultResponse, SubmitJobRequest,
-    SubmitJobResponse, SubmitProgramRequest, SubmitProgramResponse,
+    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
+    SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest, SubmitProgramResponse,
 };
 use tonic::transport::Channel;
 
@@ -66,7 +66,7 @@ pub struct HttpGrpcGateway {
     listen_addr: SocketAddr,
 }
 
-type Client = ServiceClient<Channel>;
+type Client = CoprocessorNodeClient<Channel>;
 
 impl HttpGrpcGateway {
     /// Create the gateway struct. Does not perform any network IO.
@@ -76,7 +76,7 @@ impl HttpGrpcGateway {
 
     /// Run the the HTTP gateway.
     pub(crate) async fn serve(self) -> Result<(), Error> {
-        let grpc_client = ServiceClient::<Channel>::connect(self.grpc_addr.clone())
+        let grpc_client = CoprocessorNodeClient::<Channel>::connect(self.grpc_addr.clone())
             .await
             .map_err(|e| Error::ConnectionFailure(e.to_string()))?;
 
@@ -98,7 +98,7 @@ impl HttpGrpcGateway {
     }
 
     fn path(&self, resource: &str) -> String {
-        format!("/{resource}")
+        format!("/v1/coprocessor_node/{resource}")
     }
 
     async fn submit_job(

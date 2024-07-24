@@ -10,14 +10,14 @@ const SERDE_RENAME_CAMELCASE: &str = "#[serde(rename_all = \"camelCase\")]";
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
     tonic_build::configure()
-        .type_attribute(".server", SERDE_SER_DER_DERIVE)
-        .type_attribute(".server", SERDE_RENAME_CAMELCASE)
+        .type_attribute(".coprocessor_node", SERDE_SER_DER_DERIVE)
+        .type_attribute(".coprocessor_node", SERDE_RENAME_CAMELCASE)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .compile(
             &[
-                "../../../proto/server/v1/zkvm_executor.proto",
-                "../../../proto/server/v1/service.proto",
-                "../../../proto/server/v1/job.proto",
+                "../../../proto/coprocessor_node/v1/zkvm_executor.proto",
+                "../../../proto/coprocessor_node/v1/coprocessor_node.proto",
+                "../../../proto/coprocessor_node/v1/job.proto",
             ],
             &["../../../proto"],
         )

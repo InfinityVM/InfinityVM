@@ -1,8 +1,9 @@
-//! CLI for zkvm executor gRPC server.
+//! CLI for coprocessor-node.
 
-use crate::service::Server;
+use crate::service::ServerInner;
 use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
+use proto::coprocessor_node_server::CoprocessorNodeServer;
 use std::net::SocketAddrV4;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
@@ -81,7 +82,7 @@ impl Cli {
 
         tracing::info!("starting gRPC server at {}", grpc_addr);
         tonic::transport::Server::builder()
-            .add_service(proto::service_server::ServiceServer::new(Server::new()))
+            .add_service(CoprocessorNodeServer::new(ServerInner {}))
             .add_service(reflector)
             .serve(grpc_addr.into())
             .await?;
