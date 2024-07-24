@@ -12,16 +12,15 @@ WORKDIR /app
 
 COPY --from=planner /app/recipe.json recipe.json
 
-ARG FEATURES=""
-ENV FEATURES $FEATURES
-ARG BUILD_PROFILE=release
-
-RUN cargo chef cook --profile $BUILD_PROFILE --recipe-path recipe.json
+RUN cargo chef cook --profile release --recipe-path recipe.json
 
 FROM chef as builder
 # Build application
 COPY --from=cacher /app/target /app/target
-RUN cargo build --profile $BUILD_PROFILE --features "$FEATURES" --locked --bin ethos-reth
+
+ARG FEATURES=""
+ENV FEATURES $FEATURES
+RUN cargo build --profile release --features "$FEATURES" --locked --bin ethos-reth
 
 # --------------------------------------------------------
 FROM debian:bookworm-slim
