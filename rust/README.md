@@ -31,7 +31,7 @@ Risc0
 
 ```sh
 cargo install cargo-binstall
-cargo binstall cargo-risczero
+cargo install cargo-risczero
 cargo risczero install
 cargo risczero --version
 ```
