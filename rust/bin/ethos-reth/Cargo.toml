@@ -1,8 +1,8 @@
 [package]
 name = "ethos-reth"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.79"
 default-run = "ethos-reth"
 
 [[bin]]
@@ -11,12 +11,12 @@ path = "src/main.rs"
 
 [dependencies]
 alphanet-node = { git = "https://github.com/paradigmxyz/alphanet.git" }
-reth = { workspace = true, features = ["optimism"] }
-reth-node-optimism = { workspace = true }
-reth-cli-util = { workspace = true }
+reth = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", features = ["optimism"], default-features = false }
+reth-cli-util = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false }
+reth-node-optimism = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false}
 
-clap = { workspace = true }
-tracing = { workspace = true }
+clap = { version = "4", features = ["derive"], default-features = false }
+tracing = { version = "0.1.40" }
 tikv-jemallocator = { version = "0.5", features = ["background_threads_runtime_support"], default-features = false }
 
 [target.'cfg(not(windows))'.dependencies]

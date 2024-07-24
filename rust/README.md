@@ -61,7 +61,7 @@ Build
 cargo build
 
 # to build a specific crate run
-cargo build -p ethos-reth # or whatever your crates name is
+cargo build -p http-gateway # or whatever your crates name is
 ```
 
 Lint
@@ -98,7 +98,7 @@ export RUST_LOG="<log-level>"
 To run any binary that is a non default member you need to specify the package:
 
 ```sh
-cargo run -p ethos-reth --bin ethos-reth
+cargo run -p http-gateway --bin http-gateway
 ```
 
 Note: we leverage the [workspace.default-members][1] config the reduce the amount of code compiled by default when iterating

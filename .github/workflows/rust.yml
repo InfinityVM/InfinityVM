@@ -97,3 +97,28 @@ jobs:
 
       - run: make -C rust doc-ci
         if: env.GIT_DIFF
+
+  ethos-reth:
+    name: ethos-reth
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            rust/bin/ethos-reth/**
+
+      - name: common setup
+        if: env.GIT_DIFF
+        uses: ./.github/actions/setup
+
+      - run: |
+          cd rust/bin/ethos-reth
+          cargo +nightly fmt --all --check
+          RUSTFLAGS="-D warnings" cargo clippy 
+          cargo build --release
+        if: env.GIT_DIFF

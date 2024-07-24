@@ -23,6 +23,8 @@ For those developing against this portion of the stack we recommend reading the 
 
 ### Installation
 
+Note, the `ethos-reth` crate is not currently part of the root workspace. This is to reduce the build time when developing.
+
 For local configuration, reth nodes can be started with the `--dev` flag.
 
 Install our Ethos Reth node:
