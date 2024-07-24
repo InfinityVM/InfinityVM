@@ -1,4 +1,4 @@
-//! # OP-Ethos - a Reth based OP execution client
+//! # Ethos Reth - a Reth based OP execution client
 //!
 //! This borrows largely for Reth Alphanet. Overtime it will likely diverge
 //!
