@@ -15,12 +15,14 @@ rustup toolchain install nightly
 ```
 
 Proto
+
 - MacOS
 ```sh
 # install protobuf compilation tools
 brew update
 brew install protobuf
 ```
+
 - Debian/Ubuntu
 ```sh
 # install protobuf compilation tools
@@ -55,7 +57,11 @@ make doc
 Build
 
 ```sh
+# N.B. this will only build the workspace's default-members
 cargo build
+
+# to build a specific crate run
+cargo build -p ethos-reth # or whatever your crates name is
 ```
 
 Lint
@@ -63,8 +69,8 @@ Lint
 ```sh
 # NOTE: there is a bug with risc0 build tooling where you need to build before
 # running clippy; needs investigation, but we might drop risc0 soon.
-RISC0_SKIP_BUILD=true cargo clippy --fix
-cargo +nightly fmt
+make clippy
+make fmt
 
 # or use the convenience wrapper
 make lint
@@ -83,10 +89,19 @@ Integration tests
 make test-all
 ```
 
-To change Rust log level
+To change Rust log level when running a binary
+
 ```sh
 export RUST_LOG="<log-level>"
 ```
+
+To run any binary that is a non default member you need to specify the package:
+
+```sh
+cargo run -p ethos-reth --bin ethos-reth
+```
+
+Note: we leverage the [workspace.default-members][1] config the reduce the amount of code compiled by default when iterating
 
 ### VSCode
 
@@ -102,4 +117,7 @@ If you are working in VSCode, try installing the rust-analyzer extension. We rec
 
 ## Acknowledgements
 
-- reth: the workspace configuration was largely inspired by reth.
+- reth: the workspace configuration was largely inspired by [Reth][2].
+
+[1]: https://doc.rust-lang.org/cargo/reference/workspaces.html#the-default-members-field
+[2]: https://github.com/paradigmxyz/reth

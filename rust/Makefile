@@ -39,7 +39,7 @@ test-all:
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
 	RUSTFLAGS=$(RUSTFLAGS) cargo build && \
-	RUSTFLAGS=$(RUSTFLAGS) cargo test -- --ignored
+	RUSTFLAGS=$(RUSTFLAGS) cargo test --all -- --ignored
 
 .PHONY: build
 build:

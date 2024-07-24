@@ -5,6 +5,7 @@ rust-version = "1.79"
 
 [workspace]
 members = [
+	"bin/ethos-reth",
 	"crates/executor",
 	"crates/http-gateway",
 	"crates/proto",
@@ -14,6 +15,10 @@ members = [
 	"test",
 	"programs/risc0/vapenation/methods",
 	"programs/sp1/build"
+]
+default-members = [
+	"crates/server",
+	"crates/executor",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -103,8 +108,8 @@ significant_drop_tightening = "allow"
 # a
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
-alloy = { version = "0.1", features = ["network", "signer-local", "signer-keystore", "rlp"], default-features = false }
-alloy-signer-local = { version = "0.1", default-features = false }
+alloy = { version = "0.2", features = ["network", "signer-local", "signer-keystore", "rlp"], default-features = false }
+alloy-signer-local = { version = "0.2", default-features = false }
 alloy-rlp = { version = "0.3", default-features = false }
 alloy-sol-types = { version = "0.7", default-features = false }
 
@@ -144,8 +149,12 @@ risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
 risc0-build = { version = "1", default-features = false }
 risc0-binfmt = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
-reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", features = ["mdbx"], default-features = false}
-reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "d8b104f", default-features = false }
+reth = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false }
+reth-cli-util = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false }
+reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", features = ["mdbx"], default-features = false}
+reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false }
+reth-node-optimism = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.2", default-features = false}
+
 
 # s
 serde = { version = "1.0", features = ["derive"], default-features = false }
