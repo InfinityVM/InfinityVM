@@ -82,6 +82,8 @@ impl Integration {
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
         // The coprocessor-node expects the relayer private key as an env var
         std::env::set_var("RELAYER_PRIVATE_KEY", RELAYER_DEV_SECRET);
+        // TODO: update the usage of these args when we setup an e2e test that uses this
+        //
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
@@ -96,7 +98,9 @@ impl Integration {
             .into();
         sleep_until_bound(coprocessor_node_port);
         let coprocessor_node =
-            CoprocessorNodeClient::connect(format!("http://{coprocessor_node_grpc}")).await.unwrap();
+            CoprocessorNodeClient::connect(format!("http://{coprocessor_node_grpc}"))
+                .await
+                .unwrap();
 
         let clients = Clients { executor, coprocessor_node };
 
