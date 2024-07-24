@@ -11,10 +11,17 @@ use std::{
 };
 use tonic::transport::Channel;
 
-use proto::zkvm_executor_client::ZkvmExecutorClient;
+use proto::{
+    coprocessor_node_client::CoprocessorNodeClient, zkvm_executor_client::ZkvmExecutorClient,
+};
 
 const LOCALHOST: &str = "127.0.0.1";
 const EXECUTOR_DEBUG_BIN: &str = "../target/debug/zkvm-executor";
+const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
+
+/// Relayer operators private key for development
+pub const RELAYER_DEV_SECRET: &str =
+    "abcd1d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d4abcd";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
@@ -35,8 +42,10 @@ impl Drop for ProcKill {
 /// gRPC clients
 #[derive(Debug)]
 pub struct Clients {
-    /// zkvm executor gRPC client. Connected to the
+    /// zkvm executor gRPC client
     pub executor: ZkvmExecutorClient<Channel>,
+    /// coprocessor node gRPC client
+    pub coprocessor_node: CoprocessorNodeClient<Channel>,
 }
 
 /// Integration test environment builder and runner.
@@ -53,6 +62,7 @@ impl Integration {
         // Start executor
         let db_dir = tempfile::Builder::new().prefix("zkvm-executor-test-db").tempdir().unwrap();
         let executor_port = get_localhost_port();
+        let executor_url = format!("http://{LOCALHOST}:{executor_port}");
         let _proc: ProcKill = Command::new(EXECUTOR_DEBUG_BIN)
             .arg("--ip")
             .arg(LOCALHOST)
@@ -66,11 +76,29 @@ impl Integration {
             .into();
 
         sleep_until_bound(executor_port);
-        let executor = ZkvmExecutorClient::connect(format!("http://{LOCALHOST}:{executor_port}"))
-            .await
-            .unwrap();
+        let executor = ZkvmExecutorClient::connect(executor_url.clone()).await.unwrap();
 
-        let clients = Clients { executor };
+        let coprocessor_node_port = get_localhost_port();
+        let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
+        // The coprocessor-node expects the relayer private key as an env var
+        std::env::set_var("RELAYER_PRIVATE_KEY", RELAYER_DEV_SECRET);
+        let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
+            .arg("--grpc-address")
+            .arg(&coprocessor_node_grpc)
+            .arg("--zk-shim-address")
+            .arg(executor_url.clone())
+            .arg("--eth-rpc-address")
+            .arg("this-is-not-used-yet")
+            .arg("--job-manager-address")
+            .arg("0x0000000000000000000000000000000000000000")
+            .spawn()
+            .unwrap()
+            .into();
+        sleep_until_bound(coprocessor_node_port);
+        let coprocessor_node =
+            CoprocessorNodeClient::connect(format!("http://{coprocessor_node_grpc}")).await.unwrap();
+
+        let clients = Clients { executor, coprocessor_node };
 
         let test_result = AssertUnwindSafe(test_fn(clients)).catch_unwind().await;
         assert!(test_result.is_ok())
