@@ -116,6 +116,12 @@ jobs:
         if: env.GIT_DIFF
         uses: ./.github/actions/setup
 
+      - uses: dtolnay/rust-toolchain@nightly
+        if: env.GIT_DIFF
+        with:
+          components: rustfmt
+          
+
       - run: |
           cd rust/bin/ethos-reth
           cargo +nightly fmt --all --check
