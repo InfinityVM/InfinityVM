@@ -31,5 +31,5 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/$BUILD_PROFILE/ethos-reth /app/ethos-reth
+COPY --from=builder /app/target/target/ethos-reth /app/ethos-reth
 CMD ["ethos-reth", "--dev"]
