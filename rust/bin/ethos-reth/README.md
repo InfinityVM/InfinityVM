@@ -14,7 +14,7 @@ A normal Ethereum node is composed of a consensus client and an execution client
 For the OP stack, we can make an analogous distinction between the execution client and the consensus client. Their are 3 main parts that any verifier or sequencer will need to run an OP L2.
 
 - L2 Execution Client. Ethos Reth is our execution client. Our client is based on Reth and uses the Reth Optimism features. It stores the chain state and serves the Engine API to the Consensus Client.
-- L2 Consensus Client: OP Node is the canonical OP consensus client and what we plan to use. It takes L2 txns (L2 smart contract interaction) + L1 blocks (deposit/withdraw events) and derives L2 blocks. This can be run either in validator mode or sequencing mode.
+- L2 Consensus Client: OP Node is the canonical OP consensus client and what we plan to use. It takes L2 txns + L1 blocks (deposit/withdraw events) and derives L2 blocks. This can be run either in validator mode or sequencing mode.
 - L1 Execution Client. This could be something like Reth or Geth. The L1 execution client needs to be keeping up with the tip of the L1 chain.
 
 For those developing against this portion of the stack we recommend reading the [OP spec overview][2]. Other notable reading includes the [block derivation spec][3]
@@ -40,7 +40,7 @@ git clone git@github.com:ethereum-optimism/optimism.git && \
     go build -v -tags rethdb -o ./bin/op-node ./cmd/main.go 
 ```
 
-You will probably want to add the `op-node/bin` dir to your path. So macos users can add something like: `export PATH="$HOME/ethos/code/optimism/op-node/bin:$PATH"` to their `.zshrc`. Make sure to start a new shell or run `source .zshrc`.
+You will probably want to add the `op-node/bin` dir to your path. So MacOS users can add something like: `export PATH="$HOME/ethos/code/optimism/op-node/bin:$PATH"` to their `.zshrc`. Make sure to start a new shell or run `source .zshrc`.
 
 ### Running just execution for development
 
