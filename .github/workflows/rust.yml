@@ -119,8 +119,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@nightly
         if: env.GIT_DIFF
         with:
-          components: rustfmt
-          
+          components: rustfmt, clippyg
 
       - run: |
           cd rust/bin/ethos-reth
