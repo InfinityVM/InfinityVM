@@ -38,7 +38,7 @@ pub fn write_elf<D: Database>(
     elf: Vec<u8>,
 ) -> Result<(), Error> {
     use crate::db::tables::ElfTable;
-    let elf_with_meta = ElfWithMeta { vm_type: VmType as u8, elf };
+    let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
     let key = ElfKey::new(verifying_key);
 
     let tx = db.tx_mut()?;
