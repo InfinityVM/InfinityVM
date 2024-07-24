@@ -83,7 +83,7 @@ impl Integration {
         // The coprocessor-node expects the relayer private key as an env var
         std::env::set_var("RELAYER_PRIVATE_KEY", RELAYER_DEV_SECRET);
         // TODO: update the usage of these args when we setup an e2e test that uses this
-        //
+        // https://github.com/Ethos-Works/InfinityVM/issues/104
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
