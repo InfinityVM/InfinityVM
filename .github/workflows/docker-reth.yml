@@ -38,14 +38,14 @@ jobs:
           password: '${{ secrets.ARTIFACT_REGISTRY_CREDENTIALS }}'
 
       - uses: technote-space/get-diff-action@v6.1.2
-        id: ethos-reth-diff
+        id: diff
         with:
           PATTERNS: |
             .github/workflows/docker-reth.yml
             rust/bin/ethos-reth/*
 
       - name: Docker Metadata Pull
-        id: ethos-reth-meta
+        id: meta
         if: env.GIT_DIFF
         uses: docker/metadata-action@v5
         with:
