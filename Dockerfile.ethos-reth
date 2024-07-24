@@ -10,20 +10,23 @@ RUN cargo chef prepare --recipe-path recipe.json
 FROM chef AS cacher
 WORKDIR /app
 
-COPY --from=planner /app/recipe.json recipe.json
+COPY --from=planner /app/. .
 
 RUN cargo chef cook --profile release --recipe-path recipe.json
 
 FROM chef as builder
+WORKDIR /app
 # Build application
-COPY --from=cacher /app/target /app/target
+COPY --from=cacher /app/. .
 
 ARG FEATURES=""
 ENV FEATURES $FEATURES
-RUN cargo build --profile release --features "$FEATURES" --locked --bin ethos-reth
+RUN cargo build --profile release --features "$FEATURES" --locked \
+  -p ethos-reth --bin ethos-reth
 
 # --------------------------------------------------------
 FROM debian:bookworm-slim
+WORKDIR /app
 RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates && \
   rm -rf /var/lib/apt/lists/*
