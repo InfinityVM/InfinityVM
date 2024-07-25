@@ -110,7 +110,9 @@ jobs:
         id: git_diff
         with:
           PATTERNS: |
-            rust/bin/ethos-reth/**
+            rust/bin/ethos-reth/Cargo.*
+            rust/bin/ethos-reth/src/**/*.rs
+            rust/bin/ethos-reth/src/*.rs
 
       - name: common setup
         if: env.GIT_DIFF
