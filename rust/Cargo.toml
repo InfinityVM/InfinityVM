@@ -5,7 +5,7 @@ rust-version = "1.79"
 
 [workspace]
 members = [
-	"crates/executor",
+	"crates/zkvm-executor",
 	"crates/http-gateway",
 	"crates/proto",
 	"crates/scripts",
