@@ -1,5 +1,5 @@
 [package]
-name = "server"
+name = "coprocessor-node"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

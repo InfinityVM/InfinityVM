@@ -1,7 +1,7 @@
 syntax = "proto3";
-package server.v1;
+package coprocessor_node.v1;
 
-option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
+option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
 
 // ============================================================================
 // These types are copied from the ZK shim Proto types temporarily.
