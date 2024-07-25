@@ -16,8 +16,8 @@ members = [
 	"programs/sp1/build"
 ]
 default-members = [
-	"crates/server",
-	"crates/executor",
+	"crates/coprocessor-node",
+	"crates/zkvm-executor",
 ]
 exclude = [
 	"bin/ethos-reth",
