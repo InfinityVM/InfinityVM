@@ -1,5 +1,4 @@
-use alloy_rlp::{bytes, BytesMut};
-use reth_codecs::{reth_codec, Compact};
+use alloy_rlp::bytes;
 use reth_db::{
     table::{Compress, Decode, Decompress, Encode},
     tables, DatabaseError, TableType, TableViewer,

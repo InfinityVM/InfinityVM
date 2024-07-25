@@ -7,10 +7,10 @@ use tonic::{Request, Response, Status};
 
 /// gRPC service server
 #[derive(Debug, Default)]
-pub struct ServerInner;
+pub struct CoprocessorNodeServerInner;
 
 #[tonic::async_trait]
-impl CoprocessorNodeTrait for ServerInner {
+impl CoprocessorNodeTrait for CoprocessorNodeServerInner {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
     async fn submit_job(
         &self,
