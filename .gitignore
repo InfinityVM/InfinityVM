@@ -15,7 +15,7 @@ contracts/broadcast/**
 contracts/.env
 
 # Rust Build Artifacts
-rust/target
+rust/**/target
 
 # ide
 .idea
