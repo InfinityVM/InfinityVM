@@ -85,7 +85,6 @@ async fn executor_risc0_works() {
             program_verifying_key: image_id,
             program_input: program_input.clone(),
             max_cycles,
-            vm_type: VmType::Risc0.into(),
         };
         let request = ExecuteRequest { inputs: Some(original_inputs.clone()) };
 
@@ -161,7 +160,6 @@ async fn executor_sp1_works() {
             program_verifying_key: image_id,
             program_input: program_input.clone(),
             max_cycles,
-            vm_type: VmType::Sp1.into(),
         };
         let request = ExecuteRequest { inputs: Some(original_inputs.clone()) };
 

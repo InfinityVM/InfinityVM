@@ -110,6 +110,7 @@ alloy-sol-types = { version = "0.7", default-features = false }
 
 # b
 base64 = { version = "0.22.1" }
+borsh = { version = "1", features = ["derive"], default-features = false }
 
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
