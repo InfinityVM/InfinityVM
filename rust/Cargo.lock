@@ -1375,6 +1375,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "coprocessor-node"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "clap",
+ "home",
+ "prost 0.13.1",
+ "proto",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "tonic",
+ "tonic-reflection",
+ "tracing",
+ "zkvm",
+]
+
+[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6034,25 +6053,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.71",
-]
-
-[[package]]
-name = "server"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "clap",
- "home",
- "prost 0.13.1",
- "proto",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tonic",
- "tonic-reflection",
- "tracing",
- "zkvm",
 ]
 
 [[package]]

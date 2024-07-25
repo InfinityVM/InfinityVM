@@ -1,18 +1,18 @@
 syntax = "proto3";
-package server.v1;
+package coprocessor_node.v1;
 
 import "google/api/annotations.proto";
-import "server/v1/job.proto";
-import "server/v1/zkvm_executor.proto";
+import "coprocessor_node/v1/job.proto";
+import "coprocessor_node/v1/zkvm_executor.proto";
 
-option go_package = "github.com/ethos-works/infinityvm/server/pkg/types";
+option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
 
-// Service defines the gRPC service for the coprocessing server.
-service Service {
+// Service defines the gRPC service for the coprocessing node.
+service CoprocessorNode {
   // SubmitJob defines the gRPC method for submitting a coprocessing job.
   rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {
     option (google.api.http) = {
-      post: "/v1/server/submit_job"
+      post: "/v1/coprocessor_node/submit_job"
       body: "*"
     };
   }
@@ -20,28 +20,28 @@ service Service {
   // GetResult defines the gRPC method for getting the result of a coprocessing
   // job.
   rpc GetResult(GetResultRequest) returns (GetResultResponse) {
-    option (google.api.http).get = "/v1/server/result/{job_id}";
+    option (google.api.http).get = "/v1/coprocessor_node/result/{job_id}";
   }
 
   // SubmitProgram defines the gRPC method for submitting a new program to
   // generate a unique program verification key.
   rpc SubmitProgram(SubmitProgramRequest) returns (SubmitProgramResponse) {
     option (google.api.http) = {
-      post: "/v1/server/submit_program"
+      post: "/v1/coprocessor_node/submit_program"
       body: "*"
     };
   }
 }
 
 // SubmitJobRequest defines the request structure to submit a job to the
-// coprocessing server.
+// coprocessing coprocessor_node.
 message SubmitJobRequest {
   // The zkvm job to run.
   Job job = 1;
 }
 
 // SubmitJobResponse defines the response structure to submit a job to the
-// coprocessing server.
+// coprocessing coprocessor_node.
 message SubmitJobResponse {
   uint32 job_id = 1;
 }

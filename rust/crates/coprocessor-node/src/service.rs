@@ -1,28 +1,16 @@
 use proto::{
-    GetResultRequest, GetResultResponse, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
+    coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
+    GetResultResponse, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
     SubmitProgramResponse,
 };
 use tonic::{Request, Response, Status};
 
 /// gRPC service server
-#[derive(Debug)]
-pub struct Server;
-
-impl Default for Server {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Server {
-    /// Create a new server.
-    pub const fn new() -> Self {
-        Self
-    }
-}
+#[derive(Debug, Default)]
+pub struct CoprocessorNodeServerInner;
 
 #[tonic::async_trait]
-impl proto::service_server::Service for Server {
+impl CoprocessorNodeTrait for CoprocessorNodeServerInner {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
     async fn submit_job(
         &self,
