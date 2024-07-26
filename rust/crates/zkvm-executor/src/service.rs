@@ -94,7 +94,7 @@ where
         let ElfWithMeta { vm_type, elf } =
             db::read_elf(self.db.clone(), &inputs.program_verifying_key)
                 .map_err(Error::ElfReadFailed)?
-                .ok_or_else(|| Error::ElfNotFound(format!("could not find elf for")))?;
+                .ok_or_else(|| Error::ElfNotFound("could not find elf for".to_string()))?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(vm_type as i32)?;
