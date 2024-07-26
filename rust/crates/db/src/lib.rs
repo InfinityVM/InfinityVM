@@ -9,7 +9,7 @@ use reth_db::{
     Database, DatabaseEnv, DatabaseError, TableType,
 };
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta, JobDb};
+use tables::{ElfKey, ElfWithMeta, DbJob};
 
 pub mod tables;
 
@@ -68,7 +68,7 @@ pub fn put_job<D: Database>(db: Arc<D>, job_id: u32, job: Job) -> Result<(), Err
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(job_id, JobDb(job))?;
+    tx.put::<JobTable>(job_id, DbJob(job))?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -98,7 +98,7 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
 pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32, job: Option<Job>) -> Result<bool, Error> {
     use tables::JobTable;
 
-    let job = job.map(|j| JobDb(j));
+    let job = job.map(|j| DbJob(j));
 
     let tx = db.tx_mut()?;
     let result = tx.delete::<JobTable>(job_id, job);
