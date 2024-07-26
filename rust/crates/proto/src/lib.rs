@@ -4,11 +4,11 @@
 // lints it complains about
 #![allow(clippy::all, clippy::missing_const_for_fn, unreachable_pub)]
 
+use alloy_rlp::bytes;
 use reth_db::{
     table::{Compress, Decompress},
     DatabaseError,
 };
-use alloy_rlp::bytes;
 
 tonic::include_proto!("coprocessor_node.v1");
 
