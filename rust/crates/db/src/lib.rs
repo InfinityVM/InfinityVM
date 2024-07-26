@@ -83,7 +83,7 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
-    result.map_err(Into::into).map(|opt| opt.map(|job| job))
+    result.map_err(Into::into)
 }
 
 /// Delete in an Job from the database. [None] if it does not exist.
