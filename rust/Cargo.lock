@@ -1666,6 +1666,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "db"
+version = "0.0.1"
+dependencies = [
+ "alloy-rlp",
+ "base64 0.22.1",
+ "borsh",
+ "eyre",
+ "prost 0.13.1",
+ "proto",
+ "reth-db",
+ "reth-db-api",
+ "serde",
+ "sha2",
+ "thiserror",
+ "zkvm",
+]
+
+[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -8065,6 +8083,7 @@ dependencies = [
  "base64 0.22.1",
  "borsh",
  "clap",
+ "db",
  "eyre",
  "home",
  "k256",

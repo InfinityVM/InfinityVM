@@ -1,3 +1,5 @@
+//! Database tables
+
 use alloy_rlp::bytes;
 use borsh::{BorshDeserialize, BorshSerialize};
 use reth_db::{

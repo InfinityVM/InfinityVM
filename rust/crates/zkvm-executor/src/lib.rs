@@ -3,7 +3,6 @@
 use alloy::hex;
 
 pub mod cli;
-pub mod db;
 pub mod service;
 
 /// Executor operators private key for development

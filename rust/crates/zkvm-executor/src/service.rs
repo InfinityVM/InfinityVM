@@ -1,11 +1,11 @@
 //! gRPC service implementation.
 
-use crate::db::{self, tables::ElfWithMeta};
 use alloy::{
     primitives::{keccak256, Address, Signature},
     signers::Signer,
 };
 use base64::prelude::*;
+use db::{self, tables::ElfWithMeta};
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
