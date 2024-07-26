@@ -1,11 +1,11 @@
 use proto::Job;
 use std::{
-    collections::VecDeque,
     fmt::Debug,
     sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}},
     thread,
     time::Duration,
 };
+use crossbeam::queue::ArrayQueue;
 
 #[derive(Debug)]
 pub enum Error {
@@ -43,12 +43,12 @@ impl EthClientI for EthClient {
 #[derive(Debug)]
 pub struct Relayer {
     pub eth_client: Arc<dyn EthClientI>,
-    pub broadcast_queue: Arc<Mutex<VecDeque<Job>>>,
+    pub broadcast_queue: Arc<ArrayQueue<Job>>,
     pub stop_flag: Arc<AtomicBool>,
 }
 
 impl Relayer {
-    pub fn new(eth_client: Arc<dyn EthClientI>, broadcast_queue: Arc<Mutex<VecDeque<Job>>>) -> Self {
+    pub fn new(eth_client: Arc<dyn EthClientI>, broadcast_queue: Arc<ArrayQueue<Job>>) -> Self {
         Relayer {
             eth_client,
             broadcast_queue,
@@ -60,21 +60,20 @@ impl Relayer {
         println!("Starting Relayer");
 
         while !self.stop_flag.load(Ordering::SeqCst) {
-            let finished_job = {
-                let mut queue = self.broadcast_queue.lock().unwrap();
-                queue.pop_front()
-            };
+            let finished_job = self.broadcast_queue.pop();
 
-            if let Some(job) = finished_job {
-                match self.eth_client.execute_callback(&job) {
+            match finished_job {
+                Some(job) => match self.eth_client.execute_callback(&job) {
                     Ok(_) => println!("Executed callback against job: {}", job.id),
                     Err(e) => {
                         println!("Error executing callback {}", e);
                         return Err(Error::EthClientError);
                     }
+                },
+                None => {
+                    println!("No jobs to process");
+                    thread::sleep(Duration::from_millis(10));
                 }
-            } else {
-                thread::sleep(Duration::from_millis(10));
             }
         }
 
@@ -99,7 +98,7 @@ mod test {
             times_called: Arc::new(Mutex::new(0)),
         });
 
-        let broadcast_queue = Arc::new(Mutex::new(VecDeque::new()));
+        let broadcast_queue = Arc::new(ArrayQueue::new(10));
         let relayer = Arc::new(Relayer::new(mock_eth_client.clone(), broadcast_queue.clone()));
 
         for i in 0..3 {
@@ -115,12 +114,12 @@ mod test {
                 zkvm_operator_signature: vec![0x0D, 0x0E, 0x0F],
                 status: 1,
             };
-            relayer.broadcast_queue.lock().unwrap().push_back(job);
+            relayer.broadcast_queue.push(job).unwrap();
         }
 
         let relayer_handle = {
             let relayer = relayer.clone();
-            std::thread::spawn(move || {
+            thread::spawn(move || {
                 relayer.start().unwrap();
             })
         };
@@ -130,6 +129,6 @@ mod test {
         relayer_handle.join().unwrap();
 
         assert_eq!(*mock_eth_client.times_called.lock().unwrap(), 3);
-        assert_eq!(relayer.broadcast_queue.lock().unwrap().len(), 0);
+        assert_eq!(relayer.broadcast_queue.len(), 0);
     }
 }

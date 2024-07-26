@@ -4739,6 +4739,7 @@ dependencies = [
  "alloy-signer-local",
  "alloy-sol-types",
  "clap",
+ "crossbeam",
  "eyre",
  "home",
  "k256",

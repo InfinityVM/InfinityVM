@@ -28,3 +28,4 @@ serde = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
+crossbeam = "0.8"
