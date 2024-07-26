@@ -25,14 +25,12 @@ message JobInputs {
   // The maximum amount of cpu cycles. In the future this may
   // be something closer to gas/opcode count.
   uint64 max_cycles = 2;
-  // Type of ZKVM to execute
-  VmType vm_type = 3;
   // The verifying key for the program. The executor needs to check
   // that this matches up with the program ELF before using it.
-  bytes program_verifying_key = 4;
+  bytes program_verifying_key = 3;
   // The input to the zkvm program. The zkvm program is in charge
   // of deserializing this.
-  bytes program_input = 5;
+  bytes program_input = 4;
 }
 
 // A request to execute a zkvm program.

@@ -1,6 +1,6 @@
 //! gRPC service implementation.
 
-use crate::db;
+use crate::db::{self, tables::ElfWithMeta};
 use alloy::{
     primitives::{keccak256, Address, Signature},
     signers::Signer,
@@ -91,8 +91,13 @@ where
     async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
         let inputs = request.inputs.expect("todo");
 
+        let ElfWithMeta { vm_type, elf } =
+            db::read_elf(self.db.clone(), &inputs.program_verifying_key)
+                .map_err(Error::ElfReadFailed)?
+                .ok_or_else(|| Error::ElfNotFound("could not find elf for".to_string()))?;
+
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
-        let (vm, vm_type) = self.vm(inputs.vm_type)?;
+        let (vm, vm_type) = self.vm(vm_type as i32)?;
         info!(
             inputs.job_id,
             vm_type = vm_type.as_str_name(),
@@ -100,14 +105,7 @@ where
             "new job received"
         );
 
-        let program_elf = db::read_elf(self.db.clone(), &vm_type, &inputs.program_verifying_key)
-            .map_err(Error::ElfReadFailed)?
-            .ok_or_else(|| {
-                Error::ElfNotFound(format!("could not find elf for vm={}", vm_type.as_str_name(),))
-            })?;
-
-        if !vm.is_correct_verifying_key(&program_elf, &inputs.program_verifying_key).expect("todo")
-        {
+        if !vm.is_correct_verifying_key(&elf, &inputs.program_verifying_key).expect("todo") {
             return Err(Error::InvalidVerifyingKey(format!(
                 "bad verifying key {}",
                 base64_verifying_key,
@@ -115,7 +113,7 @@ where
         }
 
         let raw_output = vm
-            .execute(&program_elf, &inputs.program_input, inputs.max_cycles)
+            .execute(&elf, &inputs.program_input, inputs.max_cycles)
             .map_err(Error::ZkvmExecuteFailed)?;
 
         let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output);
@@ -152,10 +150,7 @@ where
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        if db::read_elf(self.db.clone(), &vm_type, &verifying_key)
-            .map_err(Error::ElfReadFailed)?
-            .is_some()
-        {
+        if db::read_elf(self.db.clone(), &verifying_key).map_err(Error::ElfReadFailed)?.is_some() {
             return Err(Error::ElfAlreadyExists(format!(
                 "elf with verifying key {} already exists",
                 base64_verifying_key,

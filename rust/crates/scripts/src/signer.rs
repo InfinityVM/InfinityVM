@@ -24,7 +24,6 @@ impl ResultSigner {
             program_input: abi_encode_address(zero_addr),
             max_cycles: 1_000_000,
             program_verifying_key: b"programID".to_vec(),
-            vm_type: 0,
         };
 
         // Encode the result with metadata
