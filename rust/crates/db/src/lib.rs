@@ -91,15 +91,16 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
 /// Returns `true` if the key/value pair was present.
 ///
 /// Docs from libmdbx-rs: `Transaction::<RW>::del`:
-/// The data([job]) parameter is NOT ignored regardless the database does support sorted duplicate
-/// data items or not. If the data parameter is [Some] only the matching data item will be
-/// deleted. Otherwise, if data parameter is [None], any/all value(s) for specified key will
-/// be deleted.
-pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32, job: Option<Job>) -> Result<bool, Error> {
+/// The data parameter is NOT ignored regardless of whether the database supports
+/// sorted duplicate data items or not. If the data parameter is [Some] only the matching
+/// data item will be deleted. Otherwise, if data parameter is [None], any/all value(s)
+/// for specified key will be deleted.
+/// We pass in [None] here since each `job_id` only maps to a single Job.
+pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<JobTable>(job_id, job);
+    let result = tx.delete::<JobTable>(job_id, None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
