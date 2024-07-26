@@ -1670,10 +1670,8 @@ name = "db"
 version = "0.0.1"
 dependencies = [
  "alloy-rlp",
- "base64 0.22.1",
  "borsh",
  "eyre",
- "prost 0.13.1",
  "proto",
  "reth-db",
  "reth-db-api",
@@ -8078,22 +8076,16 @@ name = "zkvm-executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "alloy-rlp",
  "alloy-signer-local",
  "alloy-sol-types",
  "base64 0.22.1",
- "borsh",
  "clap",
  "db",
- "eyre",
  "home",
  "k256",
  "prost 0.13.1",
  "proto",
- "reth-codecs",
  "reth-db",
- "reth-db-api",
- "serde",
  "sha2",
  "thiserror",
  "tokio",
