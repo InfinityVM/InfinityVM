@@ -1,5 +1,7 @@
+use alloy_rlp::bytes;
+use borsh::{BorshDeserialize, BorshSerialize};
 use reth_db::{
-    table::{Decode, Encode},
+    table::{Compress, Decode, Decompress, Encode},
     tables, DatabaseError, TableType, TableViewer,
 };
 use sha2::{Digest, Sha256};
@@ -11,9 +13,8 @@ pub struct ElfKey(pub [u8; 32]);
 
 impl ElfKey {
     /// New [Self]
-    pub(crate) fn new(vm_type: u8, verifying_key: &[u8]) -> Self {
-        let mut inner: [u8; 32] = Sha256::digest(verifying_key).into();
-        inner[0] = vm_type;
+    pub(crate) fn new(verifying_key: &[u8]) -> Self {
+        let inner: [u8; 32] = Sha256::digest(verifying_key).into();
 
         Self(inner)
     }
@@ -35,10 +36,43 @@ impl Decode for ElfKey {
     }
 }
 
-reth_db::tables! {
-    /// Stores risc0 Elf files
-    table Risc0ElfTable<Key = ElfKey, Value = Vec<u8>>;
+/// Storage format for elf files
+#[derive(Debug, BorshSerialize, BorshDeserialize, serde::Serialize)]
+pub struct ElfWithMeta {
+    /// The type of vm
+    pub vm_type: u8,
+    /// The ELF file
+    pub elf: Vec<u8>,
+}
 
-    /// Stores sp1 Elf files
-    table Sp1ElfTable<Key = ElfKey, Value = Vec<u8>>;
+impl reth_db::table::Encode for ElfWithMeta {
+    type Encoded = Vec<u8>;
+    fn encode(self) -> Self::Encoded {
+        borsh::to_vec(&self).expect("borsh serialize works. qed.")
+    }
+}
+
+impl reth_db::table::Decode for ElfWithMeta {
+    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
+        borsh::from_slice(value.as_ref()).map_err(|_| DatabaseError::Decode)
+    }
+}
+
+impl Compress for ElfWithMeta {
+    type Compressed = Vec<u8>;
+    fn compress_to_buf<B: bytes::BufMut + AsMut<[u8]>>(self, dest: &mut B) {
+        let src = borsh::to_vec(&self).expect("borsh serialize works. qed.");
+        dest.put(&src[..])
+    }
+}
+
+impl Decompress for ElfWithMeta {
+    fn decompress<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
+        borsh::from_slice(value.as_ref()).map_err(|_| DatabaseError::Decode)
+    }
+}
+
+reth_db::tables! {
+    /// Stores Elf files
+    table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
 }
