@@ -47,7 +47,7 @@ pub fn put_elf<D: Database>(
     Ok(())
 }
 
-/// Read in an ELF file from the database. None if it does not exist
+/// Read in an ELF file from the database. [None] if it does not exist
 pub fn get_elf<D: Database>(
     db: Arc<D>,
     verifying_key: &[u8],
@@ -74,7 +74,7 @@ pub fn put_job<D: Database>(db: Arc<D>, job_id: u32, job: Job) -> Result<(), Err
     Ok(())
 }
 
-/// Read in an Job from the database. None if it does not exist
+/// Read in an Job from the database. [None] if it does not exist
 pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
     use tables::JobTable;
 
@@ -84,6 +84,28 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
     let _commit = tx.commit()?;
 
     result.map_err(Into::into).map(|opt| opt.map(|job_db| job_db.0))
+}
+
+/// Delete in an Job from the database. [None] if it does not exist.
+///
+/// Returns `true` if the key/value pair was present.
+///
+/// Docs from libmdbx-rs: `Transaction::<RW>::del`:
+/// The data([job]) parameter is NOT ignored regardless the database does support sorted duplicate
+/// data items or not. If the data parameter is [Some] only the matching data item will be
+/// deleted. Otherwise, if data parameter is [None], any/all value(s) for specified key will
+/// be deleted.
+pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32, job: Option<Job>) -> Result<bool, Error> {
+    use tables::JobTable;
+
+    let job = job.map(|j| JobDb(j));
+
+    let tx = db.tx_mut()?;
+    let result = tx.delete::<JobTable>(job_id, job);
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into)
 }
 
 /// Open a DB at `path`. Creates the DB if it does not exist.
