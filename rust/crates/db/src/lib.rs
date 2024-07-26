@@ -9,7 +9,7 @@ use reth_db::{
     Database, DatabaseEnv, DatabaseError, TableType,
 };
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta, DbJob};
+use tables::{ElfKey, ElfWithMeta};
 
 pub mod tables;
 
@@ -68,7 +68,7 @@ pub fn put_job<D: Database>(db: Arc<D>, job_id: u32, job: Job) -> Result<(), Err
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(job_id, DbJob(job))?;
+    tx.put::<JobTable>(job_id, job)?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -83,7 +83,7 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
-    result.map_err(Into::into).map(|opt| opt.map(|job_db| job_db.0))
+    result.map_err(Into::into).map(|opt| opt.map(|job| job))
 }
 
 /// Delete in an Job from the database. [None] if it does not exist.
@@ -97,8 +97,6 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
 /// be deleted.
 pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32, job: Option<Job>) -> Result<bool, Error> {
     use tables::JobTable;
-
-    let job = job.map(|j| DbJob(j));
 
     let tx = db.tx_mut()?;
     let result = tx.delete::<JobTable>(job_id, job);

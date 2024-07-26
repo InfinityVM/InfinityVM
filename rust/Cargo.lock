@@ -4569,8 +4569,10 @@ dependencies = [
 name = "proto"
 version = "0.0.1"
 dependencies = [
+ "alloy-rlp",
  "borsh",
  "prost 0.13.1",
+ "reth-db",
  "serde",
  "tokio",
  "tonic",
