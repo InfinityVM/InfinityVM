@@ -5,6 +5,7 @@
 use std::{env, path::PathBuf};
 
 const SERDE_SER_DER_DERIVE: &str = "#[derive(serde::Serialize, serde::Deserialize)]";
+const BORSH_SER_DER_DERIVE: &str = "#[derive(borsh::BorshSerialize, borsh::BorshDeserialize,)]";
 const SERDE_RENAME_CAMELCASE: &str = "#[serde(rename_all = \"camelCase\")]";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -12,6 +13,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .type_attribute(".coprocessor_node", SERDE_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node", SERDE_RENAME_CAMELCASE)
+        .type_attribute("Job", BORSH_SER_DER_DERIVE)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .compile(
             &[

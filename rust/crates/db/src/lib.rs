@@ -1,6 +1,6 @@
 //! Executor database
 
-use proto::VmType;
+use proto::{Job, VmType};
 use reth_db::{
     create_db,
     mdbx::{DatabaseArguments, DatabaseFlags},
@@ -9,7 +9,7 @@ use reth_db::{
     Database, DatabaseEnv, DatabaseError, TableType,
 };
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta};
+use tables::{ElfKey, ElfWithMeta, JobDb};
 
 pub mod tables;
 
@@ -30,7 +30,7 @@ pub enum Error {
 }
 
 /// Write an ELF file to the database
-pub fn write_elf<D: Database>(
+pub fn put_elf<D: Database>(
     db: Arc<D>,
     vm_type: VmType,
     verifying_key: &[u8],
@@ -48,7 +48,7 @@ pub fn write_elf<D: Database>(
 }
 
 /// Read in an ELF file from the database. None if it does not exist
-pub fn read_elf<D: Database>(
+pub fn get_elf<D: Database>(
     db: Arc<D>,
     verifying_key: &[u8],
 ) -> Result<Option<ElfWithMeta>, Error> {
@@ -61,6 +61,29 @@ pub fn read_elf<D: Database>(
     let _commit = tx.commit()?;
 
     result.map_err(Into::into)
+}
+
+/// Write a job to the database
+pub fn put_job<D: Database>(db: Arc<D>, job_id: u32, job: Job) -> Result<(), Error> {
+    use tables::JobTable;
+
+    let tx = db.tx_mut()?;
+    tx.put::<JobTable>(job_id, JobDb(job))?;
+    let _commit = tx.commit()?;
+
+    Ok(())
+}
+
+/// Read in an Job from the database. None if it does not exist
+pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
+    use tables::JobTable;
+
+    let tx = db.tx()?;
+    let result = tx.get::<JobTable>(job_id);
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into).map(|opt| opt.map(|job_db| job_db.0))
 }
 
 /// Open a DB at `path`. Creates the DB if it does not exist.
