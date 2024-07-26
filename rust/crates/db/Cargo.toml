@@ -1,0 +1,15 @@
+[package]
+name = "db"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+
+[dependencies]
+eyre = { workspace = true }
+proto = { path = "../proto" }
+reth-db = { workspace = true }
+reth-db-api = { workspace = true }
+serde = { workspace = true }
+sha2 = { workspace = true }
+thiserror = { workspace = true }

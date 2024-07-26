@@ -1648,6 +1648,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "db"
+version = "0.0.1"
+dependencies = [
+ "eyre",
+ "proto",
+ "reth-db",
+ "reth-db-api",
+ "serde",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"

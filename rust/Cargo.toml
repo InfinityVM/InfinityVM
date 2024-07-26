@@ -5,6 +5,7 @@ rust-version = "1.79"
 
 [workspace]
 members = [
+	"crates/db",
 	"crates/zkvm-executor",
 	"crates/http-gateway",
 	"crates/proto",
@@ -18,6 +19,7 @@ members = [
 default-members = [
 	"crates/coprocessor-node",
 	"crates/zkvm-executor",
+	"crates/db",
 ]
 exclude = [
 	"bin/ethos-reth",
