@@ -1,6 +1,6 @@
 //! Executor database
 
-use proto::VmType;
+use proto::{Job, VmType};
 use reth_db::{
     create_db,
     mdbx::{DatabaseArguments, DatabaseFlags},
@@ -11,7 +11,6 @@ use reth_db::{
 use std::{ops::Deref, path::Path, sync::Arc};
 use tables::{ElfKey, ElfWithMeta};
 
-/// Database tables
 pub mod tables;
 
 /// DB module errors
@@ -31,13 +30,13 @@ pub enum Error {
 }
 
 /// Write an ELF file to the database
-pub fn write_elf<D: Database>(
+pub fn put_elf<D: Database>(
     db: Arc<D>,
     vm_type: VmType,
     verifying_key: &[u8],
     elf: Vec<u8>,
 ) -> Result<(), Error> {
-    use crate::db::tables::ElfTable;
+    use tables::ElfTable;
     let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
     let key = ElfKey::new(verifying_key);
 
@@ -48,16 +47,60 @@ pub fn write_elf<D: Database>(
     Ok(())
 }
 
-/// Read in an ELF file from the database. None if it does not exist
-pub fn read_elf<D: Database>(
+/// Read in an ELF file from the database. [None] if it does not exist
+pub fn get_elf<D: Database>(
     db: Arc<D>,
     verifying_key: &[u8],
 ) -> Result<Option<ElfWithMeta>, Error> {
-    use crate::db::tables::ElfTable;
+    use tables::ElfTable;
     let key = ElfKey::new(verifying_key);
 
     let tx = db.tx()?;
     let result = tx.get::<ElfTable>(key);
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into)
+}
+
+/// Write a job to the database
+pub fn put_job<D: Database>(db: Arc<D>, job_id: u32, job: Job) -> Result<(), Error> {
+    use tables::JobTable;
+
+    let tx = db.tx_mut()?;
+    tx.put::<JobTable>(job_id, job)?;
+    let _commit = tx.commit()?;
+
+    Ok(())
+}
+
+/// Read in an Job from the database. [None] if it does not exist
+pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
+    use tables::JobTable;
+
+    let tx = db.tx()?;
+    let result = tx.get::<JobTable>(job_id);
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into)
+}
+
+/// Delete in an Job from the database. [None] if it does not exist.
+///
+/// Returns `true` if the key/value pair was present.
+///
+/// Docs from libmdbx-rs: `Transaction::<RW>::del`:
+/// The data parameter is NOT ignored regardless of whether the database supports
+/// sorted duplicate data items or not. If the data parameter is [Some] only the matching
+/// data item will be deleted. Otherwise, if data parameter is [None], any/all value(s)
+/// for specified key will be deleted.
+/// We pass in [None] here since each `job_id` only maps to a single Job.
+pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
+    use tables::JobTable;
+
+    let tx = db.tx_mut()?;
+    let result = tx.delete::<JobTable>(job_id, None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -77,7 +120,7 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
         // instead of their's
         let tx = db.deref().begin_rw_txn().map_err(|e| DatabaseError::InitTx(e.into()))?;
 
-        for table in crate::db::tables::Tables::ALL {
+        for table in tables::Tables::ALL {
             let flags = match table.table_type() {
                 TableType::Table => DatabaseFlags::default(),
                 TableType::DupSort => DatabaseFlags::DUP_SORT,

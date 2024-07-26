@@ -1,5 +1,8 @@
+//! Database tables
+
 use alloy_rlp::bytes;
 use borsh::{BorshDeserialize, BorshSerialize};
+use proto::Job;
 use reth_db::{
     table::{Compress, Decode, Decompress, Encode},
     tables, DatabaseError, TableType, TableViewer,
@@ -45,19 +48,6 @@ pub struct ElfWithMeta {
     pub elf: Vec<u8>,
 }
 
-impl reth_db::table::Encode for ElfWithMeta {
-    type Encoded = Vec<u8>;
-    fn encode(self) -> Self::Encoded {
-        borsh::to_vec(&self).expect("borsh serialize works. qed.")
-    }
-}
-
-impl reth_db::table::Decode for ElfWithMeta {
-    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
-        borsh::from_slice(value.as_ref()).map_err(|_| DatabaseError::Decode)
-    }
-}
-
 impl Compress for ElfWithMeta {
     type Compressed = Vec<u8>;
     fn compress_to_buf<B: bytes::BufMut + AsMut<[u8]>>(self, dest: &mut B) {
@@ -75,4 +65,6 @@ impl Decompress for ElfWithMeta {
 reth_db::tables! {
     /// Stores Elf files
     table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
+    /// Stores jobs
+    table JobTable<Key = u32, Value = Job>;
 }

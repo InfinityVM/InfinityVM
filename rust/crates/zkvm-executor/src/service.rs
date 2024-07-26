@@ -1,11 +1,11 @@
 //! gRPC service implementation.
 
-use crate::db::{self, tables::ElfWithMeta};
 use alloy::{
     primitives::{keccak256, Address, Signature},
     signers::Signer,
 };
 use base64::prelude::*;
+use db::{self, tables::ElfWithMeta};
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
@@ -92,7 +92,7 @@ where
         let inputs = request.inputs.expect("todo");
 
         let ElfWithMeta { vm_type, elf } =
-            db::read_elf(self.db.clone(), &inputs.program_verifying_key)
+            db::get_elf(self.db.clone(), &inputs.program_verifying_key)
                 .map_err(Error::ElfReadFailed)?
                 .ok_or_else(|| Error::ElfNotFound("could not find elf for".to_string()))?;
 
@@ -150,14 +150,14 @@ where
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        if db::read_elf(self.db.clone(), &verifying_key).map_err(Error::ElfReadFailed)?.is_some() {
+        if db::get_elf(self.db.clone(), &verifying_key).map_err(Error::ElfReadFailed)?.is_some() {
             return Err(Error::ElfAlreadyExists(format!(
                 "elf with verifying key {} already exists",
                 base64_verifying_key,
             )));
         }
 
-        db::write_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
+        db::put_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
             .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
 
         info!(

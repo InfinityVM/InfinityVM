@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 use tracing::{info, instrument};
 
-use crate::{db, service::ZkvmExecutorService, DEV_SECRET};
+use crate::{service::ZkvmExecutorService, DEV_SECRET};
 
 /// Errors from the executor CLI
 #[derive(thiserror::Error, Debug)]

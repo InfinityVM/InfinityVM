@@ -1,0 +1,21 @@
+[package]
+name = "db"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+alloy-rlp = { workspace = true }
+thiserror = { workspace = true }
+sha2 = { workspace = true }
+reth-db = { workspace = true }
+reth-db-api = { workspace = true }
+eyre = { workspace = true }
+serde = { workspace = true }
+borsh = { workspace = true }
+
+proto = { path = "../proto" }
+zkvm = { path = "../zkvm" }

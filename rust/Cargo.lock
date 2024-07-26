@@ -1666,6 +1666,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "db"
+version = "0.0.1"
+dependencies = [
+ "alloy-rlp",
+ "borsh",
+ "eyre",
+ "proto",
+ "reth-db",
+ "reth-db-api",
+ "serde",
+ "sha2",
+ "thiserror",
+ "zkvm",
+]
+
+[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4553,7 +4569,10 @@ dependencies = [
 name = "proto"
 version = "0.0.1"
 dependencies = [
+ "alloy-rlp",
+ "borsh",
  "prost 0.13.1",
+ "reth-db",
  "serde",
  "tokio",
  "tonic",
@@ -8059,21 +8078,17 @@ name = "zkvm-executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "alloy-rlp",
  "alloy-signer-local",
  "alloy-sol-types",
  "base64 0.22.1",
  "borsh",
  "clap",
- "eyre",
+ "db",
  "home",
  "k256",
  "prost 0.13.1",
  "proto",
- "reth-codecs",
  "reth-db",
- "reth-db-api",
- "serde",
  "sha2",
  "thiserror",
  "tokio",

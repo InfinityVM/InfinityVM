@@ -9,6 +9,9 @@ tonic = { workspace = true }
 prost = { workspace = true }
 tokio = { workspace = true }
 serde = { workspace = true }
+borsh = { workspace = true }
+alloy-rlp = { workspace = true }
+reth-db = { workspace = true }
 
 [build-dependencies]
 tonic-build = { workspace = true }
