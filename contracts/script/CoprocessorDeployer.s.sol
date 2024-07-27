@@ -20,7 +20,7 @@ contract CoprocessorDeployer is Script, Utils {
     IJobManager public jobManagerImplementation;
     MockConsumer public consumer;
 
-    function deployCoprocessorContracts(address relayer, address coprocessorOperator) public {
+    function deployCoprocessorContracts(address relayer, address coprocessorOperator, bool writeJson) public {
         vm.startBroadcast();
         // deploy proxy admin for ability to upgrade proxy contracts
         coprocessorProxyAdmin = new ProxyAdmin();
@@ -43,43 +43,45 @@ contract CoprocessorDeployer is Script, Utils {
 
         consumer = new MockConsumer(address(jobManager));
 
-        // WRITE JSON DATA
-        string memory parent_object = "parent object";
+        if (writeJson) {
+            // WRITE JSON DATA
+            string memory parent_object = "parent object";
 
-        string memory deployed_addresses = "addresses";
-        vm.serializeAddress(
-            deployed_addresses,
-            "jobManager",
-            address(jobManager)
-        );
+            string memory deployed_addresses = "addresses";
+            vm.serializeAddress(
+                deployed_addresses,
+                "jobManager",
+                address(jobManager)
+            );
 
-        vm.serializeAddress(
-            deployed_addresses,
-            "jobManagerImplementation",
-            address(jobManagerImplementation)
-        );
+            vm.serializeAddress(
+                deployed_addresses,
+                "jobManagerImplementation",
+                address(jobManagerImplementation)
+            );
 
-        vm.serializeAddress(
-            deployed_addresses,
-            "coprocessorProxyAdmin",
-            address(coprocessorProxyAdmin)
-        );
+            vm.serializeAddress(
+                deployed_addresses,
+                "coprocessorProxyAdmin",
+                address(coprocessorProxyAdmin)
+            );
 
-        string memory deployed_addresses_output = vm.serializeAddress(
-            deployed_addresses,
-            "consumer",
-            address(consumer)
-        );
+            string memory deployed_addresses_output = vm.serializeAddress(
+                deployed_addresses,
+                "consumer",
+                address(consumer)
+            );
 
-        // serialize all the data
-        string memory finalJson = vm.serializeString(
-            parent_object,
-            deployed_addresses,
-            deployed_addresses_output
-        );
+            // serialize all the data
+            string memory finalJson = vm.serializeString(
+                parent_object,
+                deployed_addresses,
+                deployed_addresses_output
+            );
 
-        writeOutput(finalJson, "coprocessor_deployment_output");
+            writeOutput(finalJson, "coprocessor_deployment_output");
+        }
+
         vm.stopBroadcast();
     }
-
 }
