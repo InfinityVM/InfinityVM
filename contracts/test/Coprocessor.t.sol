@@ -17,7 +17,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     event JobCompleted(uint32 indexed jobID, bytes result);
 
     function setUp() public {
-        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR);
+        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, false);
     }
 
     function test_JobManager_CreateJob() public {
