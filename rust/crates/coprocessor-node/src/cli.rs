@@ -190,7 +190,7 @@ impl Cli {
         let job_processor = JobProcessorService::new(
             db.clone(),
             exec_queue_sender,
-            Arc::new(exec_queue_receiver),
+            exec_queue_receiver,
             broadcast_queue_sender,
             executor,
         );

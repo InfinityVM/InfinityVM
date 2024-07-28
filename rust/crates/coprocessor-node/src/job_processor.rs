@@ -41,7 +41,7 @@ pub enum Error {
 pub struct JobProcessorService<S, D> {
     db: Arc<D>,
     exec_queue_sender: Sender<Job>,
-    exec_queue_receiver: Arc<Receiver<Job>>,
+    exec_queue_receiver: Receiver<Job>,
     broadcast_queue_sender: Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
 }
@@ -52,7 +52,7 @@ where
     D: Database + 'static,
 {
     /// Create a new job processor service.
-    pub const fn new(db: Arc<D>, exec_queue_sender: Sender<Job>, exec_queue_receiver: Arc<Receiver<Job>>, broadcast_queue_sender: Sender<Job>, zk_executor: ZkvmExecutorService<S>) -> Self {
+    pub const fn new(db: Arc<D>, exec_queue_sender: Sender<Job>, exec_queue_receiver: Receiver<Job>, broadcast_queue_sender: Sender<Job>, zk_executor: ZkvmExecutorService<S>) -> Self {
         Self { db, exec_queue_sender, exec_queue_receiver, broadcast_queue_sender, zk_executor }
     }
 
@@ -106,7 +106,7 @@ where
         let mut handles = vec![];
 
         for _ in 0..num_workers {
-            let exec_queue_receiver = Arc::clone(&self.exec_queue_receiver);
+            let exec_queue_receiver = self.exec_queue_receiver.clone();
             let broadcast_queue_sender = self.broadcast_queue_sender.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
@@ -123,7 +123,7 @@ where
     }
 
     async fn start_worker(
-        exec_queue_receiver: Arc<Receiver<Job>>,
+        exec_queue_receiver: Receiver<Job>,
         broadcast_queue_sender: Sender<Job>,
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
