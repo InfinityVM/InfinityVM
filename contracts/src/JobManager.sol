@@ -53,11 +53,12 @@ contract JobManager is
         return coprocessorOperator;
     }
 
-    function createJob(bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external override returns (uint32 jobID) {
-        jobID = jobIDCounter;
+    function createJob(bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external override returns (uint32) {
+        uint32 jobID = jobIDCounter;
         jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, msg.sender, JOB_STATE_PENDING);
         emit JobCreated(jobID, maxCycles, programID, programInput);
         jobIDCounter++;
+        return jobID;
     }
 
     function getJobMetadata(uint32 jobID) public view returns (JobMetadata memory) {

@@ -88,7 +88,7 @@ deploy-coprocessor-contracts: ## Deploy coprocessor contracts
 	PRIVATE_KEY=$(or $(privateKey),$(DEFAULT_PRIVATE_KEY)) \
 	CHAIN_ID=$(chain) \
 	RELAYER_FUNDING_AMOUNT=$(or $(relayerFundingAmount), $(DEFAULT_RELAYER_FUNDING_AMOUNT)) 
-	sh script/cli/deploy_coprocessor_contracts.sh \
+	sh script/cli/deploy-coprocessor-contracts.sh \
 	$(or $(relayerAddress),$(DEFAULT_RELAYER_ADDRESS)) \
 	$(or $(operatorAddress),$(DEFAULT_COPROCESSOR_OPERATOR_ADDRESS))
 
