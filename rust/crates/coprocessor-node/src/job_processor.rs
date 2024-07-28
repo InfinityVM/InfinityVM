@@ -14,8 +14,8 @@ use zkvm_executor::service::ZkvmExecutorService;
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("zkvm executor error: {0}")]
-    ZkvmExecutorFailed(#[from] zkvm_executor::service::Error),
+    #[error("failed to create ELF in zkvm executor: {0}")]
+    CreateElfFailed(#[from] zkvm_executor::service::Error),
     /// database error
     #[error("database error: {0}")]
     Database(#[from] db::Error),
