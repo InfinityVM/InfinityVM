@@ -84,7 +84,7 @@ fn db_dir() -> String {
     p.push("ethos");
     p.push("networks");
     p.push("ethos-dev0");
-    p.push("zkvm-executor");
+    p.push("coprocessor-node");
     p.push("db");
     p.into_os_string().into_string().expect("could not create default db path")
 }
