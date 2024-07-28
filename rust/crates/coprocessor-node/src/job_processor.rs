@@ -75,9 +75,7 @@ where
         job.status = JobStatus::Pending.into();
 
         self.save_job(job.clone()).await?;
-        if let Err(_) = self.exec_queue.push(job) {
-            return Err(Error::ExecQueuePushFailed);
-        }
+        self.exec_queue.push(job).map_err(|_| Error::ExecQueuePushFailed)?;
 
         Ok(())
     }
