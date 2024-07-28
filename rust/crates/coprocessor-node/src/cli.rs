@@ -9,7 +9,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use crossbeam::channel::{unbounded, Receiver, Sender};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
-use std::{net::SocketAddrV4, path::PathBuf};
+use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
@@ -133,6 +133,10 @@ struct Opts {
 
     #[command(subcommand)]
     operator_key: Operator,
+
+    /// Number of worker threads to use for processing jobs
+    #[arg(long, default_value = "4")]
+    worker_count: usize,
 }
 
 impl Opts {
@@ -189,14 +193,20 @@ impl Cli {
         let (broadcast_queue_sender, broadcast_queue_receiver): (Sender<Job>, Receiver<Job>) =
             unbounded();
 
-        let job_processor = JobProcessorService::new(
+        let job_processor = Arc::new(JobProcessorService::new(
             db.clone(),
             exec_queue_sender,
             exec_queue_receiver,
             broadcast_queue_sender,
             executor,
-        );
+        ));
 
+        // Start the job processor with a specified number of worker threads
+        let job_processor_clone = job_processor.clone();
+        tokio::spawn(async move {
+            job_processor_clone.start(opts.worker_count).await;
+        });
+    
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
             .build()

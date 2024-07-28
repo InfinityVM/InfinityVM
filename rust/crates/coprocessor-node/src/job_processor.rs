@@ -225,7 +225,7 @@ where
                     }
                 }
                 Err(error) => {
-                    error!(?error, "job executor worker stopped due to error")
+                    error!(?error, "job executor worker stopped due to error");
                     break;
                 }
             }

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::job_processor::JobProcessorService;
 use alloy::{primitives::Signature, signers::Signer};
 use proto::{
@@ -13,7 +15,7 @@ use tonic::{Request, Response, Status};
 pub struct CoprocessorNodeServerInner<S, D> {
     // TODO (Maanav): should we use `DatabaseEnv` instead of a generic `D`?
     /// Job processor service
-    pub job_processor: JobProcessorService<S, D>,
+    pub job_processor: Arc<JobProcessorService<S, D>>,
 }
 
 #[tonic::async_trait]
@@ -50,7 +52,7 @@ where
         self.job_processor
             .submit_job(job.clone())
             .await
-            .map_err(|e| Status::internal(format!("error in submit_job: {e}")))?;
+            .map_err(|e| Status::internal(format!("failed to submit job: {e}")))?;
 
         Ok(Response::new(SubmitJobResponse { job_id: job.id }))
     }
@@ -69,7 +71,7 @@ where
             .job_processor
             .get_job(req.job_id)
             .await
-            .map_err(|e| Status::internal(format!("error in get_job: {e}")))?;
+            .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
 
         Ok(Response::new(GetResultResponse { job }))
     }
@@ -88,7 +90,7 @@ where
             .job_processor
             .submit_elf(req.program_elf, req.vm_type)
             .await
-            .map_err(|e| Status::internal(format!("error in submit_elf: {e}")))?;
+            .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))?;
 
         Ok(Response::new(SubmitProgramResponse { program_verifying_key: verifying_key }))
     }
