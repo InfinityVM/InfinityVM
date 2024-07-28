@@ -44,12 +44,11 @@ pub enum Error {
 pub struct ZkvmExecutorService<S> {
     signer: S,
     chain_id: Option<u64>,
-    // db: Arc<D>,
 }
 
 impl<S> ZkvmExecutorService<S>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<Signature> + Send + Sync + 'static + Clone,
 {
     pub const fn new(signer: S, chain_id: Option<u64>) -> Self {
         Self { signer, chain_id }
@@ -90,13 +89,13 @@ where
     pub async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
         let inputs = request.inputs.expect("todo");
 
-        let ElfWithMeta { vm_type, elf } =
-            db::get_elf(self.db.clone(), &inputs.program_verifying_key)
-                .map_err(Error::ElfReadFailed)?
-                .ok_or_else(|| Error::ElfNotFound("could not find elf for".to_string()))?;
+        // let ElfWithMeta { vm_type, elf } =
+        //     db::get_elf(self.db.clone(), &inputs.program_verifying_key)
+        //         .map_err(Error::ElfReadFailed)?
+        //         .ok_or_else(|| Error::ElfNotFound("could not find elf for".to_string()))?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
-        let (vm, vm_type) = self.vm(vm_type as i32)?;
+        let (vm, vm_type) = self.vm(inputs.vm_type as i32)?;
         info!(
             inputs.job_id,
             vm_type = vm_type.as_str_name(),
@@ -104,7 +103,7 @@ where
             "new job received"
         );
 
-        if !vm.is_correct_verifying_key(&elf, &inputs.program_verifying_key).expect("todo") {
+        if !vm.is_correct_verifying_key(&inputs.program_elf, &inputs.program_verifying_key).expect("todo") {
             return Err(Error::InvalidVerifyingKey(format!(
                 "bad verifying key {}",
                 base64_verifying_key,
@@ -112,7 +111,7 @@ where
         }
 
         let raw_output = vm
-            .execute(&elf, &inputs.program_input, inputs.max_cycles)
+            .execute(&inputs.program_elf, &inputs.program_input, inputs.max_cycles)
             .map_err(Error::ZkvmExecuteFailed)?;
 
         let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output);
@@ -149,15 +148,15 @@ where
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        if db::get_elf(self.db.clone(), &verifying_key).map_err(Error::ElfReadFailed)?.is_some() {
-            return Err(Error::ElfAlreadyExists(format!(
-                "elf with verifying key {} already exists",
-                base64_verifying_key,
-            )));
-        }
+        // if db::get_elf(self.db.clone(), &verifying_key).map_err(Error::ElfReadFailed)?.is_some() {
+        //     return Err(Error::ElfAlreadyExists(format!(
+        //         "elf with verifying key {} already exists",
+        //         base64_verifying_key,
+        //     )));
+        // }
 
-        db::put_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
-            .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
+        // db::put_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
+        //     .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
 
         info!(
             vm_type = vm_type.as_str_name(),

@@ -31,6 +31,10 @@ message JobInputs {
   // The input to the zkvm program. The zkvm program is in charge
   // of deserializing this.
   bytes program_input = 4;
+  // The ELF for the program,
+  bytes program_elf = 5;
+  // VM type
+  VmType vm_type = 6;
 }
 
 // A request to execute a zkvm program.

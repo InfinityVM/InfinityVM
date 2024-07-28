@@ -4,11 +4,11 @@ use crate::{service::CoprocessorNodeServerInner, job_processor::JobProcessorServ
 use alloy::{primitives::{Address, hex}, signers::local::LocalSigner};
 use k256::ecdsa::SigningKey;
 use clap::{Parser, Subcommand, ValueEnum};
-use proto::coprocessor_node_server::CoprocessorNodeServer;
+use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
 use tracing::info;
 use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
-use crossbeam::queue::ArrayQueue;
+use crossbeam::{channel::{unbounded, Sender, Receiver}};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -176,23 +176,23 @@ impl Cli {
         let db = db::init_db(opts.db_dir.clone())?;
         info!(db_path = opts.db_dir, "db initialized");
 
-        // TODO (Maanav): Should we make the executor stateless? i.e. only job_processor has access to the DB
-        // and passes the necessary data when calling the executor
-        let executor = ZkvmExecutorService::new(signer, opts.chain_id, db);
+        let executor = ZkvmExecutorService::new(signer, opts.chain_id);
         info!(
             chain_id = opts.chain_id,
             signer = executor.signer_address().to_string(),
             "executor initialized"
         );
 
-        let exec_queue = Arc::new(ArrayQueue::new(10));
-        let broadcast_queue = Arc::new(ArrayQueue::new(10));
+        // Initialize the crossbeam channels
+        let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = unbounded();
+        let (broadcast_queue_sender, broadcast_queue_receiver): (Sender<Job>, Receiver<Job>) = unbounded();
 
         let job_processor = JobProcessorService::new(
             db.clone(),
-            exec_queue,
-            broadcast_queue,
-            executor
+            exec_queue_sender,
+            Arc::new(exec_queue_receiver),
+            broadcast_queue_sender,
+            executor,
         );
 
         let reflector = tonic_reflection::server::Builder::configure()

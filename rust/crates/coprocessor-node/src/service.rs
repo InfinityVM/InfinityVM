@@ -23,7 +23,7 @@ pub struct CoprocessorNodeServerInner<S, D> {
 impl<S, D> CoprocessorNodeTrait for CoprocessorNodeServerInner<S, D>
 where 
     S: Signer<Signature> + Send + Sync + Clone + 'static,
-    D: Database + Clone + 'static,
+    D: Database + 'static,
 {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
     async fn submit_job(

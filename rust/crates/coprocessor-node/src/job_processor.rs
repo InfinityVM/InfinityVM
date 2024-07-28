@@ -34,16 +34,16 @@ pub struct JobProcessorService<S, D> {
     exec_queue_sender: Sender<Job>,
     exec_queue_receiver: Arc<Receiver<Job>>,
     broadcast_queue_sender: Sender<Job>,
-    zk_executor: ZkvmExecutorService<S, D>,
+    zk_executor: ZkvmExecutorService<S>,
 }
 
 impl<S, D> JobProcessorService<S, D>
 where
     S: Signer<Signature> + Send + Sync + Clone + 'static,
-    D: Database + Clone + 'static,
+    D: Database + 'static,
 {
     /// Create a new job processor service.
-    pub const fn new(db: Arc<D>, exec_queue_sender: Sender<Job>, exec_queue_receiver: Arc<Receiver<Job>>, broadcast_queue_sender: Sender<Job>, zk_executor: ZkvmExecutorService<S, D>) -> Self {
+    pub const fn new(db: Arc<D>, exec_queue_sender: Sender<Job>, exec_queue_receiver: Arc<Receiver<Job>>, broadcast_queue_sender: Sender<Job>, zk_executor: ZkvmExecutorService<S>) -> Self {
         Self { db, exec_queue_sender, exec_queue_receiver, broadcast_queue_sender, zk_executor }
     }
 
@@ -106,7 +106,7 @@ where
         exec_queue_receiver: Arc<Receiver<Job>>,
         broadcast_queue_sender: Sender<Job>,
         db: Arc<D>,
-        zk_executor: ZkvmExecutorService<S, D>,
+        zk_executor: ZkvmExecutorService<S>,
     ) {
         loop {
             match exec_queue_receiver.recv() {
@@ -120,6 +120,8 @@ where
                             max_cycles: job.max_cycles,
                             program_verifying_key: job.program_verifying_key.clone(),
                             program_input: job.input.clone(),
+                            program_elf: vec![], // TODO (Maanav): Fetch from DB here
+                            vm_type: VmType::Risc0 as i32,
                         }),
                     };
     
