@@ -1,18 +1,15 @@
 //! Job processor implementation.
 
-use alloy::{
-    primitives::Signature,
-    signers::Signer,
-};
-use proto::{CreateElfRequest, CreateElfResponse, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
+use alloy::{primitives::Signature, signers::Signer};
+use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
 use std::{marker::Send, sync::Arc};
 
 use base64::prelude::*;
-use crossbeam::channel::{self, Receiver, Sender};
-use zkvm_executor::service::ZkvmExecutorService;
+use crossbeam::channel::{Receiver, Sender};
+use db::{get_job, put_job};
 use reth_db::Database;
-use db::{get_job, put_job, tables::ElfWithMeta};
-use tracing::{info, error};
+use tracing::{error, info};
+use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -52,23 +49,37 @@ where
     D: Database + 'static,
 {
     /// Create a new job processor service.
-    pub const fn new(db: Arc<D>, exec_queue_sender: Sender<Job>, exec_queue_receiver: Receiver<Job>, broadcast_queue_sender: Sender<Job>, zk_executor: ZkvmExecutorService<S>) -> Self {
+    pub const fn new(
+        db: Arc<D>,
+        exec_queue_sender: Sender<Job>,
+        exec_queue_receiver: Receiver<Job>,
+        broadcast_queue_sender: Sender<Job>,
+        zk_executor: ZkvmExecutorService<S>,
+    ) -> Self {
         Self { db, exec_queue_sender, exec_queue_receiver, broadcast_queue_sender, zk_executor }
     }
 
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
-        let request = CreateElfRequest { program_elf: elf.clone(), vm_type: vm_type };
+        let request = CreateElfRequest { program_elf: elf.clone(), vm_type };
         let response = self.zk_executor.create_elf_handler(request).await?;
 
-        if db::get_elf(self.db.clone(), &response.verifying_key).map_err(|e| Error::ElfReadFailed(e.to_string()))?.is_some() {
+        if db::get_elf(self.db.clone(), &response.verifying_key)
+            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
+            .is_some()
+        {
             return Err(Error::ElfAlreadyExists(format!(
                 "elf with verifying key {:?} already exists",
                 BASE64_STANDARD.encode(response.verifying_key.as_slice()),
             )));
         }
 
-        db::put_elf(self.db.clone(), VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?, &response.verifying_key, elf)
-            .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
+        db::put_elf(
+            self.db.clone(),
+            VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
+            &response.verifying_key,
+            elf,
+        )
+        .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
 
         Ok(response.verifying_key)
     }
@@ -110,9 +121,10 @@ where
             let broadcast_queue_sender = self.broadcast_queue_sender.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
-    
+
             let handle = tokio::spawn(async move {
-                Self::start_worker(exec_queue_receiver, broadcast_queue_sender, db, zk_executor).await;
+                Self::start_worker(exec_queue_receiver, broadcast_queue_sender, db, zk_executor)
+                    .await;
             });
             handles.push(handle);
         }
@@ -133,28 +145,25 @@ where
                 Ok(mut job) => {
                     let id = job.id;
                     info!("Executing job {}", id);
-                    
+
                     let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
                         Ok(Some(elf)) => elf,
                         Ok(None) => {
                             error!(
                                 "No ELF found for job {} with verifying key {:?}",
-                                id,
-                                &job.program_verifying_key
+                                id, &job.program_verifying_key
                             );
                             continue;
                         }
                         Err(e) => {
                             error!(
                                 "could not find elf for job {} with verifying key {:?}: {:?}",
-                                id,
-                                &job.program_verifying_key,
-                                e
+                                id, &job.program_verifying_key, e
                             );
                             continue;
                         }
-                    };                    
-    
+                    };
+
                     let req = ExecuteRequest {
                         inputs: Some(JobInputs {
                             job_id: id,
@@ -165,21 +174,21 @@ where
                             vm_type: VmType::Risc0 as i32,
                         }),
                     };
-    
+
                     match zk_executor.execute_handler(req).await {
                         Ok(resp) => {
                             info!("Job {} executed successfully", id);
-    
+
                             job.status = JobStatus::Done.into();
                             job.result = resp.result_with_metadata;
                             job.zkvm_operator_address = resp.zkvm_operator_address;
                             job.zkvm_operator_signature = resp.zkvm_operator_signature;
-    
+
                             if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
                                 error!("Failed to save job {}: {:?}", id, e);
                                 continue;
                             }
-    
+
                             info!("Pushing finished job {} to broadcast queue", id);
                             if let Err(e) = broadcast_queue_sender.send(job) {
                                 error!("Failed to push job {} to broadcast queue: {:?}", id, e);
@@ -188,9 +197,9 @@ where
                         }
                         Err(e) => {
                             error!("Failed to execute job {}: {:?}", id, e);
-    
+
                             job.status = JobStatus::Failed.into();
-    
+
                             if let Err(e) = Self::save_job(db.clone(), job).await {
                                 error!("Failed to save job {}: {:?}", id, e);
                             }
@@ -204,5 +213,4 @@ where
             }
         }
     }
-    }
-
+}

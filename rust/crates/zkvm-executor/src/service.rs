@@ -92,7 +92,10 @@ where
             "new job received"
         );
 
-        if !vm.is_correct_verifying_key(&inputs.program_elf, &inputs.program_verifying_key).expect("todo") {
+        if !vm
+            .is_correct_verifying_key(&inputs.program_elf, &inputs.program_verifying_key)
+            .expect("todo")
+        {
             return Err(Error::InvalidVerifyingKey(format!(
                 "bad verifying key {}",
                 base64_verifying_key,

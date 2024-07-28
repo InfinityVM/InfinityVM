@@ -1,14 +1,17 @@
 //! CLI for coprocessor-node.
 
-use crate::{service::CoprocessorNodeServerInner, job_processor::JobProcessorService};
-use alloy::{primitives::{Address, hex}, signers::local::LocalSigner};
-use k256::ecdsa::SigningKey;
+use crate::{job_processor::JobProcessorService, service::CoprocessorNodeServerInner};
+use alloy::{
+    primitives::{hex, Address},
+    signers::local::LocalSigner,
+};
 use clap::{Parser, Subcommand, ValueEnum};
+use crossbeam::channel::{unbounded, Receiver, Sender};
+use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
+use std::{net::SocketAddrV4, path::PathBuf};
 use tracing::info;
-use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
-use crossbeam::{channel::{unbounded, Sender, Receiver}};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -41,7 +44,7 @@ pub enum Error {
     SignerLocal(#[from] alloy_signer_local::LocalSignerError),
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),    
+    Database(#[from] db::Error),
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -185,7 +188,8 @@ impl Cli {
 
         // Initialize the crossbeam channels
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = unbounded();
-        let (broadcast_queue_sender, broadcast_queue_receiver): (Sender<Job>, Receiver<Job>) = unbounded();
+        let (broadcast_queue_sender, broadcast_queue_receiver): (Sender<Job>, Receiver<Job>) =
+            unbounded();
 
         let job_processor = JobProcessorService::new(
             db.clone(),
@@ -200,9 +204,8 @@ impl Cli {
             .build()
             .expect("failed to build gRPC reflection service");
 
-        let coprocessor_node_server = CoprocessorNodeServer::new(CoprocessorNodeServerInner {
-            job_processor,
-        });
+        let coprocessor_node_server =
+            CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
 
         tracing::info!("starting gRPC server at {}", grpc_addr);
         tonic::transport::Server::builder()
