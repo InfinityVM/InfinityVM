@@ -1428,6 +1428,7 @@ dependencies = [
  "tonic",
  "tonic-reflection",
  "tracing",
+ "tracing-subscriber 0.3.18",
  "zkvm",
  "zkvm-executor",
 ]

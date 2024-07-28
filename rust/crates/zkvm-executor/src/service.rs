@@ -17,7 +17,7 @@ use alloy_sol_types::{sol, SolType};
 use tracing::{error, info, instrument};
 
 #[derive(thiserror::Error, Debug)]
-enum Error {
+pub enum Error {
     #[error("signer error: {0}")]
     Signer(#[from] alloy::signers::Error),
     #[error("invalid VM type")]
@@ -139,7 +139,7 @@ where
         Ok(response)
     }
 
-    async fn create_elf_handler(
+    pub async fn create_elf_handler(
         &self,
         request: CreateElfRequest,
     ) -> Result<CreateElfResponse, Error> {
