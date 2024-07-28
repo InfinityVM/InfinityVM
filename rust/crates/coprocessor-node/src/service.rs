@@ -1,15 +1,12 @@
+use crate::job_processor::JobProcessorService;
+use alloy::{primitives::Signature, signers::Signer};
 use proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
     GetResultResponse, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
-    SubmitProgramResponse, VmType,
-};
-use tonic::{Request, Response, Status};
-use crate::job_processor::JobProcessorService;
-use alloy::{
-    primitives::Signature,
-    signers::Signer,
+    SubmitProgramResponse,
 };
 use reth_db::Database;
+use tonic::{Request, Response, Status};
 
 /// gRPC service server
 #[derive(Debug)]
@@ -21,8 +18,8 @@ pub struct CoprocessorNodeServerInner<S, D> {
 
 #[tonic::async_trait]
 impl<S, D> CoprocessorNodeTrait for CoprocessorNodeServerInner<S, D>
-where 
-    S: Signer<Signature> + Send + Sync + 'static,
+where
+    S: Signer<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
@@ -50,9 +47,10 @@ where
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
 
-        self.job_processor.submit_job(job.clone()).await.map_err(|e| {
-            Status::internal(format!("error in submit_job: {e}"))
-        })?;
+        self.job_processor
+            .submit_job(job.clone())
+            .await
+            .map_err(|e| Status::internal(format!("error in submit_job: {e}")))?;
 
         Ok(Response::new(SubmitJobResponse { job_id: job.id }))
     }
@@ -67,9 +65,11 @@ where
             return Err(Status::invalid_argument("job ID must be positive"));
         }
 
-        let job = self.job_processor.get_job(req.job_id).await.map_err(|e| {
-            Status::internal(format!("error in get_job: {e}"))
-        })?;
+        let job = self
+            .job_processor
+            .get_job(req.job_id)
+            .await
+            .map_err(|e| Status::internal(format!("error in get_job: {e}")))?;
 
         Ok(Response::new(GetResultResponse { job }))
     }
@@ -84,9 +84,11 @@ where
             return Err(Status::invalid_argument("program elf must not be empty"));
         }
 
-        let verifying_key = self.job_processor.submit_elf(req.program_elf, req.vm_type).await.map_err(|e| {
-            Status::internal(format!("error in submit_elf: {e}"))
-        })?;
+        let verifying_key = self
+            .job_processor
+            .submit_elf(req.program_elf, req.vm_type)
+            .await
+            .map_err(|e| Status::internal(format!("error in submit_elf: {e}")))?;
 
         Ok(Response::new(SubmitProgramResponse { program_verifying_key: verifying_key }))
     }

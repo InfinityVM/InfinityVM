@@ -1413,6 +1413,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "alloy-signer-local",
+ "base64 0.22.1",
  "clap",
  "crossbeam",
  "db",

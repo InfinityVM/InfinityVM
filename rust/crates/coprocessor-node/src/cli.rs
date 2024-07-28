@@ -1,14 +1,17 @@
 //! CLI for coprocessor-node.
 
-use crate::{service::CoprocessorNodeServerInner, job_processor::JobProcessorService};
-use alloy::{primitives::{Address, hex}, signers::local::LocalSigner};
-use k256::ecdsa::SigningKey;
+use crate::{job_processor::JobProcessorService, service::CoprocessorNodeServerInner};
+use alloy::{
+    primitives::{hex, Address},
+    signers::local::LocalSigner,
+};
 use clap::{Parser, Subcommand, ValueEnum};
-use proto::coprocessor_node_server::CoprocessorNodeServer;
+use crossbeam::channel::{unbounded, Receiver, Sender};
+use k256::ecdsa::SigningKey;
+use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
+use std::{net::SocketAddrV4, path::PathBuf};
 use tracing::info;
-use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
-use crossbeam::queue::ArrayQueue;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -41,7 +44,7 @@ pub enum Error {
     SignerLocal(#[from] alloy_signer_local::LocalSignerError),
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),    
+    Database(#[from] db::Error),
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -169,30 +172,29 @@ impl Cli {
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
 
-        // TODO (Maanav): add logging
-
         let signer = opts.operator_signer()?;
 
         let db = db::init_db(opts.db_dir.clone())?;
         info!(db_path = opts.db_dir, "db initialized");
 
-        // TODO (Maanav): Should we make the executor stateless? i.e. only job_processor has access to the DB
-        // and passes the necessary data when calling the executor
-        let executor = ZkvmExecutorService::new(signer, opts.chain_id, db.clone());
+        let executor = ZkvmExecutorService::new(signer, opts.chain_id);
         info!(
             chain_id = opts.chain_id,
             signer = executor.signer_address().to_string(),
             "executor initialized"
         );
 
-        let exec_queue = Arc::new(ArrayQueue::new(10));
-        let broadcast_queue = Arc::new(ArrayQueue::new(10));
+        // Initialize the crossbeam channels
+        let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = unbounded();
+        let (broadcast_queue_sender, broadcast_queue_receiver): (Sender<Job>, Receiver<Job>) =
+            unbounded();
 
         let job_processor = JobProcessorService::new(
             db.clone(),
-            exec_queue,
-            broadcast_queue,
-            executor
+            exec_queue_sender,
+            exec_queue_receiver,
+            broadcast_queue_sender,
+            executor,
         );
 
         let reflector = tonic_reflection::server::Builder::configure()
@@ -200,9 +202,8 @@ impl Cli {
             .build()
             .expect("failed to build gRPC reflection service");
 
-        let coprocessor_node_server = CoprocessorNodeServer::new(CoprocessorNodeServerInner {
-            job_processor,
-        });
+        let coprocessor_node_server =
+            CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
 
         tracing::info!("starting gRPC server at {}", grpc_addr);
         tonic::transport::Server::builder()
