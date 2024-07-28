@@ -75,7 +75,7 @@ async fn executor_risc0_works() {
         let program_input = VapeNationArg::abi_encode(&input);
 
         let create_elf_request =
-            CreateElfRequest { program_elf: vapenation_elf, vm_type: VmType::Risc0.into() };
+            CreateElfRequest { program_elf: vapenation_elf.clone(), vm_type: VmType::Risc0.into() };
         let CreateElfResponse { verifying_key } =
             clients.executor.create_elf(create_elf_request).await.unwrap().into_inner();
         assert_eq!(verifying_key, image_id);
@@ -85,6 +85,8 @@ async fn executor_risc0_works() {
             program_verifying_key: image_id,
             program_input: program_input.clone(),
             max_cycles,
+            program_elf: vapenation_elf,
+            vm_type: VmType::Risc0.into(),
         };
         let request = ExecuteRequest { inputs: Some(original_inputs.clone()) };
 
@@ -150,7 +152,7 @@ async fn executor_sp1_works() {
         let program_input = VapeNationArg::abi_encode(&input);
 
         let create_elf_request =
-            CreateElfRequest { program_elf: vapenation_elf, vm_type: VmType::Sp1.into() };
+            CreateElfRequest { program_elf: vapenation_elf.clone(), vm_type: VmType::Sp1.into() };
         let CreateElfResponse { verifying_key } =
             clients.executor.create_elf(create_elf_request).await.unwrap().into_inner();
         assert_eq!(verifying_key, image_id);
@@ -160,6 +162,8 @@ async fn executor_sp1_works() {
             program_verifying_key: image_id,
             program_input: program_input.clone(),
             max_cycles,
+            program_elf: vapenation_elf,
+            vm_type: VmType::Sp1.into(),
         };
         let request = ExecuteRequest { inputs: Some(original_inputs.clone()) };
 

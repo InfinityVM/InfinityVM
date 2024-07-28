@@ -7,10 +7,11 @@ use alloy::{
 use proto::{CreateElfRequest, CreateElfResponse, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
 use std::{marker::Send, sync::Arc};
 
+use base64::prelude::*;
 use crossbeam::channel::{self, Receiver, Sender};
 use zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
-use db::{get_job, put_job};
+use db::{get_job, put_job, tables::ElfWithMeta};
 use tracing::{info, error};
 
 /// Errors from job processor
@@ -21,10 +22,18 @@ pub enum Error {
     /// database error
     #[error("database error: {0}")]
     Database(#[from] db::Error),
+    #[error("elf with verifying key {0} already exists")]
+    ElfAlreadyExists(String),
     #[error("job already exists")]
     JobAlreadyExists,
     #[error("failed to send to exec queue")]
     ExecQueueSendFailed,
+    #[error("failed reading elf: {0}")]
+    ElfReadFailed(String),
+    #[error("failed writing elf: {0}")]
+    ElfWriteFailed(String),
+    #[error("invalid VM type")]
+    InvalidVmType,
 }
 
 /// Job processor service.
@@ -48,8 +57,19 @@ where
     }
 
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
-        let request = CreateElfRequest { program_elf: elf, vm_type: vm_type };
+        let request = CreateElfRequest { program_elf: elf.clone(), vm_type: vm_type };
         let response = self.zk_executor.create_elf_handler(request).await?;
+
+        if db::get_elf(self.db.clone(), &response.verifying_key).map_err(|e| Error::ElfReadFailed(e.to_string()))?.is_some() {
+            return Err(Error::ElfAlreadyExists(format!(
+                "elf with verifying key {:?} already exists",
+                BASE64_STANDARD.encode(response.verifying_key.as_slice()),
+            )));
+        }
+
+        db::put_elf(self.db.clone(), VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?, &response.verifying_key, elf)
+            .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
+
         Ok(response.verifying_key)
     }
 
@@ -113,6 +133,27 @@ where
                 Ok(mut job) => {
                     let id = job.id;
                     info!("Executing job {}", id);
+                    
+                    let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
+                        Ok(Some(elf)) => elf,
+                        Ok(None) => {
+                            error!(
+                                "No ELF found for job {} with verifying key {:?}",
+                                id,
+                                &job.program_verifying_key
+                            );
+                            continue;
+                        }
+                        Err(e) => {
+                            error!(
+                                "could not find elf for job {} with verifying key {:?}: {:?}",
+                                id,
+                                &job.program_verifying_key,
+                                e
+                            );
+                            continue;
+                        }
+                    };                    
     
                     let req = ExecuteRequest {
                         inputs: Some(JobInputs {
@@ -120,7 +161,7 @@ where
                             max_cycles: job.max_cycles,
                             program_verifying_key: job.program_verifying_key.clone(),
                             program_input: job.input.clone(),
-                            program_elf: vec![], // TODO (Maanav): Fetch from DB here
+                            program_elf: elf_with_meta.elf,
                             vm_type: VmType::Risc0 as i32,
                         }),
                     };
@@ -136,11 +177,13 @@ where
     
                             if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
                                 error!("Failed to save job {}: {:?}", id, e);
+                                continue;
                             }
     
                             info!("Pushing finished job {} to broadcast queue", id);
                             if let Err(e) = broadcast_queue_sender.send(job) {
                                 error!("Failed to push job {} to broadcast queue: {:?}", id, e);
+                                continue;
                             }
                         }
                         Err(e) => {

@@ -24,6 +24,7 @@ crossbeam = { workspace = true }
 k256 = { workspace = true }
 reth-db = { workspace = true }
 tracing-subscriber = {workspace = true}
+base64 = { workspace = true }
 
 db = { path = "../db" }
 proto = { path = "../proto" }

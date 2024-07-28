@@ -22,14 +22,8 @@ pub enum Error {
     Signer(#[from] alloy::signers::Error),
     #[error("invalid VM type")]
     InvalidVmType,
-    #[error("failed reading elf: {0}")]
-    ElfReadFailed(#[from] db::Error),
-    #[error("failed writing elf: {0}")]
-    ElfWriteFailed(String),
     #[error("could not find elf for vm={0}")]
     ElfNotFound(String),
-    #[error("elf with verifying key {0} already exists")]
-    ElfAlreadyExists(String),
     #[error("bad verifying key {0}")]
     InvalidVerifyingKey(String),
     #[error("failed to derive verifying key {0}")]
@@ -89,11 +83,6 @@ where
     pub async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
         let inputs = request.inputs.expect("todo");
 
-        // let ElfWithMeta { vm_type, elf } =
-        //     db::get_elf(self.db.clone(), &inputs.program_verifying_key)
-        //         .map_err(Error::ElfReadFailed)?
-        //         .ok_or_else(|| Error::ElfNotFound("could not find elf for".to_string()))?;
-
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type as i32)?;
         info!(
@@ -148,15 +137,6 @@ where
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        // if db::get_elf(self.db.clone(), &verifying_key).map_err(Error::ElfReadFailed)?.is_some() {
-        //     return Err(Error::ElfAlreadyExists(format!(
-        //         "elf with verifying key {} already exists",
-        //         base64_verifying_key,
-        //     )));
-        // }
-
-        // db::put_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
-        //     .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
 
         info!(
             vm_type = vm_type.as_str_name(),
