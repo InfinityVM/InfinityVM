@@ -130,7 +130,12 @@ where
         }
 
         for handle in handles {
-            handle.await.unwrap();
+            match handle.await {
+                Ok(_) => {},
+                Err(e) => {
+                    error!("Worker task failed: {:?}", e);
+                },
+            }
         }
     }
 
