@@ -4,13 +4,28 @@ use proto::{
     SubmitProgramResponse,
 };
 use tonic::{Request, Response, Status};
+use crate::job_processor::JobProcessorService;
+use alloy::{
+    primitives::Signature,
+    signers::Signer,
+};
+use reth_db::Database;
+
 
 /// gRPC service server
-#[derive(Debug, Default)]
-pub struct CoprocessorNodeServerInner;
+#[derive(Debug)]
+pub struct CoprocessorNodeServerInner<S, D> {
+    // TODO (Maanav): should we use `DatabaseEnv` instead of a generic `D`?
+    /// Job processor service
+    pub job_processor: JobProcessorService<S, D>,
+}
 
 #[tonic::async_trait]
-impl CoprocessorNodeTrait for CoprocessorNodeServerInner {
+impl<S, D> CoprocessorNodeTrait for CoprocessorNodeServerInner<S, D>
+where 
+    S: Signer<Signature> + Send + Sync + 'static,
+    D: Database + 'static,
+{
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
     async fn submit_job(
         &self,

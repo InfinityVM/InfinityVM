@@ -1412,10 +1412,15 @@ name = "coprocessor-node"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "alloy-signer-local",
  "clap",
+ "crossbeam",
+ "db",
  "home",
+ "k256",
  "prost 0.13.1",
  "proto",
+ "reth-db",
  "serde",
  "serde_json",
  "thiserror",
@@ -1424,6 +1429,7 @@ dependencies = [
  "tonic-reflection",
  "tracing",
  "zkvm",
+ "zkvm-executor",
 ]
 
 [[package]]

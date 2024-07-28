@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 alloy = { workspace = true }
+alloy-signer-local = { workspace = true }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
 prost = { workspace = true }
@@ -19,6 +20,11 @@ home = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
+crossbeam = { workspace = true }
+k256 = { workspace = true }
+reth-db = { workspace = true }
 
+db = { path = "../db" }
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
+zkvm-executor = { path = "../zkvm-executor" }

@@ -41,7 +41,7 @@ enum Error {
 ///  The implementation of the `ZkvmExecutor` trait
 /// TODO(zeke): do we want to make this generic over executor?
 #[derive(Debug)]
-pub(crate) struct ZkvmExecutorService<S, D> {
+pub struct ZkvmExecutorService<S, D> {
     signer: S,
     chain_id: Option<u64>,
     db: Arc<D>,
@@ -52,11 +52,11 @@ where
     S: Signer<Signature> + Send + Sync + 'static,
     D: Database,
 {
-    pub(crate) const fn new(signer: S, chain_id: Option<u64>, db: Arc<D>) -> Self {
+    pub const fn new(signer: S, chain_id: Option<u64>, db: Arc<D>) -> Self {
         Self { signer, chain_id, db }
     }
 
-    pub(crate) fn signer_address(&self) -> Address {
+    pub fn signer_address(&self) -> Address {
         self.signer.address()
     }
 
