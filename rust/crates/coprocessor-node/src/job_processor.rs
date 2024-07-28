@@ -221,8 +221,8 @@ where
                         }
                     }
                 }
-                Err(_) => {
-                    info!("Worker stopping...");
+                Err(error) => {
+                    error!(?error, "job executor worker stopped due to error")
                     break;
                 }
             }
