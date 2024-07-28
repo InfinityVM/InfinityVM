@@ -131,10 +131,10 @@ where
 
         for handle in handles {
             match handle.await {
-                Ok(_) => {},
+                Ok(_) => {}
                 Err(e) => {
                     error!("Worker task failed: {:?}", e);
-                },
+                }
             }
         }
     }
@@ -158,6 +158,11 @@ where
                                 "No ELF found for job {} with verifying key {:?}",
                                 id, &job.program_verifying_key
                             );
+
+                            job.status = JobStatus::Failed.into();
+                            if let Err(e) = Self::save_job(db.clone(), job).await {
+                                error!("Failed to save job {}: {:?}", id, e);
+                            }
                             continue;
                         }
                         Err(e) => {
@@ -165,6 +170,10 @@ where
                                 "could not find elf for job {} with verifying key {:?}: {:?}",
                                 id, &job.program_verifying_key, e
                             );
+                            job.status = JobStatus::Failed.into();
+                            if let Err(e) = Self::save_job(db.clone(), job).await {
+                                error!("Failed to save job {}: {:?}", id, e);
+                            }
                             continue;
                         }
                     };
@@ -196,6 +205,7 @@ where
 
                             info!("Pushing finished job {} to broadcast queue", id);
                             if let Err(e) = broadcast_queue_sender.send(job) {
+                                // TODO (Maanav): Should we set job status to FAILED here?
                                 error!("Failed to push job {} to broadcast queue: {:?}", id, e);
                                 continue;
                             }
