@@ -130,6 +130,8 @@ where
         }
 
         for handle in handles {
+            // TODO (Maanav): How should we handle shutting down worker threads?
+            // [ref]: https://github.com/Ethos-Works/InfinityVM/issues/116
             match handle.await {
                 Ok(_) => {}
                 Err(e) => {
@@ -206,6 +208,7 @@ where
                             info!("Pushing finished job {} to broadcast queue", id);
                             if let Err(e) = broadcast_queue_sender.send(job) {
                                 // TODO (Maanav): Should we set job status to FAILED here?
+                                // [ref]: https://github.com/Ethos-Works/InfinityVM/issues/117
                                 error!("Failed to push job {} to broadcast queue: {:?}", id, e);
                                 continue;
                             }

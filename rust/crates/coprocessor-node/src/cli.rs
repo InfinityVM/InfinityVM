@@ -172,8 +172,6 @@ impl Cli {
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
 
-        // TODO (Maanav): add logging
-
         let signer = opts.operator_signer()?;
 
         let db = db::init_db(opts.db_dir.clone())?;
