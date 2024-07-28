@@ -88,7 +88,7 @@ where
         Ok((vm, vm_type))
     }
 
-    async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
+    pub async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
         let inputs = request.inputs.expect("todo");
 
         let ElfWithMeta { vm_type, elf } =

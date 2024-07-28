@@ -4,13 +4,14 @@ use alloy::{
     primitives::Signature,
     signers::Signer,
 };
-use proto::{Job, CreateElfRequest, CreateElfResponse, VmType, JobStatus};
+use proto::{CreateElfRequest, CreateElfResponse, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
 use std::{marker::Send, sync::Arc};
 
-use crossbeam::queue::ArrayQueue;
+use crossbeam::channel::{self, Receiver, Sender};
 use zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use db::{get_job, put_job};
+use tracing::info;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -22,27 +23,28 @@ pub enum Error {
     Database(#[from] db::Error),
     #[error("job already exists")]
     JobAlreadyExists,
-    #[error("failed to push to exec queue")]
-    ExecQueuePushFailed,
+    #[error("failed to send to exec queue")]
+    ExecQueueSendFailed,
 }
 
 /// Job processor service.
 #[derive(Debug)]
 pub struct JobProcessorService<S, D> {
     db: Arc<D>,
-    exec_queue: Arc<ArrayQueue<Job>>,
-    broadcast_queue: Arc<ArrayQueue<Job>>,
+    exec_queue_sender: Arc<Sender<Job>>,
+    exec_queue_receiver: Arc<Receiver<Job>>,
+    broadcast_queue_sender: Arc<Sender<Job>>,
     zk_executor: ZkvmExecutorService<S, D>,
 }
 
 impl<S, D> JobProcessorService<S, D>
 where
     S: Signer<Signature> + Send + Sync + 'static,
-    D: Database,
+    D: Database + 'static,
 {
     /// Create a new job processor service.
-    pub const fn new(db: Arc<D>, exec_queue: Arc<ArrayQueue<Job>>, broadcast_queue: Arc<ArrayQueue<Job>>, zk_executor: ZkvmExecutorService<S, D>) -> Self {
-        Self { db, exec_queue, broadcast_queue, zk_executor }
+    pub const fn new(db: Arc<D>, exec_queue_sender: Arc<Sender<Job>>, exec_queue_receiver: Arc<Receiver<Job>>, broadcast_queue_sender: Arc<Sender<Job>>, zk_executor: ZkvmExecutorService<S, D>) -> Self {
+        Self { db, exec_queue_sender, exec_queue_receiver, broadcast_queue_sender, zk_executor }
     }
 
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
@@ -75,8 +77,76 @@ where
         job.status = JobStatus::Pending.into();
 
         self.save_job(job.clone()).await?;
-        self.exec_queue.push(job).map_err(|_| Error::ExecQueuePushFailed)?;
+        self.exec_queue_sender.send(job).map_err(|_| Error::ExecQueueSendFailed)?;
 
         Ok(())
     }
+
+    pub async fn start(self: Arc<Self>, num_workers: usize) {
+        let mut handles = vec![];
+
+        for _ in 0..num_workers {
+            let this = Arc::clone(&self);
+            let handle = tokio::spawn(async move {
+                this.start_worker().await;
+            });
+            handles.push(handle);
+        }
+
+        for handle in handles {
+            handle.await.unwrap();
+        }
+    }
+
+    async fn start_worker(self: Arc<Self>) {
+        loop {
+            match self.exec_queue_receiver.recv() {
+                Ok(mut job) => {
+                    info!("Executing job {}", job.id);
+
+                    let req = ExecuteRequest {
+                        inputs: Some(JobInputs {
+                            job_id: job.id,
+                            max_cycles: job.max_cycles,
+                            program_verifying_key: job.program_verifying_key.clone(),
+                            program_input: job.input.clone(),
+                        })
+                    };
+
+                    match self.zk_executor.execute_handler(req).await {
+                        Ok(resp) => {
+                            info!("Job {} executed successfully", job.id);
+
+                            job.status = JobStatus::Done.into();
+                            job.result = Some(resp.result_with_metadata);
+                            job.zkvm_operator_address = Some(resp.zkvm_operator_address);
+                            job.zkvm_operator_signature = Some(resp.zkvm_operator_signature);
+
+                            if let Err(e) = self.save_job(job.clone()).await {
+                                tracing::error!("Failed to save job {}: {:?}", job.id, e);
+                            }
+
+                            if let Err(e) = self.broadcast_queue_sender.send(job) {
+                                tracing::error!("Failed to push job {} to broadcast queue: {:?}", job.id, e);
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to execute job {}: {:?}", job.id, e);
+
+                            job.status = JobStatus::Failed.into();
+
+                            if let Err(e) = self.save_job(job).await {
+                                tracing::error!("Failed to save job {}: {:?}", job.id, e);
+                            }
+                        }
+                    }
+                }
+                Err(_) => {
+                    tracing::info!("Worker stopping...");
+                    break;
+                }
+            }
+        }
+    }
 }
+
