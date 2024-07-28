@@ -178,8 +178,7 @@ impl Cli {
 
         // TODO (Maanav): Should we make the executor stateless? i.e. only job_processor has access to the DB
         // and passes the necessary data when calling the executor
-        let executor_db = Arc::clone(&db);
-        let executor = ZkvmExecutorService::new(signer, opts.chain_id, executor_db);
+        let executor = ZkvmExecutorService::new(signer, opts.chain_id, db.clone());
         info!(
             chain_id = opts.chain_id,
             signer = executor.signer_address().to_string(),
@@ -189,9 +188,8 @@ impl Cli {
         let exec_queue = Arc::new(ArrayQueue::new(10));
         let broadcast_queue = Arc::new(ArrayQueue::new(10));
 
-        let job_processor_db = Arc::clone(&db);
         let job_processor = JobProcessorService::new(
-            job_processor_db,
+            db.clone(),
             exec_queue,
             broadcast_queue,
             executor

@@ -51,7 +51,7 @@ where
         }
 
         self.job_processor.submit_job(job.clone()).await.map_err(|e| {
-            Status::internal(format!("error in submit_job {e}"))
+            Status::internal(format!("error in submit_job: {e}"))
         })?;
 
         Ok(Response::new(SubmitJobResponse { job_id: job.id }))
@@ -68,7 +68,7 @@ where
         }
 
         let job = self.job_processor.get_job(req.job_id).await.map_err(|e| {
-            Status::internal(format!("error in get_job {e}"))
+            Status::internal(format!("error in get_job: {e}"))
         })?;
 
         Ok(Response::new(GetResultResponse { job }))
@@ -85,7 +85,7 @@ where
         }
 
         let verifying_key = self.job_processor.submit_elf(req.program_elf, req.vm_type).await.map_err(|e| {
-            Status::internal(format!("error in submit_elf {e}"))
+            Status::internal(format!("error in submit_elf: {e}"))
         })?;
 
         Ok(Response::new(SubmitProgramResponse { program_verifying_key: verifying_key }))

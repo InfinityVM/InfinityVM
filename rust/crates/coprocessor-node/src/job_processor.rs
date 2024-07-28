@@ -52,17 +52,17 @@ where
     }
 
     pub async fn save_job(&self, job: Job) -> Result<(), Error> {
-        put_job(Arc::clone(&self.db), job)?;
+        put_job(self.db.clone(), job)?;
         Ok(())
     }
 
     pub async fn has_job(&self, job_id: u32) -> Result<bool, Error> {
-        let job = get_job(Arc::clone(&self.db), job_id)?;
+        let job = get_job(self.db.clone(), job_id)?;
         Ok(job.is_some())
     }
 
     pub async fn get_job(&self, job_id: u32) -> Result<Option<Job>, Error> {
-        let job = get_job(Arc::clone(&self.db), job_id)?;
+        let job = get_job(self.db.clone(), job_id)?;
         Ok(job)
     }
 
