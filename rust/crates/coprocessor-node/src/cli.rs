@@ -178,7 +178,7 @@ impl Cli {
 
         // TODO (Maanav): Should we make the executor stateless? i.e. only job_processor has access to the DB
         // and passes the necessary data when calling the executor
-        let executor = ZkvmExecutorService::new(signer, opts.chain_id, db.clone());
+        let executor = ZkvmExecutorService::new(signer, opts.chain_id, db);
         info!(
             chain_id = opts.chain_id,
             signer = executor.signer_address().to_string(),

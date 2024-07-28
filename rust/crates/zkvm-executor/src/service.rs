@@ -40,20 +40,19 @@ pub enum Error {
 
 ///  The implementation of the `ZkvmExecutor` trait
 /// TODO(zeke): do we want to make this generic over executor?
-#[derive(Debug)]
-pub struct ZkvmExecutorService<S, D> {
+#[derive(Debug, Clone)]
+pub struct ZkvmExecutorService<S> {
     signer: S,
     chain_id: Option<u64>,
-    db: Arc<D>,
+    // db: Arc<D>,
 }
 
-impl<S, D> ZkvmExecutorService<S, D>
+impl<S> ZkvmExecutorService<S>
 where
-    S: Signer<Signature> + Send + Sync + 'static,
-    D: Database,
+    S: Signer<Signature> + Send + Sync + Clone + 'static,
 {
-    pub const fn new(signer: S, chain_id: Option<u64>, db: Arc<D>) -> Self {
-        Self { signer, chain_id, db }
+    pub const fn new(signer: S, chain_id: Option<u64>) -> Self {
+        Self { signer, chain_id }
     }
 
     pub fn signer_address(&self) -> Address {
@@ -173,10 +172,9 @@ where
 }
 
 #[tonic::async_trait]
-impl<S, D> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<S, D>
+impl<S> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<S>
 where
-    S: Signer<Signature> + Send + Sync + 'static,
-    D: Database + 'static,
+    S: Signer<Signature> + Send + Sync + Clone + 'static,
 {
     #[instrument(skip(self, request), err(Debug))]
     async fn execute(

@@ -22,8 +22,8 @@ pub struct CoprocessorNodeServerInner<S, D> {
 #[tonic::async_trait]
 impl<S, D> CoprocessorNodeTrait for CoprocessorNodeServerInner<S, D>
 where 
-    S: Signer<Signature> + Send + Sync + 'static,
-    D: Database + 'static,
+    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    D: Database + Clone + 'static,
 {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
     async fn submit_job(

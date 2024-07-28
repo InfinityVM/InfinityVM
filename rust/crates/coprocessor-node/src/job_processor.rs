@@ -11,7 +11,7 @@ use crossbeam::channel::{self, Receiver, Sender};
 use zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use db::{get_job, put_job};
-use tracing::info;
+use tracing::{info, error};
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -31,19 +31,19 @@ pub enum Error {
 #[derive(Debug)]
 pub struct JobProcessorService<S, D> {
     db: Arc<D>,
-    exec_queue_sender: Arc<Sender<Job>>,
+    exec_queue_sender: Sender<Job>,
     exec_queue_receiver: Arc<Receiver<Job>>,
-    broadcast_queue_sender: Arc<Sender<Job>>,
+    broadcast_queue_sender: Sender<Job>,
     zk_executor: ZkvmExecutorService<S, D>,
 }
 
 impl<S, D> JobProcessorService<S, D>
 where
-    S: Signer<Signature> + Send + Sync + 'static,
-    D: Database + 'static,
+    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    D: Database + Clone + 'static,
 {
     /// Create a new job processor service.
-    pub const fn new(db: Arc<D>, exec_queue_sender: Arc<Sender<Job>>, exec_queue_receiver: Arc<Receiver<Job>>, broadcast_queue_sender: Arc<Sender<Job>>, zk_executor: ZkvmExecutorService<S, D>) -> Self {
+    pub const fn new(db: Arc<D>, exec_queue_sender: Sender<Job>, exec_queue_receiver: Arc<Receiver<Job>>, broadcast_queue_sender: Sender<Job>, zk_executor: ZkvmExecutorService<S, D>) -> Self {
         Self { db, exec_queue_sender, exec_queue_receiver, broadcast_queue_sender, zk_executor }
     }
 
@@ -53,8 +53,8 @@ where
         Ok(response.verifying_key)
     }
 
-    pub async fn save_job(&self, job: Job) -> Result<(), Error> {
-        put_job(self.db.clone(), job)?;
+    pub async fn save_job(db: Arc<D>, job: Job) -> Result<(), Error> {
+        put_job(db.clone(), job)?;
         Ok(())
     }
 
@@ -76,19 +76,23 @@ where
 
         job.status = JobStatus::Pending.into();
 
-        self.save_job(job.clone()).await?;
+        Self::save_job(self.db.clone(), job.clone()).await?;
         self.exec_queue_sender.send(job).map_err(|_| Error::ExecQueueSendFailed)?;
 
         Ok(())
     }
 
-    pub async fn start(self: Arc<Self>, num_workers: usize) {
+    pub async fn start(&self, num_workers: usize) {
         let mut handles = vec![];
 
         for _ in 0..num_workers {
-            let this = Arc::clone(&self);
+            let exec_queue_receiver = Arc::clone(&self.exec_queue_receiver);
+            let broadcast_queue_sender = self.broadcast_queue_sender.clone();
+            let db = Arc::clone(&self.db);
+            let zk_executor = self.zk_executor.clone();
+    
             let handle = tokio::spawn(async move {
-                this.start_worker().await;
+                Self::start_worker(exec_queue_receiver, broadcast_queue_sender, db, zk_executor).await;
             });
             handles.push(handle);
         }
@@ -98,55 +102,62 @@ where
         }
     }
 
-    async fn start_worker(self: Arc<Self>) {
+    async fn start_worker(
+        exec_queue_receiver: Arc<Receiver<Job>>,
+        broadcast_queue_sender: Sender<Job>,
+        db: Arc<D>,
+        zk_executor: ZkvmExecutorService<S, D>,
+    ) {
         loop {
-            match self.exec_queue_receiver.recv() {
+            match exec_queue_receiver.recv() {
                 Ok(mut job) => {
-                    info!("Executing job {}", job.id);
-
+                    let id = job.id;
+                    info!("Executing job {}", id);
+    
                     let req = ExecuteRequest {
                         inputs: Some(JobInputs {
-                            job_id: job.id,
+                            job_id: id,
                             max_cycles: job.max_cycles,
                             program_verifying_key: job.program_verifying_key.clone(),
                             program_input: job.input.clone(),
-                        })
+                        }),
                     };
-
-                    match self.zk_executor.execute_handler(req).await {
+    
+                    match zk_executor.execute_handler(req).await {
                         Ok(resp) => {
-                            info!("Job {} executed successfully", job.id);
-
+                            info!("Job {} executed successfully", id);
+    
                             job.status = JobStatus::Done.into();
-                            job.result = Some(resp.result_with_metadata);
-                            job.zkvm_operator_address = Some(resp.zkvm_operator_address);
-                            job.zkvm_operator_signature = Some(resp.zkvm_operator_signature);
-
-                            if let Err(e) = self.save_job(job.clone()).await {
-                                tracing::error!("Failed to save job {}: {:?}", job.id, e);
+                            job.result = resp.result_with_metadata;
+                            job.zkvm_operator_address = resp.zkvm_operator_address;
+                            job.zkvm_operator_signature = resp.zkvm_operator_signature;
+    
+                            if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                                error!("Failed to save job {}: {:?}", id, e);
                             }
-
-                            if let Err(e) = self.broadcast_queue_sender.send(job) {
-                                tracing::error!("Failed to push job {} to broadcast queue: {:?}", job.id, e);
+    
+                            info!("Pushing finished job {} to broadcast queue", id);
+                            if let Err(e) = broadcast_queue_sender.send(job) {
+                                error!("Failed to push job {} to broadcast queue: {:?}", id, e);
                             }
                         }
                         Err(e) => {
-                            tracing::error!("Failed to execute job {}: {:?}", job.id, e);
-
+                            error!("Failed to execute job {}: {:?}", id, e);
+    
                             job.status = JobStatus::Failed.into();
-
-                            if let Err(e) = self.save_job(job).await {
-                                tracing::error!("Failed to save job {}: {:?}", job.id, e);
+    
+                            if let Err(e) = Self::save_job(db.clone(), job).await {
+                                error!("Failed to save job {}: {:?}", id, e);
                             }
                         }
                     }
                 }
                 Err(_) => {
-                    tracing::info!("Worker stopping...");
+                    info!("Worker stopping...");
                     break;
                 }
             }
         }
     }
-}
+    }
 
