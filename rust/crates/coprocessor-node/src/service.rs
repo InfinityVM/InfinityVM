@@ -1,7 +1,7 @@
 use proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
     GetResultResponse, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
-    SubmitProgramResponse,
+    SubmitProgramResponse, VmType,
 };
 use tonic::{Request, Response, Status};
 use crate::job_processor::JobProcessorService;
@@ -10,7 +10,6 @@ use alloy::{
     signers::Signer,
 };
 use reth_db::Database;
-
 
 /// gRPC service server
 #[derive(Debug)]
@@ -51,8 +50,9 @@ where
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
 
-        // TODO: Implement executor in Rust
-        // executor.submit_job(job)
+        self.job_processor.submit_job(job.clone()).await.map_err(|e| {
+            Status::internal(format!("error in submit_job {e}"))
+        })?;
 
         Ok(Response::new(SubmitJobResponse { job_id: job.id }))
     }
@@ -67,10 +67,11 @@ where
             return Err(Status::invalid_argument("job ID must be positive"));
         }
 
-        // TODO: Implement executor in Rust
-        // let job = executor.get_job(job_id)
+        let job = self.job_processor.get_job(req.job_id).await.map_err(|e| {
+            Status::internal(format!("error in get_job {e}"))
+        })?;
 
-        Ok(Response::new(GetResultResponse { job: None }))
+        Ok(Response::new(GetResultResponse { job }))
     }
     /// SubmitProgram defines the gRPC method for submitting a new program to
     /// generate a unique program verification key.
@@ -83,9 +84,10 @@ where
             return Err(Status::invalid_argument("program elf must not be empty"));
         }
 
-        // TODO: Implement executor in Rust
-        // let verifying_key = executor.submit_elf(req.program_elf, req.vm_type);
+        let verifying_key = self.job_processor.submit_elf(req.program_elf, req.vm_type).await.map_err(|e| {
+            Status::internal(format!("error in submit_elf {e}"))
+        })?;
 
-        Ok(Response::new(SubmitProgramResponse { program_verifying_key: vec![] }))
+        Ok(Response::new(SubmitProgramResponse { program_verifying_key: verifying_key }))
     }
 }

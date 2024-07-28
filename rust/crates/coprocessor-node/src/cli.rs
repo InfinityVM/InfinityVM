@@ -39,8 +39,8 @@ pub enum Error {
     /// errors from alloy signer local crate
     #[error(transparent)]
     SignerLocal(#[from] alloy_signer_local::LocalSignerError),
-    /// executor database error
-    #[error("executor database: {0}")]
+    /// database error
+    #[error("database error: {0}")]
     Database(#[from] db::Error),    
 }
 
