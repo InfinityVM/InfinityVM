@@ -19,6 +19,7 @@ use alloy::{
     transports::http::{Client, Http},
     sol,
 };
+use alloy::primitives::{Bytes, TxHash};
 use alloy::providers::fillers::{FillProvider, JoinFill, RecommendedFiller, WalletFiller};
 
 sol!(
@@ -31,6 +32,7 @@ use tokio;
 use crossbeam::queue::ArrayQueue;
 use async_trait::async_trait;
 use serde::{Serialize, Deserialize};
+use serde::__private::de::IdentifierDeserializer;
 use crate::JobManager::JobManagerInstance;
 
 #[derive(Debug)]
@@ -39,7 +41,7 @@ pub enum Error {
 }
 #[async_trait]
 pub trait EthClient: Debug + Send + Sync + 'static{
-    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<(), &'a str> ;
+    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<TxHash, &'a str> ;
 }
 
 #[derive(Debug)]
@@ -50,13 +52,12 @@ pub struct MockEthClient {
 #[derive(Debug)]
 pub struct RpcEthClient {
     // client: Arc<ReqwestProvider>,
-    // wallet: EthereumWallet,
     contract: JobManagerInstance<Http<Client>, FillProvider<JoinFill<RecommendedFiller, WalletFiller<EthereumWallet>>, ReqwestProvider, Http<Client>, Ethereum>>,
 }
 
 #[async_trait]
 impl EthClient for MockEthClient {
-    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<(), &'a str>  {
+    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<TxHash, &'a str>  {
 
         let mut times_called = self.times_called.lock().unwrap();
         *times_called += 1;
@@ -77,8 +78,13 @@ impl MockEthClient {
 #[async_trait]
 impl EthClient for RpcEthClient {
 
-    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<(), &'a str> {
-       Ok(())
+    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<TxHash, &'a str> {
+        let builder = self.contract
+            .submitResult(Bytes::from(job.result.as_slice()), Bytes::from(job.zkvm_operator_signature.as_slice()) );
+
+        let tx_hash = builder.send().await?.tx_hash();
+
+       Ok(tx_hash.clone())
     }
 }
 
@@ -137,7 +143,10 @@ impl Relayer {
 
             match finished_job {
                 Some(job) => match self.eth_client.execute_callback(&job).await {
-                    Ok(_) => println!("Executed callback against job: {}", job.id),
+                    Ok(tx_hash) => {
+                        println!("Executed callback against job: {}", job.id);
+                        println!("tx hash: {}", tx_hash);
+                    },
                     Err(e) => {
                         println!("Error executing callback {}", e);
                         return Err(Error::EthClientError);
