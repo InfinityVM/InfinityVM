@@ -159,6 +159,8 @@ reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.3",
 serde = { version = "1.0", features = ["derive"], default-features = false }
 serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", default-features = false }
+
+# https://github.com/Ethos-Works/InfinityVM/issues/120
 # sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["libm"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
 # sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
 # sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
