@@ -19,6 +19,7 @@ use alloy::{
     transports::http::{Client, Http},
     sol,
 };
+use alloy::providers::fillers::{FillProvider, JoinFill, RecommendedFiller, WalletFiller};
 
 sol!(
     #[sol(rpc)]
@@ -50,7 +51,7 @@ pub struct MockEthClient {
 pub struct RpcEthClient {
     // client: Arc<ReqwestProvider>,
     // wallet: EthereumWallet,
-    contract: JobManagerInstance<Http<Client>, ReqwestProvider<>>,
+    contract: JobManagerInstance<Http<Client>, FillProvider<JoinFill<RecommendedFiller, WalletFiller<EthereumWallet>>, ReqwestProvider, Http<Client>, Ethereum>>,
 }
 
 #[async_trait]
@@ -94,8 +95,8 @@ impl RpcEthClient {
         let rpc_url = Url::parse(&eth_rpc_url).expect("invalid RPC url");
 
         let client   = ProviderBuilder::new()
-            // .with_recommended_fillers()
-            // .wallet(wallet)
+            .with_recommended_fillers()
+            .wallet(wallet)
             .on_http(rpc_url);
 
         println!("provider: {:?}", client);
@@ -104,7 +105,7 @@ impl RpcEthClient {
         println!("connected to chain id: {}", chain_id_connected);
 
         let contract_address = contract_address.parse().expect("invalid JobManager contract address");
-        let contract: JobManagerInstance<Http<Client>, ReqwestProvider> = JobManagerInstance::new(contract_address, client);
+        let contract= JobManagerInstance::new(contract_address, client);
 
         // contract.submitResult().await.unwrap()
         Ok(RpcEthClient{
