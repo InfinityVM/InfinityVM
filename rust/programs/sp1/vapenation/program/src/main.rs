@@ -1,5 +1,5 @@
 //! sp1 program - not currently used
-//! https://github.com/Ethos-Works/InfinityVM/issues/120
+//! TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
 
 #![no_main]
 sp1_zkvm::entrypoint!(main);

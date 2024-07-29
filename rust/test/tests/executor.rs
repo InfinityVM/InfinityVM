@@ -20,7 +20,7 @@ use zkvm_executor::DEV_SECRET;
 const VAPENATION_ELF_PATH: &str =
     "../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest";
 
-// https://github.com/Ethos-Works/InfinityVM/issues/120
+// TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
 // const VAPENATION_ELF_SP1_PATH: &str =
 //     "../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
 
@@ -135,7 +135,7 @@ async fn executor_risc0_works() {
     Integration::run(test).await;
 }
 
-// https://github.com/Ethos-Works/InfinityVM/issues/120
+// TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
 // #[tokio::test]
 // #[ignore]
 // async fn executor_sp1_works() {
