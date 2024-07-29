@@ -12,8 +12,10 @@ anyhow = { workspace = true }
 thiserror = { workspace = true }
 risc0-zkvm = { workspace = true }
 risc0-binfmt = { workspace = true }
-sp1-zkvm = { workspace = true }
-sp1-sdk = { workspace = true }
+
+# https://github.com/Ethos-Works/InfinityVM/issues/120
+# sp1-zkvm = { workspace = true }
+# sp1-sdk = { workspace = true }
 
 [dev-dependencies]
 alloy-rlp = { workspace = true }

@@ -4,4 +4,5 @@ name = "sp1-build"
 edition = "2021"
 
 [build-dependencies]
-sp1-helper = { workspace = true }
+# https://github.com/Ethos-Works/InfinityVM/issues/120
+# sp1-helper = { workspace = true }
