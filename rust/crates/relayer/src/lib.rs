@@ -4,16 +4,41 @@ use std::{
     sync::{Arc, Mutex, atomic::{AtomicBool, Ordering}},
     thread,
     time::Duration,
+    fs,
+    env,
 };
+use url::Url;
+use alloy::{
+    contract::{ContractInstance, Interface},
+    dyn_abi::DynSolValue,
+    network::{Ethereum, TransactionBuilder, EthereumWallet},
+    primitives::{Address, hex, U256},
+    providers::{Provider, ProviderBuilder, WsConnect, ReqwestProvider},
+    rpc::types::TransactionRequest,
+    signers::local::PrivateKeySigner,
+    transports::http::{Client, Http},
+    sol,
+};
+
+sol!(
+    #[sol(rpc)]
+    JobManager,
+    "../../../contracts/out/JobManager.sol/JobManager.json"
+);
+use tokio;
+
 use crossbeam::queue::ArrayQueue;
+use async_trait::async_trait;
+use serde::{Serialize, Deserialize};
+use crate::JobManager::JobManagerInstance;
 
 #[derive(Debug)]
 pub enum Error {
     EthClientError,
 }
-
-pub trait EthClientI: Debug + Send + Sync {
-    fn execute_callback(&self, job: &Job) -> Result<(), &str>;
+#[async_trait]
+pub trait EthClient: Debug + Send + Sync + 'static{
+    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<(), &'a str> ;
 }
 
 #[derive(Debug)]
@@ -22,33 +47,80 @@ pub struct MockEthClient {
 }
 
 #[derive(Debug)]
-pub struct EthClient;
+pub struct RpcEthClient {
+    // client: Arc<ReqwestProvider>,
+    // wallet: EthereumWallet,
+    contract: JobManagerInstance<Http<Client>, ReqwestProvider<>>,
+}
 
-impl EthClientI for MockEthClient {
-    fn execute_callback(&self, job: &Job) -> Result<(), &str> {
+#[async_trait]
+impl EthClient for MockEthClient {
+    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<(), &'a str>  {
+
         let mut times_called = self.times_called.lock().unwrap();
         *times_called += 1;
         println!("Executing callback for job: {}", job.id);
-        Ok(())
+        // Ok(());
+       todo!()
+    }
+}
+impl MockEthClient {
+    fn new(
+        eth_http_url: &str,
+        private_key: &str,
+        contract_address: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        todo!()
     }
 }
 
-impl EthClientI for EthClient {
-    fn execute_callback(&self, job: &Job) -> Result<(), &str> {
-        println!("calling eth for job: {}", job.id);
-        Ok(())
+#[async_trait]
+impl EthClient for RpcEthClient {
+
+    async fn execute_callback<'a>(&'a self, job: &'a Job) -> Result<(), &'a str> {
+       Ok(())
     }
 }
 
+impl RpcEthClient {
+    async fn new(
+        eth_rpc_url: &str,
+        private_key: &str,
+        contract_address: &str,
+    ) -> Result<Self, Box<dyn std::error::Error>> {
+        // env::var("RELAYER_PRIVATE_KEY").expect("relayer private key is not set");
+        let signer: PrivateKeySigner = private_key.parse().expect("invalid private key");
+        let wallet = EthereumWallet::from(signer.clone());
+
+        let rpc_url = Url::parse(&eth_rpc_url).expect("invalid RPC url");
+
+        let client   = ProviderBuilder::new()
+            // .with_recommended_fillers()
+            // .wallet(wallet)
+            .on_http(rpc_url);
+
+        println!("provider: {:?}", client);
+
+        let chain_id_connected = client.get_chain_id().await?;
+        println!("connected to chain id: {}", chain_id_connected);
+
+        let contract_address = contract_address.parse().expect("invalid JobManager contract address");
+        let contract: JobManagerInstance<Http<Client>, ReqwestProvider> = JobManagerInstance::new(contract_address, client);
+
+        // contract.submitResult().await.unwrap()
+        Ok(RpcEthClient{
+            contract,
+        })
+    }
+}
 #[derive(Debug)]
 pub struct Relayer {
-    pub eth_client: Arc<dyn EthClientI>,
+    pub eth_client: Arc<dyn EthClient>,
     pub broadcast_queue: Arc<ArrayQueue<Job>>,
     pub stop_flag: Arc<AtomicBool>,
 }
 
 impl Relayer {
-    pub fn new(eth_client: Arc<dyn EthClientI>, broadcast_queue: Arc<ArrayQueue<Job>>) -> Self {
+    pub fn new(eth_client: Arc<dyn EthClient>, broadcast_queue: Arc<ArrayQueue<Job>>) -> Self {
         Relayer {
             eth_client,
             broadcast_queue,
@@ -56,14 +128,14 @@ impl Relayer {
         }
     }
 
-    pub fn start(&self) -> Result<(), Error> {
+    pub async fn start(&self) -> Result<(), Error> {
         println!("Starting Relayer");
 
         while !self.stop_flag.load(Ordering::SeqCst) {
             let finished_job = self.broadcast_queue.pop();
 
             match finished_job {
-                Some(job) => match self.eth_client.execute_callback(&job) {
+                Some(job) => match self.eth_client.execute_callback(&job).await {
                     Ok(_) => println!("Executed callback against job: {}", job.id),
                     Err(e) => {
                         println!("Error executing callback {}", e);

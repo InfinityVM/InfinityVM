@@ -11,11 +11,20 @@ workspace = true
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
 prost = { workspace = true }
-tokio = { workspace = true }
-alloy = { workspace = true }
-alloy-signer-local = { workspace = true }
-alloy-sol-types = { workspace = true }
-alloy-rlp = { workspace = true }
+alloy = { version = "0.2", features = [
+    "full",
+    "node-bindings",
+    "rpc-types-debug",
+    "rpc-types-trace",
+    "json-rpc",
+    "rpc-client",
+    "signer-aws",
+    "signer-keystore",
+    "signer-ledger",
+    "signer-mnemonic",
+    "signer-trezor",
+    "signer-yubihsm",
+] }
 clap = { workspace = true }
 k256 = { workspace = true }
 thiserror = { workspace = true }
@@ -29,3 +38,7 @@ serde = { workspace = true }
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
 crossbeam = "0.8"
+async-trait = "0.1.81"
+url = "2.5.2"
+tokio.workspace = true
+
