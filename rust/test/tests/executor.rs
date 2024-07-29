@@ -83,7 +83,7 @@ async fn executor_risc0_works() {
         let original_inputs = JobInputs {
             job_id: 42069,
             program_verifying_key: image_id,
-            program_input: program_input.clone(),
+            program_input: program_input,
             max_cycles,
             program_elf: vapenation_elf,
             vm_type: VmType::Risc0.into(),
@@ -160,7 +160,7 @@ async fn executor_sp1_works() {
         let original_inputs = JobInputs {
             job_id: 42069,
             program_verifying_key: image_id,
-            program_input: program_input.clone(),
+            program_input: program_input,
             max_cycles,
             program_elf: vapenation_elf,
             vm_type: VmType::Sp1.into(),

@@ -31,13 +31,14 @@ where
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
         let job = req.job.ok_or_else(|| Status::invalid_argument("missing job"))?;
+        let id = job.id;
 
         // verify fields
         if job.max_cycles == 0 {
             return Err(Status::invalid_argument("job max cycles must be positive"));
         }
 
-        if job.id == 0 {
+        if id == 0 {
             return Err(Status::invalid_argument("job ID must be positive"));
         }
 
@@ -50,11 +51,11 @@ where
         }
 
         self.job_processor
-            .submit_job(job.clone())
+            .submit_job(job)
             .await
             .map_err(|e| Status::internal(format!("failed to submit job: {e}")))?;
 
-        Ok(Response::new(SubmitJobResponse { job_id: job.id }))
+        Ok(Response::new(SubmitJobResponse { job_id: id }))
     }
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.
