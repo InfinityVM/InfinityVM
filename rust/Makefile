@@ -8,7 +8,7 @@ clippy-ci:
 
 .PHONY: clippy
 clippy:
-	RISC0_SKIP_BUILD=true cargo clippy --fix --allow-dirty
+	RISC0_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace
 
 .PHONY: fmt-ci
 fmt-ci: 

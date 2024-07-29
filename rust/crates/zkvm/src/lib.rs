@@ -89,7 +89,7 @@ impl Zkvm for Risc0 {
 }
 
 // https://github.com/Ethos-Works/InfinityVM/issues/120
-/// Sp1 impl of [Zkvm].
+// Sp1 impl of [Zkvm].
 // #[derive(Debug)]
 // pub struct Sp1;
 // impl Zkvm for Sp1 {
@@ -129,8 +129,9 @@ mod test {
     const VAPENATION_ELF_PATH: &str =
         "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
 
-    const VAPENATION_ELF_SP1_PATH: &str =
-        "../../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
+    // https://github.com/Ethos-Works/InfinityVM/issues/120
+    // const VAPENATION_ELF_SP1_PATH: &str =
+    //     "../../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
