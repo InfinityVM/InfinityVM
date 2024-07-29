@@ -10,7 +10,6 @@ use proto::{
 };
 use risc0_binfmt::compute_image_id;
 
-use sp1_sdk::{HashableKey, ProverClient};
 use vapenation_core::{VapeNationArg, VapeNationMetadata};
 use vapenation_methods::{VAPENATION_GUEST_ELF, VAPENATION_GUEST_ID, VAPENATION_GUEST_PATH};
 use zkvm_executor::DEV_SECRET;
@@ -21,8 +20,9 @@ use zkvm_executor::DEV_SECRET;
 const VAPENATION_ELF_PATH: &str =
     "../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest";
 
-const VAPENATION_ELF_SP1_PATH: &str =
-    "../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
+// TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+// const VAPENATION_ELF_SP1_PATH: &str =
+//     "../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
 
 fn expected_signer_address() -> Address {
     let signer = LocalSigner::<SigningKey>::from_slice(&DEV_SECRET).unwrap();
@@ -135,7 +135,7 @@ async fn executor_risc0_works() {
     Integration::run(test).await;
 }
 
-// https://github.com/Ethos-Works/InfinityVM/issues/120
+// TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
 // #[tokio::test]
 // #[ignore]
 // async fn executor_sp1_works() {

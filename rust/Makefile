@@ -1,5 +1,5 @@
 # These where required for building and running tests with sp1
-# see https://github.com/Ethos-Works/InfinityVM/issues/120
+# TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
 # RUSTFLAGS = '-Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native'
 
 .PHONY: clippy-ci
@@ -8,7 +8,7 @@ clippy-ci:
 
 .PHONY: clippy
 clippy:
-	RISC0_SKIP_BUILD=true cargo clippy --fix --allow-dirty
+	RISC0_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace
 
 .PHONY: fmt-ci
 fmt-ci: 
