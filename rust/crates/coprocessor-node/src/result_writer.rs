@@ -11,7 +11,7 @@ use alloy::{
 use crossbeam::channel::Receiver;
 use proto::Job;
 use tokio::task::JoinSet;
-use tracing::{info, trace};
+use tracing::info;
 
 use crate::contracts::i_job_manager::IJobManager;
 
@@ -96,10 +96,12 @@ pub async fn run<S>(
     job_manager_address: Address,
     broadcast_queue_receiver: Receiver<Job>,
     worker_count: u32,
-) -> Result<(), Error>
+) -> Result<JoinSet<Result<(), Error>>, Error>
 where
     S: TxSigner<Signature> + Send + Sync + 'static,
 {
+    info!(worker_count, "starting result writer");
+
     let mut set = JoinSet::new();
 
     for _ in 0..worker_count {
@@ -118,11 +120,7 @@ where
         });
     }
 
-    while let Some(res) = set.join_next().await {
-        trace!(?res, "submit result worker task exited");
-    }
-
-    Ok(())
+    Ok(set)
 }
 
 #[cfg(test)]
@@ -131,13 +129,23 @@ mod test {
 
     use crate::contracts::job_manager::JobManager;
     use alloy::{
-        network::EthereumWallet, node_bindings::Anvil, primitives::U256,
-        providers::ProviderBuilder, signers::local::PrivateKeySigner, sol,
+        network::EthereumWallet, node_bindings::Anvil, providers::ProviderBuilder,
+        signers::local::PrivateKeySigner,
     };
     use proto::Job;
+    use tracing::info;
+    use tracing_subscriber::EnvFilter;
 
+    // cargo test -p coprocessor-node -- --nocapture
     #[tokio::test]
     async fn run_can_succesfully_submit_results() {
+        tracing_subscriber::fmt()
+            .with_env_filter(EnvFilter::from_default_env())
+            .with_writer(std::io::stderr)
+            .try_init()
+            .unwrap();
+
+        info!("tracing test");
         let anvil = Anvil::new().try_spawn().unwrap();
 
         // Create a provider with the wallet.
@@ -151,10 +159,26 @@ mod test {
         // TODO: is there some sort of off the shelf mock provider we could inject into
         let provider = ProviderBuilder::new()
             .with_recommended_fillers()
-            .wallet(wallet)
+            .wallet(wallet.clone())
             .on_http(rpc_url.parse().unwrap());
 
         let contract = JobManager::deploy(&provider).await.unwrap();
+
+        // Make sure the job manager is properly initialized
+        // {
+        //     let initial_owner =
+        //         <EthereumWallet as NetworkWallet<Ethereum>>::default_signer_address(&wallet);
+        //     let relayer = initial_owner.clone();
+        //     let coprocessor_operator = initial_owner.clone();
+        //     contract
+        //         .initializeJobManager(initial_owner, relayer, coprocessor_operator)
+        //         .send()
+        //         .await
+        //         .unwrap()
+        //         .get_receipt()
+        //         .await
+        //         .unwrap();
+        // }
 
         let job_manager_address = contract.address().clone();
 
@@ -162,8 +186,11 @@ mod test {
 
         // TODO: does this need to be wrapped in an arc?
         let signer = Arc::new(signer);
-        let future =
-            super::run(rpc_url.to_string(), signer, job_manager_address, receiver.clone(), 2);
+        dbg!("starting result writer");
+        let mut join_set =
+            super::run(rpc_url.to_string(), signer, job_manager_address, receiver.clone(), 2)
+                .await
+                .unwrap();
 
         for i in 0..10 {
             let job = Job {
@@ -177,11 +204,17 @@ mod test {
                 zkvm_operator_signature: vec![i as u8],
                 result: vec![i as u8],
             };
+            dbg!(i);
             sender.send(job).unwrap();
+            dbg!(i);
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_millis(100))
+        dbg!("sleeping");
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
-        // TODO: assert the chain received transactions
+        // TODO: assert the chain received transactions by checking the contract state
+
+        // We don't need to do this since it will abort threads on drop
+        join_set.shutdown().await;
     }
 }

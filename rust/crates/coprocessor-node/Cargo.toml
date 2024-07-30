@@ -28,3 +28,4 @@ zkvm = { path = "../zkvm" }
 
 [dev-dependencies]
 alloy = { workspace = true, features = ["full", "reqwest", "node-bindings"] }
+tracing-subscriber = "*"
