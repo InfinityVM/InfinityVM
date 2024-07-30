@@ -34,7 +34,6 @@ async fn submit_result_worker<S>(
 where
     S: TxSigner<Signature> + Send + Sync + 'static,
 {
-    dbg!("test");
     let url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
 
     let wallet = EthereumWallet::new(signer);
@@ -47,7 +46,6 @@ where
 
     let contract = IJobManager::new(job_manager_address, provider);
 
-    info!("submit_result_worker starting loop");
     loop {
         let job = match broadcast_queue_receiver.try_recv() {
             Ok(job) => job,
@@ -113,12 +111,8 @@ where
         let http_rpc_url = http_rpc_url.clone();
         let signer = signer.clone();
         let broadcast_queue_receiver = broadcast_queue_receiver.clone();
-        info!(worker_num, "help");
 
         set.spawn(async move {
-            dbg!("dbg help");
-            info!(worker_num, "spawning worker");
-
             submit_result_worker(
                 http_rpc_url,
                 signer,
@@ -165,16 +159,15 @@ mod test {
     // cargo test -p coprocessor-node -- --nocapture
     #[tokio::test]
     async fn run_can_succesfully_submit_results() {
-        tracing_subscriber::fmt()
-            .with_env_filter(EnvFilter::from_default_env())
-            .with_writer(std::io::stderr)
-            .try_init()
-            .unwrap();
+        let subscriber = tracing_subscriber::FmtSubscriber::new();
+        // use that subscriber to process traces emitted after this point
+        tracing::subscriber::set_global_default(subscriber).unwrap();
 
         let anvil = Anvil::new().try_spawn().unwrap();
 
         // Set up signer from the first default Anvil account (Alice).
         let signer: PrivateKeySigner = anvil.keys()[0].clone().into();
+
         let wallet = EthereumWallet::from(signer.clone());
         // Create a provider with the wallet.
         let rpc_url = anvil.endpoint();
@@ -186,7 +179,6 @@ mod test {
             .on_http(rpc_url.parse().unwrap());
 
         let contract = JobManager::deploy(&provider).await.unwrap();
-
         // Make sure the job manager is properly initialized
         {
             let initial_owner =
@@ -226,6 +218,9 @@ mod test {
                 zkvm_operator_signature: vec![i as u8],
                 result: vec![i as u8],
             };
+
+            // TODO: mock creating a job
+
             async_send(sender.clone(), job).await;
         }
 
