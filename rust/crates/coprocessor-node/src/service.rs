@@ -62,7 +62,7 @@ where
     async fn get_result(
         &self,
         request: Request<GetResultRequest>,
-    ) -> std::result::Result<Response<GetResultResponse>, Status> {
+    ) -> Result<Response<GetResultResponse>, Status> {
         let req = request.into_inner();
         if req.job_id == 0 {
             return Err(Status::invalid_argument("job ID must be positive"));
@@ -81,7 +81,7 @@ where
     async fn submit_program(
         &self,
         request: Request<SubmitProgramRequest>,
-    ) -> std::result::Result<Response<SubmitProgramResponse>, Status> {
+    ) -> Result<Response<SubmitProgramResponse>, Status> {
         let req = request.into_inner();
         if req.program_elf.is_empty() {
             return Err(Status::invalid_argument("program elf must not be empty"));

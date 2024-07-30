@@ -78,6 +78,7 @@ impl Integration {
         sleep_until_bound(executor_port);
         let executor = ZkvmExecutorClient::connect(executor_url.clone()).await.unwrap();
 
+        let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
         // The coprocessor-node expects the relayer private key as an env var
@@ -93,6 +94,11 @@ impl Integration {
             .arg("this-is-not-used-yet")
             .arg("--job-manager-address")
             .arg("0x0000000000000000000000000000000000000000")
+            .arg("--chain-id")
+            .arg("31337")
+            .arg("--db-dir")
+            .arg(db_dir.path())
+            .arg("dev")
             .spawn()
             .unwrap()
             .into();

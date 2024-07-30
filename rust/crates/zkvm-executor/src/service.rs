@@ -5,12 +5,10 @@ use alloy::{
     signers::Signer,
 };
 use base64::prelude::*;
-use db::{self, tables::ElfWithMeta};
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
-use reth_db::Database;
-use std::{marker::Send, sync::Arc};
+use std::{marker::Send};
 use zkvm::Zkvm;
 
 use alloy_sol_types::{sol, SolType};
@@ -82,7 +80,6 @@ where
 
     pub async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
         let inputs = request.inputs.expect("todo");
-
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type as i32)?;
         info!(

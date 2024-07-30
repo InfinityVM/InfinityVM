@@ -6,7 +6,7 @@ use alloy_rlp::Decodable;
 use alloy_sol_types::{sol, SolType};
 use integration::{Clients, Integration};
 use proto::{
-    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
+    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, GetResultRequest, Job, JobInputs, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType
 };
 use risc0_binfmt::compute_image_id;
 
@@ -213,3 +213,54 @@ async fn executor_sp1_works() {
 
     Integration::run(test).await
 }
+
+#[tokio::test]
+#[ignore]
+async fn coprocessor_node_works() {
+    async fn test(mut clients: Clients) {
+        let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: vapenation_elf.clone(),
+            vm_type: VmType::Risc0.into(),
+        };
+        let submit_program_response = clients.coprocessor_node
+            .submit_program(submit_program_request)
+            .await.unwrap()
+            .into_inner();
+        let verifying_key = submit_program_response.program_verifying_key;
+        let input = 2u64;
+        let program_input = VapeNationArg::abi_encode(&input);
+    
+        // Submit a job
+        let job_id = 1;
+        let job = Job {
+            id: job_id,
+            max_cycles: 32 * 1024 * 1024,
+            contract_address: "0x0000000000000000000000000000000000000000".into(),
+            program_verifying_key: verifying_key.clone(),
+            input: program_input,
+            result: vec![],
+            zkvm_operator_address: vec![],
+            zkvm_operator_signature: vec![],
+            status: JobStatus::Pending.into(),
+        };
+        let submit_job_request = SubmitJobRequest { job: Some(job) };
+        let submit_job_response = clients.coprocessor_node.submit_job(submit_job_request).await.unwrap().into_inner();
+        assert_eq!(submit_job_response.job_id, job_id);
+    
+        // Wait a bit for the job to be processed
+        tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+    
+        // Get the job result
+        let get_result_request = GetResultRequest { job_id };
+        let get_result_response = clients.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
+        let result_job = get_result_response.job.unwrap();
+        
+        let done_status: i32 = JobStatus::Done.into();
+        // Verify the job execution result
+        assert_eq!(result_job.status, done_status);    
+    }
+
+    Integration::run(test).await;
+}
+
