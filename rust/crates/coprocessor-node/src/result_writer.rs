@@ -256,5 +256,7 @@ mod test {
 
         // We don't need to do this since it will abort threads on drop
         join_set.shutdown().await;
+
+        // anvil
     }
 }
