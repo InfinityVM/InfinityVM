@@ -20,4 +20,3 @@ tracing = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
-base64 = "0.22.1"
