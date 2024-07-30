@@ -11,7 +11,7 @@ use alloy::{
 use crossbeam::channel::Receiver;
 use proto::Job;
 use tokio::task::JoinSet;
-use tracing::info;
+use tracing::{info, info_span, instrument};
 
 use crate::contracts::i_job_manager::IJobManager;
 
@@ -34,6 +34,7 @@ async fn submit_result_worker<S>(
 where
     S: TxSigner<Signature> + Send + Sync + 'static,
 {
+    dbg!("test");
     let url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
 
     let wallet = EthereumWallet::new(signer);
@@ -90,6 +91,7 @@ where
 ///
 /// This will setup `worker_count` tasks to pull from the `broadcast_queue_receiver` and
 /// and then attempt to call `submitResult` on the `JobManager` contract at `job_manager_address`.
+#[instrument(skip_all)]
 pub async fn run<S>(
     http_rpc_url: String,
     signer: Arc<S>,
@@ -100,22 +102,27 @@ pub async fn run<S>(
 where
     S: TxSigner<Signature> + Send + Sync + 'static,
 {
+    use tracing::Instrument;
     info!(worker_count, "starting result writer");
 
     let mut set = JoinSet::new();
 
-    for _ in 0..worker_count {
+    for worker_num in 0..worker_count {
         let http_rpc_url = http_rpc_url.clone();
         let signer = signer.clone();
         let broadcast_queue_receiver = broadcast_queue_receiver.clone();
+        info!(worker_num, "help");
 
         set.spawn(async move {
+            info!(worker_num, "spawning worker");
+
             submit_result_worker(
                 http_rpc_url,
                 signer,
                 job_manager_address,
                 broadcast_queue_receiver,
             )
+            .instrument(info_span!("submit_result_worker"))
             .await
         });
     }
@@ -134,16 +141,20 @@ mod test {
     };
     use proto::Job;
     use tracing::info;
-    use tracing_subscriber::EnvFilter;
+    // use tracing_subscriber::EnvFilter;
 
     // cargo test -p coprocessor-node -- --nocapture
     #[tokio::test]
     async fn run_can_succesfully_submit_results() {
-        tracing_subscriber::fmt()
-            .with_env_filter(EnvFilter::from_default_env())
-            .with_writer(std::io::stderr)
-            .try_init()
-            .unwrap();
+        // tracing_subscriber::fmt()
+        //     .with_env_filter(EnvFilter::from_default_env())
+        //     .with_writer(std::io::stderr)
+        //     .try_init()
+        //     .unwrap();
+
+        let subscriber = tracing_subscriber::FmtSubscriber::new();
+        // use that subscriber to process traces emitted after this point
+        tracing::subscriber::set_global_default(subscriber).unwrap();
 
         info!("tracing test");
         let anvil = Anvil::new().try_spawn().unwrap();
@@ -186,7 +197,6 @@ mod test {
 
         // TODO: does this need to be wrapped in an arc?
         let signer = Arc::new(signer);
-        dbg!("starting result writer");
         let mut join_set =
             super::run(rpc_url.to_string(), signer, job_manager_address, receiver.clone(), 2)
                 .await
