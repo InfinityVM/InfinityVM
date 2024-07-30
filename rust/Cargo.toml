@@ -120,6 +120,7 @@ borsh = { version = "1", features = ["derive"], default-features = false }
 
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
+crossbeam = { version = "0.8", features = ["std"], default-features = false }
 
 # d
 # e
