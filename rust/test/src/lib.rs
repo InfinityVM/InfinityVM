@@ -95,7 +95,7 @@ impl Integration {
             .arg("--job-manager-address")
             .arg("0x0000000000000000000000000000000000000000")
             .arg("--chain-id")
-            .arg("31337")
+            .arg("1")
             .arg("--db-dir")
             .arg(db_dir.path())
             .arg("dev")
