@@ -4,8 +4,8 @@ use alloy::{primitives::Signature, signers::Signer};
 use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
 use std::{marker::Send, sync::Arc};
 
-use base64::prelude::*;
 use async_channel::{Receiver, Sender};
+use base64::prelude::*;
 use db::{get_elf, get_job, put_elf, put_job};
 use reth_db::Database;
 use tokio::task::JoinSet;

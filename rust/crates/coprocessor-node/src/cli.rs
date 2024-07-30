@@ -5,8 +5,8 @@ use alloy::{
     primitives::{hex, Address},
     signers::local::LocalSigner,
 };
-use clap::{Parser, Subcommand, ValueEnum};
 use async_channel::{bounded, Receiver, Sender};
+use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
 use std::{net::SocketAddrV4, path::PathBuf};
