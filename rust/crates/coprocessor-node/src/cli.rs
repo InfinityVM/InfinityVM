@@ -131,6 +131,7 @@ struct Opts {
     )]
     db_dir: String,
 
+    /// Operator key to use for signing
     #[command(subcommand)]
     operator_key: Operator,
 
@@ -190,8 +191,8 @@ impl Cli {
 
         // Initialize the crossbeam channels
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = unbounded();
-        let (broadcast_queue_sender, broadcast_queue_receiver): (Sender<Job>, Receiver<Job>) =
-            unbounded();
+        // TODO: broadcast_queue_receiver is not used right now, but should be passed into relayer once that is added
+        let (broadcast_queue_sender, _): (Sender<Job>, Receiver<Job>) = unbounded();
 
         let job_processor = Arc::new(JobProcessorService::new(
             db.clone(),

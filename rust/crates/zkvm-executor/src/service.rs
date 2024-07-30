@@ -14,18 +14,25 @@ use zkvm::Zkvm;
 use alloy_sol_types::{sol, SolType};
 use tracing::{error, info, instrument};
 
+/// Zkvm executor errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    /// Error with Alloy signer
     #[error("signer error: {0}")]
     Signer(#[from] alloy::signers::Error),
+    /// Invalid VM type
     #[error("invalid VM type")]
     InvalidVmType,
+    /// Could not find ELF for VM type
     #[error("could not find elf for vm={0}")]
     ElfNotFound(String),
+    /// Invalid verifying key
     #[error("bad verifying key {0}")]
     InvalidVerifyingKey(String),
+    /// Could not derive verifying key
     #[error("failed to derive verifying key {0}")]
     VerifyingKeyDerivationFailed(String),
+    /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] zkvm::Error),
 }
@@ -42,10 +49,12 @@ impl<S> ZkvmExecutorService<S>
 where
     S: Signer<Signature> + Send + Sync + 'static + Clone,
 {
+    /// Create a new zkvm executor service
     pub const fn new(signer: S, chain_id: Option<u64>) -> Self {
         Self { signer, chain_id }
     }
 
+    /// Returns the address of the signer
     pub fn signer_address(&self) -> Address {
         self.signer.address()
     }
@@ -68,6 +77,7 @@ where
             .map_err(Into::into)
     }
 
+    /// Returns the VM and VM type (enum) for the given VM type (i32)
     fn vm(&self, vm_type: i32) -> Result<(Box<dyn Zkvm + Send>, VmType), Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
         let vm: Box<dyn Zkvm + Send> = match vm_type {
@@ -78,10 +88,12 @@ where
         Ok((vm, vm_type))
     }
 
+    /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
+    /// This handler can be called directly.
     pub async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
         let inputs = request.inputs.expect("todo");
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
-        let (vm, vm_type) = self.vm(inputs.vm_type as i32)?;
+        let (vm, vm_type) = self.vm(inputs.vm_type)?;
         info!(
             inputs.job_id,
             vm_type = vm_type.as_str_name(),
@@ -126,6 +138,8 @@ where
         Ok(response)
     }
 
+    /// Derives and returns verifying key for the given program ELF.
+    /// This handler can be called directly.
     pub async fn create_elf_handler(
         &self,
         request: CreateElfRequest,

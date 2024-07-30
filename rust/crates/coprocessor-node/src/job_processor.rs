@@ -14,21 +14,28 @@ use zkvm_executor::service::ZkvmExecutorService;
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    /// Could not create ELF in zkvm executor
     #[error("failed to create ELF in zkvm executor: {0}")]
     CreateElfFailed(#[from] zkvm_executor::service::Error),
     /// database error
     #[error("database error: {0}")]
     Database(#[from] db::Error),
+    /// ELF with given verifying key already exists in DB
     #[error("elf with verifying key {0} already exists")]
     ElfAlreadyExists(String),
+    /// Job already exists in DB
     #[error("job already exists")]
     JobAlreadyExists,
+    /// Failed to send job to exec queue
     #[error("failed to send to exec queue")]
     ExecQueueSendFailed,
+    /// Could not read ELF from DB
     #[error("failed reading elf: {0}")]
     ElfReadFailed(String),
+    /// Could not write ELF to DB
     #[error("failed writing elf: {0}")]
     ElfWriteFailed(String),
+    /// Invalid VM type
     #[error("invalid VM type")]
     InvalidVmType,
 }
@@ -59,6 +66,7 @@ where
         Self { db, exec_queue_sender, exec_queue_receiver, broadcast_queue_sender, zk_executor }
     }
 
+    /// Submit program ELF, save it in DB, and return verifying key.
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
         let request = CreateElfRequest { program_elf: elf.clone(), vm_type };
         let response = self.zk_executor.create_elf_handler(request).await?;
@@ -84,21 +92,25 @@ where
         Ok(response.verifying_key)
     }
 
+    /// Save job in DB
     pub async fn save_job(db: Arc<D>, job: Job) -> Result<(), Error> {
-        put_job(db.clone(), job)?;
+        put_job(db, job)?;
         Ok(())
     }
 
+    /// Return whether job with `job_id` exists in DB
     pub async fn has_job(&self, job_id: u32) -> Result<bool, Error> {
         let job = get_job(self.db.clone(), job_id)?;
         Ok(job.is_some())
     }
 
+    /// Returns job with `job_id` from DB
     pub async fn get_job(&self, job_id: u32) -> Result<Option<Job>, Error> {
         let job = get_job(self.db.clone(), job_id)?;
         Ok(job)
     }
 
+    /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         let job_id = job.id;
         if self.has_job(job_id).await? {
@@ -113,6 +125,7 @@ where
         Ok(())
     }
 
+    /// Start the job processor and spawn `num_workers` worker threads.
     pub async fn start(&self, num_workers: usize) {
         let mut handles = vec![];
 
@@ -141,6 +154,7 @@ where
         }
     }
 
+    /// Start a single worker thread.
     async fn start_worker(
         exec_queue_receiver: Receiver<Job>,
         broadcast_queue_sender: Sender<Job>,
