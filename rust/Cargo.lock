@@ -2472,6 +2472,7 @@ name = "http-gateway"
 version = "0.0.1"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "clap",
  "prost 0.13.1",
  "proto",
