@@ -1567,6 +1567,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber 0.2.25",
  "zkvm",
+ "zkvm-executor",
 ]
 
 [[package]]
