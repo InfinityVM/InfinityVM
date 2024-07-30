@@ -135,18 +135,21 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::{sync::Arc, thread::yield_now};
+    use std::sync::Arc;
 
     use crate::contracts::job_manager::JobManager;
     use alloy::{
-        network::EthereumWallet, node_bindings::Anvil, providers::ProviderBuilder,
+        network::{Ethereum, EthereumWallet, NetworkWallet},
+        node_bindings::Anvil,
+        providers::ProviderBuilder,
         signers::local::PrivateKeySigner,
     };
     use proto::Job;
     use tracing::info;
+    use tracing_subscriber::EnvFilter;
     // use tracing_subscriber::EnvFilter;
 
-    /// TODO
+    /// TODO: switch to async-channel
     async fn async_send(s: crossbeam::channel::Sender<Job>, j: Job) {
         loop {
             match s.try_send(j.clone()) {
@@ -162,20 +165,13 @@ mod test {
     // cargo test -p coprocessor-node -- --nocapture
     #[tokio::test]
     async fn run_can_succesfully_submit_results() {
-        // tracing_subscriber::fmt()
-        //     .with_env_filter(EnvFilter::from_default_env())
-        //     .with_writer(std::io::stderr)
-        //     .try_init()
-        //     .unwrap();
+        tracing_subscriber::fmt()
+            .with_env_filter(EnvFilter::from_default_env())
+            .with_writer(std::io::stderr)
+            .try_init()
+            .unwrap();
 
-        let subscriber = tracing_subscriber::FmtSubscriber::new();
-        // use that subscriber to process traces emitted after this point
-        tracing::subscriber::set_global_default(subscriber).unwrap();
-
-        info!("tracing test");
         let anvil = Anvil::new().try_spawn().unwrap();
-
-        // Create a provider with the wallet.
 
         // Set up signer from the first default Anvil account (Alice).
         let signer: PrivateKeySigner = anvil.keys()[0].clone().into();
@@ -192,28 +188,28 @@ mod test {
         let contract = JobManager::deploy(&provider).await.unwrap();
 
         // Make sure the job manager is properly initialized
-        // {
-        //     let initial_owner =
-        //         <EthereumWallet as NetworkWallet<Ethereum>>::default_signer_address(&wallet);
-        //     let relayer = initial_owner.clone();
-        //     let coprocessor_operator = initial_owner.clone();
-        //     contract
-        //         .initializeJobManager(initial_owner, relayer, coprocessor_operator)
-        //         .send()
-        //         .await
-        //         .unwrap()
-        //         .get_receipt()
-        //         .await
-        //         .unwrap();
-        // }
+        {
+            let initial_owner =
+                <EthereumWallet as NetworkWallet<Ethereum>>::default_signer_address(&wallet);
+            let relayer = initial_owner;
+            let coprocessor_operator = initial_owner;
+            contract
+                .initializeJobManager(initial_owner, relayer, coprocessor_operator)
+                .send()
+                .await
+                .unwrap()
+                .get_receipt()
+                .await
+                .unwrap();
+        }
 
-        let job_manager_address = contract.address().clone();
+        let job_manager_address = *contract.address();
 
         let (sender, receiver) = crossbeam::channel::bounded(3);
 
         // TODO: does this need to be wrapped in an arc?
         let signer = Arc::new(signer);
-        let join_set =
+        let mut join_set =
             super::run(rpc_url.to_string(), signer, job_manager_address, receiver.clone(), 2)
                 .await
                 .unwrap();
@@ -230,13 +226,10 @@ mod test {
                 zkvm_operator_signature: vec![i as u8],
                 result: vec![i as u8],
             };
-            dbg!(i);
             async_send(sender.clone(), job).await;
-            dbg!(i);
         }
 
-        dbg!("sleeping");
-        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(1_000)).await;
 
         info!("finish");
         // TODO: assert the chain received transactions by checking the contract state
