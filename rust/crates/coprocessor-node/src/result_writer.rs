@@ -13,9 +13,9 @@ use proto::Job;
 use tokio::task::JoinSet;
 use tracing::{info, trace};
 
-use crate::contracts::job_manager::IJobManager;
+use crate::contracts::i_job_manager::IJobManager;
 
-/// Chain writer errors
+/// Result writer errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     /// job submit transaction failed
@@ -23,6 +23,8 @@ pub enum Error {
     HttpRpcUrlParse,
 }
 
+/// Task worker that pulls jobs off of the `broadcast_queue_receiver` and writes them to
+/// `job_manager_address`.
 async fn submit_result_worker<S>(
     http_rpc_url: String,
     signer: Arc<S>,
@@ -49,7 +51,7 @@ where
             Ok(job) => job,
             Err(_) => {
                 tokio::task::yield_now().await;
-                continue
+                continue;
             }
         };
 
@@ -86,8 +88,8 @@ where
 
 /// Run the the result writer subsystem.
 ///
-/// This will setup [`worker_count`] tasks to pull from the [`broadcast_queue_receiver`] and
-/// and then attempt to call `submitResult` on the `JobManager` contract at [`job_manager_address`].
+/// This will setup `worker_count` tasks to pull from the `broadcast_queue_receiver` and
+/// and then attempt to call `submitResult` on the `JobManager` contract at `job_manager_address`.
 pub async fn run<S>(
     http_rpc_url: String,
     signer: Arc<S>,
@@ -121,4 +123,65 @@ where
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod test {
+    use std::sync::Arc;
+
+    use crate::contracts::job_manager::JobManager;
+    use alloy::{
+        network::EthereumWallet, node_bindings::Anvil, primitives::U256,
+        providers::ProviderBuilder, signers::local::PrivateKeySigner, sol,
+    };
+    use proto::Job;
+
+    #[tokio::test]
+    async fn run_can_succesfully_submit_results() {
+        let anvil = Anvil::new().try_spawn().unwrap();
+
+        // Create a provider with the wallet.
+
+        // Set up signer from the first default Anvil account (Alice).
+        let signer: PrivateKeySigner = anvil.keys()[0].clone().into();
+        let wallet = EthereumWallet::from(signer.clone());
+        // Create a provider with the wallet.
+        let rpc_url = anvil.endpoint();
+
+        // TODO: is there some sort of off the shelf mock provider we could inject into
+        let provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(wallet)
+            .on_http(rpc_url.parse().unwrap());
+
+        let contract = JobManager::deploy(&provider).await.unwrap();
+
+        let job_manager_address = contract.address().clone();
+
+        let (sender, receiver) = crossbeam::channel::bounded(3);
+
+        // TODO: does this need to be wrapped in an arc?
+        let signer = Arc::new(signer);
+        let future =
+            super::run(rpc_url.to_string(), signer, job_manager_address, receiver.clone(), 2);
+
+        for i in 0..10 {
+            let job = Job {
+                id: i,
+                contract_address: vec![i as u8],
+                max_cycles: i as u64,
+                program_verifying_key: vec![i as u8],
+                input: vec![i as u8],
+                status: i as i32,
+                zkvm_operator_address: vec![i as u8],
+                zkvm_operator_signature: vec![i as u8],
+                result: vec![i as u8],
+            };
+            sender.send(job).unwrap();
+        }
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(100))
+
+        // TODO: assert the chain received transactions
+    }
 }

@@ -3,10 +3,19 @@
 
 #![allow(missing_docs)]
 
-/// `IJobManager` bindings
-pub mod job_manager {
+/// `IJobManager.sol` bindings
+pub mod i_job_manager {
     alloy::sol! {
       #[sol(rpc)]
       "../../../contracts/src/IJobManager.sol"
+    }
+}
+
+/// `JobManager.sol` bindings
+pub mod job_manager {
+    alloy::sol! {
+      #[sol(rpc)]
+      JobManager,
+      "../../../contracts/out/JobManager.sol/JobManager.json"
     }
 }
