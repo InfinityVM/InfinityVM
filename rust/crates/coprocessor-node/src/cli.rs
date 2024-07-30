@@ -206,7 +206,7 @@ impl Cli {
         tokio::spawn(async move {
             job_processor_clone.start(opts.worker_count).await;
         });
-    
+
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
             .build()

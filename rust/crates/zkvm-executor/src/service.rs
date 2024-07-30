@@ -8,7 +8,7 @@ use base64::prelude::*;
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
-use std::{marker::Send};
+use std::marker::Send;
 use zkvm::Zkvm;
 
 use alloy_sol_types::{sol, SolType};
