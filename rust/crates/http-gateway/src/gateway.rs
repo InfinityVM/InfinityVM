@@ -14,31 +14,8 @@ use axum::{
     routing::post,
     Json, Router,
 };
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
-use serde::{Serialize, Serializer};
-use serde::ser::SerializeStruct;
-use serde_json::json;
+
 use crate::Error;
-
-#[derive(Debug)]
-pub struct SubmitProgramResponseWrapper {
-    pub inner: SubmitProgramResponse,
-}
-
-impl Serialize for SubmitProgramResponseWrapper {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let mut state = serializer.serialize_struct("SubmitProgramResponse", self.inner.program_verifying_key.len())?;
-        state.serialize_field(
-            "program_verifying_key",
-            &BASE64_STANDARD.encode(&self.inner.program_verifying_key),
-        )?;
-        state.end()
-    }
-}
 
 const SUBMIT_JOB: &str = "submit_job";
 const GET_RESULT: &str = "get_result";
@@ -147,10 +124,10 @@ impl HttpGrpcGateway {
     async fn submit_program(
         State(mut client): State<Client>,
         Json(body): Json<SubmitProgramRequest>,
-    ) -> Result<Json<SubmitProgramResponseWrapper>, ErrorResponse> {
+    ) -> Result<Json<SubmitProgramResponse>, ErrorResponse> {
         let tonic_request = tonic::Request::new(body);
         let response = client.submit_program(tonic_request).await?.into_inner();
 
-        Ok(Json(SubmitProgramResponseWrapper{inner:response}))
+        Ok(Json(response))
     }
 }

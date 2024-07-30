@@ -9,6 +9,7 @@ use reth_db::{
     table::{Compress, Decompress},
     DatabaseError,
 };
+use serde_with::{base64::Base64, serde_as};
 
 tonic::include_proto!("coprocessor_node.v1");
 
