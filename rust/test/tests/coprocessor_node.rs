@@ -81,7 +81,7 @@ async fn coprocessor_node_risc0_works() {
         assert_eq!(submit_job_response.job_id, job_id);
     
         // Wait a bit for the job to be processed
-        tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
     
         // Get the job result
         let get_result_request = GetResultRequest { job_id };
