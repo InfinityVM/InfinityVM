@@ -113,6 +113,7 @@ alloy = { version = "0.2", features = ["network", "signer-local", "signer-keysto
 alloy-signer-local = { version = "0.2", default-features = false }
 alloy-rlp = { version = "0.3", default-features = false }
 alloy-sol-types = { version = "0.7", default-features = false }
+async-channel = { version = "2.3.1", default-features = false }
 
 # b
 base64 = { version = "0.22.1" }
@@ -120,7 +121,6 @@ borsh = { version = "1", features = ["derive"], default-features = false }
 
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
-crossbeam = { version = "0.8", features = ["std"], default-features = false }
 
 # d
 # e

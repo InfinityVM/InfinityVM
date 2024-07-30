@@ -6,7 +6,7 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use clap::{Parser, Subcommand, ValueEnum};
-use crossbeam::channel::{bounded, Receiver, Sender};
+use async_channel::{bounded, Receiver, Sender};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
 use std::{net::SocketAddrV4, path::PathBuf};
@@ -190,7 +190,7 @@ impl Cli {
             "executor initialized"
         );
 
-        // Initialize the crossbeam channels
+        // Initialize the async channels
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = bounded(100);
         // TODO: broadcast_queue_receiver is not used right now, but should be passed into relayer
         // once that is added

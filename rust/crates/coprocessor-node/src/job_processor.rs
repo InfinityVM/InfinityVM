@@ -5,7 +5,7 @@ use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, VmType}
 use std::{marker::Send, sync::Arc};
 
 use base64::prelude::*;
-use crossbeam::channel::{Receiver, Sender};
+use async_channel::{Receiver, Sender};
 use db::{get_elf, get_job, put_elf, put_job};
 use reth_db::Database;
 use tokio::task::JoinSet;
@@ -131,7 +131,7 @@ where
         job.status = JobStatus::Pending.into();
 
         Self::save_job(self.db.clone(), job.clone()).await?;
-        self.exec_queue_sender.send(job).map_err(|_| Error::ExecQueueSendFailed)?;
+        self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
 
         Ok(())
     }
@@ -161,7 +161,7 @@ where
         loop {
             // TODO: We want to make this try_recv() and yield on error
             // [ref: https://github.com/Ethos-Works/InfinityVM/issues/118]
-            match exec_queue_receiver.recv() {
+            match exec_queue_receiver.recv().await {
                 Ok(mut job) => {
                     let id = job.id;
                     info!("Executing job {}", id);
@@ -222,7 +222,7 @@ where
                             }
 
                             info!("Pushing finished job {} to broadcast queue", id);
-                            if let Err(e) = broadcast_queue_sender.send(job) {
+                            if let Err(e) = broadcast_queue_sender.send(job).await {
                                 // TODO: Add backlog of jobs that completed but were not
                                 // able to be included in broadcast queue/onchain
                                 // [ref: https://github.com/Ethos-Works/InfinityVM/issues/127]
