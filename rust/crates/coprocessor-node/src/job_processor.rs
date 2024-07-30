@@ -6,7 +6,7 @@ use std::{marker::Send, sync::Arc};
 
 use base64::prelude::*;
 use crossbeam::channel::{Receiver, Sender};
-use db::{get_job, put_job};
+use db::{get_elf, get_job, put_elf, put_job};
 use reth_db::Database;
 use tokio::task::JoinSet;
 use tracing::{error, info};
@@ -52,6 +52,7 @@ pub struct JobProcessorService<S, D> {
     task_handles: JoinSet<()>,
 }
 
+// The DB functions in JobProcessorService are async so they yield in the tokio task.
 impl<S, D> JobProcessorService<S, D>
 where
     S: Signer<Signature> + Send + Sync + Clone + 'static,
@@ -81,7 +82,7 @@ where
         let request = CreateElfRequest { program_elf: elf.clone(), vm_type };
         let response = self.zk_executor.create_elf_handler(request).await?;
 
-        if db::get_elf(self.db.clone(), &response.verifying_key)
+        if get_elf(self.db.clone(), &response.verifying_key)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
             .is_some()
         {
@@ -91,7 +92,7 @@ where
             )));
         }
 
-        db::put_elf(
+        put_elf(
             self.db.clone(),
             VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
             &response.verifying_key,
@@ -158,6 +159,8 @@ where
         zk_executor: ZkvmExecutorService<S>,
     ) {
         loop {
+            // TODO: We want to make this try_recv() and yield on error
+            // [ref: https://github.com/Ethos-Works/InfinityVM/issues/118]
             match exec_queue_receiver.recv() {
                 Ok(mut job) => {
                     let id = job.id;
