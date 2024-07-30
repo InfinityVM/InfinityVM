@@ -11,6 +11,7 @@ workspace = true
 alloy = { workspace = true }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
+tracing-subscriber = {workspace = true}
 prost = { workspace = true }
 tokio = { workspace = true }
 clap = { workspace = true }

@@ -5,6 +5,7 @@ use alloy::primitives::Address;
 use clap::{Parser, ValueEnum};
 use proto::coprocessor_node_server::CoprocessorNodeServer;
 use std::net::SocketAddrV4;
+use tracing::{info, instrument};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 
@@ -63,10 +64,9 @@ pub struct Cli;
 
 impl Cli {
     /// Run the CLI
+    #[instrument]
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
-
-        // TODO (Maanav): add logging
 
         let _relayer_private_key =
             std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
@@ -80,7 +80,7 @@ impl Cli {
             .build()
             .expect("failed to build gRPC reflection service");
 
-        tracing::info!("starting gRPC server at {}", grpc_addr);
+        info!("starting gRPC server at {}", grpc_addr);
         tonic::transport::Server::builder()
             .add_service(CoprocessorNodeServer::new(CoprocessorNodeServerInner {}))
             .add_service(reflector)
