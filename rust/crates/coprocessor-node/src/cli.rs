@@ -6,10 +6,10 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use clap::{Parser, Subcommand, ValueEnum};
-use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
+use crossbeam::channel::{bounded, Receiver, Sender};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
-use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
+use std::{net::SocketAddrV4, path::PathBuf};
 use tokio::task::JoinSet;
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};

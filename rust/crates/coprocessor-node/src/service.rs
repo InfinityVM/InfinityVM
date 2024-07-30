@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::job_processor::JobProcessorService;
 use alloy::{primitives::Signature, signers::Signer};
 use proto::{
