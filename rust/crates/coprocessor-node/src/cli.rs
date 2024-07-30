@@ -185,7 +185,7 @@ impl Cli {
         let executor = ZkvmExecutorService::new(signer, opts.chain_id);
         info!(
             chain_id = opts.chain_id,
-            signer = executor.signer_address().to_string(),
+            zkvm_operator_address = executor.signer_address().to_string(),
             "executor initialized"
         );
 
@@ -196,7 +196,7 @@ impl Cli {
         let (broadcast_queue_sender, _): (Sender<Job>, Receiver<Job>) = unbounded();
 
         let job_processor = Arc::new(JobProcessorService::new(
-            db.clone(),
+            db,
             exec_queue_sender,
             exec_queue_receiver,
             broadcast_queue_sender,
