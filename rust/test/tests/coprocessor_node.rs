@@ -7,12 +7,12 @@ use alloy_sol_types::{sol, SolType};
 use integration::{Clients, Integration};
 use proto::{
     GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType,
-    JobInputs,
 };
 
 use vapenation_core::{VapeNationArg, VapeNationMetadata};
-use vapenation_methods::VAPENATION_GUEST_ID;
+use vapenation_methods::{VAPENATION_GUEST_ID, VAPENATION_GUEST_PATH, VAPENATION_GUEST_ELF};
 use zkvm_executor::DEV_SECRET;
+use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
 
 // WARNING: read the integration test readme to learn about common footguns while iterating
@@ -20,6 +20,10 @@ use risc0_zkp::core::digest::Digest;
 
 const VAPENATION_ELF_PATH: &str =
     "../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest";
+
+// TODO: Add back in SP1 [ref: https://github.com/Ethos-Works/InfinityVM/issues/120]
+// const VAPENATION_ELF_SP1_PATH: &str =
+//     "../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
 
 fn expected_signer_address() -> Address {
     let signer = LocalSigner::<SigningKey>::from_slice(&DEV_SECRET).unwrap();
@@ -48,9 +52,25 @@ pub fn abi_encode_result_with_metadata(i: &Job, raw_output: &[u8]) -> Vec<u8> {
     ))
 }
 
+#[test]
+#[ignore]
+fn invariants() {
+    VAPENATION_GUEST_PATH
+        .contains("/target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest");
+    VAPENATION_ELF_PATH
+        .contains("/target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest");
+
+    let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
+    let image_id = compute_image_id(&vapenation_elf).unwrap();
+
+    assert_eq!(VAPENATION_GUEST_ELF, vapenation_elf);
+    assert_eq!(&VAPENATION_GUEST_ID, image_id.as_words());
+}
+    
 #[tokio::test]
 #[ignore]
-async fn coprocessor_node_submit_program_risc0_works() {
+// Tests all gRPC endpoints of the coprocessor node: submit_program, submit_job, and `get_result`.
+async fn coprocessor_node_risc0_works() {
     async fn test(mut clients: Clients) {
         let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
         let submit_program_request = SubmitProgramRequest {
@@ -62,30 +82,11 @@ async fn coprocessor_node_submit_program_risc0_works() {
             .await.unwrap()
             .into_inner();
         let program_id = submit_program_response.program_verifying_key;
+        let input = 2u64;
+        let original_input = VapeNationArg::abi_encode(&input);
 
         // Check the program ID returned by the coprocessor node is correct
         assert_eq!(program_id, Digest::new(VAPENATION_GUEST_ID).as_bytes().to_vec());
-    }
-
-    Integration::run(test).await;
-}
-    
-#[tokio::test]
-#[ignore]
-async fn coprocessor_node_risc0_submit_job_works() {
-    async fn test(mut clients: Clients) {
-        let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
-        let submit_program_request = SubmitProgramRequest {
-            program_elf: vapenation_elf.clone(),
-            vm_type: VmType::Risc0.into(),
-        };
-        let submit_program_response = clients.coprocessor_node
-            .submit_program(submit_program_request)
-            .await.unwrap()
-            .into_inner();
-        let verifying_key = submit_program_response.program_verifying_key;
-        let input = 2u64;
-        let original_input = VapeNationArg::abi_encode(&input);
     
         // Submit a job
         let job_id = 1;
@@ -93,7 +94,7 @@ async fn coprocessor_node_risc0_submit_job_works() {
             id: job_id,
             max_cycles: 32 * 1024 * 1024,
             contract_address: "0x0000000000000000000000000000000000000000".into(),
-            program_verifying_key: verifying_key.clone(),
+            program_verifying_key: program_id,
             input: original_input.clone(),
             result: vec![],
             zkvm_operator_address: vec![],
@@ -105,7 +106,7 @@ async fn coprocessor_node_risc0_submit_job_works() {
         assert_eq!(submit_job_response.job_id, job_id);
     
         // Wait a bit for the job to be processed
-        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
     
         // Get the job result
         let get_result_request = GetResultRequest { job_id };
@@ -162,3 +163,5 @@ async fn coprocessor_node_risc0_submit_job_works() {
 
     Integration::run(test).await;
 }
+
+// TODO: Add back in SP1 [ref: https://github.com/Ethos-Works/InfinityVM/issues/120]
