@@ -72,7 +72,7 @@ where
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
         let vm: Box<dyn Zkvm + Send> = match vm_type {
             VmType::Risc0 => Box::new(zkvm::Risc0),
-            VmType::Sp1 => Box::new(zkvm::Sp1),
+            VmType::Sp1 => unimplemented!("https://github.com/Ethos-Works/InfinityVM/issues/120"),
         };
 
         Ok((vm, vm_type))

@@ -2,7 +2,6 @@
 
 use risc0_binfmt::compute_image_id;
 use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
-use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
 use thiserror::Error;
 
 /// The error
@@ -89,50 +88,50 @@ impl Zkvm for Risc0 {
     }
 }
 
-/// Sp1 impl of [Zkvm].
-#[derive(Debug)]
-pub struct Sp1;
+// TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+// Sp1 impl of [Zkvm].
+// #[derive(Debug)]
+// pub struct Sp1;
+// impl Zkvm for Sp1 {
+//     fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
+//         let (_, vk) = ProverClient::new().setup(program_elf);
 
-impl Zkvm for Sp1 {
-    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-        let (_, vk) = ProverClient::new().setup(program_elf);
+//         Ok(vk.hash_bytes().to_vec())
+//     }
 
-        Ok(vk.hash_bytes().to_vec())
-    }
+//     fn execute(
+//         &self,
+//         program_elf: &[u8],
+//         raw_input: &[u8],
+//         max_cycles: u64,
+//     ) -> Result<Vec<u8>, Error> {
+//         let mut stdin = SP1Stdin::new();
+//         stdin.write_slice(raw_input);
 
-    fn execute(
-        &self,
-        program_elf: &[u8],
-        raw_input: &[u8],
-        max_cycles: u64,
-    ) -> Result<Vec<u8>, Error> {
-        let mut stdin = SP1Stdin::new();
-        stdin.write_slice(raw_input);
+//         let client = ProverClient::new();
+//         let (public_values, _) = client
+//             .execute(program_elf, stdin)
+//             .max_cycles(max_cycles)
+//             .run()
+//             .map_err(|source| Error::Sp1 { source })?;
 
-        let client = ProverClient::new();
-        let (public_values, _) = client
-            .execute(program_elf, stdin)
-            .max_cycles(max_cycles)
-            .run()
-            .map_err(|source| Error::Sp1 { source })?;
-
-        Ok(public_values.to_vec())
-    }
-}
+//         Ok(public_values.to_vec())
+//     }
+// }
 
 #[cfg(test)]
 mod test {
-    use crate::{Risc0, Sp1, Zkvm};
+    use crate::{Risc0, Zkvm};
     use alloy_rlp::Decodable;
     use alloy_sol_types::SolType;
-    use sp1_sdk::HashableKey;
     use vapenation_core::{VapeNationArg, VapeNationMetadata};
 
     const VAPENATION_ELF_PATH: &str =
         "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
 
-    const VAPENATION_ELF_SP1_PATH: &str =
-        "../../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
+    // TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+    // const VAPENATION_ELF_SP1_PATH: &str =
+    //     "../../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
@@ -169,40 +168,41 @@ mod test {
         assert!(!correct);
     }
 
-    #[test]
-    fn sp1_execute_can_correctly_execute_program() {
-        let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
+    // TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+    // #[test]
+    // fn sp1_execute_can_correctly_execute_program() {
+    //     let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
 
-        let input = 2u64;
-        let raw_input = VapeNationArg::abi_encode(&input);
+    //     let input = 2u64;
+    //     let raw_input = VapeNationArg::abi_encode(&input);
 
-        let max_cycles = 32 * 1024 * 1024;
-        let raw_result = &Sp1.execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
+    //     let max_cycles = 32 * 1024 * 1024;
+    //     let raw_result = &Sp1.execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
 
-        let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
-        let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
+    //     let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
+    //     let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
 
-        assert_eq!(metadata.nation_id, 352380);
-        assert_eq!(metadata.points, 5106);
-        assert_eq!(metadata.phrase, phrase);
-    }
+    //     assert_eq!(metadata.nation_id, 352380);
+    //     assert_eq!(metadata.points, 5106);
+    //     assert_eq!(metadata.phrase, phrase);
+    // }
 
-    #[test]
-    fn sp1_is_correct_verifying_key() {
-        let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
-        let client = sp1_sdk::ProverClient::new();
+    // #[test]
+    // fn sp1_is_correct_verifying_key() {
+    //     let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
+    //     let client = sp1_sdk::ProverClient::new();
 
-        // setup
-        let (_, vk) = client.setup(vapenation_elf.as_slice());
-        let mut image_id = vk.hash_bytes().as_slice().to_vec();
+    //     // setup
+    //     let (_, vk) = client.setup(vapenation_elf.as_slice());
+    //     let mut image_id = vk.hash_bytes().as_slice().to_vec();
 
-        let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
-        assert!(correct);
+    //     let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+    //     assert!(correct);
 
-        image_id.pop();
-        image_id.push(255);
+    //     image_id.pop();
+    //     image_id.push(255);
 
-        let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
-        assert!(!correct);
-    }
+    //     let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+    //     assert!(!correct);
+    // }
 }

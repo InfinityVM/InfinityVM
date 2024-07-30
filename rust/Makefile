@@ -1,4 +1,6 @@
-RUSTFLAGS = '-Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native'
+# These where required for building and running tests with sp1
+# TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+# RUSTFLAGS = '-Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native'
 
 .PHONY: clippy-ci
 clippy-ci:
@@ -6,7 +8,7 @@ clippy-ci:
 
 .PHONY: clippy
 clippy:
-	RISC0_SKIP_BUILD=true cargo clippy --fix --allow-dirty
+	RISC0_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace
 
 .PHONY: fmt-ci
 fmt-ci: 
@@ -31,15 +33,15 @@ doc:
 
 .PHONY: build-release
 build-release:
-	RUSTFLAGS=$(RUSTFLAGS) cargo build --release
+	cargo build --release
 
 # Use this for iterating on integration tests
 .PHONY: test-all
 test-all:
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
-	RUSTFLAGS=$(RUSTFLAGS) cargo build -p coprocessor-node -p zkvm-executor && \
-	RUSTFLAGS=$(RUSTFLAGS) cargo test --all -- --ignored
+	cargo build -p coprocessor-node -p zkvm-executor && \
+	cargo test --all -- --ignored
 
 .PHONY: build
 build:

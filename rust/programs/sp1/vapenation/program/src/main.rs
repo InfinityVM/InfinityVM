@@ -1,4 +1,6 @@
-//! Run at your own sp1
+//! sp1 program - not currently used
+//! TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
