@@ -1,0 +1,7 @@
+{
+  "rust-analyzer.server.extraEnv": {
+    "RISC0_SKIP_BUILD": "1",
+  },
+  "rust-analyzer.cargo.targetDir": true,
+  "rust-analyzer.imports.preferNoStd": true
+}
