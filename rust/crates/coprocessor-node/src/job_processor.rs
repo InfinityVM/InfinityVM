@@ -174,6 +174,9 @@ where
                                 id, &job.program_verifying_key
                             );
 
+                            // TODO: We should have some way of recording the error
+                            // reason / error type for failed jobs
+                            // [ref: https://github.com/Ethos-Works/InfinityVM/issues/117]
                             job.status = JobStatus::Failed.into();
                             if let Err(e) = Self::save_job(db.clone(), job).await {
                                 error!("Failed to save job {}: {:?}", id, e);
@@ -220,8 +223,9 @@ where
 
                             info!("Pushing finished job {} to broadcast queue", id);
                             if let Err(e) = broadcast_queue_sender.send(job) {
-                                // TODO (Maanav): Should we set job status to FAILED here?
-                                // [ref]: https://github.com/Ethos-Works/InfinityVM/issues/117
+                                // TODO: Add backlog of jobs that completed but were not
+                                // able to be included in broadcast queue/onchain
+                                // [ref: https://github.com/Ethos-Works/InfinityVM/issues/127]
                                 error!("Failed to push job {} to broadcast queue: {:?}", id, e);
                                 continue;
                             }
