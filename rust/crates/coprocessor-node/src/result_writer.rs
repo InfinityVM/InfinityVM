@@ -47,6 +47,7 @@ where
 
     let contract = IJobManager::new(job_manager_address, provider);
 
+    info!("submit_result_worker starting loop");
     loop {
         let job = match broadcast_queue_receiver.try_recv() {
             Ok(job) => job,
@@ -98,6 +99,7 @@ pub async fn run<S>(
     job_manager_address: Address,
     broadcast_queue_receiver: Receiver<Job>,
     worker_count: u32,
+    // ) -> Result<JoinSet<Result<(), Error>>, Error>
 ) -> Result<JoinSet<Result<(), Error>>, Error>
 where
     S: TxSigner<Signature> + Send + Sync + 'static,
@@ -114,6 +116,7 @@ where
         info!(worker_num, "help");
 
         set.spawn(async move {
+            dbg!("dbg help");
             info!(worker_num, "spawning worker");
 
             submit_result_worker(
@@ -132,7 +135,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
+    use std::{sync::Arc, thread::yield_now};
 
     use crate::contracts::job_manager::JobManager;
     use alloy::{
@@ -142,6 +145,19 @@ mod test {
     use proto::Job;
     use tracing::info;
     // use tracing_subscriber::EnvFilter;
+
+    /// TODO
+    async fn async_send(s: crossbeam::channel::Sender<Job>, j: Job) {
+        loop {
+            match s.try_send(j.clone()) {
+                Ok(_) => break,
+                Err(_) => {
+                    tokio::task::yield_now().await;
+                    continue;
+                }
+            }
+        }
+    }
 
     // cargo test -p coprocessor-node -- --nocapture
     #[tokio::test]
@@ -197,7 +213,7 @@ mod test {
 
         // TODO: does this need to be wrapped in an arc?
         let signer = Arc::new(signer);
-        let mut join_set =
+        let join_set =
             super::run(rpc_url.to_string(), signer, job_manager_address, receiver.clone(), 2)
                 .await
                 .unwrap();
@@ -215,13 +231,14 @@ mod test {
                 result: vec![i as u8],
             };
             dbg!(i);
-            sender.send(job).unwrap();
+            async_send(sender.clone(), job).await;
             dbg!(i);
         }
 
         dbg!("sleeping");
         tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
+        info!("finish");
         // TODO: assert the chain received transactions by checking the contract state
 
         // We don't need to do this since it will abort threads on drop
