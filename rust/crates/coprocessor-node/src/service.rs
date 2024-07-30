@@ -15,7 +15,7 @@ use tonic::{Request, Response, Status};
 pub struct CoprocessorNodeServerInner<S, D> {
     // TODO (Maanav): should we use `DatabaseEnv` instead of a generic `D`?
     /// Job processor service
-    pub job_processor: Arc<JobProcessorService<S, D>>,
+    pub job_processor: JobProcessorService<S, D>,
 }
 
 #[tonic::async_trait]

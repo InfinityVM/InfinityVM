@@ -8,6 +8,7 @@ use base64::prelude::*;
 use crossbeam::channel::{Receiver, Sender};
 use db::{get_job, put_job};
 use reth_db::Database;
+use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
 
@@ -48,6 +49,7 @@ pub struct JobProcessorService<S, D> {
     exec_queue_receiver: Receiver<Job>,
     broadcast_queue_sender: Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
+    task_handles: JoinSet<()>,
 }
 
 impl<S, D> JobProcessorService<S, D>
@@ -62,8 +64,16 @@ where
         exec_queue_receiver: Receiver<Job>,
         broadcast_queue_sender: Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
+        task_handles: JoinSet<()>,
     ) -> Self {
-        Self { db, exec_queue_sender, exec_queue_receiver, broadcast_queue_sender, zk_executor }
+        Self {
+            db,
+            exec_queue_sender,
+            exec_queue_receiver,
+            broadcast_queue_sender,
+            zk_executor,
+            task_handles,
+        }
     }
 
     /// Submit program ELF, save it in DB, and return verifying key.
@@ -126,31 +136,17 @@ where
     }
 
     /// Start the job processor and spawn `num_workers` worker threads.
-    pub async fn start(&self, num_workers: usize) {
-        let mut handles = vec![];
-
+    pub async fn start(&mut self, num_workers: usize) {
         for _ in 0..num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let broadcast_queue_sender = self.broadcast_queue_sender.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
 
-            let handle = tokio::spawn(async move {
+            self.task_handles.spawn(async move {
                 Self::start_worker(exec_queue_receiver, broadcast_queue_sender, db, zk_executor)
                     .await;
             });
-            handles.push(handle);
-        }
-
-        for handle in handles {
-            // TODO (Maanav): How should we handle shutting down worker threads?
-            // [ref]: https://github.com/Ethos-Works/InfinityVM/issues/116
-            match handle.await {
-                Ok(_) => {}
-                Err(e) => {
-                    error!("Worker task failed: {:?}", e);
-                }
-            }
         }
     }
 

@@ -10,6 +10,7 @@ use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
 use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
+use tokio::task::JoinSet;
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
@@ -194,20 +195,19 @@ impl Cli {
         // TODO: broadcast_queue_receiver is not used right now, but should be passed into relayer
         // once that is added
         let (broadcast_queue_sender, _): (Sender<Job>, Receiver<Job>) = bounded(100);
+        let task_handles = JoinSet::new();
 
-        let job_processor = Arc::new(JobProcessorService::new(
+        // Start the job processor with a specified number of worker threads.
+        // The job processor stores a JoinSet which has a handle to each task.
+        let mut job_processor = JobProcessorService::new(
             db,
             exec_queue_sender,
             exec_queue_receiver,
             broadcast_queue_sender,
             executor,
-        ));
-
-        // Start the job processor with a specified number of worker threads
-        let job_processor_clone = job_processor.clone();
-        tokio::spawn(async move {
-            job_processor_clone.start(opts.worker_count).await;
-        });
+            task_handles,
+        );
+        job_processor.start(opts.worker_count).await;
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
