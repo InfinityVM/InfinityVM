@@ -130,18 +130,18 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
+    use std::{collections::HashSet, sync::Arc};
 
-    use crate::contracts::job_manager::JobManager;
-    use alloy::signers::Signer;
+    use crate::contracts::{i_job_manager::IJobManager, job_manager::JobManager};
     use alloy::{
         network::{Ethereum, EthereumWallet, NetworkWallet},
         node_bindings::Anvil,
-        providers::ProviderBuilder,
-        signers::local::PrivateKeySigner,
+        providers::{Provider, ProviderBuilder},
+        rpc::types::Filter,
+        signers::{local::PrivateKeySigner, Signer},
+        sol_types::SolEvent,
     };
     use proto::Job;
-    use tracing::info;
     use zkvm_executor::service::abi_encode_result_with_metadata;
 
     /// TODO: switch to async-channel
@@ -159,7 +159,7 @@ mod test {
 
     // cargo test -p coprocessor-node -- --nocapture
     #[tokio::test]
-    async fn run_can_succesfully_submit_results() {
+    async fn run_can_successfully_submit_results() {
         let subscriber = tracing_subscriber::FmtSubscriber::new();
         tracing::subscriber::set_global_default(subscriber).unwrap();
 
@@ -201,7 +201,7 @@ mod test {
 
         // TODO: does this need to be wrapped in an arc?
         let signer = Arc::new(p_signer);
-        let mut join_set = super::run(
+        let _join_set = super::run(
             rpc_url.to_string(),
             signer.clone(),
             job_manager_address,
@@ -249,14 +249,22 @@ mod test {
             async_send(sender.clone(), job).await;
         }
 
-        tokio::time::sleep(tokio::time::Duration::from_millis(1_000)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(3_000)).await;
 
-        info!("finish");
-        // TODO: assert the chain received transactions by checking the contract state
+        // check that each job is in the anvil node logs
+        let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
+        let logs = provider.get_logs(&filter).await.unwrap();
 
-        // We don't need to do this since it will abort threads on drop
-        join_set.shutdown().await;
+        let seen: HashSet<_> = logs
+            .into_iter()
+            .map(|log| {
+                let decoded = log.log_decode::<IJobManager::JobCompleted>().unwrap().data().clone();
+                decoded.jobID
+            })
+            .collect();
+        let expected: HashSet<_> = (0..10).collect();
 
-        // anvil
+        // We expect to see exactly job ids 0 to 9 in the JobCompleted events
+        assert_eq!(seen, expected);
     }
 }

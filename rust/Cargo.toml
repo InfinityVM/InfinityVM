@@ -109,7 +109,7 @@ significant_drop_tightening = "allow"
 # a
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
-alloy = { version = "0.2", features = ["network", "signer-local", "signer-keystore", "rlp"], default-features = false }
+alloy = { version = "0.2", features = ["network", "signer-local", "signer-keystore", "rlp",  "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client"], default-features = false }
 alloy-signer-local = { version = "0.2", default-features = false }
 alloy-rlp = { version = "0.3", default-features = false }
 alloy-sol-types = { version = "0.7", default-features = false }
