@@ -2422,6 +2422,7 @@ dependencies = [
  "proto",
  "rand 0.8.5",
  "risc0-binfmt",
+ "risc0-zkp",
  "tempfile",
  "tokio",
  "tonic",

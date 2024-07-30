@@ -13,6 +13,7 @@ tonic = { workspace = true }
 tokio = { workspace = true }
 futures = { workspace = true }
 risc0-binfmt = { workspace = true }
+risc0-zkp = { workspace = true }
 alloy = { workspace = true }
 alloy-rlp = { workspace = true }
 alloy-sol-types = { workspace = true }

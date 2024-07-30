@@ -11,7 +11,9 @@ use proto::{
 };
 
 use vapenation_core::{VapeNationArg, VapeNationMetadata};
+use vapenation_methods::VAPENATION_GUEST_ID;
 use zkvm_executor::DEV_SECRET;
+use risc0_zkp::core::digest::Digest;
 
 // WARNING: read the integration test readme to learn about common footguns while iterating
 // on these integration tests.
@@ -45,10 +47,32 @@ pub fn abi_encode_result_with_metadata(i: &Job, raw_output: &[u8]) -> Vec<u8> {
         raw_output,
     ))
 }
+
+#[tokio::test]
+#[ignore]
+async fn coprocessor_node_submit_program_risc0_works() {
+    async fn test(mut clients: Clients) {
+        let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: vapenation_elf.clone(),
+            vm_type: VmType::Risc0.into(),
+        };
+        let submit_program_response = clients.coprocessor_node
+            .submit_program(submit_program_request)
+            .await.unwrap()
+            .into_inner();
+        let program_id = submit_program_response.program_verifying_key;
+
+        // Check the program ID returned by the coprocessor node is correct
+        assert_eq!(program_id, Digest::new(VAPENATION_GUEST_ID).as_bytes().to_vec());
+    }
+
+    Integration::run(test).await;
+}
     
 #[tokio::test]
 #[ignore]
-async fn coprocessor_node_risc0_works() {
+async fn coprocessor_node_risc0_submit_job_works() {
     async fn test(mut clients: Clients) {
         let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
         let submit_program_request = SubmitProgramRequest {
@@ -87,10 +111,10 @@ async fn coprocessor_node_risc0_works() {
         let get_result_request = GetResultRequest { job_id };
         let get_result_response = clients.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
         let Job { 
-            id,
-            max_cycles,
-            contract_address,
-            program_verifying_key,
+            id: _,
+            max_cycles: _,
+            contract_address: _,
+            program_verifying_key: _,
             input,
             result,
             zkvm_operator_address,
