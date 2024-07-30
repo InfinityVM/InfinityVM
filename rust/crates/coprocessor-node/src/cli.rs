@@ -6,7 +6,7 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use clap::{Parser, Subcommand, ValueEnum};
-use crossbeam::channel::{unbounded, Receiver, Sender};
+use crossbeam::channel::{bounded, unbounded, Receiver, Sender};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
 use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
@@ -190,10 +190,10 @@ impl Cli {
         );
 
         // Initialize the crossbeam channels
-        let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = unbounded();
+        let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = bounded(100);
         // TODO: broadcast_queue_receiver is not used right now, but should be passed into relayer
         // once that is added
-        let (broadcast_queue_sender, _): (Sender<Job>, Receiver<Job>) = unbounded();
+        let (broadcast_queue_sender, _): (Sender<Job>, Receiver<Job>) = bounded(100);
 
         let job_processor = Arc::new(JobProcessorService::new(
             db,
