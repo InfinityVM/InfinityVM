@@ -42,7 +42,7 @@ test-all:
 	@# and run the ignored tests
 	cd ../contracts && forge build
 	cargo build -p coprocessor-node -p zkvm-executor && \
-	cargo test --all -- --ignored
+	cargo test --all -- --include-ignored
 
 .PHONY: build
 build:

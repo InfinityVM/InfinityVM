@@ -1,4 +1,4 @@
-//! Utilties for setting up tests
+//! Utilities for setting up tests
 
 use crate::contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
@@ -8,8 +8,7 @@ use alloy::{
     node_bindings::{Anvil, AnvilInstance},
     primitives::Address,
     providers::ProviderBuilder,
-    signers::{local::PrivateKeySigner, Signer},
-    sol_types::SolEvent,
+    signers::local::PrivateKeySigner,
 };
 
 /// Output from [`anvil_with_contracts`]

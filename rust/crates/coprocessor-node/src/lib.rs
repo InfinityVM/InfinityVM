@@ -6,7 +6,7 @@ pub mod cli;
 /// gRPC Server
 pub mod service;
 
-pub mod result_writer;
+pub mod relayer;
 
 pub mod contracts;
 
