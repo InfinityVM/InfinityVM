@@ -188,7 +188,8 @@ impl Cli {
         // Initialize the async channels
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = bounded(100);
         // TODO: broadcast_queue_receiver is not used right now, but should be passed into relayer
-        // once that is added. This will remove the `Failed to push job` error log when running tests.
+        // once that is added. This will remove the `Failed to push job` error log when running
+        // tests.
         let (broadcast_queue_sender, _): (Sender<Job>, Receiver<Job>) = bounded(100);
 
         // Start the job processor with a specified number of worker threads.
