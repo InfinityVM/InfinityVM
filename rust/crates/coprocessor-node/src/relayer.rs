@@ -45,7 +45,6 @@ where
         // Adds the `ChainIdFiller`, `GasFiller` and the `NonceFiller` layers.
         .with_recommended_fillers()
         .wallet(wallet)
-        // TODO: switch to IPC for performance
         .on_http(url);
 
     let contract = IJobManager::new(job_manager_address, provider);
@@ -58,13 +57,13 @@ where
         let pending_tx = match call_builder.send().await {
             Ok(pending_tx) => pending_tx,
             Err(error) => {
-                // TODO: what should we do with these errors
                 tracing::error!(?error, job.id, "call JobManager.submitResult failed");
                 continue;
             }
         };
 
         // TODO: how do we decide on number of confirmations? Should it be configurable?
+        // https://github.com/Ethos-Works/InfinityVM/issues/130
         let receipt = match pending_tx.with_required_confirmations(2).get_receipt().await {
             Ok(receipt) => receipt,
             Err(error) => {
