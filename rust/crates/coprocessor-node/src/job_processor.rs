@@ -59,13 +59,12 @@ where
     D: Database + 'static,
 {
     /// Create a new job processor service.
-    pub const fn new(
+    pub fn new(
         db: Arc<D>,
         exec_queue_sender: Sender<Job>,
         exec_queue_receiver: Receiver<Job>,
         broadcast_queue_sender: Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
-        task_handles: JoinSet<()>,
     ) -> Self {
         Self {
             db,
@@ -73,7 +72,7 @@ where
             exec_queue_receiver,
             broadcast_queue_sender,
             zk_executor,
-            task_handles,
+            task_handles: JoinSet::new(),
         }
     }
 
@@ -159,8 +158,6 @@ where
         zk_executor: ZkvmExecutorService<S>,
     ) {
         loop {
-            // TODO: We want to make this try_recv() and yield on error
-            // [ref: https://github.com/Ethos-Works/InfinityVM/issues/118]
             match exec_queue_receiver.recv().await {
                 Ok(mut job) => {
                     let id = job.id;
