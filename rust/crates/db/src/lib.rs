@@ -64,11 +64,11 @@ pub fn get_elf<D: Database>(
 }
 
 /// Write a job to the database
-pub fn put_job<D: Database>(db: Arc<D>, job_id: u32, job: Job) -> Result<(), Error> {
+pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(job_id, job)?;
+    tx.put::<JobTable>(job.id, job)?;
     let _commit = tx.commit()?;
 
     Ok(())

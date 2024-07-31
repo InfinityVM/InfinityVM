@@ -10,5 +10,8 @@ pub mod relayer;
 
 pub mod contracts;
 
+/// Job processor
+pub mod job_processor;
+
 #[cfg(test)]
 pub mod test_utils;
