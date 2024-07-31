@@ -28,3 +28,12 @@ pub mod transparent_upgradeable_proxy {
       "../../../contracts/out/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json"
     }
 }
+
+/// `MockConsumer.sol` bindings
+pub mod mock_consumer {
+    alloy::sol! {
+      #[sol(rpc)]
+      MockConsumer,
+      "../../../contracts/out/MockConsumer.sol/MockConsumer.json"
+    }
+}
