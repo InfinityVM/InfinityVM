@@ -107,7 +107,7 @@ async fn executor_risc0_works() {
         assert_eq!(address, expected_signer_address());
 
         // Verify signature
-        let sig = Signature::decode_rlp_vrs(&mut &zkvm_operator_signature[..]).unwrap();
+        let sig = Signature::try_from(&zkvm_operator_signature[..]).unwrap();
         let signing_payload = abi_encode_result_with_metadata(&original_inputs, &raw_output);
         assert_eq!(result_with_metadata, signing_payload);
 
