@@ -11,7 +11,7 @@ use proto::{
 use std::marker::Send;
 use zkvm::Zkvm;
 
-use alloy_sol_types::{sol, SolType};
+use alloy::{sol, sol_types::SolType};
 use tracing::{error, info, instrument};
 
 /// Zkvm executor errors

@@ -18,6 +18,5 @@ risc0-binfmt = { workspace = true }
 # sp1-sdk = { workspace = true }
 
 [dev-dependencies]
-alloy-rlp = { workspace = true }
-alloy-sol-types = { workspace = true }
+alloy = { workspace = true }
 vapenation-core = { path = "../../programs/common/vapenation-core" }

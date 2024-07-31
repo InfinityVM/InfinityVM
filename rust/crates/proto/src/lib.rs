@@ -4,7 +4,7 @@
 // lints it complains about
 #![allow(clippy::all, clippy::missing_const_for_fn, unreachable_pub)]
 
-use alloy_rlp::bytes;
+use alloy::rlp::bytes;
 use reth_db::{
     table::{Compress, Decompress},
     DatabaseError,

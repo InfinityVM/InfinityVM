@@ -1791,7 +1791,7 @@ checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 name = "db"
 version = "0.0.1"
 dependencies = [
- "alloy-rlp",
+ "alloy",
  "borsh",
  "eyre",
  "proto",
@@ -2825,8 +2825,6 @@ name = "integration"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "alloy-rlp",
- "alloy-sol-types",
  "futures",
  "proto",
  "rand 0.8.5",
@@ -3842,7 +3840,7 @@ dependencies = [
 name = "proto"
 version = "0.0.1"
 dependencies = [
- "alloy-rlp",
+ "alloy",
  "borsh",
  "prost 0.13.1",
  "reth-db",
@@ -5032,9 +5030,6 @@ name = "scripts"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "alloy-rlp",
- "alloy-signer-local",
- "alloy-sol-types",
  "k256",
  "proto",
  "tokio",
@@ -6659,8 +6654,7 @@ dependencies = [
 name = "zkvm"
 version = "0.0.1"
 dependencies = [
- "alloy-rlp",
- "alloy-sol-types",
+ "alloy",
  "anyhow",
  "risc0-binfmt",
  "risc0-zkvm",
@@ -6673,8 +6667,6 @@ name = "zkvm-executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "alloy-signer-local",
- "alloy-sol-types",
  "base64 0.22.1",
  "borsh",
  "clap",

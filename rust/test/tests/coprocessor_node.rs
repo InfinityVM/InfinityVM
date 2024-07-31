@@ -1,9 +1,10 @@
 use alloy::{
     primitives::{keccak256, utils::eip191_hash_message, Address, Signature},
+    rlp::Decodable,
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
+    sol,
+    sol_types::SolType,
 };
-use alloy_rlp::Decodable;
-use alloy_sol_types::{sol, SolType};
 use integration::Integration;
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, Job, JobStatus,
