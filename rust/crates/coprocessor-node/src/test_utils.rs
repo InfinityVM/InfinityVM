@@ -83,7 +83,7 @@ pub async fn anvil_with_contracts() -> TestAnvil {
         .wallet(consumer_owner_wallet)
         .on_http(rpc_url.parse().unwrap());
 
-    let mock_consumer = MockConsumer::deploy(consumer_provider, job_manager.clone()).await.unwrap();
+    let mock_consumer = MockConsumer::deploy(consumer_provider, job_manager).await.unwrap();
     let mock_consumer = *mock_consumer.address();
     provider.evm_mine(None).await.unwrap();
 

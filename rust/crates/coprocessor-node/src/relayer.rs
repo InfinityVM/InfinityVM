@@ -12,8 +12,7 @@ use alloy::{
 use async_channel::Receiver;
 use proto::Job;
 use tokio::task::JoinHandle;
-use tokio::task::JoinSet;
-use tracing::{info, instrument};
+use tracing::{error, info, instrument, warn};
 
 use crate::contracts::i_job_manager::IJobManager;
 
@@ -28,65 +27,6 @@ pub enum Error {
     BroadcastReceiver,
 }
 
-/// Task worker that pulls jobs off of the `broadcast_queue_receiver` and writes them to
-/// `job_manager_address`.
-#[instrument(skip_all)]
-async fn job_result_worker<S, T, P>(
-    broadcast_queue_receiver: Receiver<Job>,
-    contract: Arc<IJobManager::IJobManagerInstance<T, P, alloy::network::Ethereum>>,
-) -> Result<(), Error>
-where
-    S: TxSigner<Signature> + Send + Sync + 'static,
-    T: alloy::transports::Transport + ::core::clone::Clone,
-    P: alloy::providers::Provider<T, alloy::network::Ethereum>,
-    // N: alloy::network::Network,
-{
-    // let url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
-
-    // let wallet = EthereumWallet::new(signer);
-    // let provider = ProviderBuilder::new()
-    //     // Adds the `ChainIdFiller`, `GasFiller` and the `NonceFiller` layers.
-    //     .with_recommended_fillers()
-    //     .wallet(wallet)
-    //     .on_http(url);
-
-    // let contract = IJobManager::new(job_manager_address, provider);
-
-    loop {
-        let job = broadcast_queue_receiver.recv().await.map_err(|_| Error::BroadcastReceiver)?;
-
-        let call_builder =
-            contract.submitResult(job.result.into(), job.zkvm_operator_signature.into());
-
-        let pending_tx = match call_builder.send().await {
-            Ok(pending_tx) => pending_tx,
-            Err(error) => {
-                tracing::error!(?error, job.id, "call JobManager.submitResult failed");
-                continue;
-            }
-        };
-
-        // TODO: how do we decide on number of confirmations? Should it be configurable?
-        // https://github.com/Ethos-Works/InfinityVM/issues/130
-        let receipt = match pending_tx.with_required_confirmations(2).get_receipt().await {
-            Ok(receipt) => receipt,
-            Err(error) => {
-                tracing::error!(?error, job.id, "JobManager.submitResult inclusion failed");
-                continue;
-            }
-        };
-
-        info!(
-            receipt.transaction_index,
-            receipt.block_number,
-            ?receipt.block_hash,
-            ?receipt.transaction_hash,
-            job.id,
-            "submitResult included in block"
-        );
-    }
-}
-
 /// Pulls jobs off the broadcast queue and submits them on cahin
 #[derive(Debug)]
 pub struct JobRelayer {
@@ -95,6 +35,7 @@ pub struct JobRelayer {
     job_manager_address: Address,
     broadcast_queue_receiver: Receiver<Job>,
     main_handle: Option<JoinHandle<Result<(), Error>>>,
+    max_tokio_tasks: usize,
 }
 
 impl JobRelayer {
@@ -104,13 +45,15 @@ impl JobRelayer {
         signer: Arc<S>,
         job_manager_address: Address,
         broadcast_queue_receiver: Receiver<Job>,
+        max_tokio_tasks: usize,
     ) -> Self {
         Self {
             http_rpc_url,
-            wallet: EthereumWallet::new(signer.clone()),
+            wallet: EthereumWallet::new(signer),
             job_manager_address,
             broadcast_queue_receiver,
             main_handle: None,
+            max_tokio_tasks,
         }
     }
 
@@ -128,22 +71,33 @@ impl JobRelayer {
             .with_recommended_fillers()
             .wallet(self.wallet.clone())
             .on_http(url.clone())
-            .clone();
+            ;
 
-        let contract = IJobManager::new(self.job_manager_address.clone(), provider.clone());
+        let contract = IJobManager::new(self.job_manager_address, provider);
         let broadcast_queue_receiver = self.broadcast_queue_receiver.clone();
+        let max_tokio_tasks = self.max_tokio_tasks;
 
         let main_handle = tokio::spawn(async move {
-            while let Ok(job) = broadcast_queue_receiver.recv().await {
+            let metrics = tokio::runtime::Handle::current().metrics();
+            loop {
+                let num_alive_tasks = metrics.num_alive_tasks();
+                if num_alive_tasks > max_tokio_tasks {
+                    warn!(num_alive_tasks, "task count to high to broadcast");
+                    tokio::task::yield_now().await;
+                    continue;
+                }
+
+                let job =
+                    broadcast_queue_receiver.recv().await.map_err(|_| Error::BroadcastReceiver)?;
                 let call_builder =
                     contract.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
-                // We broadcast sequentially to give us a better chance of not duplicating or having gaps
-                // in nonces
+                // We broadcast sequentially to give us a better chance of not duplicating or having
+                // gaps in nonces
                 let tx_hash = match call_builder.send().await {
-                    Ok(pending_tx) => pending_tx.tx_hash().clone(),
+                    Ok(pending_tx) => *pending_tx.tx_hash(),
                     Err(error) => {
-                        tracing::error!(?error, job.id, "call JobManager.submitResult failed");
+                        error!(?error, job.id, "call JobManager.submitResult failed");
                         continue;
                     }
                 };
@@ -161,11 +115,7 @@ impl JobRelayer {
                         match pending_tx.with_required_confirmations(2).get_receipt().await {
                             Ok(receipt) => receipt,
                             Err(error) => {
-                                tracing::error!(
-                                    ?error,
-                                    job.id,
-                                    "JobManager.submitResult inclusion failed"
-                                );
+                                error!(?error, job.id, "JobManager.submitResult inclusion failed");
                                 return;
                             }
                         };
@@ -180,8 +130,6 @@ impl JobRelayer {
                     );
                 });
             }
-
-            Err(Error::BroadcastReceiver)
         });
 
         self.main_handle = Some(main_handle);
@@ -196,7 +144,6 @@ mod test {
     use crate::{
         contracts::{
             i_job_manager::IJobManager::{self},
-            job_manager::JobManager,
             mock_consumer::MockConsumer::{self},
         },
         relayer::JobRelayer,
@@ -205,8 +152,7 @@ mod test {
     use alloy::{
         network::EthereumWallet,
         primitives::{Address, U256},
-        providers::Provider,
-        providers::{ext::AnvilApi, ProviderBuilder},
+        providers::{ext::AnvilApi, Provider, ProviderBuilder},
         rpc::types::Filter,
         signers::{local::PrivateKeySigner, Signer},
         sol_types::{SolEvent, SolValue},
@@ -226,7 +172,6 @@ mod test {
         let TestAnvil { anvil, job_manager, relayer, coprocessor_operator, mock_consumer } =
             anvil_with_contracts().await;
 
-        let relayer_wallet = EthereumWallet::from(relayer.clone());
         let user: PrivateKeySigner = anvil.keys()[5].clone().into();
         let user_wallet = EthereumWallet::from(user);
 
@@ -237,21 +182,15 @@ mod test {
         let chain_id = consumer_provider.get_chain_id().await.unwrap();
         let consumer_contract = MockConsumer::new(mock_consumer, &consumer_provider);
 
-        let manager_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .wallet(relayer_wallet)
-            .on_http(anvil.endpoint().parse().unwrap());
-        let manager_contract = JobManager::new(job_manager.clone(), manager_provider);
-
-        // 3 workers, 30 jobs, and a queue of size 30. That averages out to 10 txs per worker
+        // 30 jobs, 30 max task in runtime, and a queue of size 30
         let (sender, receiver) = async_channel::bounded(QUEUE_CAP);
 
-        let 
-        job_relayer = JobRelayer::new(
+        let job_relayer = JobRelayer::new(
             anvil.endpoint().parse().unwrap(),
             Arc::new(relayer),
-            job_manager.clone(),
+            job_manager,
             receiver.clone(),
+            QUEUE_CAP,
         );
         job_relayer.start().await.unwrap();
 
@@ -308,9 +247,6 @@ mod test {
                     .to_vec(),
             };
 
-            // let call_builder = manager_contract
-            //     .submitResult(job.result.into(), job.zkvm_operator_signature.into());
-            // let tx_hash = call_builder.send().await.unwrap().watch().await.unwrap();
             sender.send(job).await.unwrap();
         }
 
