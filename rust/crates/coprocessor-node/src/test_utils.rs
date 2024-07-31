@@ -7,10 +7,15 @@ use crate::contracts::{
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
-    primitives::Address,
+    primitives::{Address, U256},
     providers::{ext::AnvilApi, ProviderBuilder},
-    signers::local::PrivateKeySigner,
+    signers::{local::PrivateKeySigner, Signer},
+    sol_types::SolValue,
 };
+use zkvm_executor::service::abi_encode_result_with_metadata;
+
+/// Max cycles that the `MockContract` calls create job with.
+pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
 
 /// Output from [`anvil_with_contracts`]
 #[derive(Debug)]
@@ -41,7 +46,7 @@ pub async fn anvil_with_contracts() -> TestAnvil {
 
     let initial_owner_wallet = EthereumWallet::from(initial_owner.clone());
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
-    // Create a provider with the wallet.
+
     let rpc_url = anvil.endpoint();
     let provider = ProviderBuilder::new()
         .with_recommended_fillers()
@@ -55,7 +60,6 @@ pub async fn anvil_with_contracts() -> TestAnvil {
 
     // Deploy the JobManager implementation contract
     let job_manager_implementation = JobManager::deploy(&provider).await.unwrap();
-    provider.evm_mine(None).await.unwrap();
 
     // initializeJobManager will be called later when we deploy the proxy
     let initializer = job_manager_implementation.initializeJobManager(
@@ -74,7 +78,6 @@ pub async fn anvil_with_contracts() -> TestAnvil {
     )
     .await
     .unwrap();
-    provider.evm_mine(None).await.unwrap();
 
     let job_manager = *proxy.address();
 
@@ -83,9 +86,61 @@ pub async fn anvil_with_contracts() -> TestAnvil {
         .wallet(consumer_owner_wallet)
         .on_http(rpc_url.parse().unwrap());
 
+    // Deploy the mock consumer contract. This can take jobs and accept results.
+    //
     let mock_consumer = MockConsumer::deploy(consumer_provider, job_manager).await.unwrap();
     let mock_consumer = *mock_consumer.address();
-    provider.evm_mine(None).await.unwrap();
 
     TestAnvil { anvil, job_manager, relayer, coprocessor_operator, mock_consumer }
+}
+
+/// A mock address to use as input to the mock contract function calls
+pub fn mock_contract_input_addr() -> Address {
+    Address::default()
+}
+
+/// Mock raw output from the zkvm program for the mock consumer contract
+pub fn mock_raw_output() -> Vec<u8> {
+    (mock_contract_input_addr(), U256::default()).abi_encode()
+}
+
+/// Create a pending Job that has a signed result from the zkvm executor.
+///
+/// The result here will be decodable by the `MockConsumer` contract and have
+/// a valid signature from the zkvm operator.
+pub async fn mock_consumer_pending_job(
+    i: u8,
+    operator: PrivateKeySigner,
+    mock_consumer: Address,
+) -> proto::Job {
+    let bytes = vec![i; 32];
+    let addr = mock_contract_input_addr();
+    let raw_output = mock_raw_output();
+
+    let inputs = proto::JobInputs {
+        job_id: i as u32,
+        max_cycles: MOCK_CONTRACT_MAX_CYCLES,
+        program_verifying_key: bytes.clone(),
+        program_input: addr.abi_encode(),
+        vm_type: 1,
+        program_elf: bytes.clone(),
+    };
+
+    let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output);
+    let operator_signature =
+        operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
+
+    let job = proto::Job {
+        id: inputs.job_id,
+        max_cycles: inputs.max_cycles,
+        program_verifying_key: inputs.program_verifying_key,
+        input: inputs.program_input,
+        result: result_with_meta,
+        status: proto::JobStatus::Pending as i32,
+        contract_address: mock_consumer.abi_encode(),
+        zkvm_operator_signature: operator_signature,
+        zkvm_operator_address: operator.address().to_checksum(None).as_bytes().to_vec(),
+    };
+
+    job
 }
