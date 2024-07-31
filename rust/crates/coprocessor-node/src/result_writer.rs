@@ -18,9 +18,12 @@ use crate::contracts::i_job_manager::IJobManager;
 /// Result writer errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// job submit transaction failed
+    /// failed to parse the given http rpc url
     #[error("failed to parse http_rpc_url")]
     HttpRpcUrlParse,
+    /// roadcast receiver error - channel may be closed
+    #[error("broadcast receiver error - channel may be closed")]
+    BroadcastReceiver,
 }
 
 /// Task worker that pulls jobs off of the `broadcast_queue_receiver` and writes them to
@@ -47,14 +50,7 @@ where
     let contract = IJobManager::new(job_manager_address, provider);
 
     loop {
-        let job = match broadcast_queue_receiver.try_recv() {
-            Ok(job) => job,
-            Err(_) => {
-                tokio::task::yield_now().await;
-                continue;
-            }
-        };
-
+        let job = broadcast_queue_receiver.recv().await.map_err(|_| Error::BroadcastReceiver)?;
         let call_builder =
             contract.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
@@ -149,7 +145,6 @@ mod test {
     // cargo test -p coprocessor-node -- --nocapture
     #[tokio::test]
     async fn run_can_successfully_submit_results() {
-        // TODO: figure out test tracing subscriber
         let subscriber = tracing_subscriber::FmtSubscriber::new();
         tracing::subscriber::set_global_default(subscriber).unwrap();
 
