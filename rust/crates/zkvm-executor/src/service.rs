@@ -67,15 +67,7 @@ where
 
     /// Returns an RLP encoded signature over `eip191_hash_message(msg)`
     async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
-        self.signer
-            .sign_message(msg)
-            .await
-            .map(|sig| {
-                let mut out = Vec::with_capacity(sig.rlp_vrs_len());
-                sig.write_rlp_vrs(&mut out);
-                out
-            })
-            .map_err(Into::into)
+        self.signer.sign_message(msg).await.map(|sig| sig.as_bytes().to_vec()).map_err(Into::into)
     }
 
     fn vm(&self, vm_type: i32) -> Result<(Box<dyn Zkvm + Send>, VmType), Error> {
