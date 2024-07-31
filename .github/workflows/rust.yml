@@ -8,6 +8,7 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
+  FOUNDRY_PROFILE: ci
 
 jobs:
   build_clippy:
@@ -52,7 +53,11 @@ jobs:
         if: env.GIT_DIFF
         uses: ./.github/actions/setup
 
-      - run: curl -L https://foundry.paradigm.xyz | bash
+      - name: Install Foundry
+        if: env.GIT_DIFF
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
 
       - run: make -C rust test-all
         if: env.GIT_DIFF
