@@ -31,3 +31,9 @@ runs:
         run: |
           sp1up
           cargo prove --version
+
+      - name: Install Foundry
+        if: env.GIT_DIFF
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
