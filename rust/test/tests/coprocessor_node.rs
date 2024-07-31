@@ -5,7 +5,10 @@ use alloy::{
 use alloy_rlp::Decodable;
 use alloy_sol_types::{sol, SolType};
 use integration::Integration;
-use proto::{coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType};
+use proto::{
+    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, Job, JobStatus,
+    SubmitJobRequest, SubmitProgramRequest, VmType,
+};
 
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
@@ -76,11 +79,8 @@ async fn coprocessor_node_risc0_works() {
             program_elf: vapenation_elf.clone(),
             vm_type: VmType::Risc0.into(),
         };
-        let submit_program_response = coprocessor_node
-            .submit_program(submit_program_request)
-            .await
-            .unwrap()
-            .into_inner();
+        let submit_program_response =
+            coprocessor_node.submit_program(submit_program_request).await.unwrap().into_inner();
         let program_id = submit_program_response.program_verifying_key;
         let input = 2u64;
         let original_input = VapeNationArg::abi_encode(&input);
