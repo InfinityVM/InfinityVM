@@ -5,58 +5,57 @@ use alloy::{
     signers::Signer,
 };
 use base64::prelude::*;
-use db::{self, tables::ElfWithMeta};
 use proto::{
     CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
-use reth_db::Database;
-use std::{marker::Send, sync::Arc};
+use std::marker::Send;
 use zkvm::Zkvm;
 
 use alloy_sol_types::{sol, SolType};
 use tracing::{error, info, instrument};
 
+/// Zkvm executor errors
 #[derive(thiserror::Error, Debug)]
-enum Error {
+pub enum Error {
+    /// Error with Alloy signer
     #[error("signer error: {0}")]
     Signer(#[from] alloy::signers::Error),
+    /// Invalid VM type
     #[error("invalid VM type")]
     InvalidVmType,
-    #[error("failed reading elf: {0}")]
-    ElfReadFailed(#[from] db::Error),
-    #[error("failed writing elf: {0}")]
-    ElfWriteFailed(String),
+    /// Could not find ELF for VM type
     #[error("could not find elf for vm={0}")]
     ElfNotFound(String),
-    #[error("elf with verifying key {0} already exists")]
-    ElfAlreadyExists(String),
+    /// Invalid verifying key
     #[error("bad verifying key {0}")]
     InvalidVerifyingKey(String),
+    /// Could not derive verifying key
     #[error("failed to derive verifying key {0}")]
     VerifyingKeyDerivationFailed(String),
+    /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] zkvm::Error),
 }
 
 ///  The implementation of the `ZkvmExecutor` trait
 /// TODO(zeke): do we want to make this generic over executor?
-#[derive(Debug)]
-pub(crate) struct ZkvmExecutorService<S, D> {
+#[derive(Debug, Clone)]
+pub struct ZkvmExecutorService<S> {
     signer: S,
     chain_id: Option<u64>,
-    db: Arc<D>,
 }
 
-impl<S, D> ZkvmExecutorService<S, D>
+impl<S> ZkvmExecutorService<S>
 where
-    S: Signer<Signature> + Send + Sync + 'static,
-    D: Database,
+    S: Signer<Signature> + Send + Sync + 'static + Clone,
 {
-    pub(crate) const fn new(signer: S, chain_id: Option<u64>, db: Arc<D>) -> Self {
-        Self { signer, chain_id, db }
+    /// Create a new zkvm executor service
+    pub const fn new(signer: S, chain_id: Option<u64>) -> Self {
+        Self { signer, chain_id }
     }
 
-    pub(crate) fn signer_address(&self) -> Address {
+    /// Returns the address of the signer
+    pub fn signer_address(&self) -> Address {
         self.signer.address()
     }
 
@@ -78,6 +77,7 @@ where
             .map_err(Into::into)
     }
 
+    /// Returns the VM and VM type (enum) for the given VM type (i32)
     fn vm(&self, vm_type: i32) -> Result<(Box<dyn Zkvm + Send>, VmType), Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
         let vm: Box<dyn Zkvm + Send> = match vm_type {
@@ -88,16 +88,12 @@ where
         Ok((vm, vm_type))
     }
 
-    async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
+    /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
+    /// This handler can be called directly.
+    pub async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
         let inputs = request.inputs.expect("todo");
-
-        let ElfWithMeta { vm_type, elf } =
-            db::get_elf(self.db.clone(), &inputs.program_verifying_key)
-                .map_err(Error::ElfReadFailed)?
-                .ok_or_else(|| Error::ElfNotFound("could not find elf for".to_string()))?;
-
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
-        let (vm, vm_type) = self.vm(vm_type as i32)?;
+        let (vm, vm_type) = self.vm(inputs.vm_type)?;
         info!(
             inputs.job_id,
             vm_type = vm_type.as_str_name(),
@@ -105,7 +101,10 @@ where
             "new job received"
         );
 
-        if !vm.is_correct_verifying_key(&elf, &inputs.program_verifying_key).expect("todo") {
+        if !vm
+            .is_correct_verifying_key(&inputs.program_elf, &inputs.program_verifying_key)
+            .expect("todo")
+        {
             return Err(Error::InvalidVerifyingKey(format!(
                 "bad verifying key {}",
                 base64_verifying_key,
@@ -113,7 +112,7 @@ where
         }
 
         let raw_output = vm
-            .execute(&elf, &inputs.program_input, inputs.max_cycles)
+            .execute(&inputs.program_elf, &inputs.program_input, inputs.max_cycles)
             .map_err(Error::ZkvmExecuteFailed)?;
 
         let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output);
@@ -139,7 +138,9 @@ where
         Ok(response)
     }
 
-    async fn create_elf_handler(
+    /// Derives and returns verifying key for the given program ELF.
+    /// This handler can be called directly.
+    pub async fn create_elf_handler(
         &self,
         request: CreateElfRequest,
     ) -> Result<CreateElfResponse, Error> {
@@ -150,15 +151,6 @@ where
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
 
         let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
-        if db::get_elf(self.db.clone(), &verifying_key).map_err(Error::ElfReadFailed)?.is_some() {
-            return Err(Error::ElfAlreadyExists(format!(
-                "elf with verifying key {} already exists",
-                base64_verifying_key,
-            )));
-        }
-
-        db::put_elf(self.db.clone(), vm_type, &verifying_key, request.program_elf)
-            .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
 
         info!(
             vm_type = vm_type.as_str_name(),
@@ -173,10 +165,9 @@ where
 }
 
 #[tonic::async_trait]
-impl<S, D> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<S, D>
+impl<S> proto::zkvm_executor_server::ZkvmExecutor for ZkvmExecutorService<S>
 where
-    S: Signer<Signature> + Send + Sync + 'static,
-    D: Database + 'static,
+    S: Signer<Signature> + Send + Sync + Clone + 'static,
 {
     #[instrument(skip(self, request), err(Debug))]
     async fn execute(
@@ -217,6 +208,7 @@ pub type ResultWithMetadata = sol! {
 /// signed by the operator.
 pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
     let program_input_hash = keccak256(&i.program_input);
+
     ResultWithMetadata::abi_encode_params(&(
         i.job_id,
         program_input_hash,
