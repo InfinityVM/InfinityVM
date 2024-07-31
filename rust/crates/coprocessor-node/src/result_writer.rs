@@ -132,7 +132,7 @@ where
 mod test {
     use std::{collections::HashSet, sync::Arc};
 
-    use crate::contracts::{i_job_manager::IJobManager, job_manager::JobManager};
+    use crate::contracts::{i_job_manager::IJobManager, job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy};
     use alloy::{
         network::{Ethereum, EthereumWallet, NetworkWallet},
         node_bindings::Anvil,
@@ -176,25 +176,29 @@ mod test {
             .with_recommended_fillers()
             .wallet(wallet.clone())
             .on_http(rpc_url.parse().unwrap());
+        
+        // Deploy the JobManager implementation contract
+        let job_manager_implementation = JobManager::deploy(&provider).await.unwrap();
 
-        let contract = JobManager::deploy(&provider).await.unwrap();
-        // Make sure the job manager is properly initialized
-        {
-            let initial_owner =
-                <EthereumWallet as NetworkWallet<Ethereum>>::default_signer_address(&wallet);
-            let relayer = initial_owner;
-            let coprocessor_operator = initial_owner;
-            contract
-                .initializeJobManager(initial_owner, relayer, coprocessor_operator)
-                .send()
-                .await
-                .unwrap()
-                .get_receipt()
-                .await
-                .unwrap();
-        }
+        let initial_owner = <EthereumWallet as NetworkWallet<Ethereum>>::default_signer_address(&wallet);
+        let relayer = initial_owner;
+        let coprocessor_operator = initial_owner;
 
-        let job_manager_address = *contract.address();
+        // initializeJobManager will be called later when we deploy the proxy
+        let initializer = job_manager_implementation
+            .initializeJobManager(initial_owner, relayer, coprocessor_operator);
+        let initializer_calldata = initializer.calldata();
+
+        // Deploy a proxy contract for JobManager
+        let proxy_admin: PrivateKeySigner = anvil.keys()[1].clone().into();
+        let proxy = TransparentUpgradeableProxy::deploy(
+            &provider,
+            *job_manager_implementation.address(),
+            proxy_admin.address(),
+            initializer_calldata.clone(),
+        ).await.unwrap();
+        
+        let job_manager_address = *proxy.address();
 
         // 3 workers, 30 jobs, and a queue of size 30. That averages out to 10 txs per worker
         let (sender, receiver) = crossbeam::channel::bounded(30);

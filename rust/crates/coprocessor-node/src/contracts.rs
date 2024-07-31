@@ -19,3 +19,12 @@ pub mod job_manager {
       "../../../contracts/out/JobManager.sol/JobManager.json"
     }
 }
+
+/// `TransparentUpgradeableProxy.sol` bindings
+pub mod transparent_upgradeable_proxy {
+    alloy::sol! {
+      #[sol(rpc)]
+      TransparentUpgradeableProxy,
+      "../../../contracts/out/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json"
+    }
+}
