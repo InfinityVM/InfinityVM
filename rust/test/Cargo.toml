@@ -32,5 +32,4 @@ vapenation-core = { path = "../programs/common/vapenation-core"}
 test-utils = { path = "../crates/test-utils"}
 
 [dev-dependencies]
-hex = "0.4.3"
-base64 = "0.22.1"
+serde_json = { workspace = true }
