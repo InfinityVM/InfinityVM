@@ -8,7 +8,8 @@ DEFAULT_CHAIN_ID=64209
 DEFAULT_PRIVATE_KEY=""
 DEFAULT_RPC_URL="http://0.0.0.0:8545"
 DEFAULT_RELAYER_ADDRESS=0xaF6Bcd673C742723391086C1e91f0B29141D2381
-DEFAULT_COPROCESSOR_OPERATOR_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+DEFAULT_COPROCESSOR_OPERATOR_ADDRESS=0x184c47137933253f49325B851307Ab1017863BD0
+DEFAULT_OFFCHAIN_SIGNER_ADDRESS=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 DEFAULT_PROGRAM_ID=programID
 DEFAULT_BALANCE_ADDRESS=0xa5889624184923c0c4CFC3499CbeA659e34f7809
 DEFAULT_JOB_ID=1
@@ -26,7 +27,7 @@ test-contracts: ## runs all forge tests
 
 .PHONY: deploy-coprocessor-contracts-to-anvil-and-save-state
 deploy-coprocessor-contracts-to-anvil-and-save-state: ## Deploy coprocessor contracts and save Anvil state
-	./script/cli/deploy-coprocessor-save-anvil-state.sh $(or $(relayerAddress),$(DEFAULT_RELAYER_ADDRESS)) $(or $(coprocessorOperatorAddress),$(DEFAULT_COPROCESSOR_OPERATOR_ADDRESS))
+	./script/cli/deploy-coprocessor-save-anvil-state.sh $(or $(relayerAddress),$(DEFAULT_RELAYER_ADDRESS)) $(or $(coprocessorOperatorAddress),$(DEFAULT_COPROCESSOR_OPERATOR_ADDRESS)) $(or $(offchainSignerAddress),$(DEFAULT_OFFCHAIN_SIGNER_ADDRESS))
 
 .PHONY: request-job-on-anvil-and-save-state
 request-job-on-anvil-and-save-state: ## Request a job from the coprocessor and save Anvil state
@@ -90,6 +91,7 @@ deploy-coprocessor-contracts: ## Deploy coprocessor contracts
 	RELAYER_FUNDING_AMOUNT=$(or $(relayerFundingAmount), $(DEFAULT_RELAYER_FUNDING_AMOUNT)) 
 	sh script/cli/deploy-coprocessor-contracts.sh \
 	$(or $(relayerAddress),$(DEFAULT_RELAYER_ADDRESS)) \
-	$(or $(operatorAddress),$(DEFAULT_COPROCESSOR_OPERATOR_ADDRESS))
+	$(or $(operatorAddress),$(DEFAULT_COPROCESSOR_OPERATOR_ADDRESS)) \
+	$(or $(offchainSignerAddress),$(DEFAULT_OFFCHAIN_SIGNER_ADDRESS)) \
 
 -__CLI__: ##

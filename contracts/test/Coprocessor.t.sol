@@ -11,13 +11,14 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     uint64 DEFAULT_MAX_CYCLES = 1_000_000;
     address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0x184c47137933253f49325B851307Ab1017863BD0;
+    address OFFCHAIN_SIGNER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
 
     event JobCreated(uint32 indexed jobID, uint64 maxCycles, bytes indexed programID, bytes programInput);
     event JobCancelled(uint32 indexed jobID);
     event JobCompleted(uint32 indexed jobID, bytes result);
 
     function setUp() public {
-        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, false);
+        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_SIGNER, false);
     }
 
     function test_JobManager_CreateJob() public {
