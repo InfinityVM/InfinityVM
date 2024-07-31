@@ -51,6 +51,7 @@ where
 
     loop {
         let job = broadcast_queue_receiver.recv().await.map_err(|_| Error::BroadcastReceiver)?;
+
         let call_builder =
             contract.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
@@ -144,17 +145,21 @@ mod test {
     use std::{collections::HashSet, sync::Arc};
 
     use crate::{
-        contracts::i_job_manager::IJobManager,
+        contracts::{
+            i_job_manager::IJobManager::{self, createJobReturn},
+            job_manager::JobManager,
+        },
         relayer::JobRelayer,
         test_utils::{anvil_with_contracts, TestAnvil},
     };
     use alloy::{
+        network::EthereumWallet,
         providers::{Provider, ProviderBuilder},
         rpc::types::Filter,
-        signers::Signer,
+        signers::{local::PrivateKeySigner, Signer},
         sol_types::SolEvent,
     };
-    use proto::Job;
+    use proto::{Job, JobStatus};
     use zkvm_executor::service::abi_encode_result_with_metadata;
 
     const WORKER_COUNT: usize = 3;
@@ -169,10 +174,15 @@ mod test {
         let TestAnvil { anvil, job_manager, relayer, coprocessor_operator } =
             anvil_with_contracts().await;
 
+        let user_key: PrivateKeySigner = anvil.keys()[4].clone().into();
+        let user_wallet = EthereumWallet::from(user_key);
+
         let provider = ProviderBuilder::new()
             .with_recommended_fillers()
+            .wallet(user_wallet)
             .on_http(anvil.endpoint().parse().unwrap());
         let chain_id = provider.get_chain_id().await.unwrap();
+        let contract = JobManager::new(job_manager, &provider);
 
         // 3 workers, 30 jobs, and a queue of size 30. That averages out to 10 txs per worker
         let (sender, receiver) = async_channel::bounded(QUEUE_CAP);
@@ -180,7 +190,7 @@ mod test {
         let mut job_relayer = JobRelayer::new(
             anvil.endpoint().parse().unwrap(),
             Arc::new(relayer),
-            job_manager,
+            job_manager.clone(),
             receiver.clone(),
             WORKER_COUNT as u32,
         );
@@ -191,27 +201,49 @@ mod test {
             let bytes = vec![i; 32];
 
             // Mock a job with a valid signature from the zkvm operator
+            let program_verifying_key = bytes.clone();
+            let program_input = bytes.clone();
+            let max_cycles = 1;
+
+            // Create the job on chain so the contract knows to expect the result
+            let create_job_call = contract.createJob(
+                program_verifying_key.clone().into(),
+                program_input.clone().into(),
+                max_cycles,
+            );
+            let receipt = create_job_call.send().await.unwrap().get_receipt().await.unwrap();
+            let log = receipt.inner.as_receipt().unwrap().logs[0]
+                .log_decode::<IJobManager::JobCreated>()
+                .unwrap();
+            let job_id = log.data().jobID;
+            dbg!(job_id);
+
             let inputs = proto::JobInputs {
-                job_id: i as u32,
-                max_cycles: i as u64,
-                program_verifying_key: bytes.clone(),
-                program_input: bytes.clone(),
+                job_id,
+                max_cycles,
+                program_verifying_key,
+                program_input,
                 vm_type: 1,
                 program_elf: bytes.clone(),
             };
 
-            let payload = abi_encode_result_with_metadata(&inputs, &bytes);
-            let operator_signature =
-                coprocessor_operator.sign_message(&payload).await.unwrap().as_bytes().to_vec();
+            let result_with_meta = abi_encode_result_with_metadata(&inputs, &bytes);
+            let operator_signature = coprocessor_operator
+                .sign_message(&result_with_meta)
+                .await
+                .unwrap()
+                .as_bytes()
+                .to_vec();
 
             let job = Job {
                 id: inputs.job_id,
                 max_cycles: inputs.max_cycles,
                 program_verifying_key: inputs.program_verifying_key,
                 input: inputs.program_input,
-                result: bytes.clone(),
-                status: 2,
+                result: result_with_meta,
+                status: JobStatus::Pending as i32,
                 contract_address: bytes.clone(),
+
                 zkvm_operator_signature: operator_signature,
                 zkvm_operator_address: coprocessor_operator
                     .address()

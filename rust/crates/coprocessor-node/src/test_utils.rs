@@ -1,4 +1,4 @@
-//! Utilities for setting up tests
+//! Utilities for setting up tests.
 
 use crate::contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
