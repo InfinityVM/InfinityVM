@@ -4,11 +4,12 @@ use alloy::{
 };
 use alloy_rlp::Decodable;
 use alloy_sol_types::{sol, SolType};
-use integration::{Clients, Integration};
-use proto::{GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType};
+use integration::Integration;
+use proto::{coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType};
 
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
+use tonic::transport::Channel;
 use vapenation_core::{VapeNationArg, VapeNationMetadata};
 use vapenation_methods::{VAPENATION_GUEST_ELF, VAPENATION_GUEST_ID, VAPENATION_GUEST_PATH};
 use zkvm_executor::DEV_SECRET;
@@ -69,14 +70,13 @@ fn invariants() {
 #[ignore]
 // Tests all gRPC endpoints of the coprocessor node: submit_program, submit_job, and `get_result`.
 async fn coprocessor_node_risc0_works() {
-    async fn test(mut clients: Clients) {
+    async fn test(mut coprocessor_node: CoprocessorNodeClient<Channel>) {
         let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
         let submit_program_request = SubmitProgramRequest {
             program_elf: vapenation_elf.clone(),
             vm_type: VmType::Risc0.into(),
         };
-        let submit_program_response = clients
-            .coprocessor_node
+        let submit_program_response = coprocessor_node
             .submit_program(submit_program_request)
             .await
             .unwrap()
@@ -103,7 +103,7 @@ async fn coprocessor_node_risc0_works() {
         };
         let submit_job_request = SubmitJobRequest { job: Some(job.clone()) };
         let submit_job_response =
-            clients.coprocessor_node.submit_job(submit_job_request).await.unwrap().into_inner();
+            coprocessor_node.submit_job(submit_job_request).await.unwrap().into_inner();
         assert_eq!(submit_job_response.job_id, job_id);
 
         // Wait a bit for the job to be processed
@@ -112,7 +112,7 @@ async fn coprocessor_node_risc0_works() {
         // Get the job result
         let get_result_request = GetResultRequest { job_id };
         let get_result_response =
-            clients.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
+            coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
         let Job {
             id: _,
             max_cycles: _,

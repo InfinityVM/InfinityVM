@@ -109,10 +109,6 @@ struct Opts {
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
 
-    /// ZK shim address
-    #[arg(long, required = true)]
-    zk_shim_address: String,
-
     /// `JobManager` contract address
     #[arg(long, required = true)]
     job_manager_address: Address,
