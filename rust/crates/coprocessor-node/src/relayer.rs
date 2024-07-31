@@ -124,7 +124,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayer<S> {
             let http_rpc_url = self.http_rpc_url.clone();
             let signer = self.signer.clone();
             let broadcast_queue_receiver = self.broadcast_queue_receiver.clone();
-            let job_manager_address = self.job_manager_address.clone();
+            let job_manager_address = self.job_manager_address;
 
             self.join_set.spawn(async move {
                 job_result_worker(
@@ -196,6 +196,8 @@ mod test {
                 max_cycles: i as u64,
                 program_verifying_key: bytes.clone(),
                 program_input: bytes.clone(),
+                vm_type: 1,
+                program_elf: bytes.clone(),
             };
 
             let payload = abi_encode_result_with_metadata(&inputs, &bytes);
