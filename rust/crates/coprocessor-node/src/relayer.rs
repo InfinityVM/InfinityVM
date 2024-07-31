@@ -27,7 +27,7 @@ pub enum Error {
     BroadcastReceiver,
 }
 
-/// Pulls jobs off the broadcast queue and submits them on cahin
+/// Pulls jobs off the broadcast queue and submits them on chain
 #[derive(Debug)]
 pub struct JobRelayer {
     http_rpc_url: String,
