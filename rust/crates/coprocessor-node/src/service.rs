@@ -4,7 +4,7 @@ use proto::{
     SubmitProgramResponse,
 };
 use tonic::{Request, Response, Status};
-use tracing::{instrument,info};
+use tracing::{info, instrument};
 
 /// gRPC service server
 #[derive(Debug, Default)]
@@ -13,7 +13,7 @@ pub struct CoprocessorNodeServerInner;
 #[tonic::async_trait]
 impl CoprocessorNodeTrait for CoprocessorNodeServerInner {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
-    #[instrument(name = "coprocessor_submit_job", skip(self,request), err(Debug))]
+    #[instrument(name = "coprocessor_submit_job", skip(self, request), err(Debug))]
     async fn submit_job(
         &self,
         request: Request<SubmitJobRequest>,
@@ -37,7 +37,7 @@ impl CoprocessorNodeTrait for CoprocessorNodeServerInner {
         if job.program_verifying_key.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
-        info!(job_id=job.id,"new job request");
+        info!(job_id = job.id, "new job request");
 
         // TODO: Implement executor in Rust
         // executor.submit_job(job)
@@ -62,7 +62,7 @@ impl CoprocessorNodeTrait for CoprocessorNodeServerInner {
     }
     /// SubmitProgram defines the gRPC method for submitting a new program to
     /// generate a unique program verification key.
-    #[instrument(name = "coprocessor_submit_program", skip(self,request), err(Debug))]
+    #[instrument(name = "coprocessor_submit_program", skip(self, request), err(Debug))]
     async fn submit_program(
         &self,
         request: Request<SubmitProgramRequest>,
