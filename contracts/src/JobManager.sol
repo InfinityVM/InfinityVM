@@ -88,7 +88,7 @@ contract JobManager is
         // resultWithMetadata.length needs to be converted to string since the EIP-191 standard requires this 
         bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithMetadata.length.uintToString(), resultWithMetadata));
         address signer = recoverSigner(messageHash, signature);
-        require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
+        require(signer == coprocessorOperator, "JobManager.submitResult: did not recover correct address from signer");
 
         // Decode the resultWithMetadata using abi.decode
         (uint32 jobID, bytes32 programInputHash, uint64 maxCycles, bytes memory programID, bytes memory result) = abi.decode(resultWithMetadata, (uint32, bytes32, uint64, bytes, bytes));
