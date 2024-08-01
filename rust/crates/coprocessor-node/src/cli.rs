@@ -9,7 +9,7 @@ use async_channel::{bounded, Receiver, Sender};
 use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
-use std::{net::SocketAddrV4, path::PathBuf};
+use std::{net::SocketAddr, net::SocketAddrV4, path::PathBuf};
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
@@ -134,6 +134,10 @@ struct Opts {
     /// Number of worker threads to use for processing jobs
     #[arg(long, default_value = "4")]
     worker_count: usize,
+
+    /// Address to listen on for HTTP requests
+    #[arg(long, default_value = "127.0.0.1:8080")]
+    grpc_gateway_address: String,
 }
 
 impl Opts {
@@ -169,9 +173,10 @@ impl Cli {
         let _relayer_private_key =
             std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
 
+        let grpc_address: SocketAddr = opts.grpc_address.parse()?;
+
         // Parse the addresses for gRPC server and gateway
-        let grpc_addr: SocketAddrV4 =
-            opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
+        let grpc_addr: SocketAddrV4 = grpc_address.map_err(|_| Error::InvalidGrpcAddress)?;
 
         let signer = opts.operator_signer()?;
 
@@ -217,6 +222,11 @@ impl Cli {
             .add_service(reflector)
             .serve(grpc_addr.into())
             .await?;
+
+        let grpc_url = format!("http://{}", grpc_address);
+        let grpc_gateway_address: SocketAddr = opts.grpc_gateway_address.parse()?;
+
+        gateway::HttpGrpcGateway::new(grpc_url, grpc_gateway_address).serve().await?;
 
         Ok(())
     }
