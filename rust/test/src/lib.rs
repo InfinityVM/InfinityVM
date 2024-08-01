@@ -1,5 +1,4 @@
 //! Integration tests and helpers.
-use coprocessor_node::test_utils::anvil_with_contracts;
 use futures::future::FutureExt;
 use rand::Rng;
 use std::{
@@ -10,6 +9,7 @@ use std::{
     thread,
     time::Duration,
 };
+use test_utils::anvil_with_contracts;
 use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;

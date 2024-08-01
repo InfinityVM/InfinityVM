@@ -1,5 +1,6 @@
-//! This module contains bindings for contracts that we interact with
-//! View generated code with `cargo expand -p coprocessor-node --lib ::contracts`
+//! This module contains bindings for contracts that we interact with.
+//!
+//! You can view generated code with `cargo expand -p coprocessor-node --lib ::contracts`
 
 #![allow(missing_docs)]
 

@@ -27,6 +27,7 @@ tracing-subscriber = { workspace = true}
 base64 = { workspace = true }
 async-channel = { workspace = true }
 
+contracts = { path = "../contracts" }
 db = { path = "../db" }
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
@@ -34,4 +35,4 @@ zkvm-executor = { path = "../zkvm-executor" }
 
 [dev-dependencies]
 alloy = { workspace = true, features = ["full", "reqwest", "node-bindings"] }
-tracing-subscriber = "*"
+test-utils = { path = "../test-utils" }

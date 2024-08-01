@@ -1,9 +1,5 @@
 //! Utilities for setting up tests.
 
-use crate::contracts::{
-    job_manager::JobManager, mock_consumer::MockConsumer,
-    transparent_upgradeable_proxy::TransparentUpgradeableProxy,
-};
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
@@ -12,10 +8,24 @@ use alloy::{
     signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
 };
+use contracts::{
+    job_manager::JobManager, mock_consumer::MockConsumer,
+    transparent_upgradeable_proxy::TransparentUpgradeableProxy,
+};
+use tracing_subscriber::EnvFilter;
 use zkvm_executor::service::abi_encode_result_with_metadata;
 
 /// Max cycles that the `MockContract` calls create job with.
 pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
+
+/// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level
+pub fn test_tracing() {
+    tracing_subscriber::fmt()
+        .with_env_filter(EnvFilter::from_default_env())
+        .with_writer(std::io::stderr)
+        .try_init()
+        .unwrap();
+}
 
 /// Output from [`anvil_with_contracts`]
 #[derive(Debug)]

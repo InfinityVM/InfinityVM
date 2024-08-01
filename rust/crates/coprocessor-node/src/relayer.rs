@@ -14,7 +14,7 @@ use proto::Job;
 use tokio::task::JoinHandle;
 use tracing::{error, info, instrument, warn};
 
-use crate::contracts::i_job_manager::IJobManager;
+use contracts::i_job_manager::IJobManager;
 
 /// Result writer errors
 #[derive(thiserror::Error, Debug)]
@@ -88,6 +88,7 @@ impl JobRelayer {
 
                 let job =
                     broadcast_queue_receiver.recv().await.map_err(|_| Error::BroadcastReceiver)?;
+
                 let call_builder =
                     contract.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
@@ -140,19 +141,17 @@ impl JobRelayer {
 mod test {
     use std::{collections::HashSet, sync::Arc};
 
-    use crate::{
-        contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer},
-        relayer::JobRelayer,
-        test_utils::{
-            anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
-        },
-    };
+    use crate::relayer::JobRelayer;
     use alloy::{
         network::EthereumWallet,
         providers::{Provider, ProviderBuilder},
         rpc::types::Filter,
         signers::local::PrivateKeySigner,
         sol_types::SolEvent,
+    };
+    use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+    use test_utils::{
+        anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
     };
 
     const WORKER_COUNT: usize = 3;
@@ -161,8 +160,7 @@ mod test {
 
     #[tokio::test]
     async fn run_can_successfully_submit_results() {
-        let subscriber = tracing_subscriber::FmtSubscriber::new();
-        tracing::subscriber::set_global_default(subscriber).unwrap();
+        test_utils::test_tracing();
 
         let TestAnvil { anvil, job_manager, relayer, coprocessor_operator, mock_consumer } =
             anvil_with_contracts().await;
