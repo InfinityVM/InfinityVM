@@ -2,14 +2,14 @@
 pragma solidity ^0.8.13;
 import {JobManager} from "../../src/JobManager.sol";
 import {Consumer} from "../../src/Consumer.sol";
-import {Delegator} from "../../src/Delegator.sol";
+import {OffchainRequester} from "../../src/OffchainRequester.sol";
 
-contract MockConsumer is Consumer, Delegator {
+contract MockConsumer is Consumer, OffchainRequester {
 
     mapping(address => uint256) public addressToBalance;
     mapping(uint32 => bytes) public jobIDToResult;
 
-    constructor(address jobManager, address offchainSigner) Consumer(jobManager) Delegator(offchainSigner) {}
+    constructor(address jobManager, address offchainSigner) Consumer(jobManager) OffchainRequester(offchainSigner) {}
 
     // It doesn't really make sense for the contract to accept programID
     // as a parameter here (this would usually be hard-coded), but we do
