@@ -22,7 +22,7 @@ pub enum Error {
     /// failed to parse the given http rpc url
     #[error("failed to parse http_rpc_url")]
     HttpRpcUrlParse,
-    /// roadcast receiver error - channel may be closed
+    /// broadcast receiver error - channel may be closed
     #[error("broadcast receiver error - channel may be closed")]
     BroadcastReceiver,
 }

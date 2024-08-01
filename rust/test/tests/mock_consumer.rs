@@ -17,7 +17,6 @@ use mock_consumer_methods::{
     MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID, MOCK_CONSUMER_GUEST_PATH,
 };
 use proto::{GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType};
-use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
 use test_utils::MOCK_CONTRACT_MAX_CYCLES;
 
@@ -64,7 +63,10 @@ async fn coprocessor_node_mock_consumer_e2e() {
             .await
             .unwrap()
             .into_inner();
-        assert_eq!(program_id, Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes().to_vec());
+        assert_eq!(
+            submit_program_response.program_id,
+            Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes().to_vec()
+        );
 
         let consumer_provider = ProviderBuilder::new()
             .with_recommended_fillers()
@@ -126,7 +128,7 @@ async fn coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_result_with_metadata(&job, &raw_output);
         assert_eq!(result, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
-        assert_eq!(address, anvil.coprocessor_operator.address());
+        assert_eq!(recovered1, anvil.coprocessor_operator.address());
 
         // confirm we are hashing as expected
         let hash = eip191_hash_message(&signing_payload);

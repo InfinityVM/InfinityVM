@@ -174,7 +174,7 @@ impl Opts {
 
     fn relayer_signer(&self) -> Result<K256LocalSigner, Error> {
         let secret =
-            std::env::var(ENV_ZKVM_OPERATOR_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
+            std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
         Self::signer_from_hex(&secret)
     }
 
@@ -206,6 +206,7 @@ impl Cli {
 
         info!("zkvm operator is {:?}", zkvm_operator.address());
         info!("relayer is {:?}", relayer.address());
+        dbg!(relayer.address());
 
         let db = db::init_db(opts.db_dir.clone())?;
         info!(db_path = opts.db_dir, "db initialized");

@@ -70,7 +70,9 @@ impl Integration {
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
+        dbg!(anvil.relayer.address());
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
+        dbg!(anvil.coprocessor_operator.address());
 
         // The coprocessor-node expects the relayer private key as an env var
         std::env::set_var("RELAYER_PRIVATE_KEY", relayer_private);

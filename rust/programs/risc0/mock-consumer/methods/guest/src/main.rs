@@ -17,7 +17,9 @@ fn main() {
     // a meaningful balance from the address
     let two = U256::try_from(2).unwrap();
     let balance = address.wrapping_div(two);
-    let output: [u8; 32] = balance.to_be_bytes();
+    // let output: [u8; 32] = balance.to_be_bytes();
+
+    let output = (balance, address).abi_encode();
 
     env::commit_slice(&output);
 }
