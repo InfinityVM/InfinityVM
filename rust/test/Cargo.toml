@@ -24,7 +24,9 @@ tracing-subscriber = { workspace = true }
 
 zkvm-executor = { path = "../crates/zkvm-executor" }
 coprocessor-node = { path = "../crates/coprocessor-node" }
+contracts = { path = "../crates/contracts" }
 proto = { path = "../crates/proto"}
 vapenation-methods = { path = "../programs/risc0/vapenation/methods"}
+mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods"}
 vapenation-core = { path = "../programs/common/vapenation-core"}
 test-utils = { path = "../crates/test-utils"}

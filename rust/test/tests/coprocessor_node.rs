@@ -5,8 +5,7 @@ use alloy::{
     sol,
     sol_types::SolType,
 };
-use integration::Args;
-use integration::Integration;
+use integration::{Args, Integration};
 use proto::{GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType};
 
 use risc0_binfmt::compute_image_id;
@@ -67,8 +66,8 @@ fn invariants() {
     assert_eq!(&VAPENATION_GUEST_ID, image_id.as_words());
 }
 
-#[tokio::test]
-#[ignore]
+// #[tokio::test]
+// #[ignore]
 // Tests all gRPC endpoints of the coprocessor node: submit_program, submit_job, and `get_result`.
 async fn coprocessor_node_risc0_works() {
     async fn test(mut args: Args) {

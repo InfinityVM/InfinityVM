@@ -12,7 +12,7 @@ use alloy::{
 use async_channel::Receiver;
 use proto::Job;
 use tokio::task::JoinHandle;
-use tracing::{error, info, instrument, warn}; 
+use tracing::{error, info, instrument, warn};
 
 use contracts::i_job_manager::IJobManager;
 
