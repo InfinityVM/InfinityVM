@@ -5,11 +5,13 @@ import {Consumer} from "../../src/Consumer.sol";
 import {OffchainRequester} from "../../src/OffchainRequester.sol";
 
 contract MockConsumer is Consumer, OffchainRequester {
-
+    address private offchainSigner;
     mapping(address => uint256) public addressToBalance;
     mapping(uint32 => bytes) public jobIDToResult;
 
-    constructor(address jobManager, address offchainSigner) Consumer(jobManager) OffchainRequester(offchainSigner) {}
+    constructor(address jobManager, address _offchainSigner) Consumer(jobManager) OffchainRequester() {
+        offchainSigner = _offchainSigner;
+    }
 
     // It doesn't really make sense for the contract to accept programID
     // as a parameter here (this would usually be hard-coded), but we do
@@ -36,4 +38,37 @@ contract MockConsumer is Consumer, OffchainRequester {
         jobIDToResult[jobID] = result;
     }
 
+    function isValidSignature(bytes32 hash, bytes memory signature) public view override returns (bytes4) {
+        address signer = recoverSigner(hash, signature);
+        if (signer == offchainSigner) {
+            return VALID;
+        } else {
+            return INVALID;
+        }
+    }
+
+    function _updateSigner(address updatedSigner) internal {
+        offchainSigner = updatedSigner;
+    }
+
+    function getSigner() external view returns (address) {
+        return offchainSigner;
+    }
+
+    function recoverSigner(bytes32 _ethSignedMessageHash, bytes memory _signature) internal pure returns (address) {
+        (bytes32 r, bytes32 s, uint8 v) = splitSignature(_signature);
+        return ecrecover(_ethSignedMessageHash, v, r, s);
+    }
+
+    function splitSignature(bytes memory sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
+        require(sig.length == 65, "invalid signature length");
+
+        assembly {
+            r := mload(add(sig, 32))
+            s := mload(add(sig, 64))
+            v := byte(0, mload(add(sig, 96)))
+        }
+
+        return (r, s, v);
+    }
 }
