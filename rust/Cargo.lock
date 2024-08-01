@@ -2844,6 +2844,8 @@ dependencies = [
  "test-utils",
  "tokio",
  "tonic",
+ "tracing",
+ "tracing-subscriber 0.3.18",
  "vapenation-core",
  "vapenation-methods",
  "zkvm-executor",

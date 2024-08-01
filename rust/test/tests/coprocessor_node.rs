@@ -5,15 +5,12 @@ use alloy::{
     sol,
     sol_types::SolType,
 };
+use integration::Args;
 use integration::Integration;
-use proto::{
-    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, Job, JobStatus,
-    SubmitJobRequest, SubmitProgramRequest, VmType,
-};
+use proto::{GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType};
 
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
-use tonic::transport::Channel;
 use vapenation_core::{VapeNationArg, VapeNationMetadata};
 use vapenation_methods::{VAPENATION_GUEST_ELF, VAPENATION_GUEST_ID, VAPENATION_GUEST_PATH};
 use zkvm_executor::DEV_SECRET;
@@ -74,14 +71,20 @@ fn invariants() {
 #[ignore]
 // Tests all gRPC endpoints of the coprocessor node: submit_program, submit_job, and `get_result`.
 async fn coprocessor_node_risc0_works() {
-    async fn test(mut coprocessor_node: CoprocessorNodeClient<Channel>) {
+    async fn test(mut args: Args) {
+        let chain_id = args.anvil.anvil.chain_id();
+
         let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
         let submit_program_request = SubmitProgramRequest {
             program_elf: vapenation_elf.clone(),
             vm_type: VmType::Risc0.into(),
         };
-        let submit_program_response =
-            coprocessor_node.submit_program(submit_program_request).await.unwrap().into_inner();
+        let submit_program_response = args
+            .coprocessor_node
+            .submit_program(submit_program_request)
+            .await
+            .unwrap()
+            .into_inner();
         let program_id = submit_program_response.program_verifying_key;
         let input = 2u64;
         let original_input = VapeNationArg::abi_encode(&input);
@@ -104,7 +107,7 @@ async fn coprocessor_node_risc0_works() {
         };
         let submit_job_request = SubmitJobRequest { job: Some(job.clone()) };
         let submit_job_response =
-            coprocessor_node.submit_job(submit_job_request).await.unwrap().into_inner();
+            args.coprocessor_node.submit_job(submit_job_request).await.unwrap().into_inner();
         assert_eq!(submit_job_response.job_id, job_id);
 
         // Wait a bit for the job to be processed
@@ -113,7 +116,7 @@ async fn coprocessor_node_risc0_works() {
         // Get the job result
         let get_result_request = GetResultRequest { job_id };
         let get_result_response =
-            coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
+            args.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
         let Job {
             id: _,
             max_cycles: _,
@@ -133,7 +136,7 @@ async fn coprocessor_node_risc0_works() {
         // Verify address
         let address = {
             let address = String::from_utf8(zkvm_operator_address).unwrap();
-            Address::parse_checksummed(address, Some(1)).unwrap()
+            Address::parse_checksummed(address, Some(chain_id)).unwrap()
         };
         assert_eq!(address, expected_signer_address());
 

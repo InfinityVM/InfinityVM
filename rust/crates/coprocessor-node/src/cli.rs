@@ -18,16 +18,23 @@ use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
+const ENV_ZKVM_OPERATOR_PRIV_KEY: &str = "ZKVM_OPERATOR_PRIV_KEY";
 const MAX_TOKIO_TASKS: usize = 2 * 1024;
 
 /// Errors from the gRPC Server CLI
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// private key was not valid hex
-    #[error("Environment variable {} must be set", ENV_RELAYER_PRIV_KEY)]
+    /// private key was not set
+    #[error("environment variable {} must be set", ENV_RELAYER_PRIV_KEY)]
     RelayerPrivKeyNotSet,
+    /// private key was not set
+    #[error(
+        "environment variable {} must be set, or specify operator subcommand",
+        ENV_ZKVM_OPERATOR_PRIV_KEY
+    )]
+    OperatorPrivKeyNotSet,
     /// invalid gRPC address
-    #[error("Invalid gRPC address")]
+    #[error("invalid gRPC address")]
     InvalidGrpcAddress,
     /// grpc server failure
     #[error("grpc server failure: {0}")]
@@ -137,7 +144,7 @@ struct Opts {
 
     /// Operator key to use for signing
     #[command(subcommand)]
-    operator_key: Operator,
+    operator_key: Option<Operator>,
 
     /// Number of worker threads to use for processing jobs
     #[arg(long, default_value = "4")]
@@ -147,21 +154,37 @@ struct Opts {
 impl Opts {
     fn operator_signer(&self) -> Result<K256LocalSigner, Error> {
         let signer = match &self.operator_key {
-            Operator::Dev => K256LocalSigner::from_slice(&DEV_SECRET)?,
-            Operator::KeyStore(KeyStore { path, password }) => {
+            Some(Operator::Dev) => {
+                info!("zkvm operator using development key");
+                K256LocalSigner::from_slice(&DEV_SECRET)?
+            }
+            Some(Operator::KeyStore(KeyStore { path, password })) => {
                 K256LocalSigner::decrypt_keystore(path, password)?
             }
-            Operator::Secret(Secret { secret }) => {
-                if secret.as_bytes().len() < 64 {
-                    return Err(Error::ShortPrivateKeyHex);
-                }
-                let hex = if secret[0..2] == *"0x" { &secret[2..] } else { &secret[..] };
-                let decoded = hex::decode(hex)?;
-                K256LocalSigner::from_slice(&decoded)?
+            Some(Operator::Secret(Secret { secret })) => Self::signer_from_hex(secret)?,
+            None => {
+                let secret = std::env::var(ENV_ZKVM_OPERATOR_PRIV_KEY)
+                    .map_err(|_| Error::OperatorPrivKeyNotSet)?;
+                Self::signer_from_hex(&secret)?
             }
         };
 
         Ok(signer)
+    }
+
+    fn relayer_signer(&self) -> Result<K256LocalSigner, Error> {
+        let secret =
+            std::env::var(ENV_ZKVM_OPERATOR_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
+        Self::signer_from_hex(&secret)
+    }
+
+    fn signer_from_hex(secret: &String) -> Result<K256LocalSigner, Error> {
+        if secret.as_bytes().len() < 64 {
+            return Err(Error::ShortPrivateKeyHex);
+        }
+        let hex = if secret[0..2] == *"0x" { &secret[2..] } else { &secret[..] };
+        let decoded = hex::decode(hex)?;
+        K256LocalSigner::from_slice(&decoded).map_err(Into::into)
     }
 }
 
@@ -174,24 +197,20 @@ impl Cli {
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
-        let _relayer_private_key =
-            std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
-
         // Parse the addresses for gRPC server and gateway
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
 
-        let signer = opts.operator_signer()?;
+        let zkvm_operator = opts.operator_signer()?;
+        let relayer = opts.relayer_signer()?;
+
+        info!("zkvm operator is {:?}", zkvm_operator.address());
+        info!("relayer is {:?}", relayer.address());
 
         let db = db::init_db(opts.db_dir.clone())?;
         info!(db_path = opts.db_dir, "db initialized");
 
-        let executor = ZkvmExecutorService::new(signer.clone(), opts.chain_id);
-        info!(
-            chain_id = opts.chain_id,
-            zkvm_operator_address = executor.signer_address().to_string(),
-            "executor initialized"
-        );
+        let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
 
         // Initialize the async channels
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = bounded(100);
@@ -216,7 +235,7 @@ impl Cli {
         // post them on chain
         let job_relayer = JobRelayer::new(
             opts.eth_rpc_address.clone(),
-            Arc::new(signer),
+            Arc::new(relayer),
             opts.job_manager_address,
             broadcast_queue_receiver,
             MAX_TOKIO_TASKS,

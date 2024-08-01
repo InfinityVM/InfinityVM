@@ -18,7 +18,7 @@ use zkvm_executor::service::abi_encode_result_with_metadata;
 /// Max cycles that the `MockContract` calls create job with.
 pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
 
-/// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level
+/// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
 pub fn test_tracing() {
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
@@ -42,9 +42,7 @@ pub struct TestAnvil {
     pub mock_consumer: Address,
 }
 
-/// Setup an anvil instance with job manager contracts
-/// let `TestAnvil` { anvil, `job_manager`, relayer, `coprocessor_operator` } =
-// anvil_with_contracts();
+/// Setup an anvil instance with job manager contracts.
 pub async fn anvil_with_contracts() -> TestAnvil {
     let anvil = Anvil::new().try_spawn().unwrap();
 

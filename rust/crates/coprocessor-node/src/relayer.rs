@@ -97,7 +97,7 @@ impl JobRelayer {
                 let tx_hash = match call_builder.send().await {
                     Ok(pending_tx) => *pending_tx.tx_hash(),
                     Err(error) => {
-                        error!(?error, job.id, "call JobManager.submitResult failed");
+                        error!(?error, job.id, "tx broadcast failure");
                         continue;
                     }
                 };
@@ -115,7 +115,7 @@ impl JobRelayer {
                         match pending_tx.with_required_confirmations(2).get_receipt().await {
                             Ok(receipt) => receipt,
                             Err(error) => {
-                                error!(?error, job.id, "JobManager.submitResult inclusion failed");
+                                error!(?error, job.id, "tx inclusion failed");
                                 return;
                             }
                         };
@@ -126,7 +126,7 @@ impl JobRelayer {
                         ?receipt.block_hash,
                         ?receipt.transaction_hash,
                         job.id,
-                        "JobManager.submitResult included in block"
+                        "tx included"
                     );
                 });
             }
