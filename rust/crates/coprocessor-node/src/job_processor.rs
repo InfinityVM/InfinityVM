@@ -9,6 +9,7 @@ use base64::prelude::*;
 use db::{get_elf, get_job, put_elf, put_job};
 use reth_db::Database;
 use tokio::task::JoinSet;
+use tokio_util::sync::CancellationToken;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
 
@@ -136,15 +137,15 @@ where
     }
 
     /// Start the job processor and spawn `num_workers` worker threads.
-    pub async fn start(&mut self, num_workers: usize) {
+    pub async fn start(&mut self, num_workers: usize, cancellation_token: CancellationToken) {
         for _ in 0..num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let broadcast_queue_sender = self.broadcast_queue_sender.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
-
+            let token = cancellation_token.clone();
             self.task_handles.spawn(async move {
-                Self::start_worker(exec_queue_receiver, broadcast_queue_sender, db, zk_executor)
+                Self::start_worker(exec_queue_receiver, broadcast_queue_sender, db, zk_executor, token)
                     .await;
             });
         }
@@ -156,8 +157,14 @@ where
         broadcast_queue_sender: Sender<Job>,
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
+        cancellation_token: CancellationToken,
     ) {
         loop {
+            if cancellation_token.is_cancelled() {
+                info!("Cancel Signal Received.");
+                break;
+            }
+
             match exec_queue_receiver.recv().await {
                 Ok(mut job) => {
                     let id = job.id;
@@ -171,9 +178,6 @@ where
                                 id, &job.program_verifying_key
                             );
 
-                            // TODO: We should have some way of recording the error
-                            // reason / error type for failed jobs
-                            // [ref: https://github.com/Ethos-Works/InfinityVM/issues/117]
                             job.status = JobStatus::Failed.into();
                             if let Err(e) = Self::save_job(db.clone(), job).await {
                                 error!("Failed to save job {}: {:?}", id, e);
@@ -220,9 +224,6 @@ where
 
                             info!("Pushing finished job {} to broadcast queue", id);
                             if let Err(e) = broadcast_queue_sender.send(job).await {
-                                // TODO: Add backlog of jobs that completed but were not
-                                // able to be included in broadcast queue/onchain
-                                // [ref: https://github.com/Ethos-Works/InfinityVM/issues/127]
                                 error!("Failed to push job {} to broadcast queue: {:?}", id, e);
                                 continue;
                             }
@@ -244,5 +245,7 @@ where
                 }
             }
         }
+
+        info!("Exiting...");
     }
 }

@@ -171,7 +171,7 @@ sha2 = { version = "0.10", default-features = false }
 tonic-build = { version = "0.12", features = ["prost", "transport"], default-features = false }
 tonic = { version = "0.12", features = ["transport"], default-features = false }
 tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time"], default-features = false }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "signal","sync", "time"], default-features = false }
 thiserror = { version = "1", default-features = false }
 tempfile = { version = "3", default-features = false }
 tracing = { version = "0.1.40" }

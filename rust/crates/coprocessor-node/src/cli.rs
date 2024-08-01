@@ -10,6 +10,8 @@ use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
 use std::{net::SocketAddrV4, path::PathBuf};
+use tokio::signal;
+use tokio_util::sync::CancellationToken;
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
@@ -201,7 +203,8 @@ impl Cli {
             broadcast_queue_sender,
             executor,
         );
-        job_processor.start(opts.worker_count).await;
+        let token = CancellationToken::new();
+        job_processor.start(opts.worker_count, token.clone()).await;
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
@@ -212,11 +215,16 @@ impl Cli {
             CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
 
         tracing::info!("starting gRPC server at {}", grpc_addr);
-        tonic::transport::Server::builder()
+        let server = tonic::transport::Server::builder()
             .add_service(coprocessor_node_server)
             .add_service(reflector)
-            .serve(grpc_addr.into())
-            .await?;
+            .serve_with_shutdown(grpc_addr.into(), async {
+                tokio::signal::ctrl_c().await.expect("failed to install Ctrl+C handler");
+                token.cancel();
+                info!("Shutdown signal received, shutting down...");
+            });
+
+        server.await?;
 
         Ok(())
     }

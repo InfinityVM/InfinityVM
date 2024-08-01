@@ -13,7 +13,7 @@ alloy-signer-local = { workspace = true }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
 prost = { workspace = true }
-tokio = { workspace = true }
+tokio.workspace = true
 clap = { workspace = true }
 thiserror = { workspace = true }
 home = { workspace = true }
@@ -30,3 +30,4 @@ db = { path = "../db" }
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
 zkvm-executor = { path = "../zkvm-executor" }
+tokio-util = "0.7.11"
