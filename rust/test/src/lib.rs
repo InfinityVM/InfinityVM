@@ -70,9 +70,6 @@ impl Integration {
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
 
-        dbg!(&relayer_private);
-        dbg!(&operator_private);
-
         // The coprocessor-node expects the relayer private key as an env var
         std::env::set_var("RELAYER_PRIVATE_KEY", relayer_private);
         std::env::set_var("ZKVM_OPERATOR_PRIV_KEY", operator_private);
