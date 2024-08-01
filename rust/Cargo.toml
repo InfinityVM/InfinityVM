@@ -17,7 +17,6 @@ members = [
 	"programs/risc0/mock-consumer/methods",
 	"programs/risc0/vapenation/methods",
 ]
-
 default-members = [
 	"crates/coprocessor-node",
 	"crates/zkvm-executor",

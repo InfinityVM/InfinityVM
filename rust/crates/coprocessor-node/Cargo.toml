@@ -34,5 +34,4 @@ zkvm = { path = "../zkvm" }
 zkvm-executor = { path = "../zkvm-executor" }
 
 [dev-dependencies]
-alloy = { workspace = true, features = ["full", "reqwest", "node-bindings"] }
 test-utils = { path = "../test-utils" }

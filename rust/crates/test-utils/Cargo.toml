@@ -8,7 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true }
+alloy = { workspace = true, features = ["node-bindings"] }
 tracing-subscriber = { workspace = true }
 
 contracts = { path = "../contracts" }

@@ -10,7 +10,7 @@ use std::{
     thread,
     time::Duration,
 };
-use test_utils::{anvil_with_contracts, test_tracing, TestAnvil};
+use test_utils::{anvil_with_contracts, TestAnvil};
 use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
@@ -37,7 +37,9 @@ impl Drop for ProcKill {
 /// Arguments passed to the test function.
 #[derive(Debug)]
 pub struct Args {
+    /// Anvil setup stuff
     pub anvil: TestAnvil,
+    /// Coprocessor Node gRPC client
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
 }
 
