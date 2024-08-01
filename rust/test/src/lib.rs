@@ -1,4 +1,5 @@
 //! Integration tests and helpers.
+use coprocessor_node::test_utils::anvil_with_contracts;
 use futures::future::FutureExt;
 use rand::Rng;
 use std::{
@@ -47,9 +48,16 @@ impl Integration {
         F: Fn(CoprocessorNodeClient<Channel>) -> R,
         R: Future<Output = ()>,
     {
+        // Start an anvil node
+        let anvil_config = anvil_with_contracts().await;
+        let job_manager = anvil_config.job_manager.to_string();
+        let chain_id = anvil_config.anvil.chain_id().to_string();
+        let rpc_url = anvil_config.anvil.endpoint();
+
         let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
+
         // The coprocessor-node expects the relayer private key as an env var
         std::env::set_var("RELAYER_PRIVATE_KEY", RELAYER_DEV_SECRET);
         // TODO: update the usage of these args when we setup an e2e test that uses this
@@ -58,11 +66,11 @@ impl Integration {
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
             .arg("--eth-rpc-address")
-            .arg("this-is-not-used-yet")
+            .arg(rpc_url)
             .arg("--job-manager-address")
-            .arg("0x0000000000000000000000000000000000000000")
+            .arg(job_manager)
             .arg("--chain-id")
-            .arg("1")
+            .arg(chain_id)
             .arg("--db-dir")
             .arg(db_dir.path())
             .arg("dev")

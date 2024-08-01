@@ -138,7 +138,7 @@ async fn coprocessor_node_risc0_works() {
         assert_eq!(address, expected_signer_address());
 
         // Verify signature
-        let sig = Signature::decode_rlp_vrs(&mut &zkvm_operator_signature[..]).unwrap();
+        let sig = Signature::try_from(&zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output = ResultWithMetadata::abi_decode_params(&result, false).unwrap();
         let raw_output = abi_decoded_output.4;
         let signing_payload = abi_encode_result_with_metadata(&job, &raw_output);

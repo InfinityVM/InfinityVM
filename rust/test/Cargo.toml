@@ -21,6 +21,7 @@ tempfile = { workspace = true }
 # sp1-sdk = { workspace = true }
 
 zkvm-executor = { path = "../crates/zkvm-executor" }
+coprocessor-node = { path = "../crates/coprocessor-node", features = ["test"]}
 proto = { path = "../crates/proto"}
 vapenation-methods = { path = "../programs/risc0/vapenation/methods"}
 vapenation-core = { path = "../programs/common/vapenation-core"}

@@ -10,7 +10,7 @@ workspace = true
 [dependencies]
 # TODO: we should have "full" as a crate level feature. I think this will alloy us
 # to remove the other alloy crate deps
-alloy = { workspace = true, features = ["full", "reqwest"] }
+alloy = { workspace = true, features = ["reqwest"] }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
 prost = { workspace = true }

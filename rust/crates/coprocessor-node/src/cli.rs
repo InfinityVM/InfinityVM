@@ -1,6 +1,10 @@
 //! CLI for coprocessor-node.
 
-use crate::{job_processor::JobProcessorService, service::CoprocessorNodeServerInner};
+use crate::{
+    job_processor::JobProcessorService,
+    relayer::{self, JobRelayer},
+    service::CoprocessorNodeServerInner,
+};
 use alloy::{
     primitives::{hex, Address},
     signers::local::LocalSigner,
@@ -9,11 +13,12 @@ use async_channel::{bounded, Receiver, Sender};
 use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
-use std::{net::SocketAddrV4, path::PathBuf};
+use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
+const MAX_TOKIO_TASKS: usize = 2 * 1024;
 
 /// Errors from the gRPC Server CLI
 #[derive(thiserror::Error, Debug)]
@@ -45,6 +50,9 @@ pub enum Error {
     /// database error
     #[error("database error: {0}")]
     Database(#[from] db::Error),
+    /// relayer error
+    #[error("relayer error")]
+    Relayer(#[from] relayer::Error),
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -178,7 +186,7 @@ impl Cli {
         let db = db::init_db(opts.db_dir.clone())?;
         info!(db_path = opts.db_dir, "db initialized");
 
-        let executor = ZkvmExecutorService::new(signer, opts.chain_id);
+        let executor = ZkvmExecutorService::new(signer.clone(), opts.chain_id);
         info!(
             chain_id = opts.chain_id,
             zkvm_operator_address = executor.signer_address().to_string(),
@@ -190,7 +198,8 @@ impl Cli {
         // TODO: broadcast_queue_receiver is not used right now, but should be passed into relayer
         // once that is added. This will remove the `Failed to push job` error log when running
         // tests.
-        let (broadcast_queue_sender, _): (Sender<Job>, Receiver<Job>) = bounded(100);
+        let (broadcast_queue_sender, broadcast_queue_receiver): (Sender<Job>, Receiver<Job>) =
+            bounded(100);
 
         // Start the job processor with a specified number of worker threads.
         // The job processor stores a JoinSet which has a handle to each task.
@@ -202,6 +211,17 @@ impl Cli {
             executor,
         );
         job_processor.start(opts.worker_count).await;
+
+        // Start the job relayer. This will pull job off the `broadcast_queue_receiver`
+        // post them on chain
+        let job_relayer = JobRelayer::new(
+            opts.eth_rpc_address.clone(),
+            Arc::new(signer),
+            opts.job_manager_address,
+            broadcast_queue_receiver,
+            MAX_TOKIO_TASKS,
+        );
+        job_relayer.start().await?;
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)

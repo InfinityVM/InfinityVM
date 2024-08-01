@@ -29,6 +29,9 @@ jobs:
         if: env.GIT_DIFF
         uses: ./.github/actions/setup
 
+      - run: cd ../contracts && forge build
+        if: env.GIT_DIFF
+
       - run: cd rust && cargo build --workspace --all-targets
         if: env.GIT_DIFF
 

@@ -2825,6 +2825,7 @@ name = "integration"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "coprocessor-node",
  "futures",
  "proto",
  "rand 0.8.5",
