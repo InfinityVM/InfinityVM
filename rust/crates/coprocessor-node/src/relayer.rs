@@ -13,7 +13,7 @@ use alloy::{
 use async_channel::Receiver;
 use proto::Job;
 use tokio::task::JoinHandle;
-use tracing::{error, info, instrumentg};
+use tracing::{error, info, instrument};
 
 use contracts::i_job_manager::IJobManager;
 
@@ -129,105 +129,7 @@ impl JobRelayer3 {
     }
 }
 
-/// Pulls jobs off the broadcast queue and submits them on chain
-#[derive(Debug)]
-pub struct JobRelayer {
-    http_rpc_url: String,
-    wallet: EthereumWallet,
-    job_manager_address: Address,
-    broadcast_queue_receiver: Receiver<Job>,
-    main_handle: Option<JoinHandle<Result<(), Error>>>,
-}
-
-impl JobRelayer {
-    /// Create a new [Self] configured with the given values.
-    pub fn new<S: TxSigner<Signature> + Send + Sync + 'static>(
-        http_rpc_url: String,
-        signer: Arc<S>,
-        job_manager_address: Address,
-        broadcast_queue_receiver: Receiver<Job>,
-    ) -> Self {
-        Self {
-            http_rpc_url,
-            wallet: EthereumWallet::new(signer),
-            job_manager_address,
-            broadcast_queue_receiver,
-            main_handle: None,
-        }
-    }
-
-    /// Start workers for the job result relayer subsystem.
-    ///
-    /// This will setup `worker_count` tasks to pull from the `broadcast_queue_receiver` and
-    /// and then attempt to call `submitResult` on the `JobManager` contract at
-    /// `job_manager_address`.
-    #[instrument(skip_all)]
-    pub async fn start(mut self) -> Result<Self, Error> {
-        let url: reqwest::Url = self.http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
-
-        let provider = ProviderBuilder::new()
-            // Adds the `ChainIdFiller`, `GasFiller` and the `NonceFiller` layers.
-            .with_recommended_fillers()
-            .wallet(self.wallet.clone())
-            .on_http(url.clone());
-
-        let contract = IJobManager::new(self.job_manager_address, provider);
-        let broadcast_queue_receiver = self.broadcast_queue_receiver.clone();
-
-        let main_handle = tokio::spawn(async move {
-            loop {
-                let job =
-                    broadcast_queue_receiver.recv().await.map_err(|_| Error::BroadcastReceiver)?;
-
-                let call_builder =
-                    contract.submitResult(job.result.into(), job.zkvm_operator_signature.into());
-
-                // We broadcast sequentially to give us a better chance of not duplicating or having
-                // gaps in nonces
-                let tx_hash = match call_builder.send().await {
-                    Ok(pending_tx) => *pending_tx.tx_hash(),
-                    Err(error) => {
-                        error!(?error, job.id, "tx broadcast failure");
-                        continue;
-                    }
-                };
-
-                // Spawn a task to track the result
-                let url2 = url.clone();
-                tokio::spawn(async move {
-                    let provider = ProviderBuilder::new().on_http(url2);
-
-                    let pending_tx = PendingTransactionBuilder::new(&provider, tx_hash);
-
-                    // TODO: how do we decide on number of confirmations? Should it be configurable?
-                    // https://github.com/Ethos-Works/InfinityVM/issues/130
-                    let receipt =
-                        match pending_tx.with_required_confirmations(1).get_receipt().await {
-                            Ok(receipt) => receipt,
-                            Err(error) => {
-                                error!(?error, job.id, "tx inclusion failed");
-                                return;
-                            }
-                        };
-
-                    info!(
-                        receipt.transaction_index,
-                        receipt.block_number,
-                        ?receipt.block_hash,
-                        ?receipt.transaction_hash,
-                        job.id,
-                        "tx included"
-                    );
-                });
-            }
-        });
-
-        self.main_handle = Some(main_handle);
-        Ok(self)
-    }
-}
-
-#[cfg(test)]
+m#[cfg(test)]
 mod test {
     use std::{collections::HashSet, sync::Arc};
 
