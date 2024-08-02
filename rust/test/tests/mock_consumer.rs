@@ -14,7 +14,7 @@ use proto::{GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramReq
 use risc0_zkp::core::digest::Digest;
 use test_utils::MOCK_CONTRACT_MAX_CYCLES;
 
-type MockConsumerOut = sol!((U256, Address));
+type MockConsumerOut = sol!((Address, U256));
 
 /// The payload that gets signed to signify that the zkvm executor has faithfully
 /// executed the job. Also the result payload the job manager contract expects.
@@ -38,17 +38,24 @@ pub fn abi_encode_result_with_metadata(i: &Job, raw_output: &[u8]) -> Vec<u8> {
     ))
 }
 
+// This exercises all three gRPC endpoints of the coprocessor-node.
+//
+// We will have another test exercises logic to listen for job requests
+// that does not use submit_job/get_job
+// TODO: https://github.com/Ethos-Works/InfinityVM/issues/135
 #[tokio::test]
-async fn coprocessor_node_mock_consumer_e2e() {
+#[ignore]
+async fn grpc_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let chain_id = anvil.anvil.chain_id();
         let program_id = Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(42);
 
-        let user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
-        let user_wallet = EthereumWallet::from(user);
+        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+        let random_user_wallet = EthereumWallet::from(random_user);
 
+        // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
@@ -60,13 +67,13 @@ async fn coprocessor_node_mock_consumer_e2e() {
             .unwrap()
             .into_inner();
         assert_eq!(
-            submit_program_response.program_verifying_key,
-            Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes().to_vec()
+            &submit_program_response.program_verifying_key,
+            Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes()
         );
 
         let consumer_provider = ProviderBuilder::new()
             .with_recommended_fillers()
-            .wallet(user_wallet)
+            .wallet(random_user_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
 
@@ -79,6 +86,7 @@ async fn coprocessor_node_mock_consumer_e2e() {
             .log_decode::<IJobManager::JobCreated>()
             .unwrap();
         let job_id = log.data().jobID;
+        assert_eq!(job_id, 1);
 
         // Submit job to coproc nodes
         let job = Job {
@@ -134,8 +142,8 @@ async fn coprocessor_node_mock_consumer_e2e() {
         // Verify input
         assert_eq!(Address::abi_encode(&mock_user_address), input);
 
-        // Verify output from get job
-        let (out_balance, out_address) = MockConsumerOut::abi_decode(&raw_output, true).unwrap();
+        // Verify output from gRPC get_job endpoint
+        let (out_address, out_balance) = MockConsumerOut::abi_decode(&raw_output, true).unwrap();
 
         assert_eq!(out_address, mock_user_address);
         assert_eq!(out_balance, U256::from(13049344414114126192585233492u128));

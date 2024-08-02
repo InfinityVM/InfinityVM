@@ -43,7 +43,7 @@ test-all:
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
 	cd ../contracts && forge build
-	cargo build -p coprocessor-node -p zkvm-executor && \
+	cargo build -p coprocessor-node && \
 	cargo test --all -- --include-ignored
 
 .PHONY: build

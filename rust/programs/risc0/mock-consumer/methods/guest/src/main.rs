@@ -19,7 +19,7 @@ fn main() {
     let denominator = U256::try_from(u64::MAX).unwrap();
     let balance = numerator.wrapping_div(denominator);
 
-    let output = (balance, address).abi_encode();
+    let output = (address, balance).abi_encode();
 
     env::commit_slice(&output);
 }
