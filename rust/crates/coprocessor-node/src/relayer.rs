@@ -1,4 +1,4 @@
-//! Logic to pull job results from the broadcast queue and write them onchain.
+//! Logic to broadcast job result onchain.
 
 use alloy::{
     network::{Ethereum, EthereumWallet, TxSigner},
@@ -61,9 +61,7 @@ pub enum Error {
     MissingSigner,
 }
 
-/// [Builder] for `JobRelayer`.
-///
-/// [1]: https://rust-unofficial.github.io/patterns/patterns/creational/builder.html
+/// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
 #[derive(Debug)]
 pub struct JobRelayerBuilder<S> {
     signer: Option<S>,
