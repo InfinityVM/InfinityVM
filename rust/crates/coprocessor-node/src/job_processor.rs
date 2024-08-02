@@ -41,6 +41,9 @@ pub enum Error {
     /// Invalid VM type
     #[error("invalid VM type")]
     InvalidVmType,
+    /// exec queue channel unexpected closed
+    #[error("exec queue channel unexpected closed")]
+    ExecQueueChannelClosed,
 }
 
 /// Job processor service.
@@ -51,7 +54,7 @@ pub struct JobProcessorService<S, D> {
     exec_queue_receiver: Receiver<Job>,
     job_relayer: Arc<JobRelayer>,
     zk_executor: ZkvmExecutorService<S>,
-    task_handles: JoinSet<()>,
+    task_handles: JoinSet<Result<(), Error>>,
 }
 
 // The DB functions in JobProcessorService are async so they yield in the tokio task.
@@ -146,7 +149,7 @@ where
             let job_relayer = Arc::clone(&self.job_relayer);
 
             self.task_handles.spawn(async move {
-                Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor).await;
+                Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor).await
             });
         }
     }
@@ -157,9 +160,10 @@ where
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
-    ) {
+    ) -> Result<(), Error> {
         loop {
-            let mut job = exec_queue_receiver.recv().await.expect("todo");
+            let mut job =
+                exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
             let id = job.id;
             info!("executing job {}", id);
 
