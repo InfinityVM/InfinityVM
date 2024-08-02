@@ -50,7 +50,7 @@ async fn grpc_job_submission_coprocessor_node_mock_consumer_e2e() {
         let anvil = args.anvil;
         let chain_id = anvil.anvil.chain_id();
         let program_id = Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes().to_vec();
-        let mock_user_address = Address::repeat_byte(42);
+        let mock_user_address = Address::repeat_byte(69);
 
         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
         let random_user_wallet = EthereumWallet::from(random_user);
