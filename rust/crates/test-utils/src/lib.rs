@@ -111,7 +111,7 @@ pub fn mock_raw_output() -> Vec<u8> {
     (mock_contract_input_addr(), U256::default()).abi_encode()
 }
 
-/// Create a pending Job that has a signed result from the zkvm executor.
+/// Create a pending Job that has a signed result from the zkvm operator.
 ///
 /// The result here will be decodable by the `MockConsumer` contract and have
 /// a valid signature from the zkvm operator.

@@ -3,18 +3,44 @@
 use std::sync::Arc;
 
 use alloy::{
-    network::{EthereumWallet, TxSigner},
+    network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
     providers::{PendingTransactionBuilder, ProviderBuilder},
+    rpc::types::TransactionReceipt,
     signers::Signature,
     transports::http::reqwest,
 };
 use async_channel::Receiver;
 use proto::Job;
 use tokio::task::JoinHandle;
-use tracing::{error, info, instrument, warn};
+use tracing::{error, info, instrumentg};
 
 use contracts::i_job_manager::IJobManager;
+
+// TODO: Figure out a way to more generically represent these types without using trait objects.
+type RelayerProvider = alloy::providers::fillers::FillProvider<
+    alloy::providers::fillers::JoinFill<
+        alloy::providers::fillers::JoinFill<
+            alloy::providers::fillers::JoinFill<
+                alloy::providers::fillers::JoinFill<
+                    alloy::providers::Identity,
+                    alloy::providers::fillers::GasFiller,
+                >,
+                alloy::providers::fillers::NonceFiller,
+            >,
+            alloy::providers::fillers::ChainIdFiller,
+        >,
+        alloy::providers::fillers::WalletFiller<EthereumWallet>,
+    >,
+    alloy::providers::RootProvider<alloy::transports::http::Http<reqwest::Client>>,
+    alloy::transports::http::Http<reqwest::Client>,
+    Ethereum,
+>;
+
+type JobManagerContract = IJobManager::IJobManagerInstance<
+    alloy::transports::http::Http<reqwest::Client>,
+    RelayerProvider,
+>;
 
 /// Result writer errors
 #[derive(thiserror::Error, Debug)]
@@ -25,6 +51,82 @@ pub enum Error {
     /// broadcast receiver error - channel may be closed
     #[error("broadcast receiver error - channel may be closed")]
     BroadcastReceiver,
+    /// rpc transport error
+    #[error(transparent)]
+    Rpc(#[from] alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    /// error while waiting for tx inclusion
+    #[error("error while broadcasting tx: {0}")]
+    TxBroadcast(alloy::contract::Error),
+    /// error while waiting for tx inclusion
+    #[error("error while waiting for tx inclusion: {0}")]
+    TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+}
+
+pub(crate) struct JobRelayer3 {
+    job_manager: JobManagerContract,
+}
+
+pub(crate) struct JobRelayerBuilder<S> {
+    signer: Option<S>,
+}
+
+impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
+    pub(crate) fn new() -> Self {
+        Self { signer: None }
+    }
+
+    pub(crate) fn signer(mut self, signer: S) -> Self {
+        self.signer = Some(signer);
+        self
+    }
+
+    pub(crate) async fn build(
+        self,
+        http_rpc_url: String,
+        job_manager: Address,
+    ) -> Result<JobRelayer3, Error> {
+        let url: reqwest::Url =
+            http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse).expect("todo");
+        let signer = self.signer.expect("todo");
+
+        let address = signer.address();
+        let wallet = EthereumWallet::new(signer);
+
+        let provider =
+            ProviderBuilder::new().with_recommended_fillers().wallet(wallet).on_http(url);
+        let job_manager = JobManagerContract::new(job_manager, provider);
+
+        Ok(JobRelayer3 { job_manager })
+    }
+}
+
+impl JobRelayer3 {
+    pub(crate) async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
+        let call_builder =
+            self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
+
+        let pending_tx = call_builder.send().await.map_err(|error| {
+            error!(?error, job.id, "tx broadcast failure");
+            Error::TxBroadcast(error)
+        })?;
+
+        let receipt =
+            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+                error!(?error, job.id, "tx inclusion failed");
+                Error::TxInclusion(error)
+            })?;
+
+        info!(
+            receipt.transaction_index,
+            receipt.block_number,
+            ?receipt.block_hash,
+            ?receipt.transaction_hash,
+            job.id,
+            "tx included"
+        );
+
+        Ok(receipt)
+    }
 }
 
 /// Pulls jobs off the broadcast queue and submits them on chain
@@ -35,7 +137,6 @@ pub struct JobRelayer {
     job_manager_address: Address,
     broadcast_queue_receiver: Receiver<Job>,
     main_handle: Option<JoinHandle<Result<(), Error>>>,
-    max_tokio_tasks: usize,
 }
 
 impl JobRelayer {
@@ -45,7 +146,6 @@ impl JobRelayer {
         signer: Arc<S>,
         job_manager_address: Address,
         broadcast_queue_receiver: Receiver<Job>,
-        max_tokio_tasks: usize,
     ) -> Self {
         Self {
             http_rpc_url,
@@ -53,7 +153,6 @@ impl JobRelayer {
             job_manager_address,
             broadcast_queue_receiver,
             main_handle: None,
-            max_tokio_tasks,
         }
     }
 
@@ -74,18 +173,9 @@ impl JobRelayer {
 
         let contract = IJobManager::new(self.job_manager_address, provider);
         let broadcast_queue_receiver = self.broadcast_queue_receiver.clone();
-        let max_tokio_tasks = self.max_tokio_tasks;
 
         let main_handle = tokio::spawn(async move {
-            let metrics = tokio::runtime::Handle::current().metrics();
             loop {
-                let num_alive_tasks = metrics.num_alive_tasks();
-                if num_alive_tasks > max_tokio_tasks {
-                    warn!(num_alive_tasks, "task count to high to broadcast");
-                    tokio::task::yield_now().await;
-                    continue;
-                }
-
                 let job =
                     broadcast_queue_receiver.recv().await.map_err(|_| Error::BroadcastReceiver)?;
 
@@ -112,7 +202,7 @@ impl JobRelayer {
                     // TODO: how do we decide on number of confirmations? Should it be configurable?
                     // https://github.com/Ethos-Works/InfinityVM/issues/130
                     let receipt =
-                        match pending_tx.with_required_confirmations(2).get_receipt().await {
+                        match pending_tx.with_required_confirmations(1).get_receipt().await {
                             Ok(receipt) => receipt,
                             Err(error) => {
                                 error!(?error, job.id, "tx inclusion failed");
@@ -182,7 +272,6 @@ mod test {
             Arc::new(relayer),
             job_manager,
             receiver.clone(),
-            QUEUE_CAP,
         );
         job_relayer.start().await.unwrap();
 

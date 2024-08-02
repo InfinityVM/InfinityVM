@@ -19,7 +19,6 @@ use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 const ENV_ZKVM_OPERATOR_PRIV_KEY: &str = "ZKVM_OPERATOR_PRIV_KEY";
-const MAX_TOKIO_TASKS: usize = 2 * 1024;
 
 /// Errors from the gRPC Server CLI
 #[derive(thiserror::Error, Debug)]
@@ -238,7 +237,6 @@ impl Cli {
             Arc::new(relayer),
             opts.job_manager_address,
             broadcast_queue_receiver,
-            MAX_TOKIO_TASKS,
         );
         job_relayer.start().await?;
 
