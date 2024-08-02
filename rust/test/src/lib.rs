@@ -91,7 +91,7 @@ impl Integration {
                 .await
                 .unwrap();
 
-        let args = Args { coprocessor_node, anvil };
+        let args = Args { anvil, coprocessor_node };
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
