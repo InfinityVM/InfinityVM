@@ -9,6 +9,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {Script, console} from "forge-std/Script.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {ECDSA} from "solady/utils/ECDSA.sol";
+import {EIP712} from "solady/utils/EIP712.sol"; 
 
 contract JobManager is 
     IJobManager,
@@ -91,10 +93,9 @@ contract JobManager is
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
 
         // Recover the signer address
-        // resultWithMetadata.length needs to be converted to string since the EIP-191 standard requires this 
-        bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithMetadata.length.toString(), resultWithMetadata));
-        address signer = recoverSigner(messageHash, signature);
-        require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
+        bytes32 messageHash = ECDSA.toEthSignedMessageHash(resultWithMetadata);
+        address recoveredSigner = ECDSA.tryRecover(messageHash, signature);
+        require(recoveredSigner == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
         // Decode the resultWithMetadata using abi.decode
         ResultWithMetadata memory result = decodeResultWithMetadata(resultWithMetadata);
@@ -178,22 +179,5 @@ contract JobManager is
     function decodeJobRequest(bytes memory jobRequest) public pure returns (OffchainJobRequest memory) {
         (uint32 nonce, uint64 maxCycles, address consumer, bytes memory programID, bytes memory programInput) = abi.decode(jobRequest, (uint32, uint64, address, bytes, bytes));
         return OffchainJobRequest(nonce, maxCycles, consumer, programID, programInput);
-    }
-
-    function recoverSigner(bytes32 _ethSignedMessageHash, bytes memory _signature) internal pure returns (address) {
-        (bytes32 r, bytes32 s, uint8 v) = splitSignature(_signature);
-        return ecrecover(_ethSignedMessageHash, v, r, s);
-    }
-
-    function splitSignature(bytes memory sig) internal pure returns (bytes32 r, bytes32 s, uint8 v) {
-        require(sig.length == 65, "invalid signature length");
-
-        assembly {
-            r := mload(add(sig, 32))
-            s := mload(add(sig, 64))
-            v := byte(0, mload(add(sig, 96)))
-        }
-
-        return (r, s, v);
     }
 }
