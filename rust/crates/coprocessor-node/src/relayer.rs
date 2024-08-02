@@ -178,7 +178,6 @@ mod test {
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
             .build(anvil.endpoint().parse().unwrap(), job_manager)
-            .await
             .unwrap();
         let job_relayer = Arc::new(job_relayer);
         let mut join_set = JoinSet::new();
