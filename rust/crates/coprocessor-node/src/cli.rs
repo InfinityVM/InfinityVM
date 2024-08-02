@@ -214,12 +214,9 @@ impl Cli {
         // Initialize the async channels
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = bounded(100);
 
-        // Start the job relayer. This will pull job off the `broadcast_queue_receiver`
-        // post them on chain
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
-            .build(opts.eth_rpc_address.clone(), opts.job_manager_address)
-            .await?;
+            .build(opts.eth_rpc_address.clone(), opts.job_manager_address)?;
         let job_relayer = Arc::new(job_relayer);
 
         // Start the job processor with a specified number of worker threads.

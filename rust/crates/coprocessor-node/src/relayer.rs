@@ -88,11 +88,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
     }
 
     /// Build a [`JobRelayer`].
-    pub async fn build(
-        self,
-        http_rpc_url: String,
-        job_manager: Address,
-    ) -> Result<JobRelayer, Error> {
+    pub fn build(self, http_rpc_url: String, job_manager: Address) -> Result<JobRelayer, Error> {
         let url: reqwest::Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
 
         let signer = self.signer.ok_or(Error::MissingSigner)?;

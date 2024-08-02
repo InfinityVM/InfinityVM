@@ -8,4 +8,4 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["reqwest"] }
+alloy = { workspace = true }
