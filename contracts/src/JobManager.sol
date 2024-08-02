@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED} from "./IJobManager.sol";
 import {Consumer} from "./Consumer.sol";
+import {OffchainRequester} from "./OffchainRequester.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
@@ -17,12 +18,17 @@ contract JobManager is
 {
     using Utils for uint;
 
+    // bytes4(keccak256("isValidSignature(bytes32,bytes)")
+    bytes4 constant internal VALID = 0x1626ba7e;
+
     uint32 internal jobIDCounter;
     address public relayer;
     // This operator is a registered entity that will eventually require some bond from participants
     address public coprocessorOperator;
 
     mapping(uint32 => JobMetadata) public jobIDToMetadata;
+    mapping(bytes32 => uint32) public nonceHashToJobID;
+    mapping(address => uint32) public consumerToMaxNonce;
     // storage gap for upgradeability
     uint256[50] private __GAP;
 
@@ -79,9 +85,9 @@ contract JobManager is
 
     // This function is called by the relayer
     function submitResult(
-        bytes calldata resultWithMetadata, // Includes job ID + program input hash + max cycles + program ID + result value
-        bytes calldata signature
-    ) external override nonReentrant {
+        bytes memory resultWithMetadata, // Includes job ID + program input hash + max cycles + program ID + result value
+        bytes memory signature
+    ) public override nonReentrant {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
 
         // Recover the signer address
@@ -91,25 +97,87 @@ contract JobManager is
         require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
         // Decode the resultWithMetadata using abi.decode
-        (uint32 jobID, bytes32 programInputHash, uint64 maxCycles, bytes memory programID, bytes memory result) = abi.decode(resultWithMetadata, (uint32, bytes32, uint64, bytes, bytes));
+        ResultWithMetadata memory result = decodeResultWithMetadata(resultWithMetadata);
 
-        JobMetadata memory job = jobIDToMetadata[jobID];
+        JobMetadata memory job = jobIDToMetadata[result.jobID];
         require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");
 
         // This is to prevent coprocessor from using a different program ID to produce a malicious result
-        require(keccak256(job.programID) == keccak256(programID), 
+        require(keccak256(job.programID) == keccak256(result.programID), 
             "JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
 
         // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
-        require(keccak256(Consumer(job.caller).getProgramInputsForJob(jobID)) == programInputHash, 
+        require(keccak256(Consumer(job.caller).getProgramInputsForJob(result.jobID)) == result.programInputHash, 
             "JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
+        
+        require(result.maxCycles == job.maxCycles, "JobManager.submitResult: max cycles signed by coprocessor doesn't match max cycles submitted with job");
 
         job.status = JOB_STATE_COMPLETED;
-        jobIDToMetadata[jobID] = job;
+        jobIDToMetadata[result.jobID] = job;
 
-        emit JobCompleted(jobID, result);
+        emit JobCompleted(result.jobID, result.result);
 
-        Consumer(job.caller).receiveResult(jobID, result);
+        Consumer(job.caller).receiveResult(result.jobID, result.result);
+    }
+
+    function submitOffchainResult(
+        bytes calldata offchainResultWithMetadata,
+        bytes calldata signatureOnResult,
+        bytes calldata jobRequest,
+        bytes calldata signatureOnRequest
+    ) public override nonReentrant returns (uint32) {
+        // Decode the job request using abi.decode
+        OffchainJobRequest memory request = decodeJobRequest(jobRequest);
+
+        // check if nonce already exists
+        bytes32 nonceHash = keccak256(abi.encodePacked(request.nonce, request.consumer));
+        require(nonceHashToJobID[nonceHash] == 0, "JobManager.submitOffChainResult: Nonce already exists for this consumer");
+
+        bytes32 requestHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", jobRequest.length.uintToString(), jobRequest));
+        bytes4 isSignatureValid = OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest);
+        require(isSignatureValid == VALID, "JobManager.submitOffChainResult: Invalid signature on job request");
+
+        // Decode the result using abi.decode
+        OffChainResultWithMetadata memory result = decodeOffchainResultWithMetadata(offchainResultWithMetadata);
+
+        require(result.programInputHash == keccak256(request.programInput), "JobManager.submitOffChainResult: program input hash doesn't match");
+        require(keccak256(result.programID) == keccak256(request.programID), "JobManager.submitOffChainResult: program ID doesn't match");
+        require(result.maxCycles == request.maxCycles, "JobManager.submitOffChainResult: max cycles doesn't match");
+
+        // Perform the logic from createJob() without emitting an event
+        uint32 jobID = jobIDCounter;
+        jobIDToMetadata[jobID] = JobMetadata(request.programID, request.maxCycles, request.consumer, JOB_STATE_PENDING);
+        jobIDCounter++;
+
+        // Update nonce-relevant storage
+        nonceHashToJobID[nonceHash] = jobID;
+        if (request.nonce > consumerToMaxNonce[request.consumer]) {
+            consumerToMaxNonce[request.consumer] = request.nonce;
+        }
+
+        bytes memory resultWithJobID = abi.encode(jobID, result.programInputHash, result.maxCycles, result.programID, result.result);
+        submitResult(resultWithJobID, signatureOnResult);
+
+        return jobID;
+    }
+
+    function getMaxNonce(address consumer) public view returns (uint32) {
+        return consumerToMaxNonce[consumer];
+    }
+
+    function decodeResultWithMetadata(bytes memory resultWithMetadata) public pure returns (ResultWithMetadata memory) {
+        (uint32 jobID, bytes32 programInputHash, uint64 maxCycles, bytes memory programID, bytes memory result) = abi.decode(resultWithMetadata, (uint32, bytes32, uint64, bytes, bytes));
+        return ResultWithMetadata(jobID, programInputHash, maxCycles, programID, result);
+    }
+
+    function decodeOffchainResultWithMetadata(bytes memory offChainResultWithMetadata) public pure returns (OffChainResultWithMetadata memory) {
+        (bytes32 programInputHash, uint64 maxCycles, bytes memory programID, bytes memory result) = abi.decode(offChainResultWithMetadata, (bytes32, uint64, bytes, bytes));
+        return OffChainResultWithMetadata(programInputHash, maxCycles, programID, result);
+    }
+
+    function decodeJobRequest(bytes memory jobRequest) public pure returns (OffchainJobRequest memory) {
+        (uint32 nonce, uint64 maxCycles, address consumer, bytes memory programID, bytes memory programInput) = abi.decode(jobRequest, (uint32, uint64, address, bytes, bytes));
+        return OffchainJobRequest(nonce, maxCycles, consumer, programID, programInput);
     }
 
     function recoverSigner(bytes32 _ethSignedMessageHash, bytes memory _signature) internal pure returns (address) {
