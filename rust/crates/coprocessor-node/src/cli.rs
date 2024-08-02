@@ -57,7 +57,7 @@ pub enum Error {
     #[error("database error: {0}")]
     Database(#[from] db::Error),
     /// relayer error
-    #[error("relayer error")]
+    #[error("relayer error: {0}")]
     Relayer(#[from] relayer::Error),
 }
 
