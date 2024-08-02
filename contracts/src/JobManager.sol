@@ -7,8 +7,8 @@ import {OffchainRequester} from "./OffchainRequester.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-import "./Utils.sol";
 import {Script, console} from "forge-std/Script.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 
 contract JobManager is 
     IJobManager,
@@ -16,7 +16,7 @@ contract JobManager is
     OwnableUpgradeable, 
     ReentrancyGuard
 {
-    using Utils for uint;
+    using Strings for uint;
 
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal VALID = 0x1626ba7e;
@@ -92,7 +92,7 @@ contract JobManager is
 
         // Recover the signer address
         // resultWithMetadata.length needs to be converted to string since the EIP-191 standard requires this 
-        bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithMetadata.length.uintToString(), resultWithMetadata));
+        bytes32 messageHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", resultWithMetadata.length.toString(), resultWithMetadata));
         address signer = recoverSigner(messageHash, signature);
         require(signer == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
@@ -133,7 +133,7 @@ contract JobManager is
         bytes32 nonceHash = keccak256(abi.encodePacked(request.nonce, request.consumer));
         require(nonceHashToJobID[nonceHash] == 0, "JobManager.submitOffChainResult: Nonce already exists for this consumer");
 
-        bytes32 requestHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", jobRequest.length.uintToString(), jobRequest));
+        bytes32 requestHash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n", jobRequest.length.toString(), jobRequest));
         bytes4 isSignatureValid = OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest);
         require(isSignatureValid == VALID, "JobManager.submitOffChainResult: Invalid signature on job request");
 
