@@ -69,17 +69,26 @@ pub struct JobRelayerBuilder<S> {
     signer: Option<S>,
 }
 
+impl<S: TxSigner<Signature> + Send + Sync + 'static> Default for JobRelayerBuilder<S> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
-    pub(crate) fn new() -> Self {
+    /// Create a new [Self].
+    pub const fn new() -> Self {
         Self { signer: None }
     }
 
-    pub(crate) fn signer(mut self, signer: S) -> Self {
+    /// Specify the signer.
+    pub fn signer(mut self, signer: S) -> Self {
         self.signer = Some(signer);
         self
     }
 
-    pub(crate) async fn build(
+    /// Build a [`JobRelayer`].
+    pub async fn build(
         self,
         http_rpc_url: String,
         job_manager: Address,
@@ -97,13 +106,18 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
     }
 }
 
+/// Submit completed jobs onchain to the `JobManager` contract.
+///
+/// This is safe to use across threads and should correctly handle nonce incrementing as long as
+/// no transactions fail after being broadcasted.
 #[derive(Debug)]
-pub(crate) struct JobRelayer {
+pub struct JobRelayer {
     job_manager: JobManagerContract,
 }
 
 impl JobRelayer {
-    pub(crate) async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
+    /// Submit a completed jobs onchain to the `JobManager` contract.
+    pub async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
@@ -201,7 +215,7 @@ mod test {
         }
 
         // Wait for all the relay threads to finish so we know the transactions have landed
-        while let Some(_) = join_set.join_next().await {}
+        while (join_set.join_next().await).is_some() {}
 
         // Check that each job is in the anvil node logs
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
