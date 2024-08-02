@@ -37,3 +37,9 @@ runs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+
+      - name: Build contracts
+        shell: bash
+        if: env.GIT_DIFF
+        run: |
+          cd contracts && forge build
