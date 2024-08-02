@@ -1,24 +1,19 @@
-use alloy::primitives::aliases::U256;
 use alloy::{
     network::EthereumWallet,
-    primitives::{keccak256, utils::eip191_hash_message, Address, Signature},
+    primitives::{aliases::U256, keccak256, utils::eip191_hash_message, Address, Signature},
     providers::ProviderBuilder,
-    rlp::Decodable,
     signers::local::PrivateKeySigner,
-    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
     sol,
-    sol_types::SolType,
-    sol_types::SolValue,
+    sol_types::{SolType, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-use integration::Args;
-use integration::Integration;
-use mock_consumer_methods::{
-    MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID, MOCK_CONSUMER_GUEST_PATH,
-};
+use integration::{Args, Integration};
+use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{GetResultRequest, Job, JobStatus, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_zkp::core::digest::Digest;
 use test_utils::MOCK_CONTRACT_MAX_CYCLES;
+
+type MockConsumerOut = sol!((U256, Address));
 
 /// The payload that gets signed to signify that the zkvm executor has faithfully
 /// executed the job. Also the result payload the job manager contract expects.
@@ -64,7 +59,7 @@ async fn coprocessor_node_mock_consumer_e2e() {
             .unwrap()
             .into_inner();
         assert_eq!(
-            submit_program_response.program_id,
+            submit_program_response.program_verifying_key,
             Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes().to_vec()
         );
 
@@ -138,9 +133,14 @@ async fn coprocessor_node_mock_consumer_e2e() {
         // Verify input
         assert_eq!(Address::abi_encode(&mock_user_address), input);
 
-        // Verify output
-        let balance = U256::try_from_be_slice(&raw_output[..]);
-        dbg!(balance);
+        // Verify output from get job
+        let (out_balance, out_address) = MockConsumerOut::abi_decode(&raw_output, true).unwrap();
+
+        assert_eq!(out_address, mock_user_address);
+        assert_eq!(out_balance, U256::from(13049344414114126192585233492u128));
+
+        // Verify output on chain
+        // TODO
     }
     Integration::run(test).await;
 }

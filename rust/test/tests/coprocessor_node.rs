@@ -68,8 +68,8 @@
 
 // // #[tokio::test]
 // // #[ignore]
-// // Tests all gRPC endpoints of the coprocessor node: submit_program, submit_job, and `get_result`.
-// async fn coprocessor_node_risc0_works() {
+// // Tests all gRPC endpoints of the coprocessor node: submit_program, submit_job, and
+// `get_result`. async fn coprocessor_node_risc0_works() {
 //     async fn test(mut args: Args) {
 //         let chain_id = args.anvil.anvil.chain_id();
 
