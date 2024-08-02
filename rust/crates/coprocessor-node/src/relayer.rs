@@ -14,6 +14,7 @@ use tracing::{error, info};
 use contracts::i_job_manager::IJobManager;
 
 // TODO: Figure out a way to more generically represent these types without using trait objects.
+// https://github.com/Ethos-Works/InfinityVM/issues/138
 type RelayerProvider = alloy::providers::fillers::FillProvider<
     alloy::providers::fillers::JoinFill<
         alloy::providers::fillers::JoinFill<

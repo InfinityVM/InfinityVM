@@ -181,8 +181,8 @@ impl Opts {
         if secret.as_bytes().len() < 64 {
             return Err(Error::ShortPrivateKeyHex);
         }
-        let hex = if secret[0..2] == *"0x" { &secret[2..] } else { &secret[..] };
-        let decoded = hex::decode(hex)?;
+
+        let decoded = hex::decode(secret)?;
         K256LocalSigner::from_slice(&decoded).map_err(Into::into)
     }
 }
