@@ -198,7 +198,7 @@ mod test {
                 .log_decode::<IJobManager::JobCreated>()
                 .unwrap();
 
-            // Ensure test setup is working as we thin
+            // Ensure test setup is working as we think
             assert_eq!(job.id, log.data().jobID);
 
             let relayer2 = Arc::clone(&job_relayer);
