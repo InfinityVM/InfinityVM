@@ -204,12 +204,11 @@ impl Cli {
         let zkvm_operator = opts.operator_signer()?;
         let relayer = opts.relayer_signer()?;
 
-        info!("zkvm operator is {:?}", zkvm_operator.address());
-        info!("relayer is {:?}", relayer.address());
-        dbg!(relayer.address());
+        info!("👷🏻 zkvm operator is {:?}", zkvm_operator.address());
+        info!("✉️ relayer is {:?}", relayer.address());
 
         let db = db::init_db(opts.db_dir.clone())?;
-        info!(db_path = opts.db_dir, "db initialized");
+        info!(db_path = opts.db_dir, "💾 db initialized");
 
         let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
 
@@ -251,7 +250,7 @@ impl Cli {
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
 
-        tracing::info!("starting gRPC server at {}", grpc_addr);
+        tracing::info!("🚥 starting gRPC server at {}", grpc_addr);
         tonic::transport::Server::builder()
             .add_service(coprocessor_node_server)
             .add_service(reflector)

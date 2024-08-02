@@ -54,11 +54,7 @@ impl Integration {
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
-        // test_tracing();
-
-        let subscriber = tracing_subscriber::FmtSubscriber::new();
-        // use that subscriber to process traces emitted after this point
-        tracing::subscriber::set_global_default(subscriber).unwrap();
+        test_utils::test_tracing();
 
         // Start an anvil node
         let anvil = anvil_with_contracts().await;
@@ -70,15 +66,11 @@ impl Integration {
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
-        dbg!(anvil.relayer.address());
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
-        dbg!(anvil.coprocessor_operator.address());
 
         // The coprocessor-node expects the relayer private key as an env var
         std::env::set_var("RELAYER_PRIVATE_KEY", relayer_private);
         std::env::set_var("ZKVM_OPERATOR_PRIV_KEY", operator_private);
-        // TODO: update the usage of these args when we setup an e2e test that uses this
-        // https://github.com/Ethos-Works/InfinityVM/issues/104
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)

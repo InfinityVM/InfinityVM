@@ -1,6 +1,5 @@
 use alloy::primitives::aliases::U256;
 use alloy::primitives::Address;
-use alloy::sol_types::SolType;
 use alloy::sol_types::SolValue;
 use risc0_zkvm::guest::env;
 use std::io::Read;

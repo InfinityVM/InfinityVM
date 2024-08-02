@@ -1,10 +1,11 @@
 use alloy::{
     network::EthereumWallet,
     primitives::{aliases::U256, keccak256, utils::eip191_hash_message, Address, Signature},
-    providers::ProviderBuilder,
+    providers::{Provider, ProviderBuilder},
+    rpc::types::Filter,
     signers::local::PrivateKeySigner,
     sol,
-    sol_types::{SolType, SolValue},
+    sol_types::{SolEvent, SolType, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use integration::{Args, Integration};
@@ -116,8 +117,8 @@ async fn coprocessor_node_mock_consumer_e2e() {
         };
         assert_eq!(address, anvil.coprocessor_operator.address());
 
+        // Verify signature and message format
         let sig = Signature::try_from(&zkvm_operator_signature[..]).unwrap();
-
         let abi_decoded_output = ResultWithMetadata::abi_decode_params(&result, false).unwrap();
         let raw_output = abi_decoded_output.4;
         let signing_payload = abi_encode_result_with_metadata(&job, &raw_output);
@@ -140,7 +141,12 @@ async fn coprocessor_node_mock_consumer_e2e() {
         assert_eq!(out_balance, U256::from(13049344414114126192585233492u128));
 
         // Verify output on chain
-        // TODO
+        let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
+        let logs = consumer_provider.get_logs(&filter).await.unwrap();
+        let completed =
+            logs[0].log_decode::<IJobManager::JobCompleted>().unwrap().data().to_owned();
+        assert_eq!(completed.result, raw_output);
+        assert_eq!(completed.jobID, 1);
     }
     Integration::run(test).await;
 }
