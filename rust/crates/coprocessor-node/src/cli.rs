@@ -2,7 +2,7 @@
 
 use crate::{
     job_processor::JobProcessorService,
-    relayer::{self, JobRelayer},
+    relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
 };
 use alloy::{
@@ -213,11 +213,14 @@ impl Cli {
 
         // Initialize the async channels
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = bounded(100);
-        // TODO: broadcast_queue_receiver is not used right now, but should be passed into relayer
-        // once that is added. This will remove the `Failed to push job` error log when running
-        // tests.
-        let (broadcast_queue_sender, broadcast_queue_receiver): (Sender<Job>, Receiver<Job>) =
-            bounded(100);
+
+        // Start the job relayer. This will pull job off the `broadcast_queue_receiver`
+        // post them on chain
+        let job_relayer = JobRelayerBuilder::new()
+            .signer(relayer)
+            .build(opts.eth_rpc_address.clone(), opts.job_manager_address)
+            .await?;
+        let job_relayer = Arc::new(job_relayer);
 
         // Start the job processor with a specified number of worker threads.
         // The job processor stores a JoinSet which has a handle to each task.
@@ -225,20 +228,10 @@ impl Cli {
             db,
             exec_queue_sender,
             exec_queue_receiver,
-            broadcast_queue_sender,
+            job_relayer,
             executor,
         );
         job_processor.start(opts.worker_count).await;
-
-        // Start the job relayer. This will pull job off the `broadcast_queue_receiver`
-        // post them on chain
-        let job_relayer = JobRelayer::new(
-            opts.eth_rpc_address.clone(),
-            Arc::new(relayer),
-            opts.job_manager_address,
-            broadcast_queue_receiver,
-        );
-        job_relayer.start().await?;
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)

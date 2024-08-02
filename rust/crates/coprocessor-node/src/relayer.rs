@@ -1,19 +1,15 @@
 //! Logic to pull job results from the broadcast queue and write them onchain.
 
-use std::sync::Arc;
-
 use alloy::{
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
-    providers::{PendingTransactionBuilder, ProviderBuilder},
+    providers::ProviderBuilder,
     rpc::types::TransactionReceipt,
     signers::Signature,
     transports::http::reqwest,
 };
-use async_channel::Receiver;
 use proto::Job;
-use tokio::task::JoinHandle;
-use tracing::{error, info, instrument};
+use tracing::{error, info};
 
 use contracts::i_job_manager::IJobManager;
 
@@ -60,13 +56,16 @@ pub enum Error {
     /// error while waiting for tx inclusion
     #[error("error while waiting for tx inclusion: {0}")]
     TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    /// must call [`JobRelayerBuilder::signer`] before building
+    #[error("ust call JobRelayerBuilder::signer before building")]
+    MissingSigner,
 }
 
-pub(crate) struct JobRelayer3 {
-    job_manager: JobManagerContract,
-}
-
-pub(crate) struct JobRelayerBuilder<S> {
+/// [Builder] for `JobRelayer`.
+///
+/// [1]: https://rust-unofficial.github.io/patterns/patterns/creational/builder.html
+#[derive(Debug)]
+pub struct JobRelayerBuilder<S> {
     signer: Option<S>,
 }
 
@@ -84,23 +83,26 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
         self,
         http_rpc_url: String,
         job_manager: Address,
-    ) -> Result<JobRelayer3, Error> {
-        let url: reqwest::Url =
-            http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse).expect("todo");
-        let signer = self.signer.expect("todo");
+    ) -> Result<JobRelayer, Error> {
+        let url: reqwest::Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
 
-        let address = signer.address();
+        let signer = self.signer.ok_or(Error::MissingSigner)?;
         let wallet = EthereumWallet::new(signer);
 
         let provider =
             ProviderBuilder::new().with_recommended_fillers().wallet(wallet).on_http(url);
         let job_manager = JobManagerContract::new(job_manager, provider);
 
-        Ok(JobRelayer3 { job_manager })
+        Ok(JobRelayer { job_manager })
     }
 }
 
-impl JobRelayer3 {
+#[derive(Debug)]
+pub(crate) struct JobRelayer {
+    job_manager: JobManagerContract,
+}
+
+impl JobRelayer {
     pub(crate) async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
@@ -129,11 +131,11 @@ impl JobRelayer3 {
     }
 }
 
-m#[cfg(test)]
+#[cfg(test)]
 mod test {
     use std::{collections::HashSet, sync::Arc};
 
-    use crate::relayer::JobRelayer;
+    use crate::relayer::JobRelayerBuilder;
     use alloy::{
         network::EthereumWallet,
         providers::{Provider, ProviderBuilder},
@@ -145,10 +147,9 @@ mod test {
     use test_utils::{
         anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
     };
+    use tokio::task::JoinSet;
 
-    const WORKER_COUNT: usize = 3;
-    const JOB_COUNT: usize = WORKER_COUNT * 10;
-    const QUEUE_CAP: usize = JOB_COUNT;
+    const JOB_COUNT: usize = 30;
 
     #[tokio::test]
     async fn run_can_successfully_submit_results() {
@@ -166,16 +167,13 @@ mod test {
             .on_http(anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock_consumer, &consumer_provider);
 
-        // 30 jobs, 30 max task in runtime, and a queue of size 30
-        let (sender, receiver) = async_channel::bounded(QUEUE_CAP);
-
-        let job_relayer = JobRelayer::new(
-            anvil.endpoint().parse().unwrap(),
-            Arc::new(relayer),
-            job_manager,
-            receiver.clone(),
-        );
-        job_relayer.start().await.unwrap();
+        let job_relayer = JobRelayerBuilder::new()
+            .signer(relayer)
+            .build(anvil.endpoint().parse().unwrap(), job_manager)
+            .await
+            .unwrap();
+        let job_relayer = Arc::new(job_relayer);
+        let mut join_set = JoinSet::new();
 
         for i in 0u8..JOB_COUNT as u8 {
             let job =
@@ -196,13 +194,16 @@ mod test {
             // Ensure test setup is working as we thin
             assert_eq!(job.id, log.data().jobID);
 
-            sender.send(job).await.unwrap();
+            let relayer2 = Arc::clone(&job_relayer);
+            join_set.spawn(async move {
+                assert!(relayer2.relay(job).await.is_ok());
+            });
         }
 
-        // Give the transactions some time to land
-        tokio::time::sleep(tokio::time::Duration::from_millis(1_000)).await;
+        // Wait for all the relay threads to finish so we know the transactions have landed
+        while let Some(_) = join_set.join_next().await {}
 
-        // check that each job is in the anvil node logs
+        // Check that each job is in the anvil node logs
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
         let logs = consumer_provider.get_logs(&filter).await.unwrap();
 

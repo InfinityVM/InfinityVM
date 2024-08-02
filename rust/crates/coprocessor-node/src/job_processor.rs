@@ -12,6 +12,8 @@ use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
 
+use crate::relayer::JobRelayer;
+
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -47,7 +49,7 @@ pub struct JobProcessorService<S, D> {
     db: Arc<D>,
     exec_queue_sender: Sender<Job>,
     exec_queue_receiver: Receiver<Job>,
-    broadcast_queue_sender: Sender<Job>,
+    job_relayer: Arc<JobRelayer>,
     zk_executor: ZkvmExecutorService<S>,
     task_handles: JoinSet<()>,
 }
@@ -63,14 +65,14 @@ where
         db: Arc<D>,
         exec_queue_sender: Sender<Job>,
         exec_queue_receiver: Receiver<Job>,
-        broadcast_queue_sender: Sender<Job>,
+        job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
     ) -> Self {
         Self {
             db,
             exec_queue_sender,
             exec_queue_receiver,
-            broadcast_queue_sender,
+            job_relayer,
             zk_executor,
             task_handles: JoinSet::new(),
         }
@@ -139,13 +141,12 @@ where
     pub async fn start(&mut self, num_workers: usize) {
         for _ in 0..num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
-            let broadcast_queue_sender = self.broadcast_queue_sender.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
+            let job_relayer = Arc::clone(&self.job_relayer);
 
             self.task_handles.spawn(async move {
-                Self::start_worker(exec_queue_receiver, broadcast_queue_sender, db, zk_executor)
-                    .await;
+                Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor).await;
             });
         }
     }
@@ -153,96 +154,91 @@ where
     /// Start a single worker thread.
     async fn start_worker(
         exec_queue_receiver: Receiver<Job>,
-        broadcast_queue_sender: Sender<Job>,
         db: Arc<D>,
+        job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
     ) {
         loop {
-            match exec_queue_receiver.recv().await {
-                Ok(mut job) => {
-                    let id = job.id;
-                    info!("Executing job {}", id);
+            let mut job = exec_queue_receiver.recv().await.expect("todo");
+            let id = job.id;
+            info!("executing job {}", id);
 
-                    let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
-                        Ok(Some(elf)) => elf,
-                        Ok(None) => {
-                            error!(
-                                "No ELF found for job {} with verifying key {:?}",
-                                id, &job.program_verifying_key
-                            );
+            let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
+                Ok(Some(elf)) => elf,
+                Ok(None) => {
+                    error!(
+                        "no ELF found for job {} with verifying key {:?}",
+                        id, &job.program_verifying_key
+                    );
 
-                            // TODO: We should have some way of recording the error
-                            // reason / error type for failed jobs
-                            // [ref: https://github.com/Ethos-Works/InfinityVM/issues/117]
-                            job.status = JobStatus::Failed.into();
-                            if let Err(e) = Self::save_job(db.clone(), job).await {
-                                error!("Failed to save job {}: {:?}", id, e);
-                            }
-                            continue;
-                        }
-                        Err(e) => {
-                            error!(
-                                "could not find elf for job {} with verifying key {:?}: {:?}",
-                                id, &job.program_verifying_key, e
-                            );
-                            job.status = JobStatus::Failed.into();
-                            if let Err(e) = Self::save_job(db.clone(), job).await {
-                                error!("Failed to save job {}: {:?}", id, e);
-                            }
-                            continue;
-                        }
-                    };
-
-                    let req = ExecuteRequest {
-                        inputs: Some(JobInputs {
-                            job_id: id,
-                            max_cycles: job.max_cycles,
-                            program_verifying_key: job.program_verifying_key.clone(),
-                            program_input: job.input.clone(),
-                            program_elf: elf_with_meta.elf,
-                            vm_type: VmType::Risc0 as i32,
-                        }),
-                    };
-
-                    match zk_executor.execute_handler(req).await {
-                        Ok(resp) => {
-                            info!("Job {} executed successfully", id);
-
-                            job.status = JobStatus::Done.into();
-                            job.result = resp.result_with_metadata;
-                            job.zkvm_operator_address = resp.zkvm_operator_address;
-                            job.zkvm_operator_signature = resp.zkvm_operator_signature;
-
-                            if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                                error!("Failed to save job {}: {:?}", id, e);
-                                continue;
-                            }
-
-                            info!("Pushing finished job {} to broadcast queue", id);
-                            if let Err(e) = broadcast_queue_sender.send(job).await {
-                                // TODO: Add backlog of jobs that completed but were not
-                                // able to be included in broadcast queue/onchain
-                                // [ref: https://github.com/Ethos-Works/InfinityVM/issues/127]
-                                error!("Failed to push job {} to broadcast queue: {:?}", id, e);
-                                continue;
-                            }
-                        }
-                        Err(e) => {
-                            error!("Failed to execute job {}: {:?}", id, e);
-
-                            job.status = JobStatus::Failed.into();
-
-                            if let Err(e) = Self::save_job(db.clone(), job).await {
-                                error!("Failed to save job {}: {:?}", id, e);
-                            }
-                        }
+                    // TODO: We should have some way of recording the error
+                    // reason / error type for failed jobs
+                    // [ref: https://github.com/Ethos-Works/InfinityVM/issues/117]
+                    job.status = JobStatus::Failed.into();
+                    if let Err(e) = Self::save_job(db.clone(), job).await {
+                        error!("Failed to save job {}: {:?}", id, e);
                     }
+                    continue;
                 }
-                Err(error) => {
-                    error!(?error, "job executor worker stopped due to error");
-                    break;
+                Err(e) => {
+                    error!(
+                        "could not find elf for job {} with verifying key {:?}: {:?}",
+                        id, &job.program_verifying_key, e
+                    );
+                    job.status = JobStatus::Failed.into();
+                    if let Err(e) = Self::save_job(db.clone(), job).await {
+                        error!("Failed to save job {}: {:?}", id, e);
+                    }
+                    continue;
                 }
-            }
+            };
+
+            let req = ExecuteRequest {
+                inputs: Some(JobInputs {
+                    job_id: id,
+                    max_cycles: job.max_cycles,
+                    program_verifying_key: job.program_verifying_key.clone(),
+                    program_input: job.input.clone(),
+                    program_elf: elf_with_meta.elf,
+                    vm_type: VmType::Risc0 as i32,
+                }),
+            };
+
+            let job = match zk_executor.execute_handler(req).await {
+                Ok(resp) => {
+                    tracing::debug!("job {} executed successfully", id);
+
+                    job.status = JobStatus::Done.into();
+                    job.result = resp.result_with_metadata;
+                    job.zkvm_operator_address = resp.zkvm_operator_address;
+                    job.zkvm_operator_signature = resp.zkvm_operator_signature;
+
+                    if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                        error!("failed to save job {}: {:?}", id, e);
+                        continue;
+                    }
+                    job
+                }
+                Err(e) => {
+                    error!("failed to execute job {}: {:?}", id, e);
+
+                    job.status = JobStatus::Failed.into();
+
+                    if let Err(e) = Self::save_job(db.clone(), job).await {
+                        error!("failed to save job {}: {:?}", id, e);
+                    }
+                    continue;
+                }
+            };
+
+            let _tx_receipt = match job_relayer.relay(job).await {
+                Ok(tx_receipt) => tx_receipt,
+                Err(_) => {
+                    // TODO: decide what to do with failed tx
+                    //https://github.com/Ethos-Works/InfinityVM/issues/127
+                    continue;
+                }
+            };
         }
     }
 }
