@@ -39,7 +39,7 @@ type JobManagerContract = IJobManager::IJobManagerInstance<
     RelayerProvider,
 >;
 
-/// Result writer errors
+/// Relayer errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     /// failed to parse the given http rpc url
