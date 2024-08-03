@@ -180,7 +180,7 @@ where
                     // [ref: https://github.com/Ethos-Works/InfinityVM/issues/117]
                     job.status = JobStatus::Failed.into();
                     if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("Failed to save job {}: {:?}", id, e);
+                        error!("report this error: failed to save job {}: {:?}", id, e);
                     }
                     continue;
                 }
@@ -191,7 +191,7 @@ where
                     );
                     job.status = JobStatus::Failed.into();
                     if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("Failed to save job {}: {:?}", id, e);
+                        error!("report this error: failed to save job {}: {:?}", id, e);
                     }
                     continue;
                 }
@@ -218,7 +218,7 @@ where
                     job.zkvm_operator_signature = resp.zkvm_operator_signature;
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                        error!("failed to save job {}: {:?}", id, e);
+                        error!("report this error: failed to save job {}: {:?}", id, e);
                         continue;
                     }
                     job
@@ -229,7 +229,7 @@ where
                     job.status = JobStatus::Failed.into();
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("failed to save job {}: {:?}", id, e);
+                        error!("report this error: failed to save job {}: {:?}", id, e);
                     }
                     continue;
                 }
