@@ -14,20 +14,24 @@ contract MockConsumer is Consumer, OffchainRequester {
         offchainSigner = _offchainSigner;
     }
 
-    // It doesn't really make sense for the contract to accept programID
-    // as a parameter here (this would usually be hard-coded), but we do
-    // it here so we can pass in arbitrary program IDs while testing and
-    // in the CLI.
-    function requestBalance(bytes calldata programID, address addr) public returns (uint32) {
-        return requestJob(programID, abi.encode(addr), 1_000_000);
-    }
-
     function getBalance(address addr) public view returns (uint256) {
         return addressToBalance[addr];
     }
 
     function getJobResult(uint32 jobID) public view returns (bytes memory) {
         return jobIDToResult[jobID];
+    }
+
+    function getSigner() external view returns (address) {
+        return offchainSigner;
+    }
+
+    // It doesn't really make sense for the contract to accept programID
+    // as a parameter here (this would usually be hard-coded), but we do
+    // it here so we can pass in arbitrary program IDs while testing and
+    // in the CLI.
+    function requestBalance(bytes calldata programID, address addr) public returns (uint32) {
+        return requestJob(programID, abi.encode(addr), 1_000_000);
     }
 
     function _receiveResult(uint32 jobID, bytes memory result) internal override {
@@ -50,9 +54,5 @@ contract MockConsumer is Consumer, OffchainRequester {
 
     function _updateSigner(address updatedSigner) internal {
         offchainSigner = updatedSigner;
-    }
-
-    function getSigner() external view returns (address) {
-        return offchainSigner;
     }
 }
