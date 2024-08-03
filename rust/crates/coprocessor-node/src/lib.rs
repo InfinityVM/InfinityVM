@@ -10,3 +10,5 @@ pub mod relayer;
 
 /// Job processor
 pub mod job_processor;
+
+pub mod event;
