@@ -11,7 +11,7 @@ use proto::{
 use std::marker::Send;
 use zkvm::Zkvm;
 
-use alloy_sol_types::{sol, SolType};
+use alloy::{sol, sol_types::SolType};
 use tracing::{error, info, instrument};
 
 /// Zkvm executor errors
@@ -66,15 +66,7 @@ where
 
     /// Returns an RLP encoded signature over `eip191_hash_message(msg)`
     async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
-        self.signer
-            .sign_message(msg)
-            .await
-            .map(|sig| {
-                let mut out = Vec::with_capacity(sig.rlp_vrs_len());
-                sig.write_rlp_vrs(&mut out);
-                out
-            })
-            .map_err(Into::into)
+        self.signer.sign_message(msg).await.map(|sig| sig.as_bytes().to_vec()).map_err(Into::into)
     }
 
     /// Returns the VM and VM type (enum) for the given VM type (i32)
