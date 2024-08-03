@@ -145,8 +145,9 @@ async fn grpc_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Verify output from gRPC get_job endpoint
         let (out_address, out_balance) = MockConsumerOut::abi_decode(&raw_output, true).unwrap();
 
+        let expected_balance = U256::from(21438208680330350173532883594u128);
         assert_eq!(out_address, mock_user_address);
-        assert_eq!(out_balance, U256::from(13049344414114126192585233492u128));
+        assert_eq!(out_balance, expected_balance);
 
         // Verify output on chain
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
@@ -155,6 +156,10 @@ async fn grpc_job_submission_coprocessor_node_mock_consumer_e2e() {
             logs[0].log_decode::<IJobManager::JobCompleted>().unwrap().data().to_owned();
         assert_eq!(completed.result, raw_output);
         assert_eq!(completed.jobID, 1);
+
+        let get_balance_call = consumer_contract.getBalance(mock_user_address);
+        let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
+        assert_eq!(balance, expected_balance);
     }
     Integration::run(test).await;
 }
