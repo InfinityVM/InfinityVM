@@ -58,7 +58,7 @@ pub enum Error {
     #[error("error while waiting for tx inclusion: {0}")]
     TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     /// must call [`JobRelayerBuilder::signer`] before building
-    #[error("ust call JobRelayerBuilder::signer before building")]
+    #[error("must call JobRelayerBuilder::signer before building")]
     MissingSigner,
 }
 

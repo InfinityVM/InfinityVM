@@ -18,7 +18,10 @@ use tracing::{error, info};
 
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
-enum Error {}
+pub enum Error {
+    #[error("event subscription: {0}")]
+    Subscription(#[from] alloy::transports::TransportError<alloy::transports::TransportErrorKind>),
+}
 
 pub async fn listen_job_request_events(
     http_rpc_url: String,
@@ -31,10 +34,14 @@ pub async fn listen_job_request_events(
     let ws = WsConnect::new(http_rpc_url);
     let provider = ProviderBuilder::new().on_ws(ws).await?;
 
-    Filter::new()
-        .address(job_manager)
-        .event(JobManager::JobCreated::SIGNATURE)
-        .from_block(from_block);
+    let contract = JobManager::new(job_manager, provider);
+
+    let sub = contract.JobCreated_filter().from_block(from_block).subscribe().await?;
+
+    let mut stream = sub.into_stream();
+    for event in stream {
+
+    }
 
     let sub = provider.subscribe_logs(&filter).await?;
     let mut stream = sub.into_stream();

@@ -10,7 +10,7 @@ use std::{
     thread,
     time::Duration,
 };
-use test_utils::{anvil_with_contracts, TestAnvil};
+use test_utils::{anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil};
 use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
@@ -96,29 +96,4 @@ impl Integration {
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
     }
-}
-
-fn get_localhost_port() -> u16 {
-    let mut rng = rand::thread_rng();
-
-    for _ in 0..64 {
-        let port = rng.gen_range(49152..65535);
-        if TcpListener::bind((LOCALHOST, port)).is_ok() {
-            return port;
-        }
-    }
-
-    panic!("no port found after 64 attempts");
-}
-
-fn sleep_until_bound(port: u16) {
-    for _ in 0..16 {
-        if TcpListener::bind((LOCALHOST, port)).is_err() {
-            return;
-        }
-
-        thread::sleep(Duration::from_secs(1));
-    }
-
-    panic!("localhost:{port} was not successfully bound");
 }
