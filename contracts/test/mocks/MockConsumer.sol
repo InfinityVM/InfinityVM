@@ -11,6 +11,7 @@ contract MockConsumer is Consumer, OffchainRequester {
     mapping(uint32 => bytes) public jobIDToResult;
 
     constructor(address jobManager, address _offchainSigner) Consumer(jobManager) OffchainRequester() {
+        // MockConsumer allows a single offchainSigner address to sign all offchain job requests
         offchainSigner = _offchainSigner;
     }
 
@@ -43,6 +44,7 @@ contract MockConsumer is Consumer, OffchainRequester {
         jobIDToResult[jobID] = result;
     }
 
+    // EIP-1271
     function isValidSignature(bytes32 messageHash, bytes memory signature) public view override returns (bytes4) {
         address recoveredSigner = ECDSA.tryRecover(messageHash, signature);
         if (recoveredSigner == offchainSigner) {

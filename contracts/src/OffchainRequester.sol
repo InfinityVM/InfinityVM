@@ -7,5 +7,6 @@ abstract contract OffchainRequester {
 
     bytes4 constant internal INVALID = 0xffffffff;
 
+    // EIP-1271
     function isValidSignature(bytes32 hash, bytes memory signature) public virtual view returns (bytes4);
 }

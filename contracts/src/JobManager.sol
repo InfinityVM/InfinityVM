@@ -10,7 +10,6 @@ import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initia
 import {Script, console} from "forge-std/Script.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
-import {EIP712} from "solady/utils/EIP712.sol"; 
 
 contract JobManager is 
     IJobManager,
@@ -29,7 +28,9 @@ contract JobManager is
     address public coprocessorOperator;
 
     mapping(uint32 => JobMetadata) public jobIDToMetadata;
+    // We store nonceHashToJobID to prevent replay attacks by the coprocessor of a user's job request
     mapping(bytes32 => uint32) public nonceHashToJobID;
+    // We store consumerToMaxNonce to help consumers keep track of the maximum nonce they have used so far
     mapping(address => uint32) public consumerToMaxNonce;
     // storage gap for upgradeability
     uint256[50] private __GAP;
@@ -96,41 +97,19 @@ contract JobManager is
     ) public override nonReentrant {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
 
-        // Recover and verify the signer address
+        // Verify signature on result with metadata
         bytes32 messageHash = ECDSA.toEthSignedMessageHash(resultWithMetadata);
         address recoveredSigner = ECDSA.tryRecover(messageHash, signature);
         require(recoveredSigner == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
         // Decode the resultWithMetadata using abi.decode
         ResultWithMetadata memory result = decodeResultWithMetadata(resultWithMetadata);
-
         JobMetadata memory job = jobIDToMetadata[result.jobID];
-        require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");
-
-        // This is to prevent coprocessor from using a different program ID to produce a malicious result
-        require(keccak256(job.programID) == keccak256(result.programID), 
-            "JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
-
         // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
         require(keccak256(Consumer(job.caller).getProgramInputsForJob(result.jobID)) == result.programInputHash, 
             "JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
-        
-        require(result.maxCycles == job.maxCycles, "JobManager.submitResult: max cycles signed by coprocessor doesn't match max cycles submitted with job");
 
-        _submitResult(result.jobID, job.caller, result.result);
-    }
-
-    function _submitResult(
-        uint32 jobID,
-        address consumer,
-        bytes memory result
-    ) internal {
-        JobMetadata memory job = jobIDToMetadata[jobID];
-        job.status = JOB_STATE_COMPLETED;
-        jobIDToMetadata[jobID] = job;
-        emit JobCompleted(jobID, result);
-
-        Consumer(consumer).receiveResult(jobID, result);
+        _submitResult(result.jobID, result.maxCycles, result.programID, result.result);
     }
 
     function submitOffchainResult(
@@ -144,9 +123,11 @@ contract JobManager is
 
         // Check if nonce already exists
         bytes32 nonceHash = keccak256(abi.encodePacked(request.nonce, request.consumer));
-        require(nonceHashToJobID[keccak256(abi.encodePacked(request.nonce, request.consumer))] == 0, "JobManager.submitOffChainResult: Nonce already exists for this consumer");
+        require(nonceHashToJobID[nonceHash] == 0, "JobManager.submitOffChainResult: Nonce already exists for this consumer");
 
-        require(OffchainRequester(request.consumer).isValidSignature(ECDSA.toEthSignedMessageHash(jobRequest), signatureOnRequest) == VALID, "JobManager.submitOffChainResult: Invalid signature on job request");
+        // Verify signature on job request
+        bytes32 requestHash = ECDSA.toEthSignedMessageHash(jobRequest);
+        require(OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest) == VALID, "JobManager.submitOffChainResult: Invalid signature on job request");
 
         // Perform the logic from createJob() without emitting an event
         uint32 jobID = jobIDCounter;
@@ -159,19 +140,41 @@ contract JobManager is
             consumerToMaxNonce[request.consumer] = request.nonce;
         }
 
-        // Recover and verify signer on the result
-        require(ECDSA.tryRecover(ECDSA.toEthSignedMessageHash(offchainResultWithMetadata), signatureOnResult) == coprocessorOperator, "JobManager.submitOffchainResult: Invalid signature on result");
+        // Verify signature on result with metadata
+        bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
+        require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitOffchainResult: Invalid signature on result");
 
         // Decode the result using abi.decode
         OffChainResultWithMetadata memory result = decodeOffchainResultWithMetadata(offchainResultWithMetadata);
-
+        // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
         require(result.programInputHash == keccak256(request.programInput), "JobManager.submitOffChainResult: program input hash doesn't match");
-        require(keccak256(result.programID) == keccak256(request.programID), "JobManager.submitOffChainResult: program ID doesn't match");
-        require(result.maxCycles == request.maxCycles, "JobManager.submitOffChainResult: max cycles doesn't match");
 
-        _submitResult(jobID, request.consumer, result.result);
+        _submitResult(jobID, result.maxCycles, result.programID, result.result);
 
         return jobID;
+    }
+
+    function _submitResult(
+        uint32 jobID,
+        uint64 maxCycles,
+        bytes memory programID,
+        bytes memory result
+    ) internal {
+        JobMetadata memory job = jobIDToMetadata[jobID];
+        require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");
+
+        // This is to prevent coprocessor from using a different program ID to produce a malicious result
+        require(keccak256(job.programID) == keccak256(programID), 
+            "JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
+        require(job.maxCycles == maxCycles, "JobManager.submitResult: max cycles signed by coprocessor doesn't match max cycles submitted with job");
+
+        // Update job status to COMPLETED
+        job.status = JOB_STATE_COMPLETED;
+        jobIDToMetadata[jobID] = job;
+        emit JobCompleted(jobID, result);
+
+        // Forward result to consumer
+        Consumer(job.caller).receiveResult(jobID, result);
     }
 
     function decodeResultWithMetadata(bytes memory resultWithMetadata) public pure returns (ResultWithMetadata memory) {
