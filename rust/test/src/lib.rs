@@ -6,12 +6,13 @@ use std::{
     panic::AssertUnwindSafe,
     process::{self, Command},
 };
-use test_utils::{anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil};
+use test_utils::{
+    anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil, LOCALHOST,
+};
 use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 
-const LOCALHOST: &str = "127.0.0.1";
 const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
 
 /// Kill [`std::process::Child`] on `drop`

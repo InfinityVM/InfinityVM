@@ -12,7 +12,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0x184c47137933253f49325B851307Ab1017863BD0;
 
-    event JobCreated(uint32 indexed jobID, uint64 maxCycles, bytes indexed programID, bytes programInput);
+    event JobCreated(uint32 indexed jobID, uint64 maxCycles, bytes programID, bytes programInput);
     event JobCancelled(uint32 indexed jobID);
     event JobCompleted(uint32 indexed jobID, bytes result);
 
