@@ -51,7 +51,7 @@ pub struct JobProcessorService<S, D> {
     db: Arc<D>,
     exec_queue_sender: Sender<Job>,
     exec_queue_receiver: Receiver<Job>,
-    job_relayer: Option<Arc<JobRelayer>>,
+    job_relayer: Arc<JobRelayer>,
     zk_executor: ZkvmExecutorService<S>,
     task_handles: JoinSet<Result<(), Error>>,
 }
@@ -67,7 +67,7 @@ where
         db: Arc<D>,
         exec_queue_sender: Sender<Job>,
         exec_queue_receiver: Receiver<Job>,
-        job_relayer: Option<Arc<JobRelayer>>,
+        job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
     ) -> Self {
         Self {
@@ -148,7 +148,7 @@ where
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
-            let job_relayer = self.job_relayer.as_ref().map(Arc::clone);
+            let job_relayer = Arc::clone(&self.job_relayer);
 
             self.task_handles.spawn(async move {
                 Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor).await
@@ -160,7 +160,7 @@ where
     async fn start_worker(
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
-        job_relayer: Option<Arc<JobRelayer>>,
+        job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
     ) -> Result<(), Error> {
         loop {
@@ -247,16 +247,14 @@ where
                 }
             };
 
-            if let Some(ref relayer) = job_relayer {
-                let _tx_receipt = match relayer.relay(job).await {
-                    Ok(tx_receipt) => tx_receipt,
-                    Err(_) => {
-                        // TODO: decide what to do with failed tx
-                        //https://github.com/Ethos-Works/InfinityVM/issues/127
-                        continue;
-                    }
-                };
-            }
+            let _tx_receipt = match job_relayer.relay(job).await {
+                Ok(tx_receipt) => tx_receipt,
+                Err(_) => {
+                    // TODO: decide what to do with failed tx
+                    //https://github.com/Ethos-Works/InfinityVM/issues/127
+                    continue;
+                }
+            };
         }
     }
 }

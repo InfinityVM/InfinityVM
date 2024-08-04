@@ -256,7 +256,7 @@ impl Cli {
             db,
             exec_queue_sender,
             exec_queue_receiver,
-            Some(job_relayer),
+            job_relayer,
             executor,
         );
         job_processor.start(opts.worker_count).await;
