@@ -172,8 +172,8 @@ fn invariants() {
 //     // Integration::run(test).await;
 // }
 
-#[tokio::test]
 #[ignore]
+#[tokio::test]
 async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
