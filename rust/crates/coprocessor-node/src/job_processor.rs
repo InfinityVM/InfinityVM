@@ -1,11 +1,10 @@
 //! Job processor implementation.
 
-use alloy::{primitives::Signature, signers::Signer};
+use alloy::{hex, primitives::Signature, signers::Signer};
 use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
 use std::{marker::Send, sync::Arc};
 
 use async_channel::{Receiver, Sender};
-use base64::prelude::*;
 use db::{get_elf, get_job, put_elf, put_job};
 use reth_db::Database;
 use tokio::task::JoinSet;
@@ -52,7 +51,7 @@ pub struct JobProcessorService<S, D> {
     db: Arc<D>,
     exec_queue_sender: Sender<Job>,
     exec_queue_receiver: Receiver<Job>,
-    job_relayer: Arc<JobRelayer>,
+    job_relayer: Option<Arc<JobRelayer>>,
     zk_executor: ZkvmExecutorService<S>,
     task_handles: JoinSet<Result<(), Error>>,
 }
@@ -68,7 +67,7 @@ where
         db: Arc<D>,
         exec_queue_sender: Sender<Job>,
         exec_queue_receiver: Receiver<Job>,
-        job_relayer: Arc<JobRelayer>,
+        job_relayer: Option<Arc<JobRelayer>>,
         zk_executor: ZkvmExecutorService<S>,
     ) -> Self {
         Self {
@@ -92,7 +91,7 @@ where
         {
             return Err(Error::ElfAlreadyExists(format!(
                 "elf with verifying key {:?} already exists",
-                BASE64_STANDARD.encode(response.verifying_key.as_slice()),
+                hex::encode(response.verifying_key.as_slice()),
             )));
         }
 
@@ -128,12 +127,15 @@ where
     /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         let job_id = job.id;
+        // should we do this check on the other end of the queue?
         if self.has_job(job_id).await? {
             return Err(Error::JobAlreadyExists);
         }
 
         job.status = JobStatus::Pending.into();
 
+        // // TODO: why do we save pending jobs before we put them on the queue?
+        // //
         Self::save_job(self.db.clone(), job.clone()).await?;
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
 
@@ -146,7 +148,7 @@ where
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
-            let job_relayer = Arc::clone(&self.job_relayer);
+            let job_relayer = self.job_relayer.as_ref().map(Arc::clone);
 
             self.task_handles.spawn(async move {
                 Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor).await
@@ -158,7 +160,7 @@ where
     async fn start_worker(
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
-        job_relayer: Arc<JobRelayer>,
+        job_relayer: Option<Arc<JobRelayer>>,
         zk_executor: ZkvmExecutorService<S>,
     ) -> Result<(), Error> {
         loop {
@@ -167,12 +169,20 @@ where
             let id = job.id;
             info!("executing job {}", id);
 
+            // TODO: should we move this check here?
+            // if get_job(db.clone(), id)?.is_some() {
+            //     // TODO
+            //     continue;
+            // }
+
             let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
                 Ok(Some(elf)) => elf,
                 Ok(None) => {
                     error!(
+                        ?job.contract_address,
                         "no ELF found for job {} with verifying key {:?}",
-                        id, &job.program_verifying_key
+                        id,
+                        job.program_verifying_key,
                     );
 
                     // TODO: We should have some way of recording the error
@@ -184,14 +194,16 @@ where
                     }
                     continue;
                 }
-                Err(e) => {
+                Err(error) => {
                     error!(
-                        "could not find elf for job {} with verifying key {:?}: {:?}",
-                        id, &job.program_verifying_key, e
+                        ?error,
+                        "could not find elf for job {} with verifying key {:?}",
+                        id,
+                        job.program_verifying_key
                     );
                     job.status = JobStatus::Failed.into();
-                    if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {}: {:?}", id, e);
+                    if let Err(error) = Self::save_job(db.clone(), job).await {
+                        error!(?error, "report this error: failed to save job {}", id);
                     }
                     continue;
                 }
@@ -235,14 +247,16 @@ where
                 }
             };
 
-            let _tx_receipt = match job_relayer.relay(job).await {
-                Ok(tx_receipt) => tx_receipt,
-                Err(_) => {
-                    // TODO: decide what to do with failed tx
-                    //https://github.com/Ethos-Works/InfinityVM/issues/127
-                    continue;
-                }
-            };
+            if let Some(ref relayer) = job_relayer {
+                let _tx_receipt = match relayer.relay(job).await {
+                    Ok(tx_receipt) => tx_receipt,
+                    Err(_) => {
+                        // TODO: decide what to do with failed tx
+                        //https://github.com/Ethos-Works/InfinityVM/issues/127
+                        continue;
+                    }
+                };
+            }
         }
     }
 }

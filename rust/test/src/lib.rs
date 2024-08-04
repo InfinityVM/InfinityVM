@@ -56,7 +56,8 @@ impl Integration {
         let anvil = anvil_with_contracts().await;
         let job_manager = anvil.job_manager.to_string();
         let chain_id = anvil.anvil.chain_id().to_string();
-        let rpc_url = anvil.anvil.endpoint();
+        let http_rpc_url = anvil.anvil.endpoint();
+        let ws_rpc_url = anvil.anvil.ws_endpoint();
 
         let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
@@ -70,8 +71,10 @@ impl Integration {
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
-            .arg("--eth-rpc-address")
-            .arg(rpc_url)
+            .arg("--http-eth-rpc")
+            .arg(http_rpc_url)
+            .arg("--ws-eth-rpc")
+            .arg(ws_rpc_url)
             .arg("--job-manager-address")
             .arg(job_manager)
             .arg("--chain-id")

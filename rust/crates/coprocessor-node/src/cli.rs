@@ -131,16 +131,20 @@ struct Opts {
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
 
-    /// `JobManager` contract address
-    #[arg(long, required = true)]
+    /// `JobManager` contract address.
+    #[arg(long)]
     job_manager_address: Address,
 
-    /// Ethereum RPC address. Defaults to anvil node default address.
-    #[arg(long, required = true, default_value = "127.0.0.1:8545")]
-    eth_rpc_address: String,
+    /// HTTP Ethereum RPC address. Defaults to anvil node default address.
+    #[arg(long, default_value = "http://127.0.0.1:8545")]
+    http_eth_rpc: String,
 
-    /// Chain ID of where results are expected to get submitted.
-    #[arg(long)]
+    /// WS Ethereum RPC address. Defaults to anvil node default address.
+    #[arg(long, default_value = "ws://127.0.0.1:8545")]
+    ws_eth_rpc: String,
+
+    /// Chain ID of where results are expected to get submitted. Defaults to anvil node chain id.
+    #[arg(long, default_value = "31337")]
     chain_id: Option<u64>,
 
     /// Path to the directory to include db
@@ -233,7 +237,7 @@ impl Cli {
             bounded(opts.exec_queue_bound);
 
         let job_event_listener = start_job_event_listener(
-            opts.eth_rpc_address.clone(),
+            opts.ws_eth_rpc.to_owned(),
             opts.job_manager_address,
             exec_queue_sender.clone(),
             opts.job_sync_start,
@@ -243,7 +247,7 @@ impl Cli {
         let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
-            .build(opts.eth_rpc_address.clone(), opts.job_manager_address)?;
+            .build(opts.http_eth_rpc.clone(), opts.job_manager_address)?;
         let job_relayer = Arc::new(job_relayer);
 
         // Start the job processor with a specified number of worker threads.
@@ -252,7 +256,7 @@ impl Cli {
             db,
             exec_queue_sender,
             exec_queue_receiver,
-            job_relayer,
+            Some(job_relayer),
             executor,
         );
         job_processor.start(opts.worker_count).await;
