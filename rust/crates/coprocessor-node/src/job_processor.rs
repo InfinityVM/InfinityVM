@@ -127,15 +127,12 @@ where
     /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         let job_id = job.id;
-        // should we do this check on the other end of the queue?
         if self.has_job(job_id).await? {
             return Err(Error::JobAlreadyExists);
         }
 
         job.status = JobStatus::Pending.into();
 
-        // // TODO: why do we save pending jobs before we put them on the queue?
-        // //
         Self::save_job(self.db.clone(), job.clone()).await?;
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
 
@@ -168,12 +165,6 @@ where
                 exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
             let id = job.id;
             info!("executing job {}", id);
-
-            // TODO: should we move this check here?
-            // if get_job(db.clone(), id)?.is_some() {
-            //     // TODO
-            //     continue;
-            // }
 
             let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
                 Ok(Some(elf)) => elf,
