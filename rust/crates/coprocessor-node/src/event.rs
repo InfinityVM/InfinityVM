@@ -14,7 +14,7 @@ use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
 };
-use tracing::{debug, error};
+use tracing::{error, warn};
 
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
@@ -40,11 +40,19 @@ pub async fn start_job_event_listener(
 ) -> Result<JoinHandle<Result<(), Error>>, Error> {
     let handle = tokio::spawn(async move {
         let mut last_seen_block = from_block;
+        let mut retry = 1;
         let ws = WsConnect::new(ws_rpc_url.clone());
         let provider = ProviderBuilder::new().on_ws(ws).await?;
         let contract = JobManager::new(job_manager, provider);
         loop {
-            let sub = contract.JobCreated_filter().from_block(last_seen_block).subscribe().await?;
+            let sub =
+                match contract.JobCreated_filter().from_block(last_seen_block).subscribe().await {
+                    Ok(sub) => sub,
+                    Err(error) => {
+                        error!(?error, "attempted to create websocket subscription");
+                        continue;
+                    }
+                };
             let mut stream = sub.into_stream();
 
             while let Some(event) = stream.next().await {
@@ -78,8 +86,9 @@ pub async fn start_job_event_listener(
                 }
             }
 
-            sleep(Duration::from_millis(10)).await;
-            debug!("websocket reconnecting: {}", last_seen_block);
+            sleep(Duration::from_millis(retry * 10)).await;
+            warn!(?retry, "websocket reconnecting: {}", last_seen_block);
+            retry += 1;
         }
     });
 
