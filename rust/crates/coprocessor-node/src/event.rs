@@ -68,6 +68,8 @@ pub async fn start_job_event_listener(
                     status: JobStatus::Pending.into(),
                 };
 
+                // TODO: do we want to check the DB to see if the job already exists?
+                // TODO: do we want to save the pending job to the DB?
                 if let Err(error) = exec_queue_sender.send(job).await {
                     error!(?error, "please report: error sending job to execution queue");
                 }
