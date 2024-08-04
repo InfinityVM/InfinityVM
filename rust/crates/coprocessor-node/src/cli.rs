@@ -1,11 +1,13 @@
 //! CLI for coprocessor-node.
 
 use crate::{
+    event::{self, start_job_event_listener},
     job_processor::JobProcessorService,
     relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
 };
 use alloy::{
+    eips::BlockNumberOrTag,
     primitives::{hex, Address},
     signers::local::LocalSigner,
 };
@@ -14,6 +16,7 @@ use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
 use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
+use tokio::{task::JoinHandle, try_join};
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
@@ -59,6 +62,12 @@ pub enum Error {
     /// relayer error
     #[error("relayer error: {0}")]
     Relayer(#[from] relayer::Error),
+    /// job event listener error
+    #[error("job event listener error: {0}")]
+    JobEventListener(#[from] event::Error),
+    /// task join error
+    #[error("error handling failed")]
+    ErrorHandlingFailed(#[from] tokio::task::JoinError),
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -126,12 +135,12 @@ struct Opts {
     #[arg(long, required = true)]
     job_manager_address: Address,
 
-    /// Ethereum RPC address
-    #[arg(long, required = true)]
+    /// Ethereum RPC address. Defaults to anvil node default address.
+    #[arg(long, required = true, default_value = "127.0.0.1:8545")]
     eth_rpc_address: String,
 
     /// Chain ID of where results are expected to get submitted.
-    #[arg(long, required = true)]
+    #[arg(long)]
     chain_id: Option<u64>,
 
     /// Path to the directory to include db
@@ -146,8 +155,17 @@ struct Opts {
     operator_key: Option<Operator>,
 
     /// Number of worker threads to use for processing jobs
-    #[arg(long, default_value = "4")]
+    #[arg(long, default_value_t = 4)]
     worker_count: usize,
+
+    /// Max size for the exec queue
+    #[arg(long, default_value_t = 256)]
+    exec_queue_bound: usize,
+
+    /// Block to start syncing from.
+    // TODO: https://github.com/Ethos-Works/InfinityVM/issues/142
+    #[arg(long, default_value_t = BlockNumberOrTag::Earliest)]
+    job_sync_start: BlockNumberOrTag,
 }
 
 impl Opts {
@@ -203,17 +221,26 @@ impl Cli {
         let zkvm_operator = opts.operator_signer()?;
         let relayer = opts.relayer_signer()?;
 
-        info!("👷🏻 zkvm operator is {:?}", zkvm_operator.address());
-        info!("✉️ relayer is {:?}", relayer.address());
+        info!("👷🏻 zkvm operator signer is {:?}", zkvm_operator.address());
+        info!("✉️ relayer signer is {:?}", relayer.address());
+        info!("📝 job manager contract address is {}", opts.job_manager_address);
 
         let db = db::init_db(opts.db_dir.clone())?;
         info!(db_path = opts.db_dir, "💾 db initialized");
 
-        let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
-
         // Initialize the async channels
-        let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) = bounded(100);
+        let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
+            bounded(opts.exec_queue_bound);
 
+        let job_event_listener = start_job_event_listener(
+            opts.eth_rpc_address.clone(),
+            opts.job_manager_address,
+            exec_queue_sender.clone(),
+            opts.job_sync_start,
+        )
+        .await?;
+
+        let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
             .build(opts.eth_rpc_address.clone(), opts.job_manager_address)?;
@@ -239,12 +266,25 @@ impl Cli {
             CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
 
         tracing::info!("🚥 starting gRPC server at {}", grpc_addr);
-        tonic::transport::Server::builder()
-            .add_service(coprocessor_node_server)
-            .add_service(reflector)
-            .serve(grpc_addr.into())
-            .await?;
+        let grpc_server = tokio::spawn(async move {
+            tonic::transport::Server::builder()
+                .add_service(coprocessor_node_server)
+                .add_service(reflector)
+                .serve(grpc_addr.into())
+                .await
+        });
 
-        Ok(())
+        // Exit early if either handle returns an error.
+        // Note that we make sure to `spawn` each task so they can run in parallel
+        // and not just concurrently on the same thread.
+        try_join!(flatten(job_event_listener), flatten(grpc_server)).map(|_| ())
+    }
+}
+
+async fn flatten<T, E: Into<Error>>(handle: JoinHandle<Result<T, E>>) -> Result<T, Error> {
+    match handle.await {
+        Ok(Ok(result)) => Ok(result),
+        Ok(Err(err)) => Err(err.into()),
+        Err(err) => Err(Error::ErrorHandlingFailed(err)),
     }
 }

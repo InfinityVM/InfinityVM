@@ -1,4 +1,6 @@
-//! The proto generated server, client, and messages
+//! The proto generated server, client, and messages.
+//!
+//! You can view generated code docs with `make doc`.
 
 // We don't have control over tonic generated code so we ignore the
 // lints it complains about

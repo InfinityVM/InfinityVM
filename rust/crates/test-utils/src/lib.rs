@@ -80,7 +80,7 @@ pub struct TestAnvil {
 pub async fn anvil_with_contracts() -> TestAnvil {
     // Ensure the anvil instance will not collide with anything already running on the OS
     let port = get_localhost_port();
-    // Set block time to 0.01 seconds - I WANNA GO FAST MOM 
+    // Set block time to 0.01 seconds - I WANNA GO FAST MOM
     let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
 
     let initial_owner: PrivateKeySigner = anvil.keys()[0].clone().into();

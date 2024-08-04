@@ -1,14 +1,10 @@
 //! Integration tests and helpers.
 use alloy::primitives::hex;
 use futures::future::FutureExt;
-use rand::Rng;
 use std::{
     future::Future,
-    net::TcpListener,
     panic::AssertUnwindSafe,
     process::{self, Command},
-    thread,
-    time::Duration,
 };
 use test_utils::{anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil};
 use tonic::transport::Channel;
@@ -85,7 +81,7 @@ impl Integration {
             .spawn()
             .unwrap()
             .into();
-        sleep_until_bound(coprocessor_node_port);
+        sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =
             CoprocessorNodeClient::connect(format!("http://{coprocessor_node_grpc}"))
                 .await
