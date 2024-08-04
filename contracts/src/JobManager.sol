@@ -112,7 +112,7 @@ contract JobManager is
         _submitResult(result.jobID, result.maxCycles, result.programID, result.result);
     }
 
-    function submitOffchainResult(
+    function submitResultForOffchainJob(
         bytes calldata offchainResultWithMetadata,
         bytes calldata signatureOnResult,
         bytes calldata jobRequest,
@@ -123,11 +123,11 @@ contract JobManager is
 
         // Check if nonce already exists
         bytes32 nonceHash = keccak256(abi.encodePacked(request.nonce, request.consumer));
-        require(nonceHashToJobID[nonceHash] == 0, "JobManager.submitOffChainResult: Nonce already exists for this consumer");
+        require(nonceHashToJobID[nonceHash] == 0, "JobManager.submitResultForOffchainJob: Nonce already exists for this consumer");
 
         // Verify signature on job request
         bytes32 requestHash = ECDSA.toEthSignedMessageHash(jobRequest);
-        require(OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest) == VALID, "JobManager.submitOffChainResult: Invalid signature on job request");
+        require(OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest) == VALID, "JobManager.submitResultForOffchainJob: Invalid signature on job request");
 
         // Perform the logic from createJob() without emitting an event
         uint32 jobID = jobIDCounter;
@@ -142,12 +142,12 @@ contract JobManager is
 
         // Verify signature on result with metadata
         bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
-        require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitOffchainResult: Invalid signature on result");
+        require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
         // Decode the result using abi.decode
         OffChainResultWithMetadata memory result = decodeOffchainResultWithMetadata(offchainResultWithMetadata);
         // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
-        require(result.programInputHash == keccak256(request.programInput), "JobManager.submitOffChainResult: program input hash doesn't match");
+        require(result.programInputHash == keccak256(request.programInput), "JobManager.submitResultForOffchainJob: program input hash doesn't match");
 
         _submitResult(jobID, result.maxCycles, result.programID, result.result);
 

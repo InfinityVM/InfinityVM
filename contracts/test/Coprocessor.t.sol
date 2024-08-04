@@ -161,7 +161,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         jobManager.submitResult(resultWithMetadata, signature);
     }
 
-    function test_JobManager_SubmitOffchainResult() public {
+    function test_JobManager_submitResultForOffchainJob() public {
         // Generated using rust/crates/scripts/signer.rs
         bytes memory jobRequest = hex"000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000db8cff278adccf9e9b5da745b44e754fc4ee3c7600000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000";
         bytes memory signatureOnRequest = hex"9d082fb40fa6afaa0da743eb5b17a0efe5b7a53fb152615fc7740625a26770296c1896427379cfe894bad3b6662edb440323b4b7835beaa9e647360e055dbdac1b";
@@ -172,7 +172,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         // vm.expectEmit(true, true, false, false);
         // emit JobCompleted(1, abi.encode(address(0), 10));
         vm.prank(RELAYER);
-        jobManager.submitOffchainResult(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
 
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(1);
         // Check that job status is COMPLETED
