@@ -38,6 +38,44 @@ pub fn abi_encode_result_with_metadata(i: &Job, raw_output: &[u8]) -> Vec<u8> {
     ))
 }
 
+#[test]
+#[ignore]
+fn serde_json_test() {
+    let input = vec![0, 0, 1];
+    let job = SubmitJobRequest {
+        job: Some(Job {
+            id: 0,
+            program_verifying_key: input.clone(),
+            input: input.clone(),
+            contract_address: input.clone(),
+            max_cycles: 100,
+            result: input.clone(),
+            zkvm_operator_address: input.clone(),
+            zkvm_operator_signature: input,
+            status: 0,
+        }),
+    };
+
+    let serialized = serde_json::to_string(&job).expect("serialization failed");
+    let expected_json = r#"
+        {
+            "job": {
+                "id": 0,
+                "programVerifyingKey": "AAAB",
+                "input": "AAAB",
+                "contractAddress": "000001",
+                "maxCycles": 100,
+                "result": "AAAB",
+                "zkvmOperatorAddress": "000001",
+                "zkvmOperatorSignature": "AAAB",
+                "status": 0
+            }
+        }"#
+    .replace(['\n', ' '], "");
+
+    assert_eq!(serialized, expected_json);
+}
+
 // This exercises all three gRPC endpoints of the coprocessor-node.
 //
 // We will have another test exercises logic to listen for job requests
