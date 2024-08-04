@@ -87,7 +87,7 @@ pub async fn start_job_event_listener(
             }
 
             sleep(Duration::from_millis(retry * 10)).await;
-            warn!(?retry, "websocket reconnecting: {}", last_seen_block);
+            warn!(?retry, ?last_seen_block, "websocket reconnecting");
             retry += 1;
         }
     });
