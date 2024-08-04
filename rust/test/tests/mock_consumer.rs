@@ -71,8 +71,7 @@ fn serde_json_test() {
                 "status": 0
             }
         }"#
-    .replace("\n", "")
-    .replace(" ", "");
+    .replace(['\n', ' '], "");
 
     assert_eq!(serialized, expected_json);
 }
