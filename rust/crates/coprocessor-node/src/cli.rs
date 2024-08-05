@@ -236,14 +236,6 @@ impl Cli {
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
             bounded(opts.exec_queue_bound);
 
-        let job_event_listener = start_job_event_listener(
-            opts.ws_eth_rpc.to_owned(),
-            opts.job_manager_address,
-            exec_queue_sender.clone(),
-            opts.job_sync_start,
-        )
-        .await?;
-
         let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
@@ -260,6 +252,15 @@ impl Cli {
             executor,
         );
         job_processor.start(opts.worker_count).await;
+        let job_processor = Arc::new(job_processor);
+
+        let job_event_listener = start_job_event_listener(
+            opts.ws_eth_rpc.to_owned(),
+            opts.job_manager_address,
+            Arc::clone(&job_processor),
+            opts.job_sync_start,
+        )
+        .await?;
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)

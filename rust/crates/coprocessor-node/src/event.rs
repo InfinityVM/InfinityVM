@@ -1,20 +1,25 @@
 //! Job request event listener.
 
+use std::sync::Arc;
+
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
     providers::{ProviderBuilder, WsConnect},
+    signers::{Signature, Signer},
     transports::{RpcError, TransportError, TransportErrorKind},
 };
-use async_channel::Sender;
 use contracts::job_manager::JobManager;
 use futures_util::StreamExt;
 use proto::{Job, JobStatus};
+use reth_db::Database;
 use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
 };
 use tracing::{error, warn};
+
+use crate::job_processor::JobProcessorService;
 
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
@@ -32,12 +37,16 @@ pub enum Error {
 
 /// Listen for job request events and push a corresponding [`proto::Job`] onto the
 /// execution queue.
-pub async fn start_job_event_listener(
+pub async fn start_job_event_listener<S, D>(
     ws_rpc_url: String,
     job_manager: Address,
-    exec_queue_sender: Sender<Job>,
+    job_processor: Arc<JobProcessorService<S, D>>,
     from_block: BlockNumberOrTag,
-) -> Result<JoinHandle<Result<(), Error>>, Error> {
+) -> Result<JoinHandle<Result<(), Error>>, Error>
+where
+    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    D: Database + 'static,
+{
     let handle = tokio::spawn(async move {
         let mut last_seen_block = from_block;
         let mut retry = 1;
@@ -45,6 +54,8 @@ pub async fn start_job_event_listener(
         let provider = ProviderBuilder::new().on_ws(ws).await?;
         let contract = JobManager::new(job_manager, provider);
         loop {
+            // We have this loop so we can recreate a subscription stream in case any issue is
+            // encountered
             let sub =
                 match contract.JobCreated_filter().from_block(last_seen_block).subscribe().await {
                     Ok(sub) => sub,
@@ -76,10 +87,8 @@ pub async fn start_job_event_listener(
                     status: JobStatus::Pending.into(),
                 };
 
-                // TODO: do we want to check the DB to see if the job already exists?
-                // TODO: do we want to save the pending job to the DB?
-                if let Err(error) = exec_queue_sender.send(job).await {
-                    error!(?error, "please report: error sending job to execution queue");
+                if let Err(error) = job_processor.submit_job(job).await {
+                    error!(?error, "failed while submitting to job processor");
                 }
                 if let Some(n) = log.block_number {
                     last_seen_block = BlockNumberOrTag::Number(n);
