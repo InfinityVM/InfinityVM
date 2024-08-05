@@ -3,6 +3,8 @@
 use crate::{
     event::{self, start_job_event_listener},
     job_processor::JobProcessorService,
+    metrics::Metrics,
+    metrics_server::MetricServer,
     relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
 };
@@ -14,8 +16,13 @@ use alloy::{
 use async_channel::{bounded, Receiver, Sender};
 use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
+use prometheus::Registry;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
-use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
+use std::{
+    net::{SocketAddr, SocketAddrV4},
+    path::PathBuf,
+    sync::Arc,
+};
 use tokio::{task::JoinHandle, try_join};
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
@@ -38,6 +45,9 @@ pub enum Error {
     /// invalid gRPC address
     #[error("invalid gRPC address")]
     InvalidGrpcAddress,
+    /// invalid prometheus address
+    #[error("invalid prometheus address")]
+    InvalidPromAddress,
     /// grpc server failure
     #[error("grpc server failure: {0}")]
     GrpcServer(#[from] tonic::transport::Error),
@@ -131,8 +141,12 @@ struct Opts {
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
 
-    /// `JobManager` contract address.
-    #[arg(long)]
+    /// prometheus metrics address
+    #[arg(long, default_value = "127.0.0.1:3001")]
+    prom_address: String,
+
+    /// `JobManager` contract address
+    #[arg(long, required = true)]
     job_manager_address: Address,
 
     /// HTTP Ethereum RPC address. Defaults to a local anvil node address.
@@ -218,6 +232,19 @@ impl Cli {
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
+        // Setup Prometheus registry & custom metrics
+        let registry = Arc::new(Registry::new());
+        let metrics = Arc::new(Metrics::new(&registry));
+        let metric_server = MetricServer::new(registry.clone());
+
+        // Start Prometheus server
+        let prom_addr: SocketAddr =
+            opts.prom_address.parse().map_err(|_| Error::InvalidPromAddress)?;
+        let handle = tokio::spawn(async move {
+            info!("Prometheus server listening on {}", prom_addr);
+            metric_server.serve(&prom_addr.to_string()).await
+        });
+
         // Parse the addresses for gRPC server and gateway
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
@@ -237,9 +264,12 @@ impl Cli {
             bounded(opts.exec_queue_bound);
 
         let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
-        let job_relayer = JobRelayerBuilder::new()
-            .signer(relayer)
-            .build(opts.http_eth_rpc.clone(), opts.job_manager_address)?;
+
+        let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
+            opts.http_eth_rpc.clone(),
+            opts.job_manager_address,
+            metrics.clone(),
+        )?;
         let job_relayer = Arc::new(job_relayer);
 
         // Start the job processor with a specified number of worker threads.
@@ -250,6 +280,7 @@ impl Cli {
             exec_queue_receiver,
             job_relayer,
             executor,
+            metrics,
         );
         job_processor.start(opts.worker_count).await;
         let job_processor = Arc::new(job_processor);

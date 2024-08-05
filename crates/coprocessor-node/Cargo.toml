@@ -26,6 +26,9 @@ base64 = { workspace = true }
 async-channel = { workspace = true }
 futures-util = { workspace = true }
 
+prometheus = { version = "0.9", features = ["process"] }
+metrics-exporter-prometheus = { version = "0.13", default-features = false }
+axum = { workspace = true }
 contracts = { path = "../contracts" }
 db = { path = "../db" }
 proto = { path = "../proto" }
