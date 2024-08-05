@@ -109,8 +109,7 @@ contract JobManager is
 
         // Verify signature on result with metadata
         bytes32 messageHash = ECDSA.toEthSignedMessageHash(resultWithMetadata);
-        address recoveredSigner = ECDSA.tryRecover(messageHash, signature);
-        require(recoveredSigner == coprocessorOperator, "JobManager.submitResult: Invalid signature");
+        require(ECDSA.tryRecover(messageHash, signature) == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
         // Decode the resultWithMetadata using abi.decode
         ResultWithMetadata memory result = decodeResultWithMetadata(resultWithMetadata);
@@ -134,6 +133,10 @@ contract JobManager is
         bytes32 requestHash = ECDSA.toEthSignedMessageHash(jobRequest);
         require(OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest) == EIP1271_MAGIC_VALUE, "JobManager.submitResultForOffchainJob: Invalid signature on job request");
 
+        // Verify signature on result with metadata
+        bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
+        require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
+
         // Create a job without emitting an event and set program inputs on consumer
         uint32 jobID = _createJob(request.programID, request.maxCycles, request.consumer);
         Consumer(request.consumer).setProgramInputsForJob(jobID, request.programInput);
@@ -143,10 +146,6 @@ contract JobManager is
         if (request.nonce > consumerToMaxNonce[request.consumer]) {
             consumerToMaxNonce[request.consumer] = request.nonce;
         }
-
-        // Verify signature on result with metadata
-        bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
-        require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
         // Decode the result using abi.decode
         OffChainResultWithMetadata memory result = decodeOffchainResultWithMetadata(offchainResultWithMetadata);
@@ -168,7 +167,6 @@ contract JobManager is
         // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
         require(keccak256(Consumer(job.caller).getProgramInputsForJob(jobID)) == programInputHash, 
             "JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
-
         // This is to prevent coprocessor from using a different program ID to produce a malicious result
         require(keccak256(job.programID) == keccak256(programID), 
             "JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");

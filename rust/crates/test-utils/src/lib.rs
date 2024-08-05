@@ -51,6 +51,7 @@ pub async fn anvil_with_contracts() -> TestAnvil {
     let coprocessor_operator: PrivateKeySigner = anvil.keys()[2].clone().into();
     let proxy_admin: PrivateKeySigner = anvil.keys()[3].clone().into();
     let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
+    let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
 
     let initial_owner_wallet = EthereumWallet::from(initial_owner.clone());
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
@@ -95,7 +96,7 @@ pub async fn anvil_with_contracts() -> TestAnvil {
         .on_http(rpc_url.parse().unwrap());
 
     // Deploy the mock consumer contract. This can take jobs and accept results.
-    let mock_consumer = MockConsumer::deploy(consumer_provider, job_manager).await.unwrap();
+    let mock_consumer = MockConsumer::deploy(consumer_provider, job_manager, offchain_signer.address()).await.unwrap();
     let mock_consumer = *mock_consumer.address();
 
     TestAnvil { anvil, job_manager, relayer, coprocessor_operator, mock_consumer }
