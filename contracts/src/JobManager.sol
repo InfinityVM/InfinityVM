@@ -167,9 +167,11 @@ contract JobManager is
         // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
         require(keccak256(Consumer(job.caller).getProgramInputsForJob(jobID)) == programInputHash, 
             "JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
+        
         // This is to prevent coprocessor from using a different program ID to produce a malicious result
         require(keccak256(job.programID) == keccak256(programID), 
             "JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
+        
         require(job.maxCycles == maxCycles, "JobManager.submitResult: max cycles signed by coprocessor doesn't match max cycles submitted with job");
 
         // Update job status to COMPLETED

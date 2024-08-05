@@ -174,6 +174,9 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         vm.prank(RELAYER);
         jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
 
+        // Check that inputs are stored correctly in Consumer contract
+        assertEq(consumer.getProgramInputsForJob(1), abi.encode(address(0)));
+
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(1);
         // Check that job status is COMPLETED
         assertEq(jobMetadata.status, 3);
