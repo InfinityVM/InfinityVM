@@ -1,0 +1,16 @@
+[package]
+name = "test-utils"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["node-bindings"] }
+tracing-subscriber = { workspace = true }
+
+contracts = { path = "../contracts" }
+proto = { path = "../proto" }
+zkvm-executor = { path = "../zkvm-executor" }

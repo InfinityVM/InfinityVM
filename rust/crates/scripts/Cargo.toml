@@ -9,9 +9,6 @@ rust-version.workspace = true
 [dependencies]
 tokio = { workspace = true }
 alloy = { workspace = true }
-alloy-signer-local = { workspace = true }
-alloy-sol-types = { workspace = true }
-alloy-rlp = { workspace = true }
 k256 = { workspace = true }
 dotenv = { workspace = true }
 

@@ -122,12 +122,11 @@ impl Zkvm for Risc0 {
 #[cfg(test)]
 mod test {
     use crate::{Risc0, Zkvm};
-    use alloy_rlp::Decodable;
-    use alloy_sol_types::SolType;
+    use alloy::{rlp::Decodable, sol_types::SolType};
     use vapenation_core::{VapeNationArg, VapeNationMetadata};
 
     const VAPENATION_ELF_PATH: &str =
-        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation_guest";
+        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest";
 
     // TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
     // const VAPENATION_ELF_SP1_PATH: &str =

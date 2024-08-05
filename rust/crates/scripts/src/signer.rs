@@ -1,8 +1,9 @@
 use alloy::{
     primitives::{hex, keccak256, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
+    sol,
+    sol_types::SolType,
 };
-use alloy_sol_types::{sol, SolType};
 use k256::ecdsa::SigningKey;
 use proto::JobInputs;
 use zkvm_executor::service::abi_encode_result_with_metadata;
