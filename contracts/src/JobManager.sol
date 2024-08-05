@@ -77,9 +77,14 @@ contract JobManager is
     }
 
     function createJob(bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external override returns (uint32) {
-        uint32 jobID = jobIDCounter;
-        jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, msg.sender, JOB_STATE_PENDING);
+        uint32 jobID = _createJob(programID, programInput, maxCycles, msg.sender);
         emit JobCreated(jobID, maxCycles, programID, programInput);
+        return jobID;
+    }
+
+    function _createJob(bytes memory programID, bytes memory programInput, uint64 maxCycles, address consumer) internal returns (uint32) {
+        uint32 jobID = jobIDCounter;
+        jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, consumer, JOB_STATE_PENDING);
         jobIDCounter++;
         return jobID;
     }
@@ -134,10 +139,8 @@ contract JobManager is
         bytes32 requestHash = ECDSA.toEthSignedMessageHash(jobRequest);
         require(OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest) == EIP1271_MAGIC_VALUE, "JobManager.submitResultForOffchainJob: Invalid signature on job request");
 
-        // Perform the logic from createJob() without emitting an event
-        uint32 jobID = jobIDCounter;
-        jobIDToMetadata[jobID] = JobMetadata(request.programID, request.maxCycles, request.consumer, JOB_STATE_PENDING);
-        jobIDCounter++;
+        // Create a job without emitting an event
+        uint32 jobID = _createJob(request.programID, request.programInput, request.maxCycles, request.consumer);
 
         // Update nonce-relevant storage
         nonceHashToJobID[nonceHash] = jobID;
