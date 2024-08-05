@@ -10,3 +10,6 @@ pub mod relayer;
 
 /// Job processor
 pub mod job_processor;
+
+/// Metrics
+pub mod metrics;

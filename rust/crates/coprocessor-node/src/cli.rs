@@ -2,6 +2,7 @@
 
 use crate::{
     job_processor::JobProcessorService,
+    metrics::Metrics,
     relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
 };
@@ -10,10 +11,16 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use async_channel::{bounded, Receiver, Sender};
+use axum::{routing::get, Router, Server};
 use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
+use prometheus::{Encoder, Registry, TextEncoder};
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
-use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
+use std::{
+    net::{SocketAddr, SocketAddrV4},
+    path::PathBuf,
+    sync::Arc,
+};
 use tracing::info;
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
@@ -35,6 +42,9 @@ pub enum Error {
     /// invalid gRPC address
     #[error("invalid gRPC address")]
     InvalidGrpcAddress,
+    /// invalid prometheus address
+    #[error("invalid prometheus address")]
+    InvalidPromAddress,
     /// grpc server failure
     #[error("grpc server failure: {0}")]
     GrpcServer(#[from] tonic::transport::Error),
@@ -122,6 +132,10 @@ struct Opts {
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
 
+    /// prometheus metrics address
+    #[arg(long, default_value = "127.0.0.1:3001")]
+    prom_address: String,
+
     /// `JobManager` contract address
     #[arg(long, required = true)]
     job_manager_address: Address,
@@ -196,6 +210,36 @@ impl Cli {
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
+        // Setup Prometheus registry & custom metrics
+        let registry = Registry::new();
+        let metrics = Arc::new(Metrics::new(&registry));
+
+        // Create the metrics router
+        let metrics_router = Router::new().route(
+            "/metrics",
+            get(move || {
+                let registry = registry.clone();
+                // TODO: Unclear if there's a better way to do this with a builder?
+                // See reference https://github.com/tikv/rust-prometheus/blob/master/examples/example_custom_registry.rs#L17-L42
+                // and https://github.com/tokio-rs/axum/blob/main/examples/prometheus-metrics/src/main.rs
+                async move {
+                    // let metric_familes = registry.gather();
+                    let mut buffer = Vec::new();
+                    TextEncoder::new().encode(&registry.gather(), &mut buffer).unwrap();
+                    String::from_utf8(buffer).unwrap()
+                }
+            }),
+        );
+
+        // Start Prometheus server
+        let prom_addr: SocketAddr =
+            opts.prom_address.parse().map_err(|_| Error::InvalidPromAddress)?;
+        tokio::spawn(async move {
+            info!("Prometheus server listening on {}", prom_addr);
+            // TODO: Should we be handling this error?
+            Server::bind(&prom_addr).serve(metrics_router.into_make_service()).await.unwrap();
+        });
+
         // Parse the addresses for gRPC server and gateway
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
@@ -227,6 +271,7 @@ impl Cli {
             exec_queue_receiver,
             job_relayer,
             executor,
+            metrics.clone(),
         );
         job_processor.start(opts.worker_count).await;
 

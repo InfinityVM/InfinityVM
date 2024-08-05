@@ -4,6 +4,7 @@ use alloy::{primitives::Signature, signers::Signer};
 use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
 use std::{marker::Send, sync::Arc};
 
+use crate::{metrics::Metrics, relayer::JobRelayer};
 use async_channel::{Receiver, Sender};
 use base64::prelude::*;
 use db::{get_elf, get_job, put_elf, put_job};
@@ -11,8 +12,6 @@ use reth_db::Database;
 use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
-
-use crate::relayer::JobRelayer;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -55,6 +54,7 @@ pub struct JobProcessorService<S, D> {
     job_relayer: Arc<JobRelayer>,
     zk_executor: ZkvmExecutorService<S>,
     task_handles: JoinSet<Result<(), Error>>,
+    metrics: Arc<Metrics>,
 }
 
 // The DB functions in JobProcessorService are async so they yield in the tokio task.
@@ -70,6 +70,7 @@ where
         exec_queue_receiver: Receiver<Job>,
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
+        metrics: Arc<Metrics>,
     ) -> Self {
         Self {
             db,
@@ -78,6 +79,7 @@ where
             job_relayer,
             zk_executor,
             task_handles: JoinSet::new(),
+            metrics,
         }
     }
 
@@ -147,9 +149,10 @@ where
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
             let job_relayer = Arc::clone(&self.job_relayer);
+            let metrics = Arc::clone(&self.metrics);
 
             self.task_handles.spawn(async move {
-                Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor).await
+                Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor, metrics).await
             });
         }
     }
@@ -160,6 +163,7 @@ where
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
+        metrics: Arc<Metrics>,
     ) -> Result<(), Error> {
         loop {
             let mut job =
@@ -174,6 +178,7 @@ where
                         "no ELF found for job {} with verifying key {:?}",
                         id, &job.program_verifying_key
                     );
+                    metrics.job_errors.with_label_values(&["missing_elf"]).inc();
 
                     // TODO: We should have some way of recording the error
                     // reason / error type for failed jobs
@@ -181,6 +186,7 @@ where
                     job.status = JobStatus::Failed.into();
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {}: {:?}", id, e);
+                        metrics.job_errors.with_label_values(&["db_error_status_failed"]).inc();
                     }
                     continue;
                 }
@@ -189,9 +195,12 @@ where
                         "could not find elf for job {} with verifying key {:?}: {:?}",
                         id, &job.program_verifying_key, e
                     );
+                    metrics.job_errors.with_label_values(&["error_get_elf"]).inc();
+
                     job.status = JobStatus::Failed.into();
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {}: {:?}", id, e);
+                        metrics.job_errors.with_label_values(&["db_error_status_failed"]).inc();
                     }
                     continue;
                 }
@@ -219,17 +228,20 @@ where
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
                         error!("report this error: failed to save job {}: {:?}", id, e);
+                        metrics.job_errors.with_label_values(&["db_error_status_done"]).inc();
                         continue;
                     }
                     job
                 }
                 Err(e) => {
                     error!("failed to execute job {}: {:?}", id, e);
+                    metrics.job_errors.with_label_values(&["execution_error"]).inc();
 
                     job.status = JobStatus::Failed.into();
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {}: {:?}", id, e);
+                        metrics.job_errors.with_label_values(&["db_error_status_done"]).inc();
                     }
                     continue;
                 }
