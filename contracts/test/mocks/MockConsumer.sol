@@ -48,9 +48,9 @@ contract MockConsumer is Consumer, OffchainRequester {
     function isValidSignature(bytes32 messageHash, bytes memory signature) public view override returns (bytes4) {
         address recoveredSigner = ECDSA.tryRecover(messageHash, signature);
         if (recoveredSigner == offchainSigner) {
-            return VALID;
+            return EIP1271_MAGIC_VALUE;
         } else {
-            return INVALID;
+            return INVALID_SIGNATURE;
         }
     }
 

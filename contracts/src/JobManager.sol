@@ -20,7 +20,7 @@ contract JobManager is
     using Strings for uint;
 
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
-    bytes4 constant internal VALID = 0x1626ba7e;
+    bytes4 constant internal EIP1271_MAGIC_VALUE = 0x1626ba7e;
 
     uint32 internal jobIDCounter;
     address public relayer;
@@ -57,6 +57,11 @@ contract JobManager is
 
     function getJobMetadata(uint32 jobID) public view returns (JobMetadata memory) {
         return jobIDToMetadata[jobID];
+    }
+
+    function getJobIDForNonce(uint32 nonce, address consumer) public view returns (uint32) {
+        bytes32 nonceHash = keccak256(abi.encodePacked(nonce, consumer));
+        return nonceHashToJobID[nonceHash];
     }
 
     function getMaxNonce(address consumer) public view returns (uint32) {
@@ -127,7 +132,7 @@ contract JobManager is
 
         // Verify signature on job request
         bytes32 requestHash = ECDSA.toEthSignedMessageHash(jobRequest);
-        require(OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest) == VALID, "JobManager.submitResultForOffchainJob: Invalid signature on job request");
+        require(OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest) == EIP1271_MAGIC_VALUE, "JobManager.submitResultForOffchainJob: Invalid signature on job request");
 
         // Perform the logic from createJob() without emitting an event
         uint32 jobID = jobIDCounter;
