@@ -67,4 +67,8 @@ reth_db::tables! {
     table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
     /// Stores jobs
     table JobTable<Key = u32, Value = Job>;
+    /// Store completed jobs that failed to broadcast
+    table BroadcastJobRetryTable<Key = u32, Value = Job>;
+    /// Stores jobs that failed to relay
+    table RelayerRetryTable<Key = u32, Value = Job>;
 }

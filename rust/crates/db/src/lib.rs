@@ -107,6 +107,44 @@ pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
     result.map_err(Into::into)
 }
 
+/// Write a failed broadcast job to the database
+pub fn put_failed_broadcast_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
+    use tables::BroadcastJobRetryTable;
+
+    let tx = db.tx_mut()?;
+    tx.put::<BroadcastJobRetryTable>(job.id, job)?;
+    let _commit = tx.commit()?;
+
+    Ok(())
+}
+
+/// Read a failed broadcast job from the database. [None] if it does not exist
+pub fn get_failed_broadcast_job<D: Database>(
+    db: Arc<D>,
+    job_id: u32,
+) -> Result<Option<Job>, Error> {
+    use tables::BroadcastJobRetryTable;
+
+    let tx = db.tx()?;
+    let result = tx.get::<BroadcastJobRetryTable>(job_id);
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into)
+}
+
+/// Delete failed broadcast Job from the database. [None] if it does not exist.
+pub fn delete_failed_broacast_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
+    use tables::BroadcastJobRetryTable;
+
+    let tx = db.tx_mut()?;
+    let result = tx.delete::<BroadcastJobRetryTable>(job_id, None);
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into)
+}
+
 /// Open a DB at `path`. Creates the DB if it does not exist.
 pub fn init_db<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
     let client_version = ClientVersion::default();

@@ -7,7 +7,7 @@ use std::{marker::Send, sync::Arc};
 use crate::{metrics::Metrics, relayer::JobRelayer};
 use async_channel::{Receiver, Sender};
 use base64::prelude::*;
-use db::{get_elf, get_job, put_elf, put_job};
+use db::{get_elf, get_failed_broadcast_job, get_job, put_elf, put_failed_broadcast_job, put_job};
 use reth_db::Database;
 use tokio::task::JoinSet;
 use tracing::{error, info};
@@ -127,6 +127,24 @@ where
         Ok(job)
     }
 
+    /// Save failed broadcast job in DB
+    pub async fn save_broadcast_err(db: Arc<D>, job: Job) -> Result<(), Error> {
+        put_failed_broadcast_job(db, job)?;
+        Ok(())
+    }
+
+    /// Return whether failed broadcast job with `job_id` exists in DB
+    pub async fn has_broadcast_err(&self, job_id: u32) -> Result<bool, Error> {
+        let job = get_failed_broadcast_job(self.db.clone(), job_id)?;
+        Ok(job.is_some())
+    }
+
+    /// Returns failed broadcast job with `job_id` from DB
+    pub async fn get_broadcast_err(&self, job_id: u32) -> Result<Option<Job>, Error> {
+        let job = get_failed_broadcast_job(self.db.clone(), job_id)?;
+        Ok(job)
+    }
+
     /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         let job_id = job.id;
@@ -178,6 +196,7 @@ where
                         "no ELF found for job {} with verifying key {:?}",
                         id, &job.program_verifying_key
                     );
+                    // TODO: Extract metrics labels to const
                     metrics.job_errors.with_label_values(&["missing_elf"]).inc();
 
                     // TODO: We should have some way of recording the error
@@ -247,11 +266,23 @@ where
                 }
             };
 
-            let _tx_receipt = match job_relayer.relay(job).await {
+            // TODO: This seems hacky, not sure how to address
+            let job_clone = job.clone();
+            let _tx_receipt = match job_relayer.relay(job_clone).await {
                 Ok(tx_receipt) => tx_receipt,
-                Err(_) => {
-                    // TODO: decide what to do with failed tx
-                    //https://github.com/Ethos-Works/InfinityVM/issues/127
+                Err(e) => {
+                    error!("report this error: failed to relay job {}: {:?}", id, e);
+                    metrics.job_errors.with_label_values(&["relay_error"]).inc();
+                    if let Err(e) = Self::save_broadcast_err(db.clone(), job).await {
+                        error!(
+                            "report this error: failed to save failed broadcast job {}: {:?}",
+                            id, e
+                        );
+                        metrics
+                            .job_errors
+                            .with_label_values(&["db_error_save_broadcast_err"])
+                            .inc();
+                    }
                     continue;
                 }
             };
