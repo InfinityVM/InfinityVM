@@ -13,6 +13,7 @@ contracts/broadcast/**
 
 # Dotenv file
 contracts/.env
+rust/crates/scripts/.env
 
 # Rust Build Artifacts
 rust/**/target

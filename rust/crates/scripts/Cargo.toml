@@ -13,6 +13,7 @@ alloy-signer-local = { workspace = true }
 alloy-sol-types = { workspace = true }
 alloy-rlp = { workspace = true }
 k256 = { workspace = true }
+dotenv = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm-executor = { path = "../zkvm-executor" }

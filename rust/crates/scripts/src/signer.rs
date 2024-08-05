@@ -6,8 +6,18 @@ use alloy_sol_types::{sol, SolType};
 use k256::ecdsa::SigningKey;
 use proto::JobInputs;
 use zkvm_executor::service::abi_encode_result_with_metadata;
+use dotenv::dotenv;
+use std::env;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
+
+const JOB_ID : u32 = 1;
+const MAX_CYCLES: u64 = 1_000_000;
+const PROGRAM_ELF : &[u8] = b"elf";
+const PROGRAM_ID : &[u8] = b"programID";
+const VM_TYPE: i32 = 0;
+const NONCE: u32 = 1;
+const CONSUMER_ADDR : &str = "0xDB8cFf278adCCF9E9b5da745B44E754fC4EE3C76";
 
 /// Script to generate ABI-encoded responses + signatures for the coprocessor contract tests
 #[derive(Debug)]
@@ -16,16 +26,17 @@ pub struct RequestAndResultSigner;
 impl RequestAndResultSigner {
     /// Sign a result for a job requested onchain
     pub async fn sign_onchain_result() {
-        let zero_addr_str = "0x0000000000000000000000000000000000000000";
-        let zero_addr: Address = Address::parse_checksummed(zero_addr_str, None).unwrap();
+        dotenv().ok();
+
+        let zero_addr: Address = Address::ZERO;
 
         let job_inputs = JobInputs {
-            job_id: 1,
+            job_id: JOB_ID,
             program_input: abi_encode_address(zero_addr),
-            max_cycles: 1_000_000,
-            program_verifying_key: b"programID".to_vec(),
-            program_elf: b"elf".to_vec(),
-            vm_type: 0,
+            max_cycles: MAX_CYCLES,
+            program_verifying_key: PROGRAM_ID.to_vec(),
+            program_elf: PROGRAM_ELF.to_vec(),
+            vm_type: VM_TYPE,
         };
 
         // Encode the result with metadata
@@ -33,7 +44,8 @@ impl RequestAndResultSigner {
         let encoded_result = abi_encode_result_with_metadata(&job_inputs, &raw_output);
 
         // Sign the message
-        let decoded = hex::decode("").unwrap(); // Replace with your actual private key
+        let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY").expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
+        let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
         let signer = K256LocalSigner::from_slice(&decoded).unwrap();
         let signature = signer.sign_message(&encoded_result).await.unwrap();
 
@@ -43,21 +55,23 @@ impl RequestAndResultSigner {
 
     /// Sign an offchain job request
     pub async fn sign_job_request() {
-        let zero_addr_str = "0x0000000000000000000000000000000000000000";
-        let zero_addr: Address = Address::parse_checksummed(zero_addr_str, None).unwrap();
+        dotenv().ok();
 
-        let consumer_addr_str = "0xDB8cFf278adCCF9E9b5da745B44E754fC4EE3C76";
+        let zero_addr: Address = Address::ZERO;
+
+        let consumer_addr_str = CONSUMER_ADDR;
         let consumer_addr: Address = Address::parse_checksummed(consumer_addr_str, None).unwrap();
 
         let encoded_job_request = abi_encode_job_request(
-            1,
-            1_000_000,
+            NONCE,
+            MAX_CYCLES,
             consumer_addr,
-            b"programID".to_vec(),
+            PROGRAM_ID.to_vec(),
             abi_encode_address(zero_addr),
         );
 
-        let decoded = hex::decode("").unwrap(); // Replace with your actual private key
+        let private_key_hex = env::var("OFFCHAIN_SIGNER_PRIVATE_KEY").expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");
+        let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
         let signer = K256LocalSigner::from_slice(&decoded).unwrap();
         let signature = signer.sign_message(&encoded_job_request).await.unwrap();
 
@@ -67,20 +81,22 @@ impl RequestAndResultSigner {
 
     /// Sign a result for a job requested offchain
     pub async fn sign_offchain_result() {
-        let zero_addr_str = "0x0000000000000000000000000000000000000000";
-        let zero_addr: Address = Address::parse_checksummed(zero_addr_str, None).unwrap();
+        dotenv().ok();
+        
+        let zero_addr: Address = Address::ZERO;
 
         let program_input_hash = keccak256(abi_encode_address(zero_addr));
         let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
         let encoded_offchain_result = abi_encode_offchain_result(
             program_input_hash.into(),
-            1_000_000,
-            b"programID".to_vec(),
+            MAX_CYCLES,
+            PROGRAM_ID.to_vec(),
             raw_output,
         );
 
         // Sign the message
-        let decoded = hex::decode("").unwrap(); // Replace with your actual private key
+        let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY").expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
+        let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
         let signer = K256LocalSigner::from_slice(&decoded).unwrap();
         let signature = signer.sign_message(&encoded_offchain_result).await.unwrap();
 
