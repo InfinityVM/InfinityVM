@@ -114,12 +114,7 @@ contract JobManager is
 
         // Decode the resultWithMetadata using abi.decode
         ResultWithMetadata memory result = decodeResultWithMetadata(resultWithMetadata);
-        JobMetadata memory job = jobIDToMetadata[result.jobID];
-        // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
-        require(keccak256(Consumer(job.caller).getProgramInputsForJob(result.jobID)) == result.programInputHash, 
-            "JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
-
-        _submitResult(result.jobID, result.maxCycles, result.programID, result.result);
+        _submitResult(result.jobID, result.maxCycles, result.programInputHash, result.programID, result.result);
     }
 
     function submitResultForOffchainJob(
@@ -155,10 +150,7 @@ contract JobManager is
 
         // Decode the result using abi.decode
         OffChainResultWithMetadata memory result = decodeOffchainResultWithMetadata(offchainResultWithMetadata);
-        // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
-        require(result.programInputHash == keccak256(request.programInput), "JobManager.submitResultForOffchainJob: program input hash doesn't match");
-
-        _submitResult(jobID, result.maxCycles, result.programID, result.result);
+        _submitResult(jobID, result.maxCycles, result.programInputHash, result.programID, result.result);
 
         return jobID;
     }
@@ -166,11 +158,16 @@ contract JobManager is
     function _submitResult(
         uint32 jobID,
         uint64 maxCycles,
+        bytes32 programInputHash,
         bytes memory programID,
         bytes memory result
     ) internal {
         JobMetadata memory job = jobIDToMetadata[jobID];
         require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");
+
+        // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
+        require(keccak256(Consumer(job.caller).getProgramInputsForJob(jobID)) == programInputHash, 
+            "JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
 
         // This is to prevent coprocessor from using a different program ID to produce a malicious result
         require(keccak256(job.programID) == keccak256(programID), 
