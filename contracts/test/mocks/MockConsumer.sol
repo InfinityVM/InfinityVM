@@ -23,7 +23,7 @@ contract MockConsumer is Consumer, OffchainRequester {
         return jobIDToResult[jobID];
     }
 
-    function getSigner() external view returns (address) {
+    function getOffchainSigner() external view returns (address) {
         return offchainSigner;
     }
 
@@ -54,7 +54,7 @@ contract MockConsumer is Consumer, OffchainRequester {
         }
     }
 
-    function _updateSigner(address updatedSigner) internal {
+    function _updateOffchainSigner(address updatedSigner) internal {
         offchainSigner = updatedSigner;
     }
 }
