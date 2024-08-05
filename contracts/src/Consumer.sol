@@ -22,6 +22,10 @@ abstract contract Consumer {
         return jobIDToProgramInput[jobID];
     }
 
+    function setProgramInputsForJob(uint32 jobID, bytes memory programInput) public onlyJobManager() {
+        jobIDToProgramInput[jobID] = programInput;
+    }
+
     function requestJob(
         bytes memory programID,
         bytes memory programInput,
