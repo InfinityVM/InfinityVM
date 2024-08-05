@@ -38,14 +38,14 @@ pub fn abi_encode_result_with_metadata(i: &Job, raw_output: &[u8]) -> Vec<u8> {
     ))
 }
 
-fn program_id() -> Digest {
+fn mock_consumer_program_id() -> Digest {
     compute_image_id(MOCK_CONSUMER_GUEST_ELF).unwrap()
 }
 
 #[test]
 #[ignore]
 fn invariants() {
-    let image_id = program_id();
+    let image_id = mock_consumer_program_id();
 
     assert_eq!(&MOCK_CONSUMER_GUEST_ID, image_id.as_words());
 }
@@ -57,7 +57,7 @@ fn invariants() {
 //     async fn test(mut args: Args) {
 //         let anvil = args.anvil;
 //         let chain_id = anvil.anvil.chain_id();
-//         let program_id = program_id().as_bytes().to_vec();
+//         let program_id = mock_consumer_program_id().as_bytes().to_vec();
 //         let mock_user_address = Address::repeat_byte(69);
 
 //         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
@@ -178,7 +178,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let chain_id = anvil.anvil.chain_id();
-        let program_id = program_id().as_bytes().to_vec();
+        let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
 
         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
