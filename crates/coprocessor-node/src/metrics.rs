@@ -2,6 +2,7 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::ge
 use prometheus::{self, CounterVec, Encoder, Opts, Registry, TextEncoder};
 use std::{fmt::Debug, sync::Arc};
 
+
 /// Custom prometheus metrics
 #[derive(Debug, Clone)]
 pub struct Metrics {
