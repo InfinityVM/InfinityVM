@@ -58,7 +58,7 @@ pub enum Error {
     #[error("error while waiting for tx inclusion: {0}")]
     TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     /// must call [`JobRelayerBuilder::signer`] before building
-    #[error("ust call JobRelayerBuilder::signer before building")]
+    #[error("must call JobRelayerBuilder::signer before building")]
     MissingSigner,
 }
 
@@ -89,6 +89,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
     /// Build a [`JobRelayer`].
     pub fn build(self, http_rpc_url: String, job_manager: Address) -> Result<JobRelayer, Error> {
         let url: reqwest::Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
+        info!("🧾 relayer sending transactions to rpc url {url}");
 
         let signer = self.signer.ok_or(Error::MissingSigner)?;
         let wallet = EthereumWallet::new(signer);

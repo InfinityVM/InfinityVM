@@ -1,21 +1,18 @@
 //! Integration tests and helpers.
 use alloy::primitives::hex;
 use futures::future::FutureExt;
-use rand::Rng;
 use std::{
     future::Future,
-    net::TcpListener,
     panic::AssertUnwindSafe,
     process::{self, Command},
-    thread,
-    time::Duration,
 };
-use test_utils::{anvil_with_contracts, TestAnvil};
+use test_utils::{
+    anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil, LOCALHOST,
+};
 use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 
-const LOCALHOST: &str = "127.0.0.1";
 const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
 
 /// Kill [`std::process::Child`] on `drop`
@@ -60,7 +57,8 @@ impl Integration {
         let anvil = anvil_with_contracts().await;
         let job_manager = anvil.job_manager.to_string();
         let chain_id = anvil.anvil.chain_id().to_string();
-        let rpc_url = anvil.anvil.endpoint();
+        let http_rpc_url = anvil.anvil.endpoint();
+        let ws_rpc_url = anvil.anvil.ws_endpoint();
 
         let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
@@ -74,8 +72,10 @@ impl Integration {
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
-            .arg("--eth-rpc-address")
-            .arg(rpc_url)
+            .arg("--http-eth-rpc")
+            .arg(http_rpc_url)
+            .arg("--ws-eth-rpc")
+            .arg(ws_rpc_url)
             .arg("--job-manager-address")
             .arg(job_manager)
             .arg("--chain-id")
@@ -85,7 +85,7 @@ impl Integration {
             .spawn()
             .unwrap()
             .into();
-        sleep_until_bound(coprocessor_node_port);
+        sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =
             CoprocessorNodeClient::connect(format!("http://{coprocessor_node_grpc}"))
                 .await
@@ -96,29 +96,4 @@ impl Integration {
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
     }
-}
-
-fn get_localhost_port() -> u16 {
-    let mut rng = rand::thread_rng();
-
-    for _ in 0..64 {
-        let port = rng.gen_range(49152..65535);
-        if TcpListener::bind((LOCALHOST, port)).is_ok() {
-            return port;
-        }
-    }
-
-    panic!("no port found after 64 attempts");
-}
-
-fn sleep_until_bound(port: u16) {
-    for _ in 0..16 {
-        if TcpListener::bind((LOCALHOST, port)).is_err() {
-            return;
-        }
-
-        thread::sleep(Duration::from_secs(1));
-    }
-
-    panic!("localhost:{port} was not successfully bound");
 }

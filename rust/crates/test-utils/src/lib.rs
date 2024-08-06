@@ -1,5 +1,7 @@
 //! Utilities for setting up tests.
 
+use std::net::TcpListener;
+
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
@@ -12,11 +14,16 @@ use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
+use rand::Rng;
+use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
 use zkvm_executor::service::abi_encode_result_with_metadata;
 
 /// Max cycles that the `MockContract` calls create job with.
 pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
+
+/// Localhost IP address
+pub const LOCALHOST: &str = "127.0.0.1";
 
 /// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
 pub fn test_tracing() {
@@ -25,6 +32,33 @@ pub fn test_tracing() {
         .with_writer(std::io::stderr)
         .try_init()
         .unwrap();
+}
+
+/// Find a free port on localhost.
+pub fn get_localhost_port() -> u16 {
+    let mut rng = rand::thread_rng();
+
+    for _ in 0..64 {
+        let port = rng.gen_range(49152..65535);
+        if TcpListener::bind((LOCALHOST, port)).is_ok() {
+            return port;
+        }
+    }
+
+    panic!("no port found after 64 attempts");
+}
+
+/// Sleep until the given port is bound.
+pub async fn sleep_until_bound(port: u16) {
+    for _ in 0..16 {
+        if TcpListener::bind((LOCALHOST, port)).is_err() {
+            return;
+        }
+
+        sleep(Duration::from_secs(1)).await;
+    }
+
+    panic!("localhost:{port} was not successfully bound");
 }
 
 /// Output from [`anvil_with_contracts`]
@@ -44,7 +78,10 @@ pub struct TestAnvil {
 
 /// Setup an anvil instance with job manager contracts.
 pub async fn anvil_with_contracts() -> TestAnvil {
-    let anvil = Anvil::new().try_spawn().unwrap();
+    // Ensure the anvil instance will not collide with anything already running on the OS
+    let port = get_localhost_port();
+    // Set block time to 0.01 seconds - I WANNA GO FAST MOM
+    let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
 
     let initial_owner: PrivateKeySigner = anvil.keys()[0].clone().into();
     let relayer: PrivateKeySigner = anvil.keys()[1].clone().into();
