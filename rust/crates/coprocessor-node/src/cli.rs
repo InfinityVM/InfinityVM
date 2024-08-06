@@ -135,7 +135,7 @@ struct Opts {
     #[arg(long)]
     job_manager_address: Address,
 
-    /// HTTP Ethereum RPC address. Defaults to anvil node default address.
+    /// HTTP Ethereum RPC address. Defaults to a local anvil node address.
     #[arg(long, default_value = "http://127.0.0.1:8545")]
     http_eth_rpc: String,
 
