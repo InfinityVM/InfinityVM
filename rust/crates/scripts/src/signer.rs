@@ -17,7 +17,7 @@ const MAX_CYCLES: u64 = 1_000_000;
 const PROGRAM_ELF: &[u8] = b"elf";
 const PROGRAM_ID: &[u8] = b"programID";
 const VM_TYPE: i32 = 0;
-const NONCE: u32 = 1;
+const NONCE: u64 = 1;
 const CONSUMER_ADDR: &str = "0xDB8cFf278adCCF9E9b5da745B44E754fC4EE3C76";
 
 /// Script to generate ABI-encoded responses + signatures for the coprocessor contract tests
@@ -126,11 +126,11 @@ fn abi_encode_address_with_balance(address: Address, balance: U256) -> Vec<u8> {
 }
 
 type JobRequest = sol! {
-    tuple(uint32,uint64,address,bytes,bytes)
+    tuple(uint64,uint64,address,bytes,bytes)
 };
 
 fn abi_encode_job_request(
-    nonce: u32,
+    nonce: u64,
     max_cycles: u64,
     consumer: Address,
     program_id: Vec<u8>,

@@ -31,7 +31,7 @@ contract JobManager is
     // We store nonceHashToJobID to prevent replay attacks by the coprocessor of a user's job request
     mapping(bytes32 => uint32) public nonceHashToJobID;
     // We store consumerToMaxNonce to help consumers keep track of the maximum nonce they have used so far
-    mapping(address => uint32) public consumerToMaxNonce;
+    mapping(address => uint64) public consumerToMaxNonce;
     // storage gap for upgradeability
     uint256[50] private __GAP;
 
@@ -59,12 +59,12 @@ contract JobManager is
         return jobIDToMetadata[jobID];
     }
 
-    function getJobIDForNonce(uint32 nonce, address consumer) public view returns (uint32) {
+    function getJobIDForNonce(uint64 nonce, address consumer) public view returns (uint32) {
         bytes32 nonceHash = keccak256(abi.encodePacked(nonce, consumer));
         return nonceHashToJobID[nonceHash];
     }
 
-    function getMaxNonce(address consumer) public view returns (uint32) {
+    function getMaxNonce(address consumer) public view returns (uint64) {
         return consumerToMaxNonce[consumer];
     }
 
@@ -194,7 +194,7 @@ contract JobManager is
     }
 
     function decodeJobRequest(bytes memory jobRequest) public pure returns (OffchainJobRequest memory) {
-        (uint32 nonce, uint64 maxCycles, address consumer, bytes memory programID, bytes memory programInput) = abi.decode(jobRequest, (uint32, uint64, address, bytes, bytes));
+        (uint64 nonce, uint64 maxCycles, address consumer, bytes memory programID, bytes memory programInput) = abi.decode(jobRequest, (uint32, uint64, address, bytes, bytes));
         return OffchainJobRequest(nonce, maxCycles, consumer, programID, programInput);
     }
 }
