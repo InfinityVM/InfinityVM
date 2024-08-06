@@ -8,8 +8,10 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["node-bindings"] }
+alloy = { workspace = true, features = ["provider-anvil-node"] }
 tracing-subscriber = { workspace = true }
+rand = { workspace = true }
+tokio = { workspace = true }
 
 contracts = { path = "../contracts" }
 proto = { path = "../proto" }

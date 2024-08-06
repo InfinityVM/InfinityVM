@@ -1,11 +1,10 @@
 //! Job processor implementation.
 
-use alloy::{primitives::Signature, signers::Signer};
+use alloy::{hex, primitives::Signature, signers::Signer};
 use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
 use std::{marker::Send, sync::Arc};
 
 use async_channel::{Receiver, Sender};
-use base64::prelude::*;
 use db::{get_elf, get_job, put_elf, put_job};
 use reth_db::Database;
 use tokio::task::JoinSet;
@@ -92,7 +91,7 @@ where
         {
             return Err(Error::ElfAlreadyExists(format!(
                 "elf with verifying key {:?} already exists",
-                BASE64_STANDARD.encode(response.verifying_key.as_slice()),
+                hex::encode(response.verifying_key.as_slice()),
             )));
         }
 
@@ -135,6 +134,11 @@ where
         job.status = JobStatus::Pending.into();
 
         Self::save_job(self.db.clone(), job.clone()).await?;
+
+        // If the channel is full, this method waits until there is space for a message.
+        // In the future we may want to switch to try_send, so it just fails immediately if
+        // the queue is full.
+        // <https://docs.rs/async-channel/latest/async_channel/struct.Sender.html#method.send>
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
 
         Ok(())
@@ -171,8 +175,10 @@ where
                 Ok(Some(elf)) => elf,
                 Ok(None) => {
                     error!(
+                        ?job.contract_address,
                         "no ELF found for job {} with verifying key {:?}",
-                        id, &job.program_verifying_key
+                        id,
+                        job.program_verifying_key,
                     );
 
                     // TODO: We should have some way of recording the error
@@ -184,14 +190,16 @@ where
                     }
                     continue;
                 }
-                Err(e) => {
+                Err(error) => {
                     error!(
-                        "could not find elf for job {} with verifying key {:?}: {:?}",
-                        id, &job.program_verifying_key, e
+                        ?error,
+                        "could not find elf for job {} with verifying key {:?}",
+                        id,
+                        job.program_verifying_key
                     );
                     job.status = JobStatus::Failed.into();
-                    if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {}: {:?}", id, e);
+                    if let Err(error) = Self::save_job(db.clone(), job).await {
+                        error!(?error, "report this error: failed to save job {}", id);
                     }
                     continue;
                 }
