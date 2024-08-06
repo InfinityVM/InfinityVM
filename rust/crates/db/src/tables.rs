@@ -1,6 +1,6 @@
 //! Database tables
 
-use alloy_rlp::bytes;
+use alloy::rlp::bytes;
 use borsh::{BorshDeserialize, BorshSerialize};
 use proto::Job;
 use reth_db::{

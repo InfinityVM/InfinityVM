@@ -1,4 +1,5 @@
 //! Integration tests and helpers.
+use alloy::primitives::hex;
 use futures::future::FutureExt;
 use rand::Rng;
 use std::{
@@ -9,19 +10,13 @@ use std::{
     thread,
     time::Duration,
 };
+use test_utils::{anvil_with_contracts, TestAnvil};
 use tonic::transport::Channel;
 
-use proto::{
-    coprocessor_node_client::CoprocessorNodeClient, zkvm_executor_client::ZkvmExecutorClient,
-};
+use proto::coprocessor_node_client::CoprocessorNodeClient;
 
 const LOCALHOST: &str = "127.0.0.1";
-const EXECUTOR_DEBUG_BIN: &str = "../target/debug/zkvm-executor";
 const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
-
-/// Relayer operators private key for development
-pub const RELAYER_DEV_SECRET: &str =
-    "abcd1d0798f97d79848a013d4936a73bf4cc922c825d33c1cf7073dff6d4abcd";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
@@ -39,12 +34,12 @@ impl Drop for ProcKill {
     }
 }
 
-/// gRPC clients
+/// Arguments passed to the test function.
 #[derive(Debug)]
-pub struct Clients {
-    /// zkvm executor gRPC client
-    pub executor: ZkvmExecutorClient<Channel>,
-    /// coprocessor node gRPC client
+pub struct Args {
+    /// Anvil setup stuff
+    pub anvil: TestAnvil,
+    /// Coprocessor Node gRPC client
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
 }
 
@@ -56,43 +51,37 @@ impl Integration {
     /// Run the given `test_fn`.
     pub async fn run<F, R>(test_fn: F)
     where
-        F: Fn(Clients) -> R,
+        F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
-        // Start executor
-        let db_dir = tempfile::Builder::new().prefix("zkvm-executor-test-db").tempdir().unwrap();
-        let executor_port = get_localhost_port();
-        let executor_url = format!("http://{LOCALHOST}:{executor_port}");
-        let _proc: ProcKill = Command::new(EXECUTOR_DEBUG_BIN)
-            .arg("--ip")
-            .arg(LOCALHOST)
-            .arg("--port")
-            .arg(executor_port.to_string())
-            .arg("--db-dir")
-            .arg(db_dir.path())
-            .arg("dev")
-            .spawn()
-            .unwrap()
-            .into();
+        test_utils::test_tracing();
 
-        sleep_until_bound(executor_port);
-        let executor = ZkvmExecutorClient::connect(executor_url.clone()).await.unwrap();
+        // Start an anvil node
+        let anvil = anvil_with_contracts().await;
+        let job_manager = anvil.job_manager.to_string();
+        let chain_id = anvil.anvil.chain_id().to_string();
+        let rpc_url = anvil.anvil.endpoint();
 
+        let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
+        let relayer_private = hex::encode(anvil.relayer.to_bytes());
+        let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
+
         // The coprocessor-node expects the relayer private key as an env var
-        std::env::set_var("RELAYER_PRIVATE_KEY", RELAYER_DEV_SECRET);
-        // TODO: update the usage of these args when we setup an e2e test that uses this
-        // https://github.com/Ethos-Works/InfinityVM/issues/104
+        std::env::set_var("RELAYER_PRIVATE_KEY", relayer_private);
+        std::env::set_var("ZKVM_OPERATOR_PRIV_KEY", operator_private);
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
-            .arg("--zk-shim-address")
-            .arg(executor_url.clone())
             .arg("--eth-rpc-address")
-            .arg("this-is-not-used-yet")
+            .arg(rpc_url)
             .arg("--job-manager-address")
-            .arg("0x0000000000000000000000000000000000000000")
+            .arg(job_manager)
+            .arg("--chain-id")
+            .arg(chain_id)
+            .arg("--db-dir")
+            .arg(db_dir.path())
             .spawn()
             .unwrap()
             .into();
@@ -102,9 +91,9 @@ impl Integration {
                 .await
                 .unwrap();
 
-        let clients = Clients { executor, coprocessor_node };
+        let args = Args { anvil, coprocessor_node };
 
-        let test_result = AssertUnwindSafe(test_fn(clients)).catch_unwind().await;
+        let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
     }
 }
