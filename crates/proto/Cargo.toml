@@ -12,6 +12,7 @@ serde = { workspace = true }
 borsh = { workspace = true }
 reth-db = { workspace = true }
 alloy = { workspace = true }
+serde_with = { workspace = true }
 
 [build-dependencies]
 tonic-build = { workspace = true }

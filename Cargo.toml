@@ -18,6 +18,8 @@ members = [
 	"programs/risc0/vapenation/methods",
 ]
 default-members = [
+	"crates/contracts",
+	"crates/proto",
 	"crates/coprocessor-node",
 	"crates/zkvm-executor",
 ]
@@ -112,7 +114,7 @@ significant_drop_tightening = "allow"
 # a
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
-alloy = { version = "0.2", features = ["contract", "transport-http", "network", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp"], default-features = false }
+alloy = { version = "0.2", features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp"], default-features = false }
 async-channel = { version = "2", default-features = false }
 
 # b
@@ -123,11 +125,14 @@ borsh = { version = "1", features = ["derive"], default-features = false }
 clap = { version = "4", features = ["derive"], default-features = false }
 
 # d
+dotenv = { version = "0.15.0", default-features = false }
+
 # e
 eyre = { version = "0.6", default-features = false }
 
 # f
 futures = { version = "0.3", default-features = false }
+futures-util = { version = "0.3", default-features = false }
 
 # g
 # h
@@ -159,6 +164,7 @@ reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.3",
 
 # s
 serde = { version = "1.0", features = ["derive"], default-features = false }
+serde_with = {  version = "3.9.0", features = ["base64","macros","hex"], default-features = false }
 serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", default-features = false }
 

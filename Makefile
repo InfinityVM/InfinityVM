@@ -4,7 +4,6 @@
 
 .PHONY: clippy-ci
 clippy-ci:
-	cd ../contracts && forge build
 	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
 
 .PHONY: clippy
@@ -24,7 +23,6 @@ lint: clippy fmt
 
 .PHONY: doc-ci
 doc-ci:
-	cd ../contracts && forge build
 	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps
 
@@ -44,7 +42,7 @@ test-all:
 	@# and run the ignored tests
 	cd ../contracts && forge build
 	cargo build -p coprocessor-node && \
-	cargo test --all -- --include-ignored
+	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: build
 build:
