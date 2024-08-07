@@ -6,6 +6,7 @@ use tracing_appender::{
     non_blocking::WorkerGuard,
     rolling::{RollingFileAppender, Rotation},
 };
+use tracing_subscriber::fmt::format::FmtSpan;
 
 #[derive(EnumString, Debug, Default)]
 #[strum(serialize_all = "lowercase")]
@@ -32,7 +33,8 @@ pub fn init_logging() -> Result<WorkerGuard, Box<dyn std::error::Error>> {
 
     let subscriber_builder = tracing_subscriber::fmt()
         .with_writer(writer)
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env());
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_span_events(FmtSpan::CLOSE);
 
     match log_format {
         LogFormat::Json => {
