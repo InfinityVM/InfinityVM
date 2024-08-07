@@ -15,9 +15,10 @@ use async_channel::{bounded, Receiver, Sender};
 use clap::{Parser, Subcommand, ValueEnum};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
-use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
-use tokio::{task::JoinHandle, try_join};
-use tracing::info;
+use std::{net::SocketAddr, net::SocketAddrV4, path::PathBuf, sync::Arc};
+use tokio::{signal, task::JoinHandle, try_join};
+use tokio_util::sync::CancellationToken;
+use tracing::{error, info};
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
@@ -41,6 +42,12 @@ pub enum Error {
     /// grpc server failure
     #[error("grpc server failure: {0}")]
     GrpcServer(#[from] tonic::transport::Error),
+    /// Failure to connect to gRPC server
+    #[error("failed to connect to grpc server: {0}")]
+    ConnectionFailure(String),
+    /// Network IO error
+    #[error(transparent)]
+    StdIO(#[from] std::io::Error),
     /// private key was not valid hex
     #[error("private key was not valid hex")]
     InvalidPrivateKeyHex(#[from] hex::FromHexError),
@@ -130,6 +137,10 @@ struct Opts {
     /// gRPC server address
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
+
+    /// Address to listen on for HTTP requests
+    #[arg(long, default_value = "127.0.0.1:8080")]
+    gateway_address: String,
 
     /// `JobManager` contract address.
     #[arg(long)]
@@ -221,6 +232,8 @@ impl Cli {
         // Parse the addresses for gRPC server and gateway
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
+        let grpc_url = format!("http://{}", grpc_address);
+        let listen_address: SocketAddr = opts.listen_address.parse()?;
 
         let zkvm_operator = opts.operator_signer()?;
         let relayer = opts.relayer_signer()?;
@@ -231,6 +244,14 @@ impl Cli {
 
         let db = db::init_db(opts.db_dir.clone())?;
         info!(db_path = opts.db_dir, "💾 db initialized");
+
+        // Create parent and child cancellation tokens to notify other tasks of
+        // graceful shutdown.
+        //
+        // TODO(bez): Actually pass and use these in spawned tasks.
+        let cancel_token = CancellationToken::new();
+        let job_event_listener_cancel_token = cancel_token.clone();
+        let grpc_server_token = cancel_token.clone();
 
         // Initialize the async channels
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
@@ -279,10 +300,24 @@ impl Cli {
                 .await
         });
 
+        gateway::HttpGrpcGateway::new(grpc_url, listen_address).serve().await;
+
         // Exit early if either handle returns an error.
         // Note that we make sure to `spawn` each task so they can run in parallel
         // and not just concurrently on the same thread.
-        try_join!(flatten(job_event_listener), flatten(grpc_server)).map(|_| ())
+        try_join!(flatten(job_event_listener), flatten(grpc_server)).map(|_| ());
+
+        match signal::ctrl_c().await {
+            Ok(()) => {}
+            Err(err) => {
+                error!("Unable to listen for shutdown signal: {}", err);
+                // we also shut down in case of error
+            }
+        }
+
+        // Cancel the original or cloned token to notify other tasks about
+        // shutting down gracefully.
+        cancel_token.cancel();
     }
 }
 

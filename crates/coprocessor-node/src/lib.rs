@@ -8,6 +8,8 @@ pub mod service;
 
 pub mod relayer;
 
+pub mod gateway;
+
 /// Job processor
 pub mod job_processor;
 

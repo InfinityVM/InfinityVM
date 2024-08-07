@@ -1,4 +1,4 @@
-//! Implementation of the gateway itself.
+//! Implementation of a gRPC gateway (HTTP reverse proxy).
 
 use std::net::SocketAddr;
 
