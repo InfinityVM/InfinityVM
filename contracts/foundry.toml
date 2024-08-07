@@ -9,6 +9,7 @@ solc_version = "0.8.13"
 remappings = [
     "@openzeppelin-upgrades/=lib/openzeppelin-contracts-upgradeable/",
     "@openzeppelin/=lib/openzeppelin-contracts/",
+    "@solady/=lib/solady",
 ]
 
 fs_permissions = [{ access = "read-write", path = "./"}]

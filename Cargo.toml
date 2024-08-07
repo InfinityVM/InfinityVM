@@ -1,0 +1,192 @@
+[workspace.package]
+version = "0.0.1"
+edition = "2021"
+rust-version = "1.79"
+
+[workspace]
+members = [
+	"crates/contracts",
+	"crates/http-gateway",
+	"crates/proto",
+	"crates/scripts",
+	"crates/test-utils",
+	"crates/coprocessor-node",
+	"crates/zkvm",
+	"crates/zkvm-executor",
+	"test",
+	"programs/risc0/mock-consumer/methods",
+	"programs/risc0/vapenation/methods",
+]
+default-members = [
+	"crates/contracts",
+	"crates/proto",
+	"crates/coprocessor-node",
+	"crates/zkvm-executor",
+]
+exclude = [
+	"bin/ethos-reth",
+]
+
+# Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
+# https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html
+resolver = "2"
+
+[workspace.lints]
+rust.missing_debug_implementations = "warn"
+rust.missing_docs = "warn"
+rust.unreachable_pub = "warn"
+rust.unused_must_use = "deny"
+rust.rust_2018_idioms = { level = "deny", priority = -1 }
+rustdoc.all = "warn"
+
+[workspace.lints.clippy]
+# These are some of clippy's nursery (i.e., experimental) lints that we like.
+# By default, nursery lints are allowed. Some of the lints below have made good
+# suggestions which we fixed. The others didn't have any findings, so we can
+# assume they don't have that many false positives. Let's enable them to
+# prevent future problems.
+branches_sharing_code = "warn"
+clear_with_drain = "warn"
+derive_partial_eq_without_eq = "warn"
+empty_line_after_outer_attr = "warn"
+equatable_if_let = "warn"
+imprecise_flops = "warn"
+iter_on_empty_collections = "warn"
+iter_with_drain = "warn"
+large_stack_frames = "warn"
+manual_clamp = "warn"
+mutex_integer = "warn"
+needless_pass_by_ref_mut = "warn"
+nonstandard_macro_braces = "warn"
+or_fun_call = "warn"
+path_buf_push_overwrite = "warn"
+read_zero_byte_vec = "warn"
+redundant_clone = "warn"
+suboptimal_flops = "warn"
+suspicious_operation_groupings = "warn"
+trailing_empty_array = "warn"
+trait_duplication_in_bounds = "warn"
+transmute_undefined_repr = "warn"
+trivial_regex = "warn"
+tuple_array_conversions = "warn"
+uninhabited_references = "warn"
+unused_peekable = "warn"
+unused_rounding = "warn"
+useless_let_if_seq = "warn"
+use_self = "warn"
+missing_const_for_fn = "warn"
+empty_line_after_doc_comments = "warn"
+iter_on_single_items = "warn"
+match_same_arms = "warn"
+doc_markdown = "warn"
+unnecessary_struct_initialization = "warn"
+string_lit_as_bytes = "warn"
+explicit_into_iter_loop = "warn"
+explicit_iter_loop = "warn"
+type_repetition_in_bounds = "warn"
+flat_map_option = "warn"
+manual_assert = "warn"
+manual_string_new = "warn"
+naive_bytecount = "warn"
+needless_bitwise_bool = "warn"
+zero_sized_map_values = "warn"
+single_char_pattern = "warn"
+needless_continue = "warn"
+enum_glob_use = "warn"
+
+# These are nursery lints which have findings. Allow them for now. Some are not
+# quite mature enough for use in our codebase and some we don't really want.
+# Explicitly listing should make it easier to fix in the future.
+as_ptr_cast_mut = "allow"
+blocks_in_conditions = "allow"
+cognitive_complexity = "allow"
+collection_is_never_read = "allow"
+debug_assert_with_mut_call = "allow"
+fallible_impl_from = "allow"
+future_not_send = "allow"
+needless_collect = "allow"
+non_send_fields_in_send_ty = "allow"
+redundant_pub_crate = "allow"
+significant_drop_in_scrutinee = "allow"
+significant_drop_tightening = "allow"
+
+[workspace.dependencies]
+# a
+anyhow = { version = "1", default-features = false }
+axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
+alloy = { version = "0.2", features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp"], default-features = false }
+async-channel = { version = "2", default-features = false }
+
+# b
+base64 = { version = "0.22.1" }
+borsh = { version = "1", features = ["derive"], default-features = false }
+
+# c
+clap = { version = "4", features = ["derive"], default-features = false }
+
+# d
+dotenv = { version = "0.15.0", default-features = false }
+
+# e
+eyre = { version = "0.6", default-features = false }
+
+# f
+futures = { version = "0.3", default-features = false }
+futures-util = { version = "0.3", default-features = false }
+
+# g
+# h
+hex = { version = "0.4", default-features = false }
+home = { version = "0.5", default-features = false }
+
+# i
+# j
+# k
+k256 = { version = "0.13", default-features = false }
+
+# l
+# m
+# n
+# o
+# p
+prost = { version = "0.13", default-features = false }
+
+# q
+# r
+risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
+risc0-zkp = { version = "1.0.3", default-features = false } 
+risc0-build = { version = "1", default-features = false }
+risc0-binfmt = { version = "1", default-features = false }
+rand = { version = "0.8", default-features = false }
+reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.3", features = ["mdbx"], default-features = false}
+reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.3", default-features = false }
+reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.3", features = ["std", "alloy"], default-features = false }
+
+# s
+serde = { version = "1.0", features = ["derive"], default-features = false }
+serde_with = {  version = "3.9.0", features = ["base64","macros","hex"], default-features = false }
+serde_json = { version = "1.0", default-features = false }
+sha2 = { version = "0.10", default-features = false }
+
+# TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+# sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["libm"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
+# sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
+# sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
+
+# t
+tonic-build = { version = "0.12", features = ["prost", "transport"], default-features = false }
+tonic = { version = "0.12", features = ["transport"], default-features = false }
+tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "tracing"], default-features = false }
+thiserror = { version = "1", default-features = false }
+tempfile = { version = "3", default-features = false }
+tracing = { version = "0.1.40" }
+tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt", "json"] }
+tracing-appender = { version = "0.2.3"}
+
+# u
+# v
+# w
+# x
+# y
+# z
