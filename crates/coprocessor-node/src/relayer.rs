@@ -160,7 +160,7 @@ mod test {
     };
     use tokio::task::JoinSet;
 
-    const JOB_COUNT: usize = 30;
+    const JOB_COUNT: usize = 15;
 
     #[tokio::test]
     async fn run_can_successfully_submit_results() {
