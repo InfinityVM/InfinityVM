@@ -1503,6 +1503,7 @@ dependencies = [
  "tonic",
  "tonic-reflection",
  "tracing",
+ "tracing-appender",
  "tracing-subscriber 0.3.18",
  "zkvm",
  "zkvm-executor",
@@ -2517,6 +2518,8 @@ dependencies = [
  "tokio",
  "tonic",
  "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.18",
  "zkvm",
 ]
 

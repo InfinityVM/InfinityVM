@@ -177,6 +177,7 @@ thiserror = { version = "1", default-features = false }
 tempfile = { version = "3", default-features = false }
 tracing = { version = "0.1.40" }
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt", "json"] }
+tracing-appender = { version = "0.2.3"}
 
 # u
 # v
