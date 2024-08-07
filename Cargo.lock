@@ -1614,6 +1614,7 @@ dependencies = [
  "tracing-subscriber 0.3.18",
  "zkvm",
  "zkvm-executor",
+ "zkvm-tracing",
 ]
 
 [[package]]
@@ -2648,6 +2649,7 @@ dependencies = [
  "tracing-appender",
  "tracing-subscriber 0.3.18",
  "zkvm",
+ "zkvm-tracing",
 ]
 
 [[package]]
@@ -6803,6 +6805,17 @@ dependencies = [
  "tracing",
  "tracing-subscriber 0.3.18",
  "zkvm",
+]
+
+[[package]]
+name = "zkvm-tracing"
+version = "0.0.1"
+dependencies = [
+ "strum",
+ "strum_macros",
+ "tracing",
+ "tracing-appender",
+ "tracing-subscriber 0.3.18",
 ]
 
 [[package]]

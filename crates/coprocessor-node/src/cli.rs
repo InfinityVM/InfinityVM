@@ -12,7 +12,7 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use async_channel::{bounded, Receiver, Sender};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use k256::ecdsa::SigningKey;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
 use std::{net::SocketAddrV4, path::PathBuf, sync::Arc};
@@ -70,12 +70,6 @@ pub enum Error {
     ErrorHandlingFailed(#[from] tokio::task::JoinError),
 }
 
-#[derive(ValueEnum, Debug, Clone)]
-enum LoggingFormat {
-    Json,
-    Text,
-}
-
 type K256LocalSigner = LocalSigner<SigningKey>;
 
 #[derive(Debug, Clone, Subcommand)]
@@ -119,14 +113,6 @@ fn db_dir() -> String {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Opts {
-    /// Logging level
-    #[arg(long, default_value = "info")]
-    log_level: String,
-
-    /// Logging format
-    #[arg(long, default_value = "text")]
-    log_format: LoggingFormat,
-
     /// gRPC server address
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
