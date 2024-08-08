@@ -1,17 +1,16 @@
 //! Job processor implementation.
 
 use alloy::{hex, primitives::Signature, signers::Signer};
-use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, VmType};
+use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
 use std::{marker::Send, sync::Arc};
 
+use crate::{metrics::Metrics, relayer::JobRelayer};
 use async_channel::{Receiver, Sender};
 use db::{get_elf, get_job, put_elf, put_job};
 use reth_db::Database;
 use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
-
-use crate::relayer::JobRelayer;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -45,6 +44,28 @@ pub enum Error {
     ExecQueueChannelClosed,
 }
 
+/// `JobStatus` Failure Reasons
+#[derive(thiserror::Error, Debug)]
+pub enum FailureReason {
+    /// Job submitted with unknown or missing ELF
+    #[error("missing_elf")]
+    MissingElf,
+    /// No ELF found in DB
+    #[error("db_error_missing_elf")]
+    DbErrMissingElf,
+    /// Error retrieving elf
+    #[error("error_get_elf")]
+    ErrGetElf,
+    /// Unable to persist failed job to DB
+    #[error("db_error_status_failed")]
+    DbErrStatusFailed,
+    /// Error executing job against zkvm
+    #[error("execution_error")]
+    ExecErr,
+    /// Unable to persist successfully completed job to DB
+    #[error("db_error_status_done")]
+    DbErrStatusDone,
+}
 /// Job processor service.
 #[derive(Debug)]
 pub struct JobProcessorService<S, D> {
@@ -54,6 +75,7 @@ pub struct JobProcessorService<S, D> {
     job_relayer: Arc<JobRelayer>,
     zk_executor: ZkvmExecutorService<S>,
     task_handles: JoinSet<Result<(), Error>>,
+    metrics: Arc<Metrics>,
 }
 
 // The DB functions in JobProcessorService are async so they yield in the tokio task.
@@ -69,6 +91,7 @@ where
         exec_queue_receiver: Receiver<Job>,
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
+        metrics: Arc<Metrics>,
     ) -> Self {
         Self {
             db,
@@ -77,6 +100,7 @@ where
             job_relayer,
             zk_executor,
             task_handles: JoinSet::new(),
+            metrics,
         }
     }
 
@@ -131,7 +155,8 @@ where
             return Err(Error::JobAlreadyExists);
         }
 
-        job.status = JobStatus::Pending.into();
+        job.status =
+            Some(JobStatus { status: JobStatusType::Pending as i32, failure_reason: None });
 
         Self::save_job(self.db.clone(), job.clone()).await?;
 
@@ -151,9 +176,10 @@ where
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
             let job_relayer = Arc::clone(&self.job_relayer);
+            let metrics = Arc::clone(&self.metrics);
 
             self.task_handles.spawn(async move {
-                Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor).await
+                Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor, metrics).await
             });
         }
     }
@@ -164,6 +190,7 @@ where
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
+        metrics: Arc<Metrics>,
     ) -> Result<(), Error> {
         loop {
             let mut job =
@@ -180,13 +207,16 @@ where
                         id,
                         job.program_verifying_key,
                     );
+                    metrics.incr_job_err(&FailureReason::MissingElf.to_string());
 
-                    // TODO: We should have some way of recording the error
-                    // reason / error type for failed jobs
-                    // [ref: https://github.com/Ethos-Works/InfinityVM/issues/117]
-                    job.status = JobStatus::Failed.into();
+                    job.status = Some(JobStatus {
+                        status: JobStatusType::Failed as i32,
+                        failure_reason: Some(FailureReason::MissingElf.to_string()),
+                    });
+
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {}: {:?}", id, e);
+                        metrics.incr_job_err(&FailureReason::DbErrMissingElf.to_string());
                     }
                     continue;
                 }
@@ -197,9 +227,17 @@ where
                         id,
                         job.program_verifying_key
                     );
-                    job.status = JobStatus::Failed.into();
-                    if let Err(error) = Self::save_job(db.clone(), job).await {
-                        error!(?error, "report this error: failed to save job {}", id);
+
+                    metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
+
+                    job.status = Some(JobStatus {
+                        status: JobStatusType::Failed as i32,
+                        failure_reason: Some(FailureReason::ErrGetElf.to_string()),
+                    });
+
+                    if let Err(e) = Self::save_job(db.clone(), job).await {
+                        error!("report this error: failed to save job {}: {:?}", id, e);
+                        metrics.incr_job_err("db_error_status_failed");
                     }
                     continue;
                 }
@@ -220,24 +258,34 @@ where
                 Ok(resp) => {
                     tracing::debug!("job {} executed successfully", id);
 
-                    job.status = JobStatus::Done.into();
+                    job.status = Some(JobStatus {
+                        status: JobStatusType::Done as i32,
+                        failure_reason: None,
+                    });
+
                     job.result = resp.result_with_metadata;
                     job.zkvm_operator_address = resp.zkvm_operator_address;
                     job.zkvm_operator_signature = resp.zkvm_operator_signature;
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
                         error!("report this error: failed to save job {}: {:?}", id, e);
+                        metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                         continue;
                     }
                     job
                 }
                 Err(e) => {
                     error!("failed to execute job {}: {:?}", id, e);
+                    metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
-                    job.status = JobStatus::Failed.into();
+                    job.status = Some(JobStatus {
+                        status: JobStatusType::Failed as i32,
+                        failure_reason: Some(FailureReason::ExecErr.to_string()),
+                    });
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {}: {:?}", id, e);
+                        metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
                     }
                     continue;
                 }
@@ -245,9 +293,8 @@ where
 
             let _tx_receipt = match job_relayer.relay(job).await {
                 Ok(tx_receipt) => tx_receipt,
-                Err(_) => {
-                    // TODO: decide what to do with failed tx
-                    //https://github.com/Ethos-Works/InfinityVM/issues/127
+                Err(e) => {
+                    error!("report this error: failed to relay job {}: {:?}", id, e);
                     continue;
                 }
             };
