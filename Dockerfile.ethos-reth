@@ -4,7 +4,7 @@ RUN cargo install cargo-chef
 
 FROM chef AS planner
 WORKDIR /app
-COPY rust/bin/ethos-reth .
+COPY bin/ethos-reth .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS cacher
@@ -26,5 +26,5 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/ethos-reth /app/ethos-reth
+COPY --from=builder /app/target/release/ethos-reth /usr/local/bin/ethos-reth
 CMD ["ethos-reth", "--dev"]
