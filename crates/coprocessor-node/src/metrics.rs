@@ -2,7 +2,6 @@ use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::ge
 use prometheus::{self, CounterVec, Encoder, Opts, Registry, TextEncoder};
 use std::{fmt::Debug, sync::Arc};
 
-
 /// Custom prometheus metrics
 #[derive(Debug, Clone)]
 pub struct Metrics {
@@ -48,8 +47,10 @@ impl MetricServer {
     /// Serve metrics
     pub async fn serve(&self, addr: &str) -> Result<(), std::io::Error> {
         let registry = Arc::clone(&self.registry);
-        let router =
-            Router::new().route("/metrics", get(Self::handle_metrics)).with_state(registry);
+
+        let router = Router::new()
+            .route("/metrics", get(Self::handle_metrics))
+            .with_state(registry);
 
         let addr: std::net::SocketAddr = addr.parse().unwrap();
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

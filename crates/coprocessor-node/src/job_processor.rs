@@ -291,9 +291,7 @@ where
                 }
             };
 
-            // TODO: This seems hacky, not sure how to address
-            let job_clone = job.clone();
-            let _tx_receipt = match job_relayer.relay(job_clone).await {
+            let _tx_receipt = match job_relayer.relay(job).await {
                 Ok(tx_receipt) => tx_receipt,
                 Err(e) => {
                     error!("report this error: failed to relay job {}: {:?}", id, e);

@@ -315,8 +315,8 @@ impl Cli {
         // Exit early if either handle returns an error.
         // Note that we make sure to `spawn` each task so they can run in parallel
         // and not just concurrently on the same thread.
-        try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server))
-            .map(|_| ())
+
+        try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server)).map(|_| ())
     }
 }
 
