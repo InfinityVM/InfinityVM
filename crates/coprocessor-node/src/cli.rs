@@ -303,7 +303,7 @@ impl Cli {
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
 
-        tracing::info!("🚥 starting gRPC server at {}", grpc_addr);
+        info!("🚥 starting gRPC server at {}", grpc_addr);
         let grpc_server = tokio::spawn(async move {
             tonic::transport::Server::builder()
                 .add_service(coprocessor_node_server)

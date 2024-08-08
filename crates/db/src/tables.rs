@@ -67,4 +67,6 @@ reth_db::tables! {
     table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
     /// Stores jobs
     table JobTable<Key = u32, Value = Job>;
+    /// Stores failed jobs
+    table RetryFailureJobs<Key = u32, Value = Job>;
 }
