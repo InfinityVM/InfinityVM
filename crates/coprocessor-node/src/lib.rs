@@ -15,5 +15,3 @@ pub mod event;
 
 /// Metrics
 pub mod metrics;
-
-pub mod metrics_server;

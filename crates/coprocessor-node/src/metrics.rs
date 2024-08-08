@@ -1,10 +1,18 @@
-use prometheus::{CounterVec, Opts, Registry};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Router};
+use prometheus::{self, CounterVec, Encoder, Opts, Registry, TextEncoder};
+use std::{fmt::Debug, sync::Arc};
 
 /// Custom prometheus metrics
 #[derive(Debug, Clone)]
 pub struct Metrics {
     job_errors: CounterVec,
     relay_errors: CounterVec,
+}
+
+/// Metrics Server
+#[derive(Debug, Default, Clone)]
+pub struct MetricServer {
+    registry: Arc<Registry>,
 }
 
 impl Metrics {
@@ -27,5 +35,34 @@ impl Metrics {
     /// Increment relayer errors counter
     pub fn incr_relay_err(&self, label: &str) {
         self.relay_errors.with_label_values(&[label]).inc();
+    }
+}
+
+impl MetricServer {
+    /// Return a new server instance
+    pub fn new(registry: Arc<Registry>) -> Self {
+        Self { registry }
+    }
+
+    /// Serve metrics
+    pub async fn serve(&self, addr: &str) -> Result<(), std::io::Error> {
+        let registry = Arc::clone(&self.registry);
+        let router = Router::new()
+            .route("/metrics", get(Self::handle_metrics))
+            .with_state(registry);
+
+        let addr: std::net::SocketAddr = addr.parse().unwrap();
+        let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+        axum::serve(listener, router).await
+    }
+
+    /// Metrics path
+    async fn handle_metrics(State(registry): State<Arc<Registry>>) -> impl IntoResponse {
+        let mut buffer = Vec::new();
+        let encoder = TextEncoder::new();
+        let metric_families = registry.gather();
+        encoder.encode(&metric_families, &mut buffer).unwrap();
+        let metrics = String::from_utf8(buffer).unwrap();
+        (StatusCode::OK, metrics).into_response()
     }
 }

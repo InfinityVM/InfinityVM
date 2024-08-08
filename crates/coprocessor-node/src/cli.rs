@@ -3,8 +3,7 @@
 use crate::{
     event::{self, start_job_event_listener},
     job_processor::JobProcessorService,
-    metrics::Metrics,
-    metrics_server::MetricServer,
+    metrics::{ Metrics,MetricServer},
     relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
 };
@@ -78,6 +77,9 @@ pub enum Error {
     /// task join error
     #[error("error handling failed")]
     ErrorHandlingFailed(#[from] tokio::task::JoinError),
+    /// prometheus error
+    #[error("prometheus error")]
+    ErrorPrometheus(#[from] std::io::Error),
 }
 
 #[derive(ValueEnum, Debug, Clone)]
@@ -240,7 +242,7 @@ impl Cli {
         // Start Prometheus server
         let prom_addr: SocketAddr =
             opts.prom_address.parse().map_err(|_| Error::InvalidPromAddress)?;
-        let handle = tokio::spawn(async move {
+        let prometheus_server = tokio::spawn(async move {
             info!("Prometheus server listening on {}", prom_addr);
             metric_server.serve(&prom_addr.to_string()).await
         });
@@ -313,7 +315,7 @@ impl Cli {
         // Exit early if either handle returns an error.
         // Note that we make sure to `spawn` each task so they can run in parallel
         // and not just concurrently on the same thread.
-        try_join!(flatten(job_event_listener), flatten(grpc_server)).map(|_| ())
+        try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server)).map(|_| ())
     }
 }
 
