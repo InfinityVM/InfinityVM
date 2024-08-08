@@ -3,7 +3,7 @@
 use crate::{
     event::{self, start_job_event_listener},
     job_processor::JobProcessorService,
-    metrics::{ Metrics,MetricServer},
+    metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
 };
@@ -315,7 +315,8 @@ impl Cli {
         // Exit early if either handle returns an error.
         // Note that we make sure to `spawn` each task so they can run in parallel
         // and not just concurrently on the same thread.
-        try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server)).map(|_| ())
+        try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server))
+            .map(|_| ())
     }
 }
 

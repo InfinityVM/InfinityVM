@@ -65,9 +65,6 @@ pub enum FailureReason {
     /// Unable to persist successfully completed job to DB
     #[error("db_error_status_done")]
     DbErrStatusDone,
-    /// Failure submitting job to `JobManager` contract
-    #[error("relay_error")]
-    RelayErr,
 }
 /// Job processor service.
 #[derive(Debug)]
@@ -298,7 +295,6 @@ where
                 Ok(tx_receipt) => tx_receipt,
                 Err(e) => {
                     error!("report this error: failed to relay job {}: {:?}", id, e);
-                    metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                     continue;
                 }
             };
