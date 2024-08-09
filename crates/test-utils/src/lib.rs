@@ -188,6 +188,7 @@ pub async fn mock_consumer_pending_job(
         status: Some(JobStatus {
             status: proto::JobStatusType::Pending as i32,
             failure_reason: None,
+            retries: 0,
         }),
         contract_address: mock_consumer.abi_encode(),
         zkvm_operator_signature: operator_signature,

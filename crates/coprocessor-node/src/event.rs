@@ -87,6 +87,7 @@ where
                     status: Some(JobStatus {
                         status: JobStatusType::Pending as i32,
                         failure_reason: None,
+                        retries: 0,
                     }),
                 };
 
