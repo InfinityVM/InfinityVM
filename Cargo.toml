@@ -150,6 +150,7 @@ k256 = { version = "0.13", default-features = false }
 # n
 # o
 # p
+prometheus = { version = "0.9", features = ["process"] }
 prost = { version = "0.13", default-features = false }
 
 # q

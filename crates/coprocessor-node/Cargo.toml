@@ -27,6 +27,8 @@ base64 = { workspace = true }
 async-channel = { workspace = true }
 futures-util = { workspace = true }
 
+prometheus = { workspace = true }
+axum = { workspace = true }
 contracts = { path = "../contracts" }
 db = { path = "../db" }
 proto = { path = "../proto" }
