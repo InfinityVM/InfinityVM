@@ -31,16 +31,24 @@ where
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
         let job = req.job.ok_or_else(|| Status::invalid_argument("missing job"))?;
-        let id = job.id;
+        let nonce = job.nonce.ok_or_else(|| Status::invalid_argument("missing nonce"))?;
+        let contract_address = job.contract_address.clone();
+        // let id = job.id;
 
         // verify fields
         if job.max_cycles == 0 {
             return Err(Status::invalid_argument("job max cycles must be positive"));
         }
 
-        let job_id = id.filter(|&job_id| job_id > 0).ok_or_else(|| Status::invalid_argument("job ID must be positive"))?;
+        if job.id.is_some() {
+            return Err(Status::invalid_argument("job ID must not be set"));
+        }
 
-        if job.contract_address.is_empty() {
+        if job.request_signature.is_empty() {
+            return Err(Status::invalid_argument("job request signature must not be empty"));
+        }
+
+        if contract_address.is_empty() {
             return Err(Status::invalid_argument("job contract address must not be empty"));
         }
 
@@ -53,7 +61,7 @@ where
             .await
             .map_err(|e| Status::internal(format!("failed to submit job: {e}")))?;
 
-        Ok(Response::new(SubmitJobResponse { job_id: job_id }))
+        Ok(Response::new(SubmitJobResponse { nonce: nonce, contract_address: contract_address }))
     }
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.
