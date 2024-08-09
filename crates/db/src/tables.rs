@@ -39,7 +39,8 @@ impl Decode for ElfKey {
     }
 }
 
-/// Key to a table storing jobs. The key is the hash of either the job ID or (nonce, consumer address)
+/// Key to a table storing jobs. The key is the hash of either the job ID or (nonce, consumer
+/// address)
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct JobKey(pub [u8; 32]);
 

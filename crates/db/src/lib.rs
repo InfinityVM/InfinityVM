@@ -69,12 +69,8 @@ pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
 
     let tx = db.tx_mut()?;
     let key = match job.nonce {
-        Some(nonce) => {
-            JobKey::from_nonce_and_consumer(nonce, &job.contract_address)
-        }
-        None => {
-            JobKey::from_job_id(job.id.expect("If nonce is None, job ID must exist"))
-        }
+        Some(nonce) => JobKey::from_nonce_and_consumer(nonce, &job.contract_address),
+        None => JobKey::from_job_id(job.id.expect("If nonce is None, job ID must exist")),
     };
     tx.put::<JobTable>(key, job)?;
     let _commit = tx.commit()?;

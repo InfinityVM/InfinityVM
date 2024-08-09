@@ -215,7 +215,8 @@ pub type OffchainResultWithMetadata = sol! {
 pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Result<Vec<u8>, Error> {
     let program_input_hash = keccak256(&i.program_input);
 
-    let id = i.job_id.ok_or_else(|| Error::MissingJobId(BASE64_STANDARD.encode(i.job_key.clone())))?;
+    let id =
+        i.job_id.ok_or_else(|| Error::MissingJobId(BASE64_STANDARD.encode(i.job_key.clone())))?;
     Ok(ResultWithMetadata::abi_encode_params(&(
         id,
         program_input_hash,
@@ -227,7 +228,10 @@ pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Resu
 
 /// Returns an ABI-encoded offchain result with metadata. This ABI-encoded response will be
 /// signed by the operator.
-pub fn abi_encode_offchain_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Result<Vec<u8>, Error> {
+pub fn abi_encode_offchain_result_with_metadata(
+    i: &JobInputs,
+    raw_output: &[u8],
+) -> Result<Vec<u8>, Error> {
     let program_input_hash = keccak256(&i.program_input);
 
     Ok(OffchainResultWithMetadata::abi_encode_params(&(

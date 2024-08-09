@@ -1,9 +1,8 @@
 //! Job processor implementation.
 
-use alloy::{hex, primitives::Signature, signers::Signer};
-use alloy::{sol, sol_types::SolType};
-use sha2::{Digest, Sha256};
+use alloy::{hex, primitives::Signature, signers::Signer, sol, sol_types::SolType};
 use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
+use sha2::{Digest, Sha256};
 use std::{marker::Send, sync::Arc};
 
 use crate::{metrics::Metrics, relayer::JobRelayer};
@@ -94,7 +93,10 @@ impl Keyable for Job {
             }
             None => {
                 // Hash of job ID if it's an onchain job
-                let inner: [u8; 32] = Sha256::digest(&self.id.expect("Job will have ID if nonce doesn't exist").to_be_bytes()).into();
+                let inner: [u8; 32] = Sha256::digest(
+                    &self.id.expect("Job will have ID if nonce doesn't exist").to_be_bytes(),
+                )
+                .into();
                 inner
             }
         }
@@ -332,10 +334,8 @@ where
                 Some(_) => {
                     let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
                     job_relayer.relay_result_for_offchain_job(job, job_request_payload).await
-                },
-                None => {
-                    job_relayer.relay_result_for_onchain_job(job).await
                 }
+                None => job_relayer.relay_result_for_onchain_job(job).await,
             };
 
             let _relay_receipt = match relay_receipt_result {
@@ -361,9 +361,8 @@ pub type OffchainJobRequest = sol! {
 pub fn abi_encode_offchain_job_request(job: Job) -> Result<Vec<u8>, Error> {
     let nonce = job.nonce.ok_or_else(|| Error::MissingNonce)?;
 
-    let contract_address: [u8; 20] = job.contract_address
-        .try_into()
-        .map_err(|_| Error::InvalidAddressLength)?;
+    let contract_address: [u8; 20] =
+        job.contract_address.try_into().map_err(|_| Error::InvalidAddressLength)?;
 
     Ok(OffchainJobRequest::abi_encode_params(&(
         nonce,

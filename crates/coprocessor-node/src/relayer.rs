@@ -131,7 +131,8 @@ pub struct JobRelayer {
 impl JobRelayer {
     /// Submit a completed job to the `JobManager` contract for an onchain job request.
     pub async fn relay_result_for_onchain_job(&self, job: Job) -> Result<RelayReceipt, Error> {
-        let call_builder = self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
+        let call_builder =
+            self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, job.id, "tx broadcast failure");
@@ -158,28 +159,41 @@ impl JobRelayer {
         Ok(RelayReceipt::Onchain(receipt))
     }
     /// Submit a completed job to the `JobManager` contract for an offchain job request.
-    pub async fn relay_result_for_offchain_job(&self, job: Job, job_request_payload: Vec<u8>) -> Result<RelayReceipt, Error> {
-        let call_builder = self.job_manager
-            .submitResultForOffchainJob(
-                job.result.into(),
-                job.zkvm_operator_signature.into(),
-                job_request_payload.into(),
-                job.request_signature.into(),
-            );
+    pub async fn relay_result_for_offchain_job(
+        &self,
+        job: Job,
+        job_request_payload: Vec<u8>,
+    ) -> Result<RelayReceipt, Error> {
+        let call_builder = self.job_manager.submitResultForOffchainJob(
+            job.result.into(),
+            job.zkvm_operator_signature.into(),
+            job_request_payload.into(),
+            job.request_signature.into(),
+        );
 
         let pending_tx = call_builder.send().await.map_err(|error| {
-            error!(?error, job.nonce, "tx broadcast failure: contract_address = {}", hex::encode(&job.contract_address));
+            error!(
+                ?error,
+                job.nonce,
+                "tx broadcast failure: contract_address = {}",
+                hex::encode(&job.contract_address)
+            );
             self.metrics.incr_relay_err("relay_error_broadcast_failure");
             Error::TxBroadcast(error)
         })?;
 
         let receipt =
             pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
-                error!(?error, job.nonce, "tx inclusion failed: contract_address = {}", hex::encode(&job.contract_address));
+                error!(
+                    ?error,
+                    job.nonce,
+                    "tx inclusion failed: contract_address = {}",
+                    hex::encode(&job.contract_address)
+                );
                 self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
                 Error::TxInclusion(error)
             })?;
-        
+
         let log = receipt.inner.as_receipt().unwrap().logs[0]
             .log_decode::<IJobManager::JobCompleted>()
             .unwrap();

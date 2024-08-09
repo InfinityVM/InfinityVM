@@ -7,9 +7,9 @@ use alloy::{
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use proto::JobInputs;
+use sha2::{Digest, Sha256};
 use std::env;
 use zkvm_executor::service::abi_encode_result_with_metadata;
-use sha2::{Digest, Sha256};
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 

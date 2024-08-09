@@ -60,7 +60,7 @@ where
             .await
             .map_err(|e| Status::internal(format!("failed to submit job: {e}")))?;
 
-        Ok(Response::new(SubmitJobResponse { nonce: nonce, contract_address: contract_address }))
+        Ok(Response::new(SubmitJobResponse { nonce, contract_address }))
     }
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.

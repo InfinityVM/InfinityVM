@@ -16,10 +16,10 @@ use contracts::{
 };
 use proto::JobStatus;
 use rand::Rng;
+use sha2::{Digest, Sha256};
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
 use zkvm_executor::service::abi_encode_result_with_metadata;
-use sha2::{Digest, Sha256};
 
 /// Max cycles that the `MockContract` calls create job with.
 pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
