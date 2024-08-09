@@ -1,6 +1,7 @@
 //! Job processor implementation.
 
 use alloy::{hex, primitives::Signature, signers::Signer};
+use alloy::{sol, sol_types::SolType};
 use sha2::{Digest, Sha256};
 use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
 use std::{marker::Send, sync::Arc};
@@ -43,6 +44,12 @@ pub enum Error {
     /// exec queue channel unexpected closed
     #[error("exec queue channel unexpected closed")]
     ExecQueueChannelClosed,
+    /// missing nonce while encoding offchain job request
+    #[error("missing nonce while encoding offchain job request")]
+    MissingNonce,
+    /// invalid address length
+    #[error("invalid address length")]
+    InvalidAddressLength,
 }
 
 /// `JobStatus` Failure Reasons
@@ -321,8 +328,18 @@ where
                 }
             };
 
-            let _tx_receipt = match job_relayer.relay(job).await {
-                Ok(tx_receipt) => tx_receipt,
+            let relay_receipt_result = match job.nonce {
+                Some(_) => {
+                    let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
+                    job_relayer.relay_result_for_offchain_job(job, job_request_payload).await
+                },
+                None => {
+                    job_relayer.relay_result_for_onchain_job(job).await
+                }
+            };
+
+            let _relay_receipt = match relay_receipt_result {
+                Ok(receipt) => receipt,
                 Err(e) => {
                     error!("report this error: failed to relay job {:?}: {:?}", key, e);
                     continue;
@@ -330,4 +347,29 @@ where
             };
         }
     }
+}
+
+/// The payload that gets signed by the user/app for an offchain job request.
+///
+/// tuple(Nonce,MaxCycles,Consumer,ProgramID,ProgramInput)
+pub type OffchainJobRequest = sol! {
+    tuple(uint64,uint64,address,bytes,bytes)
+};
+
+/// Returns an ABI-encoded offchain job request. This ABI-encoded response will be
+/// signed by the entity sending the job request (user, app, authorized third-party, etc.).
+pub fn abi_encode_offchain_job_request(job: Job) -> Result<Vec<u8>, Error> {
+    let nonce = job.nonce.ok_or_else(|| Error::MissingNonce)?;
+
+    let contract_address: [u8; 20] = job.contract_address
+        .try_into()
+        .map_err(|_| Error::InvalidAddressLength)?;
+
+    Ok(OffchainJobRequest::abi_encode_params(&(
+        nonce,
+        job.max_cycles,
+        contract_address,
+        job.program_verifying_key,
+        job.input,
+    )))
 }

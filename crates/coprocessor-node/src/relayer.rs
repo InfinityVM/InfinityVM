@@ -109,6 +109,14 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
     }
 }
 
+#[derive(Debug)]
+pub enum RelayReceipt {
+    Onchain(TransactionReceipt),
+    // Returns job ID as well for offchain jobs since this is returned
+    // from the contract
+    Offchain(u32, TransactionReceipt),
+}
+
 /// Submit completed jobs onchain to the `JobManager` contract.
 ///
 /// This is safe to use across threads and should correctly handle nonce incrementing as long as
@@ -121,10 +129,9 @@ pub struct JobRelayer {
 }
 
 impl JobRelayer {
-    /// Submit a completed jobs onchain to the `JobManager` contract.
-    pub async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
-        let call_builder =
-            self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
+    /// Submit a completed job to the `JobManager` contract for an onchain job request.
+    pub async fn relay_result_for_onchain_job(&self, job: Job) -> Result<RelayReceipt, Error> {
+        let call_builder = self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, job.id, "tx broadcast failure");
@@ -148,7 +155,46 @@ impl JobRelayer {
             "tx included"
         );
 
-        Ok(receipt)
+        Ok(RelayReceipt::Onchain(receipt))
+    }
+    /// Submit a completed job to the `JobManager` contract for an offchain job request.
+    pub async fn relay_result_for_offchain_job(&self, job: Job, job_request_payload: Vec<u8>) -> Result<RelayReceipt, Error> {
+        let call_builder = self.job_manager
+            .submitResultForOffchainJob(
+                job.result.into(),
+                job.zkvm_operator_signature.into(),
+                job_request_payload.into(),
+                job.request_signature.into(),
+            );
+
+        let pending_tx = call_builder.send().await.map_err(|error| {
+            error!(?error, job.nonce, "tx broadcast failure: contract_address = {}", hex::encode(&job.contract_address));
+            self.metrics.incr_relay_err("relay_error_broadcast_failure");
+            Error::TxBroadcast(error)
+        })?;
+
+        let receipt =
+            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+                error!(?error, job.nonce, "tx inclusion failed: contract_address = {}", hex::encode(&job.contract_address));
+                self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
+                Error::TxInclusion(error)
+            })?;
+        
+        let log = receipt.inner.as_receipt().unwrap().logs[0]
+            .log_decode::<IJobManager::JobCompleted>()
+            .unwrap();
+        let job_id = log.data().jobID;
+
+        info!(
+            receipt.transaction_index,
+            receipt.block_number,
+            ?receipt.block_hash,
+            ?receipt.transaction_hash,
+            job_id,
+            "tx included"
+        );
+
+        Ok(RelayReceipt::Offchain(job_id, receipt))
     }
 }
 
@@ -220,7 +266,7 @@ mod test {
 
             let relayer2 = Arc::clone(&job_relayer);
             join_set.spawn(async move {
-                assert!(relayer2.relay(job).await.is_ok());
+                assert!(relayer2.relay_result_for_onchain_job(job).await.is_ok());
             });
         }
 

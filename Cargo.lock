@@ -1626,6 +1626,7 @@ dependencies = [
  "contracts",
  "db",
  "futures-util",
+ "hex",
  "home",
  "k256",
  "prometheus",

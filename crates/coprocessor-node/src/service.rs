@@ -33,7 +33,6 @@ where
         let job = req.job.ok_or_else(|| Status::invalid_argument("missing job"))?;
         let nonce = job.nonce.ok_or_else(|| Status::invalid_argument("missing nonce"))?;
         let contract_address = job.contract_address.clone();
-        // let id = job.id;
 
         // verify fields
         if job.max_cycles == 0 {
