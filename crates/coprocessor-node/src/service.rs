@@ -38,9 +38,7 @@ where
             return Err(Status::invalid_argument("job max cycles must be positive"));
         }
 
-        if id == 0 {
-            return Err(Status::invalid_argument("job ID must be positive"));
-        }
+        let job_id = id.filter(|&job_id| job_id > 0).ok_or_else(|| Status::invalid_argument("job ID must be positive"))?;
 
         if job.contract_address.is_empty() {
             return Err(Status::invalid_argument("job contract address must not be empty"));
@@ -55,8 +53,11 @@ where
             .await
             .map_err(|e| Status::internal(format!("failed to submit job: {e}")))?;
 
-        Ok(Response::new(SubmitJobResponse { job_id: id }))
+        Ok(Response::new(SubmitJobResponse { job_id: job_id }))
     }
+    /// SubmitOffchainJob defines the gRPC method for submitting a request for an
+    /// offchain coprocessing job.
+    // async fn submit_offchain_job()
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.
     async fn get_result(
@@ -70,7 +71,7 @@ where
 
         let job = self
             .job_processor
-            .get_job(req.job_id)
+            .get_job_for_id(req.job_id)
             .await
             .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
 

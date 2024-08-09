@@ -9,6 +9,7 @@ use k256::ecdsa::SigningKey;
 use proto::JobInputs;
 use std::env;
 use zkvm_executor::service::abi_encode_result_with_metadata;
+use sha2::{Digest, Sha256};
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -32,7 +33,8 @@ impl RequestAndResultSigner {
         let zero_addr: Address = Address::ZERO;
 
         let job_inputs = JobInputs {
-            job_id: JOB_ID,
+            job_key: Sha256::digest(&JOB_ID.to_be_bytes()).to_vec(),
+            job_id: Some(JOB_ID),
             program_input: abi_encode_address(zero_addr),
             max_cycles: MAX_CYCLES,
             program_verifying_key: PROGRAM_ID.to_vec(),
@@ -42,7 +44,7 @@ impl RequestAndResultSigner {
 
         // Encode the result with metadata
         let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
-        let encoded_result = abi_encode_result_with_metadata(&job_inputs, &raw_output);
+        let encoded_result = abi_encode_result_with_metadata(&job_inputs, &raw_output).unwrap();
 
         // Sign the message
         let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY")

@@ -19,6 +19,7 @@ use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
 use zkvm_executor::service::abi_encode_result_with_metadata;
+use sha2::{Digest, Sha256};
 
 /// Max cycles that the `MockContract` calls create job with.
 pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
@@ -167,7 +168,8 @@ pub async fn mock_consumer_pending_job(
     let raw_output = mock_raw_output();
 
     let inputs = proto::JobInputs {
-        job_id: i as u32,
+        job_key: Sha256::digest(&i.to_be_bytes()).to_vec(),
+        job_id: Some(i as u32),
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
         program_verifying_key: bytes.clone(),
         program_input: addr.abi_encode(),
@@ -175,12 +177,13 @@ pub async fn mock_consumer_pending_job(
         program_elf: bytes.clone(),
     };
 
-    let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output);
+    let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output).unwrap();
     let operator_signature =
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 
     let job = proto::Job {
         id: inputs.job_id,
+        nonce: None,
         max_cycles: inputs.max_cycles,
         program_verifying_key: inputs.program_verifying_key,
         input: inputs.program_input,

@@ -9,7 +9,7 @@ use reth_db::{
     Database, DatabaseEnv, DatabaseError, TableType,
 };
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta};
+use tables::{ElfKey, ElfWithMeta, JobKey};
 
 pub mod tables;
 
@@ -68,18 +68,27 @@ pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(job.id, job)?;
+    let key = match job.nonce {
+        Some(nonce) => {
+            JobKey::from_nonce_and_consumer(nonce, &job.contract_address)
+        }
+        None => {
+            JobKey::from_job_id(job.id.expect("If nonce is None, job ID must exist"))
+        }
+    };
+    tx.put::<JobTable>(key, job)?;
     let _commit = tx.commit()?;
 
     Ok(())
 }
 
 /// Read in an Job from the database. [None] if it does not exist
-pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
+pub fn get_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<Option<Job>, Error> {
     use tables::JobTable;
 
     let tx = db.tx()?;
-    let result = tx.get::<JobTable>(job_id);
+    let key = JobKey::new(job_key);
+    let result = tx.get::<JobTable>(key);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -95,12 +104,13 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
 /// sorted duplicate data items or not. If the data parameter is [Some] only the matching
 /// data item will be deleted. Otherwise, if data parameter is [None], any/all value(s)
 /// for specified key will be deleted.
-/// We pass in [None] here since each `job_id` only maps to a single Job.
-pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
+/// We pass in [None] here since each `job_key` only maps to a single Job.
+pub fn delete_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<bool, Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<JobTable>(job_id, None);
+    let key = JobKey::new(job_key);
+    let result = tx.delete::<JobTable>(key, None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 

@@ -216,7 +216,7 @@ mod test {
                 .unwrap();
 
             // Ensure test setup is working as we think
-            assert_eq!(job.id, log.data().jobID);
+            assert_eq!(job.id.unwrap(), log.data().jobID);
 
             let relayer2 = Arc::clone(&job_relayer);
             join_set.spawn(async move {

@@ -46,6 +46,7 @@ message SubmitJobResponse {
   uint32 job_id = 1;
 }
 
+
 // GetResultRequest defines the request structure to get the result of a
 // coprocessing job.
 message GetResultRequest {

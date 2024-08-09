@@ -76,7 +76,8 @@ where
                 };
 
                 let job = Job {
-                    id: event.jobID,
+                    id: Some(event.jobID),
+                    nonce: None,
                     program_verifying_key: event.programID.clone().to_vec(),
                     input: event.programInput.into(),
                     contract_address: log.address().to_vec(),

@@ -1,6 +1,7 @@
 //! Job processor implementation.
 
 use alloy::{hex, primitives::Signature, signers::Signer};
+use sha2::{Digest, Sha256};
 use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
 use std::{marker::Send, sync::Arc};
 
@@ -66,6 +67,33 @@ pub enum FailureReason {
     #[error("db_error_status_done")]
     DbErrStatusDone,
 }
+
+trait KeyableJob {
+    fn key(&self) -> [u8; 32];
+}
+
+impl KeyableJob for Job {
+    fn key(&self) -> [u8; 32] {
+        match self.nonce {
+            Some(nonce) => {
+                // Hash of (nonce, consumer address) tuple if it's an offchain job
+                let mut hasher = Sha256::new();
+                hasher.update(&nonce.to_be_bytes());
+                hasher.update(self.contract_address.clone());
+
+                // Hash the concatenated result
+                let inner: [u8; 32] = hasher.finalize().into();
+                inner
+            }
+            None => {
+                // Hash of job ID if it's an onchain job
+                let inner: [u8; 32] = Sha256::digest(&self.id.expect("Job will have ID if nonce doesn't exist").to_be_bytes()).into();
+                inner
+            }
+        }
+    }
+}
+
 /// Job processor service.
 #[derive(Debug)]
 pub struct JobProcessorService<S, D> {
@@ -136,22 +164,23 @@ where
         Ok(())
     }
 
-    /// Return whether job with `job_id` exists in DB
-    pub async fn has_job(&self, job_id: u32) -> Result<bool, Error> {
-        let job = get_job(self.db.clone(), job_id)?;
+    /// Return whether job with `job_key` exists in DB
+    pub async fn has_job(&self, job_key: [u8; 32]) -> Result<bool, Error> {
+        let job = get_job(self.db.clone(), job_key)?;
         Ok(job.is_some())
     }
 
     /// Returns job with `job_id` from DB
-    pub async fn get_job(&self, job_id: u32) -> Result<Option<Job>, Error> {
-        let job = get_job(self.db.clone(), job_id)?;
+    pub async fn get_job_for_id(&self, job_id: u32) -> Result<Option<Job>, Error> {
+        let key = Sha256::digest(job_id.to_be_bytes()).into();
+        let job = get_job(self.db.clone(), key)?;
         Ok(job)
     }
 
     /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        let job_id = job.id;
-        if self.has_job(job_id).await? {
+        let job_key = job.key();
+        if self.has_job(job_key).await? {
             return Err(Error::JobAlreadyExists);
         }
 
@@ -195,16 +224,16 @@ where
         loop {
             let mut job =
                 exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
-            let id = job.id;
-            info!("executing job {}", id);
+            let key = job.key();
+            info!("executing job {:?}", key);
 
             let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
                 Ok(Some(elf)) => elf,
                 Ok(None) => {
                     error!(
                         ?job.contract_address,
-                        "no ELF found for job {} with verifying key {:?}",
-                        id,
+                        "no ELF found for job {:?} with verifying key {:?}",
+                        key,
                         job.program_verifying_key,
                     );
                     metrics.incr_job_err(&FailureReason::MissingElf.to_string());
@@ -215,7 +244,7 @@ where
                     });
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {}: {:?}", id, e);
+                        error!("report this error: failed to save job {:?}: {:?}", key, e);
                         metrics.incr_job_err(&FailureReason::DbErrMissingElf.to_string());
                     }
                     continue;
@@ -223,8 +252,8 @@ where
                 Err(error) => {
                     error!(
                         ?error,
-                        "could not find elf for job {} with verifying key {:?}",
-                        id,
+                        "could not find elf for job {:?} with verifying key {:?}",
+                        key,
                         job.program_verifying_key
                     );
 
@@ -236,7 +265,7 @@ where
                     });
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {}: {:?}", id, e);
+                        error!("report this error: failed to save job {:?}: {:?}", key, e);
                         metrics.incr_job_err("db_error_status_failed");
                     }
                     continue;
@@ -245,7 +274,8 @@ where
 
             let req = ExecuteRequest {
                 inputs: Some(JobInputs {
-                    job_id: id,
+                    job_key: key.to_vec(),
+                    job_id: job.id,
                     max_cycles: job.max_cycles,
                     program_verifying_key: job.program_verifying_key.clone(),
                     program_input: job.input.clone(),
@@ -256,7 +286,7 @@ where
 
             let job = match zk_executor.execute_handler(req).await {
                 Ok(resp) => {
-                    tracing::debug!("job {} executed successfully", id);
+                    tracing::debug!("job {:?} executed successfully", key);
 
                     job.status = Some(JobStatus {
                         status: JobStatusType::Done as i32,
@@ -268,14 +298,14 @@ where
                     job.zkvm_operator_signature = resp.zkvm_operator_signature;
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                        error!("report this error: failed to save job {}: {:?}", id, e);
+                        error!("report this error: failed to save job {:?}: {:?}", key, e);
                         metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                         continue;
                     }
                     job
                 }
                 Err(e) => {
-                    error!("failed to execute job {}: {:?}", id, e);
+                    error!("failed to execute job {:?}: {:?}", key, e);
                     metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
                     job.status = Some(JobStatus {
@@ -284,7 +314,7 @@ where
                     });
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {}: {:?}", id, e);
+                        error!("report this error: failed to save job {:?}: {:?}", key, e);
                         metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
                     }
                     continue;
@@ -294,7 +324,7 @@ where
             let _tx_receipt = match job_relayer.relay(job).await {
                 Ok(tx_receipt) => tx_receipt,
                 Err(e) => {
-                    error!("report this error: failed to relay job {}: {:?}", id, e);
+                    error!("report this error: failed to relay job {:?}: {:?}", key, e);
                     continue;
                 }
             };

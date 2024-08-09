@@ -30,7 +30,7 @@ pub fn abi_encode_result_with_metadata(i: &Job, raw_output: &[u8]) -> Vec<u8> {
     let program_input_hash = keccak256(&i.input);
 
     ResultWithMetadata::abi_encode_params(&(
-        i.id,
+        i.id.unwrap(),
         program_input_hash,
         i.max_cycles,
         &i.program_verifying_key,
