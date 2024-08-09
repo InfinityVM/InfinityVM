@@ -55,9 +55,6 @@ where
 
         Ok(Response::new(SubmitJobResponse { job_id: job_id }))
     }
-    /// SubmitOffchainJob defines the gRPC method for submitting a request for an
-    /// offchain coprocessing job.
-    // async fn submit_offchain_job()
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.
     async fn get_result(
