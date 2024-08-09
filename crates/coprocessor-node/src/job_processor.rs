@@ -165,13 +165,13 @@ where
         Ok(jobs)
     }
     /// Save failed relayed job in DB
-    pub async fn save_relay_err(db: Arc<D>, job: Job) -> Result<(), Error> {
+    pub async fn save_relay_error_job(db: Arc<D>, job: Job) -> Result<(), Error> {
         put_fail_relay_job(db, job)?;
         Ok(())
     }
 
     /// Returns failed relayed job with `job_id` from DB
-    pub async fn get_relay_err(&self, job_id: u32) -> Result<Option<Job>, Error> {
+    pub async fn get_relay_error_job(&self, job_id: u32) -> Result<Option<Job>, Error> {
         let job = get_fail_relay_job(self.db.clone(), job_id)?;
         Ok(job)
     }
@@ -206,8 +206,7 @@ where
         Ok(())
     }
 
-    /// Starts both the relay retry cron job the job processor and spawns `num_workers` worker
-    /// threads.
+    /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker threads
     pub async fn start(&mut self, num_workers: usize) {
         for _ in 0..num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
@@ -347,7 +346,7 @@ where
                 Err(e) => {
                     error!("report this error: failed to relay job {}: {:?}", id, e);
                     metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
-                    if let Err(e) = Self::save_relay_err(db.clone(), job).await {
+                    if let Err(e) = Self::save_relay_error_job(db.clone(), job).await {
                         error!("report this error: failed to save relay err {}: {:?}", id, e);
                         metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
                     }
@@ -383,7 +382,7 @@ where
                 match result {
                     Ok(_) => {
                         info!("successfully retried job relay for job: {}", job_id);
-                        jobs_to_delete.push(job.id);
+                        jobs_to_delete.push(job_id);
                     }
                     Err(e) => {
                         let status = match job.status.as_ref() {
@@ -403,7 +402,7 @@ where
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.as_mut().map(|status| status.retries += 1);
-                            if let Err(e) = Self::save_relay_err(db.clone(), job.clone()).await {
+                            if let Err(e) = Self::save_relay_error_job(db.clone(), job.clone()).await {
                                 error!(
                                     "report this error: failed to save retried job {}: {:?}",
                                     job_id, e

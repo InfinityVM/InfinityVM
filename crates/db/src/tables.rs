@@ -68,5 +68,5 @@ reth_db::tables! {
     /// Stores jobs
     table JobTable<Key = u32, Value = Job>;
     /// Stores failed jobs
-    table RetryFailureJobs<Key = u32, Value = Job>;
+    table RelayFailureJobs<Key = u32, Value = Job>;
 }

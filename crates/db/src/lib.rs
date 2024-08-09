@@ -110,10 +110,10 @@ pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
 
 /// Write a failed relayed job to the database
 pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    use tables::RetryFailureJobs;
+    use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    tx.put::<RetryFailureJobs>(job.id, job)?;
+    tx.put::<RelayFailureJobs>(job.id, job)?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -121,10 +121,10 @@ pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist
 pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
-    use tables::RetryFailureJobs;
+    use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
-    let result = tx.get::<RetryFailureJobs>(job_id);
+    let result = tx.get::<RelayFailureJobs>(job_id);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -133,11 +133,11 @@ pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option
 
 /// Read all failed relayed Jobs from the database. [None] if it does not exist
 pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
-    use tables::RetryFailureJobs;
+    use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
     let mut failed_jobs = Vec::new();
-    let mut cursor = tx.cursor_read::<RetryFailureJobs>()?;
+    let mut cursor = tx.cursor_read::<RelayFailureJobs>()?;
 
     while let Some((_, job)) = cursor.next()? {
         failed_jobs.push(job);
@@ -150,10 +150,10 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
 
 /// Delete a failed relayed Job from the database. [None] if it does not exist.
 pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
-    use tables::RetryFailureJobs;
+    use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<RetryFailureJobs>(job_id, None);
+    let result = tx.delete::<RelayFailureJobs>(job_id, None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
