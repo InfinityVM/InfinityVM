@@ -187,6 +187,7 @@ pub async fn mock_consumer_pending_job(
         max_cycles: inputs.max_cycles,
         program_verifying_key: inputs.program_verifying_key,
         input: inputs.program_input,
+        request_signature: vec![],
         result: result_with_meta,
         status: Some(JobStatus {
             status: proto::JobStatusType::Pending as i32,

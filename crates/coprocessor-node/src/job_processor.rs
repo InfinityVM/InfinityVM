@@ -68,11 +68,11 @@ pub enum FailureReason {
     DbErrStatusDone,
 }
 
-trait KeyableJob {
+trait Keyable {
     fn key(&self) -> [u8; 32];
 }
 
-impl KeyableJob for Job {
+impl Keyable for Job {
     fn key(&self) -> [u8; 32] {
         match self.nonce {
             Some(nonce) => {

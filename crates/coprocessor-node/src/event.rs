@@ -82,6 +82,7 @@ where
                     input: event.programInput.into(),
                     contract_address: log.address().to_vec(),
                     max_cycles: event.maxCycles,
+                    request_signature: vec![],
                     result: vec![],
                     zkvm_operator_address: vec![],
                     zkvm_operator_signature: vec![],

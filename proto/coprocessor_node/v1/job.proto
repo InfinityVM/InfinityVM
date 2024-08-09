@@ -35,12 +35,14 @@ message Job {
   bytes contract_address = 5;
   // CPU cycle limit for job execution
   uint64 max_cycles = 6;
+  // Signature on the offchain job request
+  bytes request_signature = 7;
   // The result of job execution
-  bytes result = 7;
+  bytes result = 8;
   // The address of the operator that executed the job
-  bytes zkvm_operator_address = 8;
+  bytes zkvm_operator_address = 9;
   // The signature of the operator that executed the job
-  bytes zkvm_operator_signature = 9;
+  bytes zkvm_operator_signature = 10;
   // The status of the job.
-  JobStatus status = 10;
+  JobStatus status = 11;
 }
