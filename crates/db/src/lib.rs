@@ -119,18 +119,23 @@ pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error
     use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    tx.put::<RelayFailureJobs>(job.id, job)?;
+    let key = match job.nonce {
+        Some(nonce) => JobKey::from_nonce_and_consumer(nonce, &job.contract_address),
+        None => JobKey::from_job_id(job.id.expect("If nonce is None, job ID must exist")),
+    };
+    tx.put::<RelayFailureJobs>(key, job)?;
     let _commit = tx.commit()?;
 
     Ok(())
 }
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist
-pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
+pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<Option<Job>, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
-    let result = tx.get::<RelayFailureJobs>(job_id);
+    let key = JobKey::new(job_key);
+    let result = tx.get::<RelayFailureJobs>(key);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -155,11 +160,12 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
 }
 
 /// Delete a failed relayed Job from the database. [None] if it does not exist.
-pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
+pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<bool, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<RelayFailureJobs>(job_id, None);
+    let key = JobKey::new(job_key);
+    let result = tx.delete::<RelayFailureJobs>(key, None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 

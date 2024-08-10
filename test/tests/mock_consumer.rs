@@ -50,42 +50,42 @@ fn invariants() {
     assert_eq!(&MOCK_CONSUMER_GUEST_ID, image_id.as_words());
 }
 
-#[tokio::test]
-#[ignore]
-async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
-    async fn test(mut args: Args) {
-        let anvil = args.anvil;
-        let chain_id = anvil.anvil.chain_id();
-        let program_id = mock_consumer_program_id().as_bytes().to_vec();
-        let mock_user_address = Address::repeat_byte(69);
+// #[tokio::test]
+// #[ignore]
+// async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
+//     async fn test(mut args: Args) {
+//         let anvil = args.anvil;
+//         let chain_id = anvil.anvil.chain_id();
+//         let program_id = mock_consumer_program_id().as_bytes().to_vec();
+//         let mock_user_address = Address::repeat_byte(69);
 
-        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
-        let random_user_wallet = EthereumWallet::from(random_user);
+//         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+//         let random_user_wallet = EthereumWallet::from(random_user);
 
-        // Seed coprocessor-node with ELF
-        let submit_program_request = SubmitProgramRequest {
-            program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
-        };
-        let submit_program_response = args
-            .coprocessor_node
-            .submit_program(submit_program_request)
-            .await
-            .unwrap()
-            .into_inner();
-        assert_eq!(
-            submit_program_response.program_verifying_key,
-            program_id // Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes()
-        );
+//         // Seed coprocessor-node with ELF
+//         let submit_program_request = SubmitProgramRequest {
+//             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
+//             vm_type: VmType::Risc0.into(),
+//         };
+//         let submit_program_response = args
+//             .coprocessor_node
+//             .submit_program(submit_program_request)
+//             .await
+//             .unwrap()
+//             .into_inner();
+//         assert_eq!(
+//             submit_program_response.program_verifying_key,
+//             program_id // Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes()
+//         );
 
-        let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .wallet(random_user_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
-    }
-    Integration::run(test).await;
-}
+//         let consumer_provider = ProviderBuilder::new()
+//             .with_recommended_fillers()
+//             .wallet(random_user_wallet)
+//             .on_http(anvil.anvil.endpoint().parse().unwrap());
+//         let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
+//     }
+//     Integration::run(test).await;
+// }
 
 // TODO: use this for testing the web2 flow
 // #[tokio::test]

@@ -3,17 +3,14 @@
 use alloy::{hex, primitives::Signature, signers::Signer, sol, sol_types::SolType};
 use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
 use sha2::{Digest, Sha256};
-use std::{marker::Send, sync::Arc};
+use std::{marker::Send, sync::Arc, time::Duration};
 use crate::{metrics::Metrics, relayer::JobRelayer};
-use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::{Receiver, Sender};
 use db::{
     delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
     put_fail_relay_job, put_job,
 };
-use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
 use reth_db::Database;
-use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
@@ -212,14 +209,14 @@ where
     }
 
     /// Returns failed relayed job with `job_id` from DB
-    pub async fn get_relay_error_job(&self, job_id: u32) -> Result<Option<Job>, Error> {
-        let job = get_fail_relay_job(self.db.clone(), job_id)?;
+    pub async fn get_relay_error_job(&self, job_key: [u8; 32]) -> Result<Option<Job>, Error> {
+        let job = get_fail_relay_job(self.db.clone(), job_key)?;
         Ok(job)
     }
 
     /// Deletes relay error job
-    pub async fn delete_relay_err_job(db: Arc<D>, job_id: u32) -> Result<(), Error> {
-        delete_fail_relay_job(db, job_id)?;
+    pub async fn delete_relay_err_job(db: Arc<D>, job_key: [u8; 32]) -> Result<(), Error> {
+        delete_fail_relay_job(db, job_key)?;
         Ok(())
     }
 
@@ -388,9 +385,9 @@ where
             let relay_receipt_result = match job.nonce {
                 Some(_) => {
                     let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
-                    job_relayer.relay_result_for_offchain_job(job, job_request_payload).await
+                    job_relayer.relay_result_for_offchain_job(job.clone(), job_request_payload).await
                 }
-                None => job_relayer.relay_result_for_onchain_job(job).await,
+                None => job_relayer.relay_result_for_onchain_job(job.clone()).await
             };
 
             let _relay_receipt = match relay_receipt_result {
@@ -417,7 +414,7 @@ where
     ) -> Result<(), Error> {
         loop {
             // Jobs to update
-            let mut jobs_to_delete: Vec<u32> = Vec::new();
+            let mut jobs_to_delete: Vec<[u8; 32]> = Vec::new();
 
             let retry_jobs = match Self::get_all_relay_error_jobs(db.clone()).await {
                 Ok(jobs) => jobs,
@@ -429,36 +426,43 @@ where
 
             // Retry each once
             for mut job in retry_jobs {
-                let job_id = job.id;
+                let job_key = job.key();
 
-                let result = job_relayer.relay(job.clone()).await;
+                let result = match job.nonce {
+                    Some(_) => {
+                        let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
+                        job_relayer.relay_result_for_offchain_job(job.clone(), job_request_payload).await
+                    }
+                    None => job_relayer.relay_result_for_onchain_job(job.clone()).await
+                };
+    
                 match result {
                     Ok(_) => {
-                        info!("successfully retried job relay for job: {}", job_id);
-                        jobs_to_delete.push(job_id);
+                        info!("successfully retried job relay for job: {:?}", job_key);
+                        jobs_to_delete.push(job_key);
                     }
                     Err(e) => {
                         let status = match job.status.as_ref() {
                             Some(status) => status,
                             None => {
-                                error!("error retrieving status for job: {}", job_id);
+                                error!("error retrieving status for job: {:?}", job_key);
                                 continue
                             }
                         };
                         if status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
-                            jobs_to_delete.push(job.id);
+                            jobs_to_delete.push(job_key);
                         } else {
                             error!(
-                                "report this error: failed to retry relaying job {}: {:?}",
-                                job_id, e
+                                "report this error: failed to retry relaying job {:?}: {:?}",
+                                job_key, e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.as_mut().map(|status| status.retries += 1);
                             if let Err(e) = Self::save_relay_error_job(db.clone(), job.clone()).await {
                                 error!(
-                                    "report this error: failed to save retried job {}: {:?}",
-                                    job_id, e
+                                    "report this error: failed to save retried job {:?}: {:?}",
+                                    job_key, e
                                 );
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }
@@ -470,8 +474,8 @@ where
                 for job_id in &jobs_to_delete {
                     if let Err(e) = Self::delete_relay_err_job(db.clone(), *job_id).await {
                         error!(
-                            "report this error: failed to delete retried job {}: {:?}",
-                            job.id, e
+                            "report this error: failed to delete retried job {:?}: {:?}",
+                            job_key, e
                         );
                         metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                     }
