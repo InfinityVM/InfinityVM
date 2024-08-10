@@ -260,8 +260,11 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let job = get_result_response.job.unwrap();
 
         // Verify the job execution result
-        let done_status =
-            Some(JobStatus { status: JobStatusType::Done as i32, failure_reason: None });
+        let done_status = Some(JobStatus {
+            status: JobStatusType::Done as i32,
+            failure_reason: None,
+            retries: 0,
+        });
         assert_eq!(job.status, done_status);
 
         // Verify address

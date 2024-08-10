@@ -19,6 +19,7 @@ fn serde_json_test() {
             status: Some(JobStatus {
                 status: JobStatusType::Unspecified as i32,
                 failure_reason: None,
+                retries: 0,
             }),
         }),
     };
@@ -39,7 +40,8 @@ fn serde_json_test() {
                 "zkvmOperatorSignature": "AAAB",
                 "status": {
                     "status": 0,
-                    "failureReason": null
+                    "failureReason": null,
+                    "retries": 0
                 }
             }
         }"#
