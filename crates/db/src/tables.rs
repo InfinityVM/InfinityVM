@@ -111,4 +111,6 @@ reth_db::tables! {
     table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
     /// Stores jobs
     table JobTable<Key = JobKey, Value = Job>;
+    /// Stores failed jobs
+    table RelayFailureJobs<Key = JobKey, Value = Job>;
 }

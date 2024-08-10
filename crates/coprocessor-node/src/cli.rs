@@ -303,7 +303,7 @@ impl Cli {
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
 
-        tracing::info!("🚥 starting gRPC server at {}", grpc_addr);
+        info!("🚥 starting gRPC server at {}", grpc_addr);
         let grpc_server = tokio::spawn(async move {
             tonic::transport::Server::builder()
                 .add_service(coprocessor_node_server)
@@ -315,6 +315,7 @@ impl Cli {
         // Exit early if either handle returns an error.
         // Note that we make sure to `spawn` each task so they can run in parallel
         // and not just concurrently on the same thread.
+
         try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server))
             .map(|_| ())
     }
