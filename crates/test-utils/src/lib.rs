@@ -29,11 +29,10 @@ pub const LOCALHOST: &str = "127.0.0.1";
 
 /// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
 pub fn test_tracing() {
-    tracing_subscriber::fmt()
+    let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .with_writer(std::io::stderr)
-        .try_init()
-        .unwrap();
+        .try_init();
 }
 
 /// Find a free port on localhost.
