@@ -186,6 +186,10 @@ struct Opts {
     // TODO: https://github.com/Ethos-Works/InfinityVM/issues/142
     #[arg(long, default_value_t = BlockNumberOrTag::Earliest)]
     job_sync_start: BlockNumberOrTag,
+
+    /// Required confirmations for tx
+    #[arg(long, default_value_t = 2)]
+    confirmations: u64,
 }
 
 impl Opts {
@@ -270,6 +274,7 @@ impl Cli {
         let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
             opts.http_eth_rpc.clone(),
             opts.job_manager_address,
+            opts.confirmations,
             metrics.clone(),
         )?;
         let job_relayer = Arc::new(job_relayer);
