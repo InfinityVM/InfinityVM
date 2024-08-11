@@ -153,6 +153,18 @@ where
         Ok(job.is_some())
     }
 
+    /// Save last block height in DB
+    pub async fn set_last_block_height(&self, height: u64) -> Result<(), Error> {
+        db::set_last_block_height(self.db.clone(), height)?;
+        Ok(())
+    }
+
+    /// Get last block height from DB
+    pub async fn get_last_block_height(&self) -> Result<u64, Error> {
+        let height = db::get_last_block_height(self.db.clone())?.unwrap_or_default();
+        Ok(height)
+    }
+
     /// Returns job with `job_id` from DB
     pub async fn get_job(&self, job_id: u32) -> Result<Option<Job>, Error> {
         let job = get_job(self.db.clone(), job_id)?;
@@ -206,7 +218,8 @@ where
         Ok(())
     }
 
-    /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker threads
+    /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker
+    /// threads
     pub async fn start(&mut self, num_workers: usize) {
         for _ in 0..num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
@@ -244,7 +257,7 @@ where
             let id = job.id;
             info!("executing job {}", id);
 
-            let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
+            let elf_with_meta = match get_elf(db.clone(), &job.program_verifying_key) {
                 Ok(Some(elf)) => elf,
                 Ok(None) => {
                     error!(
@@ -402,7 +415,9 @@ where
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.as_mut().map(|status| status.retries += 1);
-                            if let Err(e) = Self::save_relay_error_job(db.clone(), job.clone()).await {
+                            if let Err(e) =
+                                Self::save_relay_error_job(db.clone(), job.clone()).await
+                            {
                                 error!(
                                     "report this error: failed to save retried job {}: {:?}",
                                     job_id, e

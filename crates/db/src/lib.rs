@@ -14,6 +14,8 @@ use tables::{ElfKey, ElfWithMeta};
 
 pub mod tables;
 
+const LAST_HEIGHT_KEY: &str = "LAST_HEIGHT";
+
 /// DB module errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -81,6 +83,29 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
 
     let tx = db.tx()?;
     let result = tx.get::<JobTable>(job_id);
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into)
+}
+
+/// Write last block height to the database
+pub fn set_last_block_height<D: Database>(db: Arc<D>, height: u64) -> Result<(), Error> {
+    use tables::LastBlockHeight;
+
+    let tx = db.tx_mut()?;
+    tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY.to_string(), height)?;
+    let _commit = tx.commit()?;
+
+    Ok(())
+}
+
+/// Read last block height from the database.
+pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Error> {
+    use tables::LastBlockHeight;
+
+    let tx = db.tx()?;
+    let result = tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY.to_string());
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 

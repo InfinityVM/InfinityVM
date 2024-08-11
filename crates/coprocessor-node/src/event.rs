@@ -49,6 +49,11 @@ where
 {
     let handle = tokio::spawn(async move {
         let mut last_seen_block = from_block;
+        let saved_height = job_processor.get_last_block_height().await.unwrap_or_default();
+        if saved_height > last_seen_block.as_number().unwrap_or_default() {
+            last_seen_block = BlockNumberOrTag::Number(saved_height);
+        }
+
         let mut retry = 1;
         let ws = WsConnect::new(ws_rpc_url.clone());
         let provider = ProviderBuilder::new().on_ws(ws).await?;
@@ -96,6 +101,12 @@ where
                 }
                 if let Some(n) = log.block_number {
                     last_seen_block = BlockNumberOrTag::Number(n);
+                    if let Err(error) = job_processor
+                        .set_last_block_height(last_seen_block.as_number().unwrap())
+                        .await
+                    {
+                        error!(?error, "failed to set last seen block height");
+                    }
                 }
             }
 
