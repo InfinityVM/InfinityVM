@@ -1,3 +1,5 @@
+use proto::{JobStatus, JobStatusType};
+
 #[test]
 #[ignore]
 fn serde_json_test() {
@@ -12,7 +14,11 @@ fn serde_json_test() {
             result: input.clone(),
             zkvm_operator_address: input.clone(),
             zkvm_operator_signature: input,
-            status: 0,
+            status: Some(JobStatus {
+                status: JobStatusType::Unspecified as i32,
+                failure_reason: None,
+                retries: 0,
+            }),
         }),
     };
 
@@ -28,7 +34,11 @@ fn serde_json_test() {
                 "result": "AAAB",
                 "zkvmOperatorAddress": "000001",
                 "zkvmOperatorSignature": "AAAB",
-                "status": 0
+                "status": {
+                    "status": 0,
+                    "failureReason": null,
+                    "retries": 0
+                }
             }
         }"#
     .replace(['\n', ' '], "");

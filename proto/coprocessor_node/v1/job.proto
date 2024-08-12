@@ -5,12 +5,22 @@ import "coprocessor_node/v1/zkvm_executor.proto";
 
 option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
 
-// JobStatus defines the status of a submitted coprocessor job.
-enum JobStatus {
-  JOB_STATUS_UNSPECIFIED = 0;
-  JOB_STATUS_PENDING = 1;
-  JOB_STATUS_DONE = 2;
-  JOB_STATUS_FAILED = 3;
+// JobStatusType defines the status of a submitted coprocessor job.
+enum JobStatusType {
+  JOB_STATUS_TYPE_UNSPECIFIED = 0;
+  JOB_STATUS_TYPE_PENDING = 1;
+  JOB_STATUS_TYPE_DONE = 2;
+  JOB_STATUS_TYPE_FAILED = 3;
+}
+
+// JobStatus represents the status of a job including an optional failure reason.
+message JobStatus {
+  // The status type of the job.
+  JobStatusType status = 1;
+  // The optional reason for failure.
+  optional string failure_reason = 2;
+  // The optional number of retries
+  uint32 retries = 3;
 }
 
 // Job represents a program to be executed by the coprocessor with specific

@@ -10,7 +10,7 @@ use alloy::{
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use integration::{Args, Integration};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
-use proto::{GetResultRequest, Job, JobStatus, SubmitProgramRequest, VmType};
+use proto::{GetResultRequest, Job, JobStatus, JobStatusType, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
 
@@ -223,7 +223,11 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let job = get_result_response.job.unwrap();
 
         // Verify the job execution result
-        let done_status: i32 = JobStatus::Done.into();
+        let done_status = Some(JobStatus {
+            status: JobStatusType::Done as i32,
+            failure_reason: None,
+            retries: 0,
+        });
         assert_eq!(job.status, done_status);
 
         // Verify address

@@ -11,7 +11,7 @@ use alloy::{
 };
 use contracts::job_manager::JobManager;
 use futures_util::StreamExt;
-use proto::{Job, JobStatus};
+use proto::{Job, JobStatus, JobStatusType};
 use reth_db::Database;
 use tokio::{
     task::JoinHandle,
@@ -84,7 +84,11 @@ where
                     result: vec![],
                     zkvm_operator_address: vec![],
                     zkvm_operator_signature: vec![],
-                    status: JobStatus::Pending.into(),
+                    status: Some(JobStatus {
+                        status: JobStatusType::Pending as i32,
+                        failure_reason: None,
+                        retries: 0,
+                    }),
                 };
 
                 if let Err(error) = job_processor.submit_job(job).await {

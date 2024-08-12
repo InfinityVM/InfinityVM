@@ -10,6 +10,8 @@ const BORSH_SER_DER_DERIVE: &str = "#[derive(borsh::BorshSerialize, borsh::Borsh
 const SERDE_RENAME_CAMELCASE: &str = "#[serde(rename_all = \"camelCase\")]";
 const SERDE_BYTES_BASE64: &str = "#[serde_as(as = \"Base64\")]";
 const SERDE_BYTES_HEX: &str = "#[serde_as(as = \"Hex\")]";
+const BORSH_USE_DISCRIMINANT_TRUE: &str = "#[borsh(use_discriminant=true)]";
+const SERDE_DEFAULT: &str = "#[serde(default)]"; // New constant for serde default
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(env::var("OUT_DIR").unwrap());
@@ -17,7 +19,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute(".coprocessor_node", SERDE_AS)
         .type_attribute(".coprocessor_node", SERDE_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node", SERDE_RENAME_CAMELCASE)
-        .type_attribute("Job", BORSH_SER_DER_DERIVE)
+        .type_attribute(".coprocessor_node.v1.Job", BORSH_SER_DER_DERIVE)
+        .type_attribute(".coprocessor_node.v1.JobStatus", BORSH_SER_DER_DERIVE)
+        .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_SER_DER_DERIVE)
+        .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_USE_DISCRIMINANT_TRUE)
+        .field_attribute(".coprocessor_node.v1.JobStatus.failure_reason", SERDE_DEFAULT)
+        .field_attribute(".coprocessor_node.v1.JobStatus.retries", SERDE_DEFAULT)
         .field_attribute("program_elf", SERDE_BYTES_BASE64)
         .field_attribute("program_verifying_key", SERDE_BYTES_BASE64)
         .field_attribute("input", SERDE_BYTES_BASE64)

@@ -14,6 +14,7 @@ use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
+use proto::JobStatus;
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
@@ -184,7 +185,11 @@ pub async fn mock_consumer_pending_job(
         program_verifying_key: inputs.program_verifying_key,
         input: inputs.program_input,
         result: result_with_meta,
-        status: proto::JobStatus::Pending as i32,
+        status: Some(JobStatus {
+            status: proto::JobStatusType::Pending as i32,
+            failure_reason: None,
+            retries: 0,
+        }),
         contract_address: mock_consumer.abi_encode(),
         zkvm_operator_signature: operator_signature,
         zkvm_operator_address: operator.address().to_checksum(None).as_bytes().to_vec(),

@@ -9,8 +9,10 @@ use alloy::{
     transports::http::reqwest,
 };
 use proto::Job;
+use std::sync::Arc;
 use tracing::{error, info};
 
+use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
 
 // TODO: Figure out a way to more generically represent these types without using trait objects.
@@ -87,7 +89,12 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
     }
 
     /// Build a [`JobRelayer`].
-    pub fn build(self, http_rpc_url: String, job_manager: Address) -> Result<JobRelayer, Error> {
+    pub fn build(
+        self,
+        http_rpc_url: String,
+        job_manager: Address,
+        metrics: Arc<Metrics>,
+    ) -> Result<JobRelayer, Error> {
         let url: reqwest::Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
         info!("🧾 relayer sending transactions to rpc url {url}");
 
@@ -98,7 +105,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
             ProviderBuilder::new().with_recommended_fillers().wallet(wallet).on_http(url);
         let job_manager = JobManagerContract::new(job_manager, provider);
 
-        Ok(JobRelayer { job_manager })
+        Ok(JobRelayer { job_manager, metrics })
     }
 }
 
@@ -110,6 +117,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
 #[derive(Debug)]
 pub struct JobRelayer {
     job_manager: JobManagerContract,
+    metrics: Arc<Metrics>,
 }
 
 impl JobRelayer {
@@ -120,12 +128,14 @@ impl JobRelayer {
 
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, job.id, "tx broadcast failure");
+            self.metrics.incr_relay_err("relay_error_broadcast_failure");
             Error::TxBroadcast(error)
         })?;
 
         let receipt =
             pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
                 error!(?error, job.id, "tx inclusion failed");
+                self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
                 Error::TxInclusion(error)
             })?;
 
@@ -146,7 +156,7 @@ impl JobRelayer {
 mod test {
     use std::{collections::HashSet, sync::Arc};
 
-    use crate::relayer::JobRelayerBuilder;
+    use crate::{metrics::Metrics, relayer::JobRelayerBuilder};
     use alloy::{
         network::EthereumWallet,
         providers::{Provider, ProviderBuilder},
@@ -155,6 +165,7 @@ mod test {
         sol_types::SolEvent,
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+    use prometheus::Registry;
     use test_utils::{
         anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
     };
@@ -178,9 +189,12 @@ mod test {
             .on_http(anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock_consumer, &consumer_provider);
 
+        let registry = Registry::new();
+        let metrics = Arc::new(Metrics::new(&registry));
+
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
-            .build(anvil.endpoint().parse().unwrap(), job_manager)
+            .build(anvil.endpoint().parse().unwrap(), job_manager, metrics)
             .unwrap();
         let job_relayer = Arc::new(job_relayer);
         let mut join_set = JoinSet::new();
