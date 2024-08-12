@@ -2,7 +2,7 @@ FROM rust:1.79-bookworm AS chef
 RUN apt-get update && apt-get -y upgrade && apt-get install -y libclang-dev pkg-config
 
 WORKDIR /app
-COPY rust/bin/ethos-reth .
+COPY bin/ethos-reth .
 
 ARG FEATURES=""
 ENV FEATURES $FEATURES
@@ -14,5 +14,5 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/ethos-reth /app/ethos-reth
+COPY --from=chef /app/target/release/ethos-reth /app/ethos-reth
 CMD ["ethos-reth", "node", "--dev"]

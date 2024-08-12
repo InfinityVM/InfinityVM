@@ -4,7 +4,7 @@ RUN cargo install cargo-chef
 
 FROM chef AS planner
 WORKDIR /app
-COPY rust/bin/ethos-reth .
+COPY bin/ethos-reth .
 RUN cargo chef prepare --recipe-path recipe.json
 
 FROM chef AS cacher
