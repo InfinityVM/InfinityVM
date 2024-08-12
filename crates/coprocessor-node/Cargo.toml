@@ -34,7 +34,7 @@ db = { path = "../db" }
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
 zkvm-executor = { path = "../zkvm-executor" }
-zkvm-tracing = { path = "../zkvm-tracing" }
+zkvm-tracing = { path = "../tracing" }
 
 [dev-dependencies]
 test-utils = { path = "../test-utils" }
