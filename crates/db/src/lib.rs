@@ -69,9 +69,12 @@ pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    let key = match job.nonce {
-        Some(nonce) => JobKey::from_nonce_and_consumer(nonce, &job.contract_address),
-        None => JobKey::from_job_id(job.id.expect("If nonce is None, job ID must exist")),
+    let key = match job.id {
+        Some(job_id) => JobKey::from_job_id(job_id),
+        None => JobKey::from_nonce_and_consumer(
+            job.nonce.expect("If job ID is None, nonce must exist"),
+            &job.contract_address,
+        ),
     };
     tx.put::<JobTable>(key, job)?;
     let _commit = tx.commit()?;
@@ -130,7 +133,10 @@ pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error
 }
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist
-pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<Option<Job>, Error> {
+pub fn get_fail_relay_job<D: Database>(
+    db: Arc<D>,
+    job_key: [u8; 32],
+) -> Result<Option<Job>, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
