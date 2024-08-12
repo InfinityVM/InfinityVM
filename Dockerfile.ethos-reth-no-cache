@@ -1,20 +1,8 @@
 FROM rust:1.79-bookworm AS chef
 RUN apt-get update && apt-get -y upgrade && apt-get install -y libclang-dev pkg-config
-RUN cargo install cargo-chef
 
-FROM chef AS planner
 WORKDIR /app
 COPY rust/bin/ethos-reth .
-RUN cargo chef prepare --recipe-path recipe.json
-
-FROM chef AS cacher
-WORKDIR /app
-COPY --from=planner /app/. .
-RUN cargo chef cook --profile release --recipe-path recipe.json
-
-FROM chef as builder
-WORKDIR /app
-COPY --from=cacher /app/. .
 
 ARG FEATURES=""
 ENV FEATURES $FEATURES
