@@ -1,27 +1,27 @@
 FROM us-docker.pkg.dev/ethos-artifacts/docker/risc0-builder:latest AS chef
 WORKDIR /app
-COPY rust /app/rust
-COPY proto /app/proto
+COPY . /app/
 
+RUN apt-get update && apt-get install -y git
 RUN rustup default nightly
 ENV LIBCLANG_PATH=/usr/lib/x86_64-linux-gnu
 
 FROM chef AS planner
-WORKDIR /app/rust
+WORKDIR /app
 RUN cargo +nightly chef prepare --recipe-path recipe.json
 
 FROM chef AS cacher
-WORKDIR /app/rust
-COPY --from=planner /app/rust/recipe.json recipe.json
+WORKDIR /app
+COPY --from=planner /app/recipe.json recipe.json
 RUN cargo +nightly chef cook --release --recipe-path recipe.json
 
 FROM chef AS builder
-COPY --from=cacher /app/rust/target /app/rust/target
-RUN cargo +nightly build --release --locked --manifest-path /app/rust/crates/executor/Cargo.toml
+COPY --from=cacher /app/target /app/target
+RUN cargo +nightly build --release --locked --manifest-path /app/crates/coprocessor-node/Cargo.toml
 
 FROM debian:bookworm-slim
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates && \
     rm -rf /var/lib/apt/lists/*
-COPY --from=builder /app/rust/target/release/zkvm-executor /usr/local/bin/zkvm-executor
-CMD ["zkvm-executor", "version"]
+COPY --from=builder /app/target/release/coprocessor-node /usr/local/bin/coprocessor-node
+CMD ["coprocessor-node", "version"]

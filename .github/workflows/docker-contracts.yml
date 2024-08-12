@@ -1,5 +1,4 @@
-name: Docker Publish Coprocessor Node
-
+name: Docker Publish Contract Deployer
 on:
   workflow_dispatch:
 
@@ -46,6 +45,10 @@ jobs:
             **/*.rs
             **/.dockerignore
             rustfmt.toml
+            **/*.sol
+            contracts/generate_bindings.sh
+            contracts/foundry.toml
+            contracts/Makefile
           platforms: |
             "linux/amd64"
       - name: Docker Metadata Pull
@@ -67,7 +70,7 @@ jobs:
         if: env.GIT_DIFF
         with:
           context: .
-          file: Dockerfile.coproc-node
+          file: Dockerfile.contract-deployer
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
