@@ -2,7 +2,7 @@ FROM us-docker.pkg.dev/ethos-artifacts/docker/risc0-builder:latest AS chef
 WORKDIR /app
 COPY . /app/
 
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y git protobuf-compiler
 RUN rustup default nightly
 ENV LIBCLANG_PATH=/usr/lib/x86_64-linux-gnu
 
@@ -17,6 +17,7 @@ RUN cargo +nightly chef cook --release --recipe-path recipe.json
 
 FROM chef AS builder
 COPY --from=cacher /app/target /app/target
+RUN apt-get update && apt-get install -y protobuf-compiler
 RUN cargo +nightly build --release --locked --manifest-path /app/crates/coprocessor-node/Cargo.toml
 
 FROM debian:bookworm-slim
