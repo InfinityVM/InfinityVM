@@ -12,6 +12,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0x184c47137933253f49325B851307Ab1017863BD0;
     address OFFCHAIN_SIGNER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    uint32 DEFAULT_NONCE = 1;
     bytes32 DEFAULT_JOB_ID;
 
     event JobCreated(bytes32 indexed jobID, uint64 maxCycles, bytes programID, bytes programInput);
@@ -20,18 +21,19 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
 
     function setUp() public {
         deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_SIGNER, false);
-        DEFAULT_JOB_ID = keccak256(abi.encode(1, address(consumer)));
+        DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }
 
     function test_JobManager_CreateJob() public {
         vm.expectEmit(true, true, true, true);
         emit JobCreated(DEFAULT_JOB_ID, DEFAULT_MAX_CYCLES, "programID", "programInput");
-        bytes32 jobID = jobManager.createJob(1, "programID", "programInput", DEFAULT_MAX_CYCLES);
+        vm.prank(address(consumer));
+        bytes32 jobID = jobManager.createJob(DEFAULT_NONCE, "programID", "programInput", DEFAULT_MAX_CYCLES);
         assertEq(jobID, DEFAULT_JOB_ID);
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         assertEq(jobMetadata.programID, "programID");
         assertEq(jobMetadata.maxCycles, DEFAULT_MAX_CYCLES);
-        assertEq(jobMetadata.caller, address(this));
+        assertEq(jobMetadata.caller, address(consumer));
         assertEq(jobMetadata.status, 1);
     }
 

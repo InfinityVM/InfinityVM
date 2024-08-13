@@ -31,15 +31,16 @@ where
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
         let job = req.job.ok_or_else(|| Status::invalid_argument("missing job"))?;
-        let id = job.id;
+        let id = job.id.clone();
 
         // verify fields
         if job.max_cycles == 0 {
             return Err(Status::invalid_argument("job max cycles must be positive"));
         }
 
-        if id == 0 {
-            return Err(Status::invalid_argument("job ID must be positive"));
+        let job_id_array: Result<[u8; 32], _> = id.clone().try_into();
+        if job_id_array.is_err() {
+            return Err(Status::invalid_argument("job ID must be 32 bytes in length"));
         }
 
         if job.contract_address.is_empty() {
@@ -64,17 +65,22 @@ where
         request: Request<GetResultRequest>,
     ) -> Result<Response<GetResultResponse>, Status> {
         let req = request.into_inner();
-        if req.job_id == 0 {
-            return Err(Status::invalid_argument("job ID must be positive"));
+        let job_id_array: Result<[u8; 32], _> = req.job_id.clone().try_into();
+
+        match job_id_array {
+            Ok(job_id) => {
+                let job = self
+                    .job_processor
+                    .get_job(job_id)
+                    .await
+                    .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
+    
+                Ok(Response::new(GetResultResponse { job }))
+            },
+            Err(_) => {
+                Err(Status::invalid_argument("job ID must be 32 bytes in length"))
+            }
         }
-
-        let job = self
-            .job_processor
-            .get_job(req.job_id)
-            .await
-            .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
-
-        Ok(Response::new(GetResultResponse { job }))
     }
     /// SubmitProgram defines the gRPC method for submitting a new program to
     /// generate a unique program verification key.

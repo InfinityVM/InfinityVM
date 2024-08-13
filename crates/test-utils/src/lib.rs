@@ -134,8 +134,9 @@ pub async fn anvil_with_contracts() -> TestAnvil {
         .on_http(rpc_url.parse().unwrap());
 
     // Deploy the mock consumer contract. This can take jobs and accept results.
+    let nonce = 1;
     let mock_consumer =
-        MockConsumer::deploy(consumer_provider, job_manager, offchain_signer.address())
+        MockConsumer::deploy(consumer_provider, job_manager, offchain_signer.address(), nonce)
             .await
             .unwrap();
     let mock_consumer = *mock_consumer.address();
@@ -167,7 +168,7 @@ pub async fn mock_consumer_pending_job(
     let raw_output = mock_raw_output();
 
     let inputs = proto::JobInputs {
-        job_id: i as u32,
+        job_id: bytes.clone(),
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
         program_verifying_key: bytes.clone(),
         program_input: addr.abi_encode(),
@@ -175,7 +176,7 @@ pub async fn mock_consumer_pending_job(
         program_elf: bytes.clone(),
     };
 
-    let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output);
+    let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output).unwrap();
     let operator_signature =
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 

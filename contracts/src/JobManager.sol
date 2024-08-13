@@ -18,6 +18,7 @@ contract JobManager is
     ReentrancyGuard
 {
     using Strings for uint;
+    using Strings for uint32;
 
     // bytes4(keccak256("isValidSignature(bytes32,bytes)")
     bytes4 constant internal EIP1271_MAGIC_VALUE = 0x1626ba7e;
@@ -72,6 +73,7 @@ contract JobManager is
     function _createJob(uint32 nonce, bytes32 jobID, bytes memory programID, uint64 maxCycles, address consumer) internal {
         require(jobIDToMetadata[jobID].status == 0, "JobManager.createJob: job already exists with this nonce and consumer");
         jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, consumer, JOB_STATE_PENDING);
+        // Update max nonce for the consumer if needed
         uint32 maxNonce = Consumer(consumer).getMaxNonce();
         if (nonce > maxNonce) {
             Consumer(consumer).setMaxNonce(nonce);
