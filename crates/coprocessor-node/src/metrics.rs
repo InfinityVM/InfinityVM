@@ -48,9 +48,8 @@ impl MetricServer {
     pub async fn serve(&self, addr: &str) -> Result<(), std::io::Error> {
         let registry = Arc::clone(&self.registry);
 
-        let router = Router::new()
-            .route("/metrics", get(Self::handle_metrics))
-            .with_state(registry);
+        let router =
+            Router::new().route("/metrics", get(Self::handle_metrics)).with_state(registry);
 
         let addr: std::net::SocketAddr = addr.parse().unwrap();
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();

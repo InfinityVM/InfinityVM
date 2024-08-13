@@ -1,10 +1,17 @@
 name: Ethos Reth Docker Publish
 
 on:
-  workflow_dispatch:
-  pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - "bin/ethos-reth/**"
+      - ".github/**"
+  pull_request:
+    paths:
+      - "bin/ethos-reth/**"
+      - ".github/**"
+  workflow_dispatch:
 
 env:
   PROJECT_ID: ethos-artifacts
