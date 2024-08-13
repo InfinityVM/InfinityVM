@@ -20,7 +20,7 @@ contract CoprocessorDeployer is Script, Utils {
     IJobManager public jobManagerImplementation;
     MockConsumer public consumer;
 
-    uint32 INITIAL_MAX_NONCE = 1;
+    uint32 INITIAL_MAX_NONCE = 0;
 
     function deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, bool writeJson) public {
         vm.startBroadcast();

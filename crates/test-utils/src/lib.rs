@@ -202,8 +202,7 @@ pub async fn mock_consumer_pending_job(
 
 /// Returns the job ID hash for a given nonce and consumer address.
 pub fn get_job_id(nonce: u32, consumer: Address) -> [u8; 32] {
-    let abi_encoded_payload = abi_encode_nonce_and_consumer(nonce, consumer);
-    keccak256(&abi_encoded_payload).into()
+    keccak256(abi_encode_nonce_and_consumer(nonce, consumer)).into()
 }
 
 type NonceAndConsumer = sol! {
