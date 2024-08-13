@@ -18,4 +18,3 @@ serde = { workspace = true }
 borsh = { workspace = true }
 
 proto = { path = "../proto" }
-zkvm = { path = "../zkvm" }

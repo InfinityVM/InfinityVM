@@ -82,6 +82,20 @@ jobs:
 
       - run: make doc-ci
 
+  unused-deps:
+    name: unused deps
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: dtolnay/rust-toolchain@nightly
+
+      - run: cargo install cargo-machete
+
+      - run: cargo machete
+
+
   ethos-reth:
     name: ethos-reth
     runs-on: ubuntu-latest
