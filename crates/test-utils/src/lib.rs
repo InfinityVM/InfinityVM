@@ -28,6 +28,9 @@ pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
 pub const LOCALHOST: &str = "127.0.0.1";
 
 /// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
+/// If the tracing subscriber has already been initialized in a previous test, this 
+/// function will silently fail due to `try_init()`, which does not reinitialize
+/// the subscriber if one is already set.
 pub fn test_tracing() {
     let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
