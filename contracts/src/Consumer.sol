@@ -4,10 +4,12 @@ import {JobManager} from "./JobManager.sol";
 
 abstract contract Consumer {
     JobManager internal _jobManager;
-    mapping(uint32 => bytes) internal jobIDToProgramInput;
+    uint32 public maxNonce;
+    mapping(bytes32 => bytes) internal jobIDToProgramInput;
 
-    constructor(address __jobManager) {
+    constructor(address __jobManager, uint32 _initialMaxNonce) {
         _jobManager = JobManager(__jobManager);
+        maxNonce = _initialMaxNonce;
     }
 
     modifier onlyJobManager() {
@@ -18,29 +20,37 @@ abstract contract Consumer {
         _;
     }
 
-    function getProgramInputsForJob(bytes32 jobID) public view returns (bytes memory) {
+    function getProgramInputsForJob(bytes32 jobID) public view virtual returns (bytes memory) {
         return jobIDToProgramInput[jobID];
     }
 
-    function setProgramInputsForJob(bytes32 jobID, bytes memory programInput) public onlyJobManager() {
+    function getMaxNonce() public view virtual returns (uint32) {
+        return maxNonce;
+    }
+
+    function setProgramInputsForJob(bytes32 jobID, bytes memory programInput) public virtual onlyJobManager() {
         jobIDToProgramInput[jobID] = programInput;
+    }
+
+    function setMaxNonce(uint32 nonce) public virtual onlyJobManager() {
+        maxNonce = nonce;
     }
 
     function requestJob(
         bytes memory programID,
         bytes memory programInput,
         uint64 maxCycles
-    ) internal returns (bytes32) {
-        bytes32 jobID = _jobManager.createJob(programID, programInput, maxCycles);
-        jobIDToProgramInput[jobID] = programInput;
+    ) internal virtual returns (bytes32) {
+        bytes32 jobID = _jobManager.createJob(getMaxNonce(), programID, programInput, maxCycles);
+        setProgramInputsForJob(jobID, programInput);
         return jobID;
     }
 
-    function cancelJob(bytes32 jobID) internal {
+    function cancelJob(bytes32 jobID) internal virtual {
         _jobManager.cancelJob(jobID);
     }
 
-    function receiveResult(bytes32 jobID, bytes calldata result) external onlyJobManager {
+    function receiveResult(bytes32 jobID, bytes calldata result) external onlyJobManager() {
         _receiveResult(jobID, result);
     }
 

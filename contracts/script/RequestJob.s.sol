@@ -24,11 +24,12 @@ contract RequestJob is Script, Utils {
         );
 
         vm.startBroadcast();
-        uint32 jobID = consumer.requestBalance(programID, balanceAddr);
+        bytes32 jobID = consumer.requestBalance(programID, balanceAddr);
         vm.stopBroadcast();
 
         console.log("Requested balance for address: ", balanceAddr);
-        console.log("Job ID: ", jobID);
+        console.log("Job ID: ");
+        console.logBytes32(jobID);
     }
 
 }

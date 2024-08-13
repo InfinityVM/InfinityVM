@@ -41,7 +41,7 @@ contract CoprocessorDeployer is Script, Utils {
             )
         );
 
-        consumer = new MockConsumer(address(jobManager), offchainSigner);
+        consumer = new MockConsumer(address(jobManager), offchainSigner, 1);
 
         if (writeJson) {
             // WRITE JSON DATA

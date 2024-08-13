@@ -10,7 +10,7 @@ contract CancelJob is Script, Utils {
 
     JobManager public jobManager;
 
-    function cancelJob(uint32 jobID) public {
+    function cancelJob(bytes32 jobID) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -25,7 +25,8 @@ contract CancelJob is Script, Utils {
         vm.startBroadcast();
         jobManager.cancelJob(jobID);
         vm.stopBroadcast();
-        console.log("Job cancelled with job ID: ", jobID);
+        console.log("Job cancelled with job ID: ");
+        console.logBytes32(jobID);
     }
 
 }

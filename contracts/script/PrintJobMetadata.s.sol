@@ -10,7 +10,7 @@ contract PrintJobMetadata is Script, Utils {
 
     JobManager public jobManager;
 
-    function printJobMetadata(uint32 jobID) public {
+    function printJobMetadata(bytes32 jobID) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -23,7 +23,8 @@ contract PrintJobMetadata is Script, Utils {
         );
 
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
-        console.log("Job ID: ", jobID);
+        console.log("Job ID: ");
+        console.logBytes32(jobID);
         console.log("Max cycles: ", jobMetadata.maxCycles);
         console.log("Caller: ", jobMetadata.caller);
 

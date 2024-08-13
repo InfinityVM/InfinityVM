@@ -10,7 +10,7 @@ contract PrintJobResult is Script, Utils {
 
     MockConsumer public consumer;
 
-    function printJobResult(uint32 jobID) public {
+    function printJobResult(bytes32 jobID) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -23,7 +23,9 @@ contract PrintJobResult is Script, Utils {
         );
 
         bytes memory result = consumer.getJobResult(jobID);
-        console.log("Result for job ID ", jobID, ": ");
+        console.log("Job ID: ");
+        console.logBytes32(jobID);
+        console.log("Result: ");
         console.logBytes(result);
     }
 
