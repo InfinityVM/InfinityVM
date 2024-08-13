@@ -63,7 +63,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .into_inner();
         assert_eq!(
             submit_program_response.program_verifying_key,
-            program_id // Digest::new(MOCK_CONSUMER_GUEST_ID).as_bytes()
+            program_id
         );
 
         let consumer_provider = ProviderBuilder::new()
