@@ -72,10 +72,13 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
 
+        let job_manager_contract = IJobManager::new(anvil.job_manager, &consumer_provider);
+
         // Submit job to coproc node
+        let nonce = 1;
         let mut job = Job {
             id: None,
-            nonce: Some(1),
+            nonce: Some(nonce),
             max_cycles: MOCK_CONTRACT_MAX_CYCLES,
             contract_address: anvil.mock_consumer.abi_encode(),
             program_verifying_key: program_id.clone(),
@@ -111,37 +114,37 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let get_result_request = GetResultRequest { job_id };
         let get_result_response =
             args.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
-        let job_from_result = get_result_response.job.unwrap();
+        let job_with_result = get_result_response.job.unwrap();
 
         // Verify the job execution result
         let done_status: i32 = JobStatusType::Done.into();
-        assert_eq!(job_from_result.status.unwrap().status, done_status);
+        assert_eq!(job_with_result.status.unwrap().status, done_status);
 
         // Verify address
         let address = {
-            let address = String::from_utf8(job_from_result.zkvm_operator_address).unwrap();
+            let address = String::from_utf8(job_with_result.zkvm_operator_address).unwrap();
             Address::parse_checksummed(address, Some(chain_id)).unwrap()
         };
         assert_eq!(address, anvil.coprocessor_operator.address());
 
         // Verify signature and message format
-        let sig = Signature::try_from(&job_from_result.zkvm_operator_signature[..]).unwrap();
+        let sig = Signature::try_from(&job_with_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
-            OffchainResultWithMetadata::abi_decode_params(&job_from_result.result, false).unwrap();
+            OffchainResultWithMetadata::abi_decode_params(&job_with_result.result, false).unwrap();
         let raw_output = abi_decoded_output.3;
         let job_inputs = JobInputs {
-            job_key: Sha256::digest(&job_from_result.id.unwrap().to_be_bytes()).to_vec(),
-            job_id: job_from_result.id,
-            program_input: job_from_result.input.clone(),
-            max_cycles: job_from_result.max_cycles,
-            program_verifying_key: job_from_result.program_verifying_key.clone(),
+            job_key: Sha256::digest(&job_with_result.id.unwrap().to_be_bytes()).to_vec(),
+            job_id: job_with_result.id,
+            program_input: job_with_result.input.clone(),
+            max_cycles: job_with_result.max_cycles,
+            program_verifying_key: job_with_result.program_verifying_key.clone(),
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
         };
 
         let signing_payload =
             abi_encode_offchain_result_with_metadata(&job_inputs, &raw_output).unwrap();
-        assert_eq!(job_from_result.result, signing_payload);
+        assert_eq!(job_with_result.result, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
         assert_eq!(recovered1, anvil.coprocessor_operator.address());
 
@@ -151,7 +154,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(recovered2, anvil.coprocessor_operator.address());
 
         // Verify input
-        assert_eq!(Address::abi_encode(&mock_user_address), job_from_result.input);
+        assert_eq!(Address::abi_encode(&mock_user_address), job_with_result.input);
 
         // Verify output from gRPC get_job endpoint
         let (out_address, out_balance) = MockConsumerOut::abi_decode(&raw_output, true).unwrap();
@@ -160,17 +163,31 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(out_address, mock_user_address);
         assert_eq!(out_balance, expected_balance);
 
-        // Verify output on chain
+        // Verify output from onchain event
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
         let logs = consumer_provider.get_logs(&filter).await.unwrap();
         let completed =
             logs[0].log_decode::<IJobManager::JobCompleted>().unwrap().data().to_owned();
         assert_eq!(completed.result, raw_output);
-        assert_eq!(completed.jobID, 1);
+        assert_eq!(completed.jobID, job_id);
 
+        // Verify balance onchain
         let get_balance_call = consumer_contract.getBalance(mock_user_address);
         let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
         assert_eq!(balance, expected_balance);
+
+        // Verify inputs onchain
+        let get_inputs_call = consumer_contract.getProgramInputsForJob(job_id);
+        let MockConsumer::getProgramInputsForJobReturn { _0: inputs } =
+            get_inputs_call.call().await.unwrap();
+        assert_eq!(Address::abi_encode(&mock_user_address), inputs);
+
+        // Verify onchain mapping from (nonce, consumer address) --> job ID
+        let get_job_id_for_nonce_call =
+            job_manager_contract.getJobIDForNonce(nonce, anvil.mock_consumer);
+        let IJobManager::getJobIDForNonceReturn { _0: job_id_for_nonce } =
+            get_job_id_for_nonce_call.call().await.unwrap();
+        assert_eq!(job_id_for_nonce, job_id);
     }
     Integration::run(test).await;
 }
