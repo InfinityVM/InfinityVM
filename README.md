@@ -12,7 +12,7 @@ Rust
 
 ```sh
 # set rust version
-rustup use 1.79
+rustup use 1.80
 rustup toolchain install nightly
 ```
 
@@ -46,6 +46,14 @@ Sp1
 curl -L https://sp1.succinct.xyz | bash
 sp1up
 cargo prove --version
+```
+
+Foundry
+
+```
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+cd contracts && forge build
 ```
 
 **Iterating**
