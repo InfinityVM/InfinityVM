@@ -90,7 +90,7 @@ where
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
         info!(
-            job_key = BASE64_STANDARD.encode(inputs.job_key.clone()),
+            job_key = BASE64_STANDARD.encode(&inputs.job_key),
             vm_type = vm_type.as_str_name(),
             verifying_key = base64_verifying_key,
             "new job received"
