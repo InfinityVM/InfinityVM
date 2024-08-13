@@ -41,7 +41,7 @@ abstract contract Consumer {
         bytes memory programInput,
         uint64 maxCycles
     ) internal virtual returns (bytes32) {
-        bytes32 jobID = _jobManager.createJob(getMaxNonce(), programID, programInput, maxCycles);
+        bytes32 jobID = _jobManager.createJob(getMaxNonce() + 1, programID, programInput, maxCycles);
         jobIDToProgramInput[jobID] = programInput;
         return jobID;
     }

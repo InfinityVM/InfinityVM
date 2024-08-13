@@ -5,10 +5,11 @@ use std::net::TcpListener;
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
-    primitives::{Address, U256},
+    primitives::{utils::keccak256, Address, U256},
     providers::{ext::AnvilApi, ProviderBuilder},
     signers::{local::PrivateKeySigner, Signer},
-    sol_types::SolValue,
+    sol,
+    sol_types::{SolType, SolValue},
 };
 use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
@@ -134,7 +135,7 @@ pub async fn anvil_with_contracts() -> TestAnvil {
         .on_http(rpc_url.parse().unwrap());
 
     // Deploy the mock consumer contract. This can take jobs and accept results.
-    let nonce = 1;
+    let nonce = 0;
     let mock_consumer =
         MockConsumer::deploy(consumer_provider, job_manager, offchain_signer.address(), nonce)
             .await
@@ -159,16 +160,16 @@ pub fn mock_raw_output() -> Vec<u8> {
 /// The result here will be decodable by the `MockConsumer` contract and have
 /// a valid signature from the zkvm operator.
 pub async fn mock_consumer_pending_job(
-    i: u8,
+    nonce: u8,
     operator: PrivateKeySigner,
     mock_consumer: Address,
 ) -> proto::Job {
-    let bytes = vec![i; 32];
+    let bytes = vec![nonce; 32];
     let addr = mock_contract_input_addr();
     let raw_output = mock_raw_output();
 
     let inputs = proto::JobInputs {
-        job_id: bytes.clone(),
+        job_id: get_job_id(nonce.into(), mock_consumer).to_vec(),
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
         program_verifying_key: bytes.clone(),
         program_input: addr.abi_encode(),
@@ -197,4 +198,18 @@ pub async fn mock_consumer_pending_job(
     };
 
     job
+}
+
+/// Returns the job ID hash for a given nonce and consumer address.
+pub fn get_job_id(nonce: u32, consumer: Address) -> [u8; 32] {
+    let abi_encoded_payload = abi_encode_nonce_and_consumer(nonce, consumer);
+    keccak256(&abi_encoded_payload).into()
+}
+
+type NonceAndConsumer = sol! {
+    tuple(uint32, address)
+};
+
+fn abi_encode_nonce_and_consumer(nonce: u32, consumer: Address) -> Vec<u8> {
+    NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
 }

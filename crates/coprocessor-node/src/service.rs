@@ -74,12 +74,10 @@ where
                     .get_job(job_id)
                     .await
                     .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
-    
+
                 Ok(Response::new(GetResultResponse { job }))
-            },
-            Err(_) => {
-                Err(Status::invalid_argument("job ID must be 32 bytes in length"))
             }
+            Err(_) => Err(Status::invalid_argument("job ID must be 32 bytes in length")),
         }
     }
     /// SubmitProgram defines the gRPC method for submitting a new program to

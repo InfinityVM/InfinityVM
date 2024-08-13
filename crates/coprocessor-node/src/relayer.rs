@@ -136,7 +136,6 @@ impl JobRelayer {
 
         let receipt =
             pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
-                
                 error!(?error, job_id_str, "tx inclusion failed");
                 self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
                 Error::TxInclusion(error)
@@ -170,7 +169,8 @@ mod test {
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
     use prometheus::Registry;
     use test_utils::{
-        anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
+        anvil_with_contracts, get_job_id, mock_consumer_pending_job, mock_contract_input_addr,
+        TestAnvil,
     };
     use tokio::task::JoinSet;
 
@@ -234,17 +234,18 @@ mod test {
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
         let logs = consumer_provider.get_logs(&filter).await.unwrap();
 
-        let seen: HashSet<_> = logs
+        let seen: HashSet<[u8; 32]> = logs
             .into_iter()
             .map(|log| {
                 let decoded = log.log_decode::<IJobManager::JobCompleted>().unwrap().data().clone();
-                decoded.jobID.to_vec()
+                decoded.jobID.into()
             })
             .collect();
         // job ids from the JobManager start at 1
-        let expected: HashSet<_> = (1..=JOB_COUNT).collect();
+        let expected: HashSet<[u8; 32]> =
+            (1..=JOB_COUNT).map(|i| get_job_id(i.try_into().unwrap(), mock_consumer)).collect();
 
         // We expect to see exactly job ids 0 to 29 in the JobCompleted events
-        // assert_eq!(seen, expected);
+        assert_eq!(seen, expected);
     }
 }
