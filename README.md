@@ -2,7 +2,7 @@
 
 Infinite possibilities.
 
-The workspace configuration is defined by `rust/Cargo.toml`.
+The workspace configuration is defined by `Cargo.toml`.
 
 ## Develop
 

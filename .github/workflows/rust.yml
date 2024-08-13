@@ -94,9 +94,9 @@ jobs:
         id: git_diff
         with:
           PATTERNS: |
-            rust/bin/ethos-reth/Cargo.*
-            rust/bin/ethos-reth/src/**/*.rs
-            rust/bin/ethos-reth/src/*.rs
+            bin/ethos-reth/Cargo.*
+            bin/ethos-reth/src/**/*.rs
+            bin/ethos-reth/src/*.rs
 
       - name: common setup
         if: env.GIT_DIFF
@@ -108,7 +108,7 @@ jobs:
           components: rustfmt, clippy
 
       - run: |
-          cd rust/bin/ethos-reth
+          cd bin/ethos-reth
           cargo +nightly fmt --all --check
           RUSTFLAGS="-D warnings" cargo clippy 
           cargo build --release
