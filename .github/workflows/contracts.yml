@@ -28,7 +28,7 @@ jobs:
         with:
           PATTERNS: |
             .github/workflows/contracts.yml
-            **.sol
+            **/*.sol
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1

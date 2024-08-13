@@ -26,9 +26,9 @@ jobs:
         id: git_diff
         with:
           PATTERNS: |
-            **.toml
-            **.lock
-            **.rs
+            **/*.toml
+            **/*.lock
+            **/*.rs
             .github/**
 
       - name: common setup
@@ -54,9 +54,9 @@ jobs:
         id: git_diff
         with:
           PATTERNS: |
-            **.toml
-            **.lock
-            **.rs
+            **/*.toml
+            **/*.lock
+            **/*.rs
             .github/**
 
       - name: common setup
@@ -79,9 +79,9 @@ jobs:
         id: git_diff
         with:
           PATTERNS: |
-            **.toml
-            **.lock
-            **.rs
+            **/*.toml
+            **/*.lock
+            **/*.rs
             .github/**
 
       - uses: dtolnay/rust-toolchain@nightly
@@ -105,9 +105,9 @@ jobs:
         id: git_diff
         with:
           PATTERNS: |
-            **.toml
-            **.lock
-            **.rs
+            **/*.toml
+            **/*.lock
+            **/*.rs
             .github/**
 
       - name: common setup
@@ -129,9 +129,9 @@ jobs:
         id: git_diff
         with:
           PATTERNS: |
-            **.toml
-            **.lock
-            **.rs
+            **/*.toml
+            **/*.lock
+            **/*.rs
             .github/**
 
       - uses: dtolnay/rust-toolchain@nightly
