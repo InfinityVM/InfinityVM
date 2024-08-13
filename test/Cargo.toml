@@ -28,7 +28,7 @@ vapenation-methods = { path = "../programs/risc0/vapenation/methods"}
 mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods"}
 vapenation-core = { path = "../programs/common/vapenation-core"}
 test-utils = { path = "../crates/test-utils"}
-zkvm-tracing = { path = "../crates/tracing" }
+zkvm-tracing = { package = "tracing", path = "../crates/tracing" }
 
 [dev-dependencies]
 serde_json = { workspace = true }

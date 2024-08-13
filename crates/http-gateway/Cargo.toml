@@ -22,4 +22,4 @@ tracing-appender = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
-zkvm-tracing = { path = "../tracing" }
+zkvm-tracing = { package = "tracing", path = "../tracing" }
