@@ -7,7 +7,9 @@ use tracing_appender::{
     non_blocking::{NonBlocking, WorkerGuard},
     rolling::{RollingFileAppender, Rotation},
 };
-use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry};
+use tracing_subscriber::{
+    fmt, fmt::format::FmtSpan, layer::SubscriberExt, util::SubscriberInitExt, Layer, Registry,
+};
 
 #[derive(EnumString, Debug, Default)]
 #[strum(serialize_all = "lowercase")]
@@ -50,11 +52,13 @@ pub fn init_logging() -> Result<Vec<WorkerGuard>, Box<dyn std::error::Error>> {
 fn apply_layer_format(log_format: &LogFormat, writer: NonBlocking) -> BoxedLayer<Registry> {
     match log_format {
         LogFormat::Json => fmt::layer()
+            .with_span_events(FmtSpan::CLOSE)
             .json()
             .with_writer(writer)
             .with_filter(tracing_subscriber::EnvFilter::from_default_env())
             .boxed(),
         LogFormat::Text => fmt::layer()
+            .with_span_events(FmtSpan::CLOSE)
             .with_writer(writer)
             .with_filter(tracing_subscriber::EnvFilter::from_default_env())
             .boxed(),
