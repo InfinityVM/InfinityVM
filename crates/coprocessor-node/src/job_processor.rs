@@ -405,7 +405,9 @@ where
                                 job_id, e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
-                            job.status.as_mut().map(|status| status.retries += 1);
+                            if let Some(status) = job.status.as_mut() {
+                                status.retries += 1
+                            }
                             if let Err(e) =
                                 Self::save_relay_error_job(db.clone(), job.clone()).await
                             {

@@ -1621,7 +1621,6 @@ dependencies = [
  "alloy",
  "async-channel",
  "axum",
- "base64 0.22.1",
  "clap",
  "contracts",
  "db",
@@ -1629,11 +1628,8 @@ dependencies = [
  "home",
  "k256",
  "prometheus",
- "prost 0.13.1",
  "proto",
  "reth-db",
- "serde",
- "serde_json",
  "test-utils",
  "thiserror",
  "tokio",
@@ -1641,7 +1637,6 @@ dependencies = [
  "tonic-reflection",
  "tracing",
  "tracing-subscriber 0.3.18",
- "zkvm",
  "zkvm-executor",
 ]
 
@@ -1877,7 +1872,6 @@ dependencies = [
  "serde",
  "sha2",
  "thiserror",
- "zkvm",
 ]
 
 [[package]]
@@ -2666,15 +2660,12 @@ version = "0.0.1"
 dependencies = [
  "axum",
  "clap",
- "prost 0.13.1",
  "proto",
  "serde",
- "serde_json",
  "thiserror",
  "tokio",
  "tonic",
  "tracing",
- "zkvm",
 ]
 
 [[package]]
@@ -2915,11 +2906,9 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "contracts",
- "coprocessor-node",
  "futures",
  "mock-consumer-methods",
  "proto",
- "rand 0.8.5",
  "risc0-binfmt",
  "risc0-zkp",
  "serde_json",
@@ -2927,11 +2916,6 @@ dependencies = [
  "test-utils",
  "tokio",
  "tonic",
- "tracing",
- "tracing-subscriber 0.3.18",
- "vapenation-core",
- "vapenation-methods",
- "zkvm-executor",
 ]
 
 [[package]]
@@ -6355,7 +6339,6 @@ version = "0.1.0"
 dependencies = [
  "alloy-rlp",
  "alloy-sol-types",
- "serde",
 ]
 
 [[package]]
@@ -6875,21 +6858,10 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "base64 0.22.1",
- "borsh",
- "clap",
- "db",
- "home",
- "k256",
- "prost 0.13.1",
  "proto",
- "reth-db",
- "sha2",
  "thiserror",
- "tokio",
  "tonic",
- "tonic-reflection",
  "tracing",
- "tracing-subscriber 0.3.18",
  "zkvm",
 ]
 
