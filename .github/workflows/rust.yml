@@ -1,10 +1,22 @@
 name: rust
 
+# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#patterns-to-match-file-paths
 on:
-  pull_request:
-  merge_group:
   push:
-    branches: [main]
+    branches:
+      - main
+    paths:
+      - "**.rs"
+      - "**.lock"
+      - "**.toml"
+      - ".github/**"
+  pull_request:
+    paths:
+      - "**.rs"
+      - "**.lock"
+      - "**.toml"
+      - ".github/**"
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -19,21 +31,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: technote-space/get-diff-action@v6.1.2
-        id: git_diff
-        with:
-          PATTERNS: |
-            rust/**
 
       - name: common setup
-        if: env.GIT_DIFF
         uses: ./.github/actions/setup
 
-      - run: cd rust && cargo build --workspace --all-targets
-        if: env.GIT_DIFF
+      - run: cargo build --workspace --all-targets
 
-      - run: make -C rust clippy-ci
-        if: env.GIT_DIFF
+      - run: make clippy-ci
 
   test:
     name: test
@@ -43,18 +47,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: technote-space/get-diff-action@v6.1.2
-        id: git_diff
-        with:
-          PATTERNS: |
-            rust/**
 
       - name: common setup
-        if: env.GIT_DIFF
         uses: ./.github/actions/setup
 
-      - run: make -C rust test-all
-        if: env.GIT_DIFF
+      - run: make test-all
 
   fmt:
     name: fmt
@@ -64,19 +61,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: technote-space/get-diff-action@v6.1.2
-        id: git_diff
-        with:
-          PATTERNS: |
-            rust/**
 
       - uses: dtolnay/rust-toolchain@nightly
-        if: env.GIT_DIFF
         with:
           components: rustfmt
 
-      - run: make -C rust fmt-ci
-        if: env.GIT_DIFF
+      - run: make fmt-ci
 
   docs:
     name: docs
@@ -86,18 +76,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: technote-space/get-diff-action@v6.1.2
-        id: git_diff
-        with:
-          PATTERNS: |
-            rust/**
 
       - name: common setup
-        if: env.GIT_DIFF
         uses: ./.github/actions/setup
 
-      - run: make -C rust doc-ci
-        if: env.GIT_DIFF
+      - run: make doc-ci
 
   ethos-reth:
     name: ethos-reth
