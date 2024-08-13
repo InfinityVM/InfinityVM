@@ -18,6 +18,7 @@ alloy = { workspace = true }
 tempfile = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+sha2 = { workspace = true }
 
 # TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
 # sp1-sdk = { workspace = true }
