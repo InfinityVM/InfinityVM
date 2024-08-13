@@ -32,7 +32,8 @@ pub fn init_logging() -> Result<Vec<WorkerGuard>, Box<dyn std::error::Error>> {
     let (stdout_writer, stdout_guard) = tracing_appender::non_blocking(stdout());
 
     let mut guards = vec![stdout_guard];
-    let mut layers: Vec<BoxedLayer<Registry>> = vec![apply_layer_format(&log_format, stdout_writer)];
+    let mut layers: Vec<BoxedLayer<Registry>> =
+        vec![apply_layer_format(&log_format, stdout_writer)];
 
     if !rust_log_file.is_empty() {
         let appender = RollingFileAppender::new(Rotation::NEVER, rust_log_dir, rust_log_file);
