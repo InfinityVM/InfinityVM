@@ -5,17 +5,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "**.rs"
-      - "**.lock"
-      - "**.toml"
-      - ".github/**"
   pull_request:
-    paths:
-      - "**.rs"
-      - "**.lock"
-      - "**.toml"
-      - ".github/**"
   workflow_dispatch:
 
 env:
@@ -32,12 +22,24 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            **.toml
+            **.lock
+            **.rs
+            .github/**
+
       - name: common setup
+        if: env.GIT_DIFF
         uses: ./.github/actions/setup
 
       - run: cargo build --workspace --all-targets
+        if: env.GIT_DIFF
 
       - run: make clippy-ci
+        if: env.GIT_DIFF
 
   test:
     name: test
@@ -48,10 +50,21 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            **.toml
+            **.lock
+            **.rs
+            .github/**
+
       - name: common setup
         uses: ./.github/actions/setup
+        if: env.GIT_DIFF
 
       - run: make test-all
+        if: env.GIT_DIFF
 
   fmt:
     name: fmt
@@ -62,11 +75,22 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            **.toml
+            **.lock
+            **.rs
+            .github/**
+
       - uses: dtolnay/rust-toolchain@nightly
+        if: env.GIT_DIFF
         with:
           components: rustfmt
 
       - run: make fmt-ci
+        if: env.GIT_DIFF
 
   docs:
     name: docs
@@ -77,10 +101,21 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            **.toml
+            **.lock
+            **.rs
+            .github/**
+
       - name: common setup
         uses: ./.github/actions/setup
+        if: env.GIT_DIFF
 
       - run: make doc-ci
+        if: env.GIT_DIFF
 
   unused-deps:
     name: unused deps
@@ -90,12 +125,23 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            **.toml
+            **.lock
+            **.rs
+            .github/**
+
       - uses: dtolnay/rust-toolchain@nightly
+        if: env.GIT_DIFF
 
       - run: cargo install cargo-machete
+        if: env.GIT_DIFF
 
       - run: cargo machete
-
+        if: env.GIT_DIFF
 
   ethos-reth:
     name: ethos-reth

@@ -4,13 +4,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - ".github/workflows/contracts.yml"
-      - "**.sol"
   pull_request:
-    paths:
-      - ".github/workflows/contracts.yml"
-      - "**.sol"
   workflow_dispatch:
 
 env:
@@ -29,16 +23,26 @@ jobs:
         with:
           submodules: recursive
 
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            .github/workflows/contracts.yml
+            **.sol
+
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+        if: env.GIT_DIFF
 
       - name: Run Forge build
         run: |
           forge --version
           forge build --sizes
+        if: env.GIT_DIFF
 
       - name: Run Forge tests
         run: |
           forge test -vvv
+        if: env.GIT_DIFF

@@ -4,13 +4,7 @@ on:
   push:
     branches:
       - main
-    paths:
-      - "bin/ethos-reth/**"
-      - ".github/**"
   pull_request:
-    paths:
-      - "bin/ethos-reth/**"
-      - ".github/**"
   workflow_dispatch:
 
 env:
