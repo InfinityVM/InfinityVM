@@ -18,11 +18,11 @@ abstract contract Consumer {
         _;
     }
 
-    function getProgramInputsForJob(uint32 jobID) public view returns (bytes memory) {
+    function getProgramInputsForJob(bytes32 jobID) public view returns (bytes memory) {
         return jobIDToProgramInput[jobID];
     }
 
-    function setProgramInputsForJob(uint32 jobID, bytes memory programInput) public onlyJobManager() {
+    function setProgramInputsForJob(bytes32 jobID, bytes memory programInput) public onlyJobManager() {
         jobIDToProgramInput[jobID] = programInput;
     }
 
@@ -30,22 +30,22 @@ abstract contract Consumer {
         bytes memory programID,
         bytes memory programInput,
         uint64 maxCycles
-    ) internal returns (uint32) {
-        uint32 jobID = _jobManager.createJob(programID, programInput, maxCycles);
+    ) internal returns (bytes32) {
+        bytes32 jobID = _jobManager.createJob(programID, programInput, maxCycles);
         jobIDToProgramInput[jobID] = programInput;
         return jobID;
     }
 
-    function cancelJob(uint32 jobID) internal {
+    function cancelJob(bytes32 jobID) internal {
         _jobManager.cancelJob(jobID);
     }
 
-    function receiveResult(uint32 jobID, bytes calldata result) external onlyJobManager {
+    function receiveResult(bytes32 jobID, bytes calldata result) external onlyJobManager {
         _receiveResult(jobID, result);
     }
 
     // This function must be overridden by the app-specific Consumer contract
     // to decode the coprocessor result into any app-specific struct and
     // perform app-specific logic using the result
-    function _receiveResult(uint32 jobID, bytes memory result) internal virtual;
+    function _receiveResult(bytes32 jobID, bytes memory result) internal virtual;
 }
