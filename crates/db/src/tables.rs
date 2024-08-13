@@ -45,10 +45,6 @@ impl Decode for ElfKey {
 pub struct JobKey(pub [u8; 32]);
 
 impl JobKey {
-    pub(crate) fn new(key: [u8; 32]) -> Self {
-        Self(key)
-    }
-
     // Hash of job ID if it's an onchain job
     pub(crate) fn from_job_id(job_id: u32) -> Self {
         let inner: [u8; 32] = Sha256::digest(&job_id.to_be_bytes()).into();

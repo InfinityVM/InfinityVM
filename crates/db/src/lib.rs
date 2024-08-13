@@ -87,7 +87,7 @@ pub fn get_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<Option<Job>
     use tables::JobTable;
 
     let tx = db.tx()?;
-    let key = JobKey::new(job_key);
+    let key = JobKey(job_key);
     let result = tx.get::<JobTable>(key);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
@@ -109,7 +109,7 @@ pub fn delete_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<bool, Er
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    let key = JobKey::new(job_key);
+    let key = JobKey(job_key);
     let result = tx.delete::<JobTable>(key, None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
@@ -140,7 +140,7 @@ pub fn get_fail_relay_job<D: Database>(
     use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
-    let key = JobKey::new(job_key);
+    let key = JobKey(job_key);
     let result = tx.get::<RelayFailureJobs>(key);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
@@ -170,7 +170,7 @@ pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Resu
     use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    let key = JobKey::new(job_key);
+    let key = JobKey(job_key);
     let result = tx.delete::<RelayFailureJobs>(key, None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
