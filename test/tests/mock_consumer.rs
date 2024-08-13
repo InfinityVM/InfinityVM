@@ -83,7 +83,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             contract_address: anvil.mock_consumer.abi_encode(),
             program_verifying_key: program_id.clone(),
             input: mock_user_address.abi_encode(),
-            request_signature: vec![], // TODO
+           // signature added to this job below
+            request_signature: vec![], 
             result: vec![],
             zkvm_operator_address: vec![],
             zkvm_operator_signature: vec![],
