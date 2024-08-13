@@ -9,21 +9,10 @@ workspace = true
 
 [dependencies]
 tonic = { workspace = true }
-tonic-reflection = { workspace = true }
-prost = { workspace = true }
-tokio = { workspace = true }
-tracing = {workspace = true}
-tracing-subscriber = {workspace = true}
+tracing = { workspace = true }
 alloy = { workspace = true }
-clap = { workspace = true }
-k256 = { workspace = true }
 thiserror = { workspace = true }
-sha2 = { workspace = true }
-home = { workspace = true }
-reth-db = { workspace = true }
 base64 = { workspace = true }
-borsh = { workspace = true }
 
-db = { path = "../db" }
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }

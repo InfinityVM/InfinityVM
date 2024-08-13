@@ -206,7 +206,8 @@ where
         Ok(())
     }
 
-    /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker threads
+    /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker
+    /// threads
     pub async fn start(&mut self, num_workers: usize) {
         for _ in 0..num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
@@ -401,8 +402,12 @@ where
                                 job_id, e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
-                            job.status.as_mut().map(|status| status.retries += 1);
-                            if let Err(e) = Self::save_relay_error_job(db.clone(), job.clone()).await {
+                            if let Some(status) = job.status.as_mut() {
+                                status.retries += 1
+                            }
+                            if let Err(e) =
+                                Self::save_relay_error_job(db.clone(), job.clone()).await
+                            {
                                 error!(
                                     "report this error: failed to save retried job {}: {:?}",
                                     job_id, e
