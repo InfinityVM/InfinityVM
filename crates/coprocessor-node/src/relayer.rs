@@ -41,6 +41,9 @@ type JobManagerContract = IJobManager::IJobManagerInstance<
     RelayerProvider,
 >;
 
+const TX_INCLUSION_ERROR : &str = "relay_error_tx_inclusion_error";
+const BROADCAST_ERROR : &str = "relay_error_broadcast_failure";
+
 /// Relayer errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -136,14 +139,14 @@ impl JobRelayer {
 
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, job.id, "tx broadcast failure");
-            self.metrics.incr_relay_err("relay_error_broadcast_failure");
+            self.metrics.incr_relay_err(BROADCAST_ERROR);
             Error::TxBroadcast(error)
         })?;
 
         let receipt =
             pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
                 error!(?error, job.id, "tx inclusion failed");
-                self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
+                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
                 Error::TxInclusion(error)
             })?;
 
@@ -178,7 +181,7 @@ impl JobRelayer {
                 "tx broadcast failure: contract_address = {}",
                 hex::encode(&job.contract_address)
             );
-            self.metrics.incr_relay_err("relay_error_broadcast_failure");
+            self.metrics.incr_relay_err(BROADCAST_ERROR);
             Error::TxBroadcast(error)
         })?;
 
@@ -190,7 +193,7 @@ impl JobRelayer {
                     "tx inclusion failed: contract_address = {}",
                     hex::encode(&job.contract_address)
                 );
-                self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
+                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
                 Error::TxInclusion(error)
             })?;
 
