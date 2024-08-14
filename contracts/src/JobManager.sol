@@ -26,6 +26,7 @@ contract JobManager is
     // This operator is a registered entity that will eventually require some bond from participants
     address public coprocessorOperator;
 
+    // Mapping from job ID --> job metadata
     mapping(bytes32 => JobMetadata) public jobIDToMetadata;
     // storage gap for upgradeability
     uint256[50] private __GAP;
