@@ -2,7 +2,7 @@
 
 use dotenv::dotenv;
 use std::{env, fmt::Debug, io::stdout, str::FromStr};
-use strum_macros::EnumString;
+use strum::EnumString;
 use tracing_appender::{
     non_blocking::{NonBlocking, WorkerGuard},
     rolling::{RollingFileAppender, Rotation},

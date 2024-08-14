@@ -19,7 +19,6 @@ contracts = { path = "../crates/contracts" }
 proto = { path = "../crates/proto"}
 mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods"}
 test-utils = { path = "../crates/test-utils"}
-zkvm-tracing = { package = "tracing", path = "../crates/tracing" }
 
 [dev-dependencies]
 serde_json = { workspace = true }

@@ -1638,8 +1638,6 @@ dependencies = [
  "tonic-reflection",
  "tracing 0.0.1",
  "tracing 0.1.40",
- "tracing-appender",
- "tracing-subscriber 0.3.18",
  "zkvm-executor",
 ]
 
@@ -2670,8 +2668,6 @@ dependencies = [
  "tonic",
  "tracing 0.0.1",
  "tracing 0.1.40",
- "tracing-appender",
- "tracing-subscriber 0.3.18",
 ]
 
 [[package]]
@@ -2922,7 +2918,6 @@ dependencies = [
  "test-utils",
  "tokio",
  "tonic",
- "tracing 0.0.1",
 ]
 
 [[package]]
@@ -6052,8 +6047,6 @@ version = "0.0.1"
 dependencies = [
  "dotenv",
  "strum",
- "strum_macros",
- "tracing 0.1.40",
  "tracing-appender",
  "tracing-subscriber 0.3.18",
 ]

@@ -11,8 +11,6 @@ workspace = true
 alloy = { workspace = true, features = ["reqwest"] }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
-tracing-subscriber = {workspace = true}
-tracing-appender = { workspace = true }
 tokio = { workspace = true }
 clap = { workspace = true }
 thiserror = { workspace = true }
