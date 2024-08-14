@@ -25,6 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_USE_DISCRIMINANT_TRUE)
         .field_attribute(".coprocessor_node.v1.JobStatus.failure_reason", SERDE_DEFAULT)
         .field_attribute(".coprocessor_node.v1.JobStatus.retries", SERDE_DEFAULT)
+        .field_attribute("id", SERDE_BYTES_BASE64)
         .field_attribute("program_elf", SERDE_BYTES_BASE64)
         .field_attribute("program_verifying_key", SERDE_BYTES_BASE64)
         .field_attribute("input", SERDE_BYTES_BASE64)

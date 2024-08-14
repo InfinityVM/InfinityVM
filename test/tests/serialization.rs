@@ -6,7 +6,7 @@ fn serde_json_test() {
     let input = vec![0, 0, 1];
     let job = proto::SubmitJobRequest {
         job: Some(proto::Job {
-            id: 0,
+            id: input.clone(),
             program_verifying_key: input.clone(),
             input: input.clone(),
             contract_address: input.clone(),
@@ -26,7 +26,7 @@ fn serde_json_test() {
     let expected_json = r#"
         {
             "job": {
-                "id": 0,
+                "id": "AAAB",
                 "programVerifyingKey": "AAAB",
                 "input": "AAAB",
                 "contractAddress": "000001",

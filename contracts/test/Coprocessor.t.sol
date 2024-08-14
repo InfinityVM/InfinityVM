@@ -12,33 +12,42 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0x184c47137933253f49325B851307Ab1017863BD0;
     address OFFCHAIN_SIGNER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
+    uint64 DEFAULT_NONCE = 1;
+    bytes32 DEFAULT_JOB_ID;
 
-    event JobCreated(uint32 indexed jobID, uint64 maxCycles, bytes programID, bytes programInput);
-    event JobCancelled(uint32 indexed jobID);
-    event JobCompleted(uint32 indexed jobID, bytes result);
+    event JobCreated(bytes32 indexed jobID, uint64 maxCycles, bytes programID, bytes programInput);
+    event JobCancelled(bytes32 indexed jobID);
+    event JobCompleted(bytes32 indexed jobID, bytes result);
 
     function setUp() public {
-        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_SIGNER, false);
+        uint64 initialMaxNonce = 0;
+        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_SIGNER, initialMaxNonce, false);
+        DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }
 
     function test_JobManager_CreateJob() public {
+        assertEq(consumer.getNextNonce(), 1);
         vm.expectEmit(true, true, true, true);
-        emit JobCreated(1, DEFAULT_MAX_CYCLES, "programID", "programInput");
-        uint32 jobID = jobManager.createJob("programID", "programInput", DEFAULT_MAX_CYCLES);
-        assertEq(jobID, 1);
+        emit JobCreated(DEFAULT_JOB_ID, DEFAULT_MAX_CYCLES, "programID", "programInput");
+        vm.prank(address(consumer));
+        bytes32 jobID = jobManager.createJob(DEFAULT_NONCE, "programID", "programInput", DEFAULT_MAX_CYCLES);
+        assertEq(jobID, DEFAULT_JOB_ID);
+        assertEq(consumer.getNextNonce(), 2);
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         assertEq(jobMetadata.programID, "programID");
         assertEq(jobMetadata.maxCycles, DEFAULT_MAX_CYCLES);
-        assertEq(jobMetadata.caller, address(this));
+        assertEq(jobMetadata.caller, address(consumer));
         assertEq(jobMetadata.status, 1);
     }
 
     function test_Consumer_RequestJob() public {
+        assertEq(consumer.getNextNonce(), 1);
         vm.expectEmit(true, true, true, true);
-        emit JobCreated(1, DEFAULT_MAX_CYCLES, "programID", abi.encode(address(0)));
-        uint32 jobID = consumer.requestBalance("programID", address(0));
-        assertEq(jobID, 1);
+        emit JobCreated(DEFAULT_JOB_ID, DEFAULT_MAX_CYCLES, "programID", abi.encode(address(0)));
+        bytes32 jobID = consumer.requestBalance("programID", address(0));
+        assertEq(jobID, DEFAULT_JOB_ID);
         assertEq(consumer.getProgramInputsForJob(jobID), abi.encode(address(0)));
+        assertEq(consumer.getNextNonce(), 2);
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         assertEq(jobMetadata.programID, "programID");
         assertEq(jobMetadata.maxCycles, DEFAULT_MAX_CYCLES);
@@ -49,20 +58,20 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function test_JobManager_CancelJobByConsumer() public {
         test_Consumer_RequestJob();
         vm.expectEmit(true, false, false, false);
-        emit JobCancelled(1);
+        emit JobCancelled(DEFAULT_JOB_ID);
         vm.prank(address(consumer));
-        jobManager.cancelJob(1);
-        JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(1);
+        jobManager.cancelJob(DEFAULT_JOB_ID);
+        JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(DEFAULT_JOB_ID);
         assertEq(jobMetadata.status, 2);
     }
 
     function test_JobManager_CancelJobByOwner() public {
         test_Consumer_RequestJob();
         vm.expectEmit(true, false, false, false);
-        emit JobCancelled(1);
+        emit JobCancelled(DEFAULT_JOB_ID);
         vm.prank(jobManager.owner());
-        jobManager.cancelJob(1);
-        JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(1);
+        jobManager.cancelJob(DEFAULT_JOB_ID);
+        JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(DEFAULT_JOB_ID);
         assertEq(jobMetadata.status, 2);
     }
 
@@ -70,52 +79,64 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         test_JobManager_CreateJob();
         vm.prank(address(1));
         vm.expectRevert("JobManager.cancelJob: caller is not the job creator or JobManager owner");
-        jobManager.cancelJob(1);
+        jobManager.cancelJob(DEFAULT_JOB_ID);
     }
 
     function testRevertWhen_JobManager_CancelJobNotPending() public {
         test_Consumer_RequestJob();
         vm.prank(address(consumer));
-        jobManager.cancelJob(1);
+        jobManager.cancelJob(DEFAULT_JOB_ID);
         vm.prank(address(consumer));
         vm.expectRevert("JobManager.cancelJob: job is not in pending state");
-        jobManager.cancelJob(1);
+        jobManager.cancelJob(DEFAULT_JOB_ID);
+    }
+
+    function test_Consumer_UpdateLatestNonce() public {
+        assertEq(consumer.getNextNonce(), 1);
+        vm.prank(address(jobManager));
+        consumer.updateLatestNonce(9);
+        assertEq(consumer.getNextNonce(), 10);
+    }
+
+    function testRevertWhen_Consumer_UpdateLatestNonceNonceUnauthorized() public {
+        vm.expectRevert("Consumer.onlyJobManager: caller is not the job manager");
+        consumer.updateLatestNonce(9);
     }
 
     function testRevertWhen_Consumer_ReceiveResultUnauthorized() public {
         test_Consumer_RequestJob();
         vm.prank(address(1));
         vm.expectRevert("Consumer.onlyJobManager: caller is not the job manager");
-        consumer.receiveResult(1, abi.encode(address(0)));
+        consumer.receiveResult(DEFAULT_JOB_ID, abi.encode(address(0)));
     }
 
     function test_JobManager_SubmitResult() public {
         test_Consumer_RequestJob();
 
         // Generated using crates/scripts/signer.rs
-        bytes memory resultWithMetadata = hex"0000000000000000000000000000000000000000000000000000000000000001290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
-        bytes memory signature = hex"88db44d83f6d32ff87647d9ac8d468b74ac6afdbc76f4ee7cc9260f93e3e48c9617f4ed3e7088e529a78c481fa9d58affb166dbb388e300e42c3de4e7b54d6091b";
+        bytes memory resultWithMetadata = hex"1d890864b9237983eecb34e67a48454a8fc1950f4f16bf79bad84e0d61e4c0b2290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
+        bytes memory signature = hex"54c2eee618c1b7cda703ad01ebb2e98fabdb46970e1b5b1eb479330e0c72de8b1996f4cfff81e360695a816afed0f4fd85e60b7225bada8c05b7e72b845b5f741b";
 
         vm.expectEmit(true, true, false, false);
-        emit JobCompleted(1, abi.encode(address(0), 10));
+        emit JobCompleted(DEFAULT_JOB_ID, abi.encode(address(0), 10));
         vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
 
-        JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(1);
+        JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(DEFAULT_JOB_ID);
         // Check that job status is COMPLETED
         assertEq(jobMetadata.status, 3);
 
         // Check that state was correctly updated in Consumer contract
         assertEq(consumer.getBalance(address(0)), 10);
-        assertEq(consumer.getJobResult(1), abi.encode(address(0), 10));
+        assertEq(consumer.getJobResult(DEFAULT_JOB_ID), abi.encode(address(0), 10));
     }
 
     function testFailWhen_JobManager_SubmitResultInvalidEncodingOfResultWithMetadata() public {
         test_Consumer_RequestJob();
 
         // Generated using crates/scripts/signer.rs but with invalid ABI-encoding
-        bytes memory resultWithMetadata = hex"000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
-        bytes memory signature = hex"0f04250c720cdeffaf148e5af16a5f963c4f3faf6f85c638ac22c02db613d427112cca027fb7c48ad36e1aee504e85d2c76c7edff3e99a9ad9b07815eeb979a01b";
+        bytes memory resultWithMetadata = hex"290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
+        bytes memory signature = hex"b3e4536ee1991fec6a009a0df362b8b55a9f2b304d4d94f34a71e81203be3274679ec32fe27c3c7340664bd5c8c7855c8957c371e445b80fe693f381688894fb1c";
 
         vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
@@ -125,8 +146,8 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         test_Consumer_RequestJob();
 
         // Generated using crates/scripts/signer.rs but with invalid ABI-encoding
-        bytes memory resultWithMetadata = hex"0000000000000000000000000000000000000000000000000000000000000001290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d494400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000a";
-        bytes memory signature = hex"3c16a16c38396707abc541a25c450b794b36bcb1d2d77368c394745aa3a66b2c20ef2edd3674fda414ea4c6968db006791b94407d28c9ae6178b535d7b58235d1c";
+        bytes memory resultWithMetadata = hex"1d890864b9237983eecb34e67a48454a8fc1950f4f16bf79bad84e0d61e4c0b2290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000";
+        bytes memory signature = hex"761ca07f09f33cbc0619281e09c15bf562f2fc5fa30a5c2f0dc4fa4f252c0ca87939dc7cedfcb46d2db74c5cd6f0746610df6984e4ec429c1f92cde75b3f0df31c";
 
         vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
@@ -153,8 +174,8 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function testRevertWhen_JobManager_SubmitResultCancelledJob() public {
         test_JobManager_CancelJobByConsumer();
 
-        bytes memory resultWithMetadata = hex"0000000000000000000000000000000000000000000000000000000000000001290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
-        bytes memory signature = hex"88db44d83f6d32ff87647d9ac8d468b74ac6afdbc76f4ee7cc9260f93e3e48c9617f4ed3e7088e529a78c481fa9d58affb166dbb388e300e42c3de4e7b54d6091b";
+        bytes memory resultWithMetadata = hex"1d890864b9237983eecb34e67a48454a8fc1950f4f16bf79bad84e0d61e4c0b2290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
+        bytes memory signature = hex"54c2eee618c1b7cda703ad01ebb2e98fabdb46970e1b5b1eb479330e0c72de8b1996f4cfff81e360695a816afed0f4fd85e60b7225bada8c05b7e72b845b5f741b";
 
         vm.expectRevert("JobManager.submitResult: job is not in pending state");
         vm.prank(RELAYER);
@@ -164,8 +185,8 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function testRevertWhen_JobManager_SubmitResultWrongProgramInputHash() public {
         test_Consumer_RequestJob();
 
-        bytes memory resultWithMetadata = hex"0000000000000000000000000000000000000000000000000000000000000001e570eff78be1b11cf36ef150c7ed13e3fa520033b0a14059887fc69332fb4c3300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
-        bytes memory signature = hex"599c86688b587cfdd46d187e2a6ccac8aba11d546e3844846ffd9e7ac008ddc84c136b66eda5d1ff9bf440cde2c2793f905807ffd57722fb1db8bdbef74eed1f1b";
+        bytes memory resultWithMetadata = hex"1d890864b9237983eecb34e67a48454a8fc1950f4f16bf79bad84e0d61e4c0b28c273dc8bd09a0b6f2a1e4d557d16b0026a0c70a998f9557c159fa082683a81500000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d494400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000db8cff278adccf9e9b5da745b44e754fc4ee3c76000000000000000000000000000000000000000000000000000000000000000a";
+        bytes memory signature = hex"5a7825c7110b03c3482a1017881860224b2103d29e194a8f147d6f9f0ae3275e71aced687f2a72d00cb3a6574dfcbe5d7a4c9ff49d172c28c54817f8026406111b";
 
         vm.expectRevert("JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
         vm.prank(RELAYER);
@@ -175,8 +196,8 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function testRevertWhen_JobManager_SubmitResultWrongProgramID() public {
         test_Consumer_RequestJob();
 
-        bytes memory resultWithMetadata = hex"0000000000000000000000000000000000000000000000000000000000000001290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000c70726f6772616d4944313233000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
-        bytes memory signature = hex"1e84e7839672b237541a76feac1ba35e179ab8a325f4c66ca135d7c5ebea3061525e718e2e5f0a5a9803d0e4717bbbad990376874312db3f0db5ce2bed6980ef1b";
+        bytes memory resultWithMetadata = hex"1d890864b9237983eecb34e67a48454a8fc1950f4f16bf79bad84e0d61e4c0b2290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000a70726f6772616d4944310000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
+        bytes memory signature = hex"8a8a4d0d6179c882fdc680e69121f4e45e10d17f1b49ff8b14dc684caa97175144dcd5a45c47c5c95e565fab84c80cbfdcb95fa8cac2b7d683ffe1212da95c1b1c";
 
         vm.expectRevert("JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
         vm.prank(RELAYER);
@@ -186,8 +207,8 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function testRevertWhen_JobManager_SubmitResultWrongMaxCycles() public {
         test_Consumer_RequestJob();
 
-        bytes memory resultWithMetadata = hex"0000000000000000000000000000000000000000000000000000000000000001290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e563000000000000000000000000000000000000000000000000000000000000003200000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
-        bytes memory signature = hex"0bef1eca23f5c63d03092980801d768940cda44fbd478f4c2ef7a430eff464322c2ecf214d1f153e9a80c6b7c25f2f68d90b94f96190d3dd13de715085d7bd1f1b";
+        bytes memory resultWithMetadata = hex"1d890864b9237983eecb34e67a48454a8fc1950f4f16bf79bad84e0d61e4c0b2290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000017d784000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
+        bytes memory signature = hex"0729f6a87e86698f3eaefa4899114a8f69fef91dc6a9f1de19c30d34a84406e4345aeef75b62da8c540e7263ad7e8f790d1daf6f080cc31ee1cc8df6bede8cf51c";
 
         vm.expectRevert("JobManager.submitResult: max cycles signed by coprocessor doesn't match max cycles submitted with job");
         vm.prank(RELAYER);
@@ -202,25 +223,24 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         bytes memory offchainResultWithMetadata = hex"290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
         bytes memory signatureOnResult = hex"b3e4536ee1991fec6a009a0df362b8b55a9f2b304d4d94f34a71e81203be3274679ec32fe27c3c7340664bd5c8c7855c8957c371e445b80fe693f381688894fb1c";
 
+        assertEq(consumer.getNextNonce(), 1);
+
         vm.expectEmit(true, true, false, false);
-        emit JobCompleted(1, abi.encode(address(0), 10));
+        emit JobCompleted(DEFAULT_JOB_ID, abi.encode(address(0), 10));
         vm.prank(RELAYER);
         jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
 
         // Check that inputs are stored correctly in Consumer contract
-        assertEq(consumer.getProgramInputsForJob(1), abi.encode(address(0)));
+        assertEq(consumer.getProgramInputsForJob(DEFAULT_JOB_ID), abi.encode(address(0)));
+        assertEq(consumer.getNextNonce(), 2);
 
-        // Check that nonce-related data is stored correctly in JobManager contract
-        assertEq(jobManager.getJobIDForNonce(1, address(consumer)), 1);
-        assertEq(jobManager.getMaxNonce(address(consumer)), 1);
-
-        JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(1);
+        JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(DEFAULT_JOB_ID);
         // Check that job status is COMPLETED
         assertEq(jobMetadata.status, 3);
 
         // Check that state was correctly updated in Consumer contract
         assertEq(consumer.getBalance(address(0)), 10);
-        assertEq(consumer.getJobResult(1), abi.encode(address(0), 10));
+        assertEq(consumer.getJobResult(DEFAULT_JOB_ID), abi.encode(address(0), 10));
     }
 
     function testFailWhen_JobManager_SubmitResultForOffchainJobInvalidEncodingOfRequest() public {
@@ -245,7 +265,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         bytes memory offchainResultWithMetadata = hex"290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
         bytes memory signatureOnResult = hex"b3e4536ee1991fec6a009a0df362b8b55a9f2b304d4d94f34a71e81203be3274679ec32fe27c3c7340664bd5c8c7855c8957c371e445b80fe693f381688894fb1c";
 
-        vm.expectRevert("JobManager.submitResultForOffchainJob: Nonce already exists for this consumer");
+        vm.expectRevert("JobManager.createJob: job already exists with this nonce and consumer");
         vm.prank(RELAYER);
         jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }

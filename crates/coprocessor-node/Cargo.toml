@@ -18,7 +18,7 @@ home = { workspace = true }
 tracing = { workspace = true }
 k256 = { workspace = true }
 reth-db = { workspace = true }
-tracing-subscriber = { workspace = true}
+base64 = { workspace = true }
 async-channel = { workspace = true }
 futures-util = { workspace = true }
 
@@ -28,6 +28,7 @@ contracts = { path = "../contracts" }
 db = { path = "../db" }
 proto = { path = "../proto" }
 zkvm-executor = { path = "../zkvm-executor" }
+zkvm-tracing = { package = "tracing", path = "../tracing" }
 
 [dev-dependencies]
 test-utils = { path = "../test-utils" }
