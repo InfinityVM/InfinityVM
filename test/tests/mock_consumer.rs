@@ -175,7 +175,6 @@ fn invariants() {
 //     // Integration::run(test).await;
 // }
 
-// TODO MAANAV
 #[ignore]
 #[tokio::test]
 async fn event_job_created_coprocessor_node_mock_consumer_e2e() {

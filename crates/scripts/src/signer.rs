@@ -125,7 +125,6 @@ fn abi_encode_address_with_balance(address: Address, balance: U256) -> Vec<u8> {
     AddressWithBalance::abi_encode(&(address, balance))
 }
 
-// TODO MAANAV
 type JobRequest = sol! {
     tuple(uint64,uint64,address,bytes,bytes)
 };
