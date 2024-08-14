@@ -20,7 +20,8 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     event JobCompleted(bytes32 indexed jobID, bytes result);
 
     function setUp() public {
-        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_SIGNER, 0, false);
+        uint32 initialMaxNonce = 0;
+        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_SIGNER, initialMaxNonce, false);
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }
 
@@ -95,6 +96,11 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         vm.prank(address(jobManager));
         consumer.setMaxNonce(9);
         assertEq(consumer.getMaxNonce(), 9);
+    }
+
+    function testRevertWhen_Consumer_SetMaxNonceUnauthorized() public {
+        vm.expectRevert("Consumer.onlyJobManager: caller is not the job manager");
+        consumer.setMaxNonce(9);
     }
 
     function testRevertWhen_Consumer_ReceiveResultUnauthorized() public {

@@ -135,9 +135,9 @@ pub async fn anvil_with_contracts() -> TestAnvil {
         .on_http(rpc_url.parse().unwrap());
 
     // Deploy the mock consumer contract. This can take jobs and accept results.
-    let nonce = 0;
+    let initial_max_nonce = 0;
     let mock_consumer =
-        MockConsumer::deploy(consumer_provider, job_manager, offchain_signer.address(), nonce)
+        MockConsumer::deploy(consumer_provider, job_manager, offchain_signer.address(), initial_max_nonce)
             .await
             .unwrap();
     let mock_consumer = *mock_consumer.address();

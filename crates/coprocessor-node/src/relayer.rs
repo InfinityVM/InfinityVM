@@ -128,7 +128,6 @@ impl JobRelayer {
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
         let pending_tx = call_builder.send().await.map_err(|error| {
-            let job_id_str = String::from_utf8(job.id.clone()).unwrap_or_default();
             error!(?error, job_id_str, "tx broadcast failure");
             self.metrics.incr_relay_err("relay_error_broadcast_failure");
             Error::TxBroadcast(error)
