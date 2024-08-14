@@ -49,9 +49,10 @@ where
 {
     let handle = tokio::spawn(async move {
         let mut last_seen_block = from_block;
-        let saved_height = job_processor.get_last_block_height().await.unwrap_or_default();
-        if saved_height > last_seen_block.as_number().unwrap_or_default() {
-            last_seen_block = BlockNumberOrTag::Number(saved_height);
+        let last_saved_height = job_processor.get_last_block_height().await.unwrap_or_default();
+        if last_saved_height > last_seen_block.as_number().unwrap_or_default() {
+            // update last seen block height
+            last_seen_block = BlockNumberOrTag::Number(last_saved_height);
         }
 
         let mut retry = 1;
@@ -101,10 +102,7 @@ where
                 }
                 if let Some(n) = log.block_number {
                     last_seen_block = BlockNumberOrTag::Number(n);
-                    if let Err(error) = job_processor
-                        .set_last_block_height(last_seen_block.as_number().unwrap())
-                        .await
-                    {
+                    if let Err(error) = job_processor.set_last_block_height(n).await {
                         error!(?error, "failed to set last seen block height");
                     }
                 }
