@@ -12,8 +12,8 @@ alloy = { workspace = true }
 k256 = { workspace = true }
 dotenv = { workspace = true }
 
-proto = { workspace = true }
-zkvm-executor = { workspace = true }
+proto = { path = "../proto" }
+zkvm-executor = { path = "../zkvm-executor" }
 
 [lints]
 workspace = true
