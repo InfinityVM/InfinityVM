@@ -40,7 +40,7 @@ impl Metrics {
 
 impl MetricServer {
     /// Return a new server instance
-    pub fn new(registry: Arc<Registry>) -> Self {
+    pub const fn new(registry: Arc<Registry>) -> Self {
         Self { registry }
     }
 
