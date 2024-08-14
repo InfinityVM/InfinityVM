@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::job_processor::JobProcessorService;
 use alloy::{primitives::Signature, signers::Signer};
+use base64::{prelude::BASE64_STANDARD, Engine};
 use proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
     GetResultResponse, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
@@ -9,6 +10,7 @@ use proto::{
 };
 use reth_db::Database;
 use tonic::{Request, Response, Status};
+use tracing::{info, instrument};
 
 /// gRPC service server
 #[derive(Debug)]
@@ -25,6 +27,7 @@ where
     D: Database + 'static,
 {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
+    #[instrument(name = "coprocessor_submit_job", skip(self, request), err(Debug))]
     async fn submit_job(
         &self,
         request: Request<SubmitJobRequest>,
@@ -49,6 +52,7 @@ where
         if job.program_verifying_key.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
+        info!(job_id = job.id, "new job request");
 
         self.job_processor
             .submit_job(job)
@@ -78,6 +82,7 @@ where
     }
     /// SubmitProgram defines the gRPC method for submitting a new program to
     /// generate a unique program verification key.
+    #[instrument(name = "coprocessor_submit_program", skip(self, request), err(Debug))]
     async fn submit_program(
         &self,
         request: Request<SubmitProgramRequest>,
@@ -92,6 +97,8 @@ where
             .submit_elf(req.program_elf, req.vm_type)
             .await
             .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))?;
+
+        info!(verifying_key = BASE64_STANDARD.encode(verifying_key.clone()), "new elf program");
 
         Ok(Response::new(SubmitProgramResponse { program_verifying_key: verifying_key }))
     }

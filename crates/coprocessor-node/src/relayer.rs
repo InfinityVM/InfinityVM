@@ -10,7 +10,7 @@ use alloy::{
 };
 use proto::Job;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, instrument};
 
 use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
@@ -122,6 +122,7 @@ pub struct JobRelayer {
 
 impl JobRelayer {
     /// Submit a completed jobs onchain to the `JobManager` contract.
+    #[instrument(skip(self, job), fields(job_id = %job.id), err(Debug))]
     pub async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
