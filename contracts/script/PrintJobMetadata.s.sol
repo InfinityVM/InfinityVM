@@ -9,8 +9,9 @@ import "forge-std/StdJson.sol";
 contract PrintJobMetadata is Script, Utils {
 
     JobManager public jobManager;
+    address public consumerAddress;
 
-    function printJobMetadata(bytes32 jobID) public {
+    function printJobMetadata(uint32 nonce) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -21,6 +22,12 @@ contract PrintJobMetadata is Script, Utils {
                 ".addresses.jobManager"
             )
         );
+
+        consumerAddress = stdJson.readAddress(
+                coprocessorDeployedContracts,
+                ".addresses.consumer"
+            );
+        bytes32 jobID = keccak256(abi.encodePacked(nonce, consumerAddress));
 
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         console.log("Job ID: ");

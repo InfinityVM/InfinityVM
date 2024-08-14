@@ -9,8 +9,9 @@ import "forge-std/StdJson.sol";
 contract CancelJob is Script, Utils {
 
     JobManager public jobManager;
+    address public consumerAddress;
 
-    function cancelJob(bytes32 jobID) public {
+    function cancelJob(uint32 nonce) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -21,6 +22,12 @@ contract CancelJob is Script, Utils {
                 ".addresses.jobManager"
             )
         );
+
+        consumerAddress = stdJson.readAddress(
+                coprocessorDeployedContracts,
+                ".addresses.consumer"
+            );
+        bytes32 jobID = keccak256(abi.encodePacked(nonce, consumerAddress));
 
         vm.startBroadcast();
         jobManager.cancelJob(jobID);

@@ -45,7 +45,6 @@ contract JobManager is
         return relayer;
     }
 
-
     function getCoprocessorOperator() external view returns (address) {
         return coprocessorOperator;
     }

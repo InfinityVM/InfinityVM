@@ -10,7 +10,7 @@ contract PrintJobResult is Script, Utils {
 
     MockConsumer public consumer;
 
-    function printJobResult(bytes32 jobID) public {
+    function printJobResult(uint32 nonce) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -21,6 +21,7 @@ contract PrintJobResult is Script, Utils {
                 ".addresses.consumer"
             )
         );
+        bytes32 jobID = keccak256(abi.encodePacked(nonce, address(consumer)));
 
         bytes memory result = consumer.getJobResult(jobID);
         console.log("Job ID: ");

@@ -20,9 +20,7 @@ contract CoprocessorDeployer is Script, Utils {
     IJobManager public jobManagerImplementation;
     MockConsumer public consumer;
 
-    uint32 INITIAL_MAX_NONCE = 0;
-
-    function deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, bool writeJson) public {
+    function deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, uint32 initialMaxNonce, bool writeJson) public {
         vm.startBroadcast();
         // deploy proxy admin for ability to upgrade proxy contracts
         coprocessorProxyAdmin = new ProxyAdmin();
@@ -43,7 +41,7 @@ contract CoprocessorDeployer is Script, Utils {
             )
         );
 
-        consumer = new MockConsumer(address(jobManager), offchainSigner, INITIAL_MAX_NONCE);
+        consumer = new MockConsumer(address(jobManager), offchainSigner, initialMaxNonce);
 
         if (writeJson) {
             // WRITE JSON DATA
