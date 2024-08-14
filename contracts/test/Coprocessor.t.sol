@@ -25,11 +25,13 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     }
 
     function test_JobManager_CreateJob() public {
+        assertEq(consumer.getMaxNonce(), 0);
         vm.expectEmit(true, true, true, true);
         emit JobCreated(DEFAULT_JOB_ID, DEFAULT_MAX_CYCLES, "programID", "programInput");
         vm.prank(address(consumer));
         bytes32 jobID = jobManager.createJob(DEFAULT_NONCE, "programID", "programInput", DEFAULT_MAX_CYCLES);
         assertEq(jobID, DEFAULT_JOB_ID);
+        assertEq(consumer.getMaxNonce(), 1);
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         assertEq(jobMetadata.programID, "programID");
         assertEq(jobMetadata.maxCycles, DEFAULT_MAX_CYCLES);
@@ -38,11 +40,13 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     }
 
     function test_Consumer_RequestJob() public {
+        assertEq(consumer.getMaxNonce(), 0);
         vm.expectEmit(true, true, true, true);
         emit JobCreated(DEFAULT_JOB_ID, DEFAULT_MAX_CYCLES, "programID", abi.encode(address(0)));
         bytes32 jobID = consumer.requestBalance("programID", address(0));
         assertEq(jobID, DEFAULT_JOB_ID);
         assertEq(consumer.getProgramInputsForJob(jobID), abi.encode(address(0)));
+        assertEq(consumer.getMaxNonce(), 1);
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         assertEq(jobMetadata.programID, "programID");
         assertEq(jobMetadata.maxCycles, DEFAULT_MAX_CYCLES);
@@ -84,6 +88,13 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         vm.prank(address(consumer));
         vm.expectRevert("JobManager.cancelJob: job is not in pending state");
         jobManager.cancelJob(DEFAULT_JOB_ID);
+    }
+
+    function test_Consumer_SetMaxNonce() public {
+        assertEq(consumer.getMaxNonce(), 0);
+        vm.prank(address(jobManager));
+        consumer.setMaxNonce(9);
+        assertEq(consumer.getMaxNonce(), 9);
     }
 
     function testRevertWhen_Consumer_ReceiveResultUnauthorized() public {
@@ -206,6 +217,8 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         bytes memory offchainResultWithMetadata = hex"290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
         bytes memory signatureOnResult = hex"b3e4536ee1991fec6a009a0df362b8b55a9f2b304d4d94f34a71e81203be3274679ec32fe27c3c7340664bd5c8c7855c8957c371e445b80fe693f381688894fb1c";
 
+        assertEq(consumer.getMaxNonce(), 0);
+
         vm.expectEmit(true, true, false, false);
         emit JobCompleted(DEFAULT_JOB_ID, abi.encode(address(0), 10));
         vm.prank(RELAYER);
@@ -213,10 +226,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
 
         // Check that inputs are stored correctly in Consumer contract
         assertEq(consumer.getProgramInputsForJob(DEFAULT_JOB_ID), abi.encode(address(0)));
-
-        // // Check that nonce-related data is stored correctly in JobManager contract
-        // assertEq(jobManager.getJobIDForNonce(DEFAULT_JOB_ID, address(consumer)), 1);
-        // assertEq(jobManager.getMaxNonce(address(consumer)), 1);
+        assertEq(consumer.getMaxNonce(), 1);
 
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(DEFAULT_JOB_ID);
         // Check that job status is COMPLETED
