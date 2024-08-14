@@ -45,7 +45,7 @@ pub enum Error {
     #[error("exec queue channel unexpected closed")]
     ExecQueueChannelClosed,
     /// Job ID conversion error
-    #[error("job_id_conversion")]
+    #[error("failed to convert job ID")]
     JobIdConversion,
 }
 
