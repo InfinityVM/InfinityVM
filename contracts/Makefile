@@ -90,6 +90,10 @@ print-balance: ## Print the balance of an address in the Consumer contract
 print-job-result: ## Print the result of a job
 	./script/cli/print-job-result.sh $(or $(nonce),$(DEFAULT_NONCE))
 
+.PHONY: print-max-nonce
+print-max-nonce: ## Print the max nonce on the consumer contract
+	./script/cli/print-max-nonce.sh
+
 .PHONY: deploy-coprocessor-contracts
 deploy-coprocessor-contracts: ## Deploy coprocessor contracts
 	chain=$(or $(chainID),$(DEFAULT_CHAIN_ID))
