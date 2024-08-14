@@ -230,7 +230,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -277,7 +277,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror",
- "tracing",
+ "tracing 0.1.40",
  "url",
 ]
 
@@ -340,7 +340,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
- "tracing",
+ "tracing 0.1.40",
  "url",
 ]
 
@@ -360,7 +360,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tower",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -406,7 +406,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tower",
- "tracing",
+ "tracing 0.1.40",
  "url",
 ]
 
@@ -617,7 +617,7 @@ dependencies = [
  "thiserror",
  "tokio",
  "tower",
- "tracing",
+ "tracing 0.1.40",
  "url",
 ]
 
@@ -632,7 +632,7 @@ dependencies = [
  "reqwest 0.12.5",
  "serde_json",
  "tower",
- "tracing",
+ "tracing 0.1.40",
  "url",
 ]
 
@@ -652,7 +652,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-util",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -669,7 +669,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-tungstenite",
- "tracing",
+ "tracing 0.1.40",
  "ws_stream_wasm",
 ]
 
@@ -686,7 +686,7 @@ dependencies = [
  "nybbles",
  "serde",
  "smallvec",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -933,7 +933,7 @@ checksum = "00796b6efc05a3f48225e59cb6a2cda78881e7c390872d5786aaf112f31fb4f0"
 dependencies = [
  "ark-ff 0.4.2",
  "ark-std 0.4.0",
- "tracing",
+ "tracing 0.1.40",
  "tracing-subscriber 0.2.25",
 ]
 
@@ -1621,6 +1621,7 @@ dependencies = [
  "alloy",
  "async-channel",
  "axum",
+ "base64 0.22.1",
  "clap",
  "contracts",
  "db",
@@ -1635,7 +1636,9 @@ dependencies = [
  "tokio",
  "tonic",
  "tonic-reflection",
- "tracing",
+ "tracing 0.0.1",
+ "tracing 0.1.40",
+ "tracing-appender",
  "tracing-subscriber 0.3.18",
  "zkvm-executor",
 ]
@@ -2499,7 +2502,7 @@ dependencies = [
  "slab",
  "tokio",
  "tokio-util",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -2518,7 +2521,7 @@ dependencies = [
  "slab",
  "tokio",
  "tokio-util",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -2665,7 +2668,10 @@ dependencies = [
  "thiserror",
  "tokio",
  "tonic",
- "tracing",
+ "tracing 0.0.1",
+ "tracing 0.1.40",
+ "tracing-appender",
+ "tracing-subscriber 0.3.18",
 ]
 
 [[package]]
@@ -2700,7 +2706,7 @@ dependencies = [
  "socket2",
  "tokio",
  "tower-service",
- "tracing",
+ "tracing 0.1.40",
  "want",
 ]
 
@@ -2803,7 +2809,7 @@ dependencies = [
  "tokio",
  "tower",
  "tower-service",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -2916,6 +2922,7 @@ dependencies = [
  "test-utils",
  "tokio",
  "tonic",
+ "tracing 0.0.1",
 ]
 
 [[package]]
@@ -4015,7 +4022,7 @@ dependencies = [
  "socket2",
  "thiserror",
  "tokio",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -4032,7 +4039,7 @@ dependencies = [
  "slab",
  "thiserror",
  "tinyvec",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -4044,7 +4051,7 @@ dependencies = [
  "libc",
  "once_cell",
  "socket2",
- "tracing",
+ "tracing 0.1.40",
  "windows-sys 0.52.0",
 ]
 
@@ -4445,7 +4452,7 @@ dependencies = [
  "parking_lot",
  "reth-mdbx-sys",
  "thiserror",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -4494,7 +4501,7 @@ dependencies = [
  "serde",
  "sucds",
  "thiserror",
- "tracing",
+ "tracing 0.1.40",
  "zstd",
 ]
 
@@ -4600,7 +4607,7 @@ dependencies = [
  "clap",
  "eyre",
  "rolling-file",
- "tracing",
+ "tracing 0.1.40",
  "tracing-appender",
  "tracing-journald",
  "tracing-logfmt",
@@ -4684,7 +4691,7 @@ dependencies = [
  "risc0-zkp",
  "risc0-zkvm-platform",
  "serde",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -4739,7 +4746,7 @@ dependencies = [
  "risc0-sys",
  "risc0-zkp",
  "sha2",
- "tracing",
+ "tracing 0.1.40",
  "zip",
 ]
 
@@ -4779,7 +4786,7 @@ dependencies = [
  "risc0-zkvm-platform",
  "serde",
  "sha2",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -4825,7 +4832,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -4864,7 +4871,7 @@ dependencies = [
  "risc0-zkvm-platform",
  "serde",
  "sha2",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -4901,7 +4908,7 @@ dependencies = [
  "serde",
  "sha2",
  "tempfile",
- "tracing",
+ "tracing 0.1.40",
  "typetag",
 ]
 
@@ -5847,7 +5854,7 @@ dependencies = [
  "pin-project-lite",
  "socket2",
  "tokio-macros",
- "tracing",
+ "tracing 0.1.40",
  "windows-sys 0.52.0",
 ]
 
@@ -5978,7 +5985,7 @@ dependencies = [
  "tower",
  "tower-layer",
  "tower-service",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -6024,7 +6031,7 @@ dependencies = [
  "tokio-util",
  "tower-layer",
  "tower-service",
- "tracing",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -6038,6 +6045,18 @@ name = "tower-service"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6bc1c9ce2b5135ac7f93c72918fc37feb872bdc6a5533a8b85eb4b86bfdae52"
+
+[[package]]
+name = "tracing"
+version = "0.0.1"
+dependencies = [
+ "dotenv",
+ "strum",
+ "strum_macros",
+ "tracing 0.1.40",
+ "tracing-appender",
+ "tracing-subscriber 0.3.18",
+]
 
 [[package]]
 name = "tracing"
@@ -6113,7 +6132,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b1f47d22deb79c3f59fcf2a1f00f60cbdc05462bf17d1cd356c1fefa3f444bd"
 dependencies = [
  "time",
- "tracing",
+ "tracing 0.1.40",
  "tracing-core",
  "tracing-subscriber 0.3.18",
 ]
@@ -6152,7 +6171,7 @@ dependencies = [
  "sharded-slab",
  "smallvec",
  "thread_local",
- "tracing",
+ "tracing 0.1.40",
  "tracing-core",
  "tracing-log",
  "tracing-serde",
@@ -6860,7 +6879,7 @@ dependencies = [
  "proto",
  "thiserror",
  "tonic",
- "tracing",
+ "tracing 0.1.40",
  "zkvm",
 ]
 
