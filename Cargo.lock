@@ -5187,6 +5187,7 @@ dependencies = [
  "dotenv",
  "k256",
  "proto",
+ "test-utils",
  "tokio",
  "zkvm-executor",
 ]

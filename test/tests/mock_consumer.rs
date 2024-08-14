@@ -13,6 +13,7 @@ use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{GetResultRequest, Job, JobStatus, JobStatusType, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
+use test_utils::get_job_id;
 
 type MockConsumerOut = sol!((Address, U256));
 
@@ -21,7 +22,7 @@ type MockConsumerOut = sol!((Address, U256));
 ///
 /// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
 type ResultWithMetadata = sol! {
-    tuple(uint32,bytes32,uint64,bytes,bytes)
+    tuple(bytes32,bytes32,uint64,bytes,bytes)
 };
 
 /// Returns an ABI-encoded result with metadata. This ABI-encoded response will be
@@ -29,8 +30,10 @@ type ResultWithMetadata = sol! {
 pub fn abi_encode_result_with_metadata(i: &Job, raw_output: &[u8]) -> Vec<u8> {
     let program_input_hash = keccak256(&i.input);
 
+    let job_id: [u8; 32] = i.id.clone().try_into().unwrap();
+
     ResultWithMetadata::abi_encode_params(&(
-        i.id,
+        job_id,
         program_input_hash,
         i.max_cycles,
         &i.program_verifying_key,
@@ -212,12 +215,13 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             .log_decode::<IJobManager::JobCreated>()
             .unwrap();
         let job_id = log.data().jobID;
-        assert_eq!(job_id, 1);
+        let expected_job_id = get_job_id(1, anvil.mock_consumer);
+        assert_eq!(job_id, expected_job_id);
 
         // Wait for the job to be processed
-        tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
-        let get_result_request = GetResultRequest { job_id };
+        let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
         let get_result_response =
             args.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
         let job = get_result_response.job.unwrap();
@@ -267,7 +271,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let completed =
             logs[0].log_decode::<IJobManager::JobCompleted>().unwrap().data().to_owned();
         assert_eq!(completed.result, raw_output);
-        assert_eq!(completed.jobID, 1);
+        assert_eq!(completed.jobID, expected_job_id);
 
         let get_balance_call = consumer_contract.getBalance(mock_user_address);
         let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
