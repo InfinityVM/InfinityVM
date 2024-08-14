@@ -16,3 +16,8 @@ serde_with = { workspace = true }
 
 [build-dependencies]
 tonic-build = { workspace = true }
+
+# Tell cargo machete that these deps are required since they are in the
+# generated code.
+[package.metadata.cargo-machete]
+ignored = ["prost", "serde", "tokio", "tonic_build"]

@@ -19,6 +19,8 @@ message JobStatus {
   JobStatusType status = 1;
   // The optional reason for failure.
   optional string failure_reason = 2;
+  // The optional number of retries
+  uint32 retries = 3;
 }
 
 // Job represents a program to be executed by the coprocessor with specific

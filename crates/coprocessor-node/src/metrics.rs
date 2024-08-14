@@ -40,13 +40,14 @@ impl Metrics {
 
 impl MetricServer {
     /// Return a new server instance
-    pub fn new(registry: Arc<Registry>) -> Self {
+    pub const fn new(registry: Arc<Registry>) -> Self {
         Self { registry }
     }
 
     /// Serve metrics
     pub async fn serve(&self, addr: &str) -> Result<(), std::io::Error> {
         let registry = Arc::clone(&self.registry);
+
         let router =
             Router::new().route("/metrics", get(Self::handle_metrics)).with_state(registry);
 

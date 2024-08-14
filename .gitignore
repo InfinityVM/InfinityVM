@@ -11,7 +11,7 @@ contracts/broadcast/**
 
 # Dotenv file
 contracts/.env
-rust/crates/scripts/.env
+crates/scripts/.env
 
 
 programs/**/methods/Cargo.lock

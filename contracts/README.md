@@ -12,7 +12,6 @@ You will need [foundry](https://book.getfoundry.sh/getting-started/installation)
 ```
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
-go install github.com/maoueh/zap-pretty@latest
 ```
 
 If you're facing errors when running any of the commands below, you might need to upgrade Foundry using `foundryup`.
@@ -51,8 +50,3 @@ make start-anvil-chain-with-coprocessor-deployed-and-job-requested
 All the CLI commands along with relevant comments and parameters are listed in the `Makefile`.
 
 If you would like to use different values for any of the parameters, you can pass these in through the CLI or by changing the default values in the `Makefile`.
-
-### Generate Go Bindings
-```shell
-$ ./generate_bindings.sh
-```

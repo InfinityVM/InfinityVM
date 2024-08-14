@@ -151,7 +151,7 @@ k256 = { version = "0.13", default-features = false }
 # o
 # p
 prometheus = { version = "0.9", features = ["process"] }
-prost = { version = "0.13", default-features = false }
+prost = { version = "0.13", features = ["derive", "std"], default-features = false }
 
 # q
 # r
@@ -179,7 +179,7 @@ strum = {  version = "0.26.3" }
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport"], default-features = false }
-tonic = { version = "0.12", features = ["transport"], default-features = false }
+tonic = { version = "0.12", features = ["transport", "codegen", "prost", "channel", "server", "router"], default-features = false }
 tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "tracing"], default-features = false }
 thiserror = { version = "1", default-features = false }
