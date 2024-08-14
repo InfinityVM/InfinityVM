@@ -72,11 +72,7 @@ contract JobManager is
     function _createJob(uint64 nonce, bytes32 jobID, bytes memory programID, uint64 maxCycles, address consumer) internal {
         require(jobIDToMetadata[jobID].status == 0, "JobManager.createJob: job already exists with this nonce and consumer");
         jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, consumer, JOB_STATE_PENDING);
-        // Update max nonce for the consumer if needed
-        uint64 maxNonce = Consumer(consumer).getMaxNonce();
-        if (nonce > maxNonce) {
-            Consumer(consumer).setMaxNonce(nonce);
-        }
+        Consumer(consumer).updateLatestNonce(nonce);
     }
 
     function cancelJob(bytes32 jobID) external override {

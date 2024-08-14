@@ -24,16 +24,18 @@ abstract contract Consumer {
         return jobIDToProgramInput[jobID];
     }
 
-    function getMaxNonce() public view virtual returns (uint64) {
-        return maxNonce;
+    function getNextNonce() public view virtual returns (uint64) {
+        return maxNonce + 1;
     }
 
     function setProgramInputsForJob(bytes32 jobID, bytes memory programInput) public virtual onlyJobManager() {
         jobIDToProgramInput[jobID] = programInput;
     }
 
-    function setMaxNonce(uint64 nonce) public virtual onlyJobManager() {
-        maxNonce = nonce;
+    function updateLatestNonce(uint64 nonce) public virtual onlyJobManager() {
+        if (nonce > maxNonce) {
+            maxNonce = nonce;
+        }
     }
 
     function requestJob(
@@ -41,7 +43,7 @@ abstract contract Consumer {
         bytes memory programInput,
         uint64 maxCycles
     ) internal virtual returns (bytes32) {
-        bytes32 jobID = _jobManager.createJob(getMaxNonce() + 1, programID, programInput, maxCycles);
+        bytes32 jobID = _jobManager.createJob(getNextNonce(), programID, programInput, maxCycles);
         jobIDToProgramInput[jobID] = programInput;
         return jobID;
     }

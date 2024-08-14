@@ -7,4 +7,4 @@ CHAIN_ID=${CHAIN_ID:-31337}
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
-forge script ../PrintMaxNonce.s.sol:PrintMaxNonce --sig "printMaxNonce()" --rpc-url $RPC_URL --chain-id $CHAIN_ID --broadcast -v
+forge script ../PrintNextNonce.s.sol:PrintNextNonce --sig "printNextNonce()" --rpc-url $RPC_URL --chain-id $CHAIN_ID --broadcast -v

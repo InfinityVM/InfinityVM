@@ -6,11 +6,11 @@ import {Utils} from "./utils/Utils.sol";
 import {MockConsumer} from "../test/mocks/MockConsumer.sol";
 import "forge-std/StdJson.sol";
 
-contract PrintMaxNonce is Script, Utils {
+contract PrintNextNonce is Script, Utils {
 
     MockConsumer public consumer;
 
-    function printMaxNonce() public {
+    function printNextNonce() public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -22,8 +22,8 @@ contract PrintMaxNonce is Script, Utils {
             )
         );
 
-        uint64 maxNonce = consumer.getMaxNonce();
-        console.log("Max nonce: ", maxNonce);
+        uint64 nextNone = consumer.getNextNonce();
+        console.log("Next nonce: ", nextNone);
     }
 
 }
