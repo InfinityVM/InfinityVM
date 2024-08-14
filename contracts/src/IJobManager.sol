@@ -36,7 +36,7 @@ interface IJobManager {
     }
 
     struct OffchainJobRequest {
-        uint32 nonce;
+        uint64 nonce;
         uint64 maxCycles;
         address consumer;
         bytes programID;
@@ -44,7 +44,7 @@ interface IJobManager {
     }
 
     // FUNCTIONS
-    function createJob(uint32 nonce, bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external returns (bytes32 jobID);
+    function createJob(uint64 nonce, bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external returns (bytes32 jobID);
     function getJobMetadata(bytes32 jobID) external view returns (JobMetadata memory);
     function cancelJob(bytes32 jobID) external;
     function submitResult(bytes calldata resultWithMetadata, bytes calldata signature) external;

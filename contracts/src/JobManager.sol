@@ -61,7 +61,7 @@ contract JobManager is
         coprocessorOperator = _coprocessorOperator;
     }
 
-    function createJob(uint32 nonce, bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external override returns (bytes32) {
+    function createJob(uint64 nonce, bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external override returns (bytes32) {
         address consumer = msg.sender;
         bytes32 jobID = keccak256(abi.encodePacked(nonce, consumer));
        _createJob(nonce, jobID, programID, maxCycles, consumer);
@@ -69,11 +69,11 @@ contract JobManager is
         return jobID;
     }
 
-    function _createJob(uint32 nonce, bytes32 jobID, bytes memory programID, uint64 maxCycles, address consumer) internal {
+    function _createJob(uint64 nonce, bytes32 jobID, bytes memory programID, uint64 maxCycles, address consumer) internal {
         require(jobIDToMetadata[jobID].status == 0, "JobManager.createJob: job already exists with this nonce and consumer");
         jobIDToMetadata[jobID] = JobMetadata(programID, maxCycles, consumer, JOB_STATE_PENDING);
         // Update max nonce for the consumer if needed
-        uint32 maxNonce = Consumer(consumer).getMaxNonce();
+        uint64 maxNonce = Consumer(consumer).getMaxNonce();
         if (nonce > maxNonce) {
             Consumer(consumer).setMaxNonce(nonce);
         }
@@ -173,7 +173,7 @@ contract JobManager is
     }
 
     function decodeJobRequest(bytes memory jobRequest) public pure returns (OffchainJobRequest memory) {
-        (uint32 nonce, uint64 maxCycles, address consumer, bytes memory programID, bytes memory programInput) = abi.decode(jobRequest, (uint32, uint64, address, bytes, bytes));
+        (uint64 nonce, uint64 maxCycles, address consumer, bytes memory programID, bytes memory programInput) = abi.decode(jobRequest, (uint64, uint64, address, bytes, bytes));
         return OffchainJobRequest(nonce, maxCycles, consumer, programID, programInput);
     }
 }

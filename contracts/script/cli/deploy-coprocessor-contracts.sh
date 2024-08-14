@@ -17,6 +17,6 @@ parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 cd ..
 
-forge script CoprocessorDeployer.s.sol:CoprocessorDeployer --sig "deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, uint32 initialMaxNonce, bool writeJson)" $RELAYER_ADDRESS $COPROCESSOR_OPERATOR_ADDRESS $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
+forge script CoprocessorDeployer.s.sol:CoprocessorDeployer --sig "deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, uint64 initialMaxNonce, bool writeJson)" $RELAYER_ADDRESS $COPROCESSOR_OPERATOR_ADDRESS $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
 # we also do this here to make sure the relayer has funds to submit results to the JobManager contract
 cast send $RELAYER_ADDRESS --value ${RELAYER_FUNDING_AMOUNT}ether --private-key $PRIVATE_KEY --rpc-url $RPC_URL

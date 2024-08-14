@@ -10,7 +10,7 @@ contract PrintJobResult is Script, Utils {
 
     MockConsumer public consumer;
 
-    function printJobResult(uint32 nonce) public {
+    function printJobResult(uint64 nonce) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );

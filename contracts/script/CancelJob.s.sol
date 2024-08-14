@@ -11,7 +11,7 @@ contract CancelJob is Script, Utils {
     JobManager public jobManager;
     address public consumerAddress;
 
-    function cancelJob(uint32 nonce) public {
+    function cancelJob(uint64 nonce) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );

@@ -11,7 +11,7 @@ contract PrintJobMetadata is Script, Utils {
     JobManager public jobManager;
     address public consumerAddress;
 
-    function printJobMetadata(uint32 nonce) public {
+    function printJobMetadata(uint64 nonce) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );

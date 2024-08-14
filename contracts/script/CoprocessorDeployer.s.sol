@@ -20,7 +20,7 @@ contract CoprocessorDeployer is Script, Utils {
     IJobManager public jobManagerImplementation;
     MockConsumer public consumer;
 
-    function deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, uint32 initialMaxNonce, bool writeJson) public {
+    function deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, uint64 initialMaxNonce, bool writeJson) public {
         vm.startBroadcast();
         // deploy proxy admin for ability to upgrade proxy contracts
         coprocessorProxyAdmin = new ProxyAdmin();

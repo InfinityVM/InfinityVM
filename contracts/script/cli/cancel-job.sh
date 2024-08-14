@@ -9,4 +9,4 @@ NONCE=${1:-1}
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
-forge script ../CancelJob.s.sol:CancelJob --sig "cancelJob(uint32 NONCE)" $NONCE --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
+forge script ../CancelJob.s.sol:CancelJob --sig "cancelJob(uint64 NONCE)" $NONCE --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v

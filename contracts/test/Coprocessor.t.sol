@@ -12,7 +12,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0x184c47137933253f49325B851307Ab1017863BD0;
     address OFFCHAIN_SIGNER = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    uint32 DEFAULT_NONCE = 1;
+    uint64 DEFAULT_NONCE = 1;
     bytes32 DEFAULT_JOB_ID;
 
     event JobCreated(bytes32 indexed jobID, uint64 maxCycles, bytes programID, bytes programInput);
@@ -20,7 +20,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     event JobCompleted(bytes32 indexed jobID, bytes result);
 
     function setUp() public {
-        uint32 initialMaxNonce = 0;
+        uint64 initialMaxNonce = 0;
         deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_SIGNER, initialMaxNonce, false);
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }

@@ -10,7 +10,7 @@ contract MockConsumer is Consumer, OffchainRequester {
     mapping(address => uint256) public addressToBalance;
     mapping(bytes32 => bytes) public jobIDToResult;
 
-    constructor(address jobManager, address _offchainSigner, uint32 initialMaxNonce) Consumer(jobManager, initialMaxNonce) OffchainRequester() {
+    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce) Consumer(jobManager, initialMaxNonce) OffchainRequester() {
         // MockConsumer allows a single offchainSigner address to sign all offchain job requests
         offchainSigner = _offchainSigner;
     }

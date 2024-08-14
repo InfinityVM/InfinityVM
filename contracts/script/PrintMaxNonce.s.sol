@@ -22,7 +22,7 @@ contract PrintMaxNonce is Script, Utils {
             )
         );
 
-        uint32 maxNonce = consumer.getMaxNonce();
+        uint64 maxNonce = consumer.getMaxNonce();
         console.log("Max nonce: ", maxNonce);
     }
 

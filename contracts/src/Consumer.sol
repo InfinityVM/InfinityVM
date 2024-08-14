@@ -4,10 +4,10 @@ import {JobManager} from "./JobManager.sol";
 
 abstract contract Consumer {
     JobManager internal _jobManager;
-    uint32 public maxNonce;
+    uint64 public maxNonce;
     mapping(bytes32 => bytes) internal jobIDToProgramInput;
 
-    constructor(address __jobManager, uint32 _initialMaxNonce) {
+    constructor(address __jobManager, uint64 _initialMaxNonce) {
         _jobManager = JobManager(__jobManager);
         maxNonce = _initialMaxNonce;
     }
@@ -24,7 +24,7 @@ abstract contract Consumer {
         return jobIDToProgramInput[jobID];
     }
 
-    function getMaxNonce() public view virtual returns (uint32) {
+    function getMaxNonce() public view virtual returns (uint64) {
         return maxNonce;
     }
 
@@ -32,7 +32,7 @@ abstract contract Consumer {
         jobIDToProgramInput[jobID] = programInput;
     }
 
-    function setMaxNonce(uint32 nonce) public virtual onlyJobManager() {
+    function setMaxNonce(uint64 nonce) public virtual onlyJobManager() {
         maxNonce = nonce;
     }
 

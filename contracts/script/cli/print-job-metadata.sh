@@ -8,4 +8,4 @@ NONCE=${1:-1}
 parent_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd "$parent_path"
 
-forge script ../PrintJobMetadata.s.sol:PrintJobMetadata --sig "printJobMetadata(uint32 nonce)" $NONCE --rpc-url $RPC_URL --chain-id $CHAIN_ID --broadcast -v
+forge script ../PrintJobMetadata.s.sol:PrintJobMetadata --sig "printJobMetadata(uint64 nonce)" $NONCE --rpc-url $RPC_URL --chain-id $CHAIN_ID --broadcast -v
