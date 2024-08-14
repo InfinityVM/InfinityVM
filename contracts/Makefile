@@ -74,11 +74,11 @@ cancel-job: ## Cancel a job
 	./script/cli/cancel-job.sh $(or $(jobID),$(DEFAULT_JOB_ID))
 
 .PHONY: submit-result
-submit-result: ## Submit a result for a job (can be generated using rust/crates/scripts/signer.rs)
+submit-result: ## Submit a result for a job (can be generated using crates/scripts/signer.rs)
 	./script/cli/submit-result.sh $(or $(resultWithMetadata),$(DEFAULT_RESULT_WITH_METADATA)) $(or $(signature),$(DEFAULT_SIGNATURE_ON_RESULT))
 
 .PHONY: submit-result-for-offchain-job
-submit-result-for-offchain-job: ## Submit a result for an offchain job (can be generated using rust/crates/scripts/signer.rs)
+submit-result-for-offchain-job: ## Submit a result for an offchain job (can be generated using crates/scripts/signer.rs)
 	./script/cli/submit-result-for-offchain-job.sh $(or $(resultWithMetadata),$(DEFAULT_OFFCHAIN_RESULT_WITH_METADATA)) $(or $(signatureOnResult),$(DEFAULT_SIGNATURE_ON_OFFCHAIN_RESULT)) $(or $(jobRequest),$(DEFAULT_JOB_REQUEST)) $(or $(signatureOnRequest),$(DEFAULT_SIGNATURE_ON_JOB_REQUEST))
 
 .PHONY: print-balance
