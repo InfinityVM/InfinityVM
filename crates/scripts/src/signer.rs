@@ -65,7 +65,7 @@ impl RequestAndResultSigner {
         let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
 
         let encoded_job_request = abi_encode_job_request(
-            NONCE.into(),
+            NONCE,
             MAX_CYCLES,
             consumer_addr,
             PROGRAM_ID.to_vec(),

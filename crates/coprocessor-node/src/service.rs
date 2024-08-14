@@ -53,7 +53,7 @@ where
         if job.program_verifying_key.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
-        info!(job_id = job.id, "new job request");
+        info!(job_id = ?job.id, "new job request");
 
         self.job_processor
             .submit_job(job)

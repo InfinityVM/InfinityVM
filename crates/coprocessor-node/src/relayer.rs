@@ -122,21 +122,19 @@ pub struct JobRelayer {
 
 impl JobRelayer {
     /// Submit a completed jobs onchain to the `JobManager` contract.
-    #[instrument(skip(self, job), fields(job_id = %job.id), err(Debug))]
+    #[instrument(skip(self, job), fields(job_id = ?job.id), err(Debug))]
     pub async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
-        let job_id_str = String::from_utf8(job.id.clone()).unwrap_or_default();
-
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
         let pending_tx = call_builder.send().await.map_err(|error| {
-            error!(?error, job_id_str, "tx broadcast failure");
+            error!(?error, ?job.id, "tx broadcast failure");
             self.metrics.incr_relay_err("relay_error_broadcast_failure");
             Error::TxBroadcast(error)
         })?;
 
         let receipt =
             pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
-                error!(?error, job_id_str, "tx inclusion failed");
+                error!(?error, ?job.id, "tx inclusion failed");
                 self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
                 Error::TxInclusion(error)
             })?;
@@ -146,7 +144,7 @@ impl JobRelayer {
             receipt.block_number,
             ?receipt.block_hash,
             ?receipt.transaction_hash,
-            job_id_str,
+            ?job.id,
             "tx included"
         );
 

@@ -90,7 +90,7 @@ where
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
         info!(
-            job_id = String::from_utf8(inputs.job_id.clone()).unwrap_or_default(),
+            job_id = ?inputs.job_id.clone(),
             vm_type = vm_type.as_str_name(),
             verifying_key = base64_verifying_key,
             "new job received"
@@ -115,7 +115,7 @@ where
         let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
-            job_id = String::from_utf8(inputs.job_id.clone()).unwrap_or_default(),
+            job_id = ?inputs.job_id.clone(),
             vm_type = vm_type.as_str_name(),
             verifying_key = base64_verifying_key,
             raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
