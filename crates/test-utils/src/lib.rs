@@ -5,16 +5,17 @@ use std::net::TcpListener;
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
-    primitives::{Address, U256},
+    primitives::{utils::keccak256, Address, U256},
     providers::{ext::AnvilApi, ProviderBuilder},
     signers::{local::PrivateKeySigner, Signer},
-    sol_types::SolValue,
+    sol,
+    sol_types::{SolType, SolValue},
 };
 use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use proto::JobStatus;
+use proto::{Job, JobInputs, JobStatus, JobStatusType, RequestType};
 use rand::Rng;
 use sha2::{Digest, Sha256};
 use tokio::time::{sleep, Duration};
@@ -28,7 +29,7 @@ pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
 pub const LOCALHOST: &str = "127.0.0.1";
 
 /// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
-/// If the tracing subscriber has already been initialized in a previous test, this 
+/// If the tracing subscriber has already been initialized in a previous test, this
 /// function will silently fail due to `try_init()`, which does not reinitialize
 /// the subscriber if one is already set.
 pub fn test_tracing() {
@@ -137,10 +138,15 @@ pub async fn anvil_with_contracts() -> TestAnvil {
         .on_http(rpc_url.parse().unwrap());
 
     // Deploy the mock consumer contract. This can take jobs and accept results.
-    let mock_consumer =
-        MockConsumer::deploy(consumer_provider, job_manager, offchain_signer.address())
-            .await
-            .unwrap();
+    let initial_max_nonce = 0;
+    let mock_consumer = MockConsumer::deploy(
+        consumer_provider,
+        job_manager,
+        offchain_signer.address(),
+        initial_max_nonce,
+    )
+    .await
+    .unwrap();
     let mock_consumer = *mock_consumer.address();
 
     TestAnvil { anvil, job_manager, relayer, coprocessor_operator, mock_consumer }
@@ -161,38 +167,38 @@ pub fn mock_raw_output() -> Vec<u8> {
 /// The result here will be decodable by the `MockConsumer` contract and have
 /// a valid signature from the zkvm operator.
 pub async fn mock_consumer_pending_job(
-    i: u8,
+    nonce: u8,
     operator: PrivateKeySigner,
     mock_consumer: Address,
-) -> proto::Job {
-    let bytes = vec![i; 32];
+) -> Job {
+    let bytes = vec![nonce; 32];
     let addr = mock_contract_input_addr();
     let raw_output = mock_raw_output();
 
-    let inputs = proto::JobInputs {
-        job_key: Sha256::digest(&i.to_be_bytes()).to_vec(),
-        job_id: Some(i as u32),
+    let inputs = JobInputs {
+        job_id: get_job_id(nonce.into(), mock_consumer).to_vec(),
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
         program_verifying_key: bytes.clone(),
         program_input: addr.abi_encode(),
         vm_type: 1,
         program_elf: bytes.clone(),
+        request_type: RequestType::Onchain as i32,
     };
 
     let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output).unwrap();
     let operator_signature =
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 
-    let job = proto::Job {
+    let job = Job {
         id: inputs.job_id,
-        nonce: None,
+        nonce: 1,
         max_cycles: inputs.max_cycles,
         program_verifying_key: inputs.program_verifying_key,
         input: inputs.program_input,
         request_signature: vec![],
         result: result_with_meta,
         status: Some(JobStatus {
-            status: proto::JobStatusType::Pending as i32,
+            status: JobStatusType::Pending as i32,
             failure_reason: None,
             retries: 0,
         }),
@@ -202,4 +208,17 @@ pub async fn mock_consumer_pending_job(
     };
 
     job
+}
+
+/// Returns the job ID hash for a given nonce and consumer address.
+pub fn get_job_id(nonce: u64, consumer: Address) -> [u8; 32] {
+    keccak256(abi_encode_nonce_and_consumer(nonce, consumer)).into()
+}
+
+type NonceAndConsumer = sol! {
+    tuple(uint64, address)
+};
+
+fn abi_encode_nonce_and_consumer(nonce: u64, consumer: Address) -> Vec<u8> {
+    NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
 }

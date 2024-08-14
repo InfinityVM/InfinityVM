@@ -10,6 +10,26 @@ use reth_db::{
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+/// Key to tables storing job metadata and failed jobs.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct JobKey(pub [u8; 32]);
+
+impl Encode for JobKey {
+    type Encoded = [u8; 32];
+
+    fn encode(self) -> Self::Encoded {
+        self.0
+    }
+}
+
+impl Decode for JobKey {
+    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
+        let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
+
+        Ok(Self(inner))
+    }
+}
+
 /// Key to a table storing ELFs. The first byte of the key is the vm type
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct ElfKey(pub [u8; 32]);
@@ -32,46 +52,6 @@ impl Encode for ElfKey {
 }
 
 impl Decode for ElfKey {
-    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
-        let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
-
-        Ok(Self(inner))
-    }
-}
-
-/// Key to a table storing jobs. The key is the hash of either the job ID or (nonce, consumer
-/// address)
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub struct JobKey(pub [u8; 32]);
-
-impl JobKey {
-    // Hash of job ID if it's an onchain job
-    pub(crate) fn from_job_id(job_id: u32) -> Self {
-        let inner: [u8; 32] = Sha256::digest(&job_id.to_be_bytes()).into();
-        Self(inner)
-    }
-
-    // Hash of (nonce, consumer address) tuple if it's an offchain job
-    pub(crate) fn from_nonce_and_consumer(nonce: u64, consumer: &[u8]) -> Self {
-        let mut hasher = Sha256::new();
-        hasher.update(&nonce.to_be_bytes());
-        hasher.update(consumer);
-
-        // Hash the concatenated result
-        let inner: [u8; 32] = hasher.finalize().into();
-        Self(inner)
-    }
-}
-
-impl Encode for JobKey {
-    type Encoded = [u8; 32];
-
-    fn encode(self) -> Self::Encoded {
-        self.0
-    }
-}
-
-impl Decode for JobKey {
     fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
         let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
 

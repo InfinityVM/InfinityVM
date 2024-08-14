@@ -18,12 +18,15 @@ enum VmType {
   Sp1 = 1;
 }
 
+enum RequestType {
+  Onchain = 0;
+  Offchain = 1;
+}
+
 // The inputs to the zkvm program that get attested to by the zkvm operator.
 message JobInputs {
-  // Job key, used as a unique identifier for the job in the coprocessor node and DB.
-  bytes job_key = 1;
-  // Job ID, as defined by the ethos chain job manager contracts.
-  optional uint32 job_id = 2;
+  // Job identifier, as defined by the ethos chain job manager contracts.
+  bytes job_id = 1;
   // The maximum amount of cpu cycles. In the future this may
   // be something closer to gas/opcode count.
   uint64 max_cycles = 3;
@@ -37,6 +40,8 @@ message JobInputs {
   bytes program_elf = 6;
   // VM type (Risc0 or Sp1).
   VmType vm_type = 7;
+  // Whether job was requested offchain or onchain
+  RequestType request_type = 8; 
 }
 
 // A request to execute a zkvm program.

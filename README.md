@@ -2,7 +2,7 @@
 
 Infinite possibilities.
 
-The workspace configuration is defined by `rust/Cargo.toml`.
+The workspace configuration is defined by `Cargo.toml`.
 
 ## Develop
 
@@ -12,7 +12,7 @@ Rust
 
 ```sh
 # set rust version
-rustup use 1.79
+rustup use 1.80
 rustup toolchain install nightly
 ```
 
@@ -46,6 +46,14 @@ Sp1
 curl -L https://sp1.succinct.xyz | bash
 sp1up
 cargo prove --version
+```
+
+Foundry
+
+```
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+cd contracts && forge build
 ```
 
 **Iterating**
@@ -96,6 +104,20 @@ To change Rust log level when running a binary
 ```sh
 export RUST_LOG="<log-level>"
 ```
+
+To change the Rust log format between text or json:
+
+```sh
+export RUST_LOG_FORMAT="text"  # Use "json" for JSON
+```
+
+To export logs to a file:
+
+```sh
+export RUST_LOG_FILE="zkvm.log" 
+export RUST_LOG_DIR="/path/to/log" # Optional
+```
+If RUST_LOG_DIR is not specified, logs will be written to the current directory "."
 
 To run any binary that is a non default member you need to specify the package:
 

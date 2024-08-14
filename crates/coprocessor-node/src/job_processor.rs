@@ -1,16 +1,15 @@
 //! Job processor implementation.
 
-use crate::{
-    metrics::Metrics,
-    relayer::{JobRelayer, RelayReceipt},
-};
+use crate::{metrics::Metrics, relayer::JobRelayer};
 use alloy::{hex, primitives::Signature, signers::Signer, sol, sol_types::SolType};
 use async_channel::{Receiver, Sender};
 use db::{
     delete_fail_relay_job, delete_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job,
     put_elf, put_fail_relay_job, put_job,
 };
-use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
+use proto::{
+    CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, RequestType, VmType,
+};
 use reth_db::Database;
 use sha2::{Digest, Sha256};
 use std::{marker::Send, sync::Arc, time::Duration};
@@ -54,6 +53,9 @@ pub enum Error {
     /// invalid address length
     #[error("invalid address length")]
     InvalidAddressLength,
+    /// Job ID conversion error
+    #[error("failed to convert job ID")]
+    JobIdConversion,
 }
 
 /// `JobStatus` Failure Reasons
@@ -86,34 +88,6 @@ pub enum FailureReason {
     /// Relay retry exceeded for job
     #[error("relay_error_exceed_retry")]
     RelayErrExceedRetry,
-}
-
-trait Keyable {
-    fn key(&self) -> [u8; 32];
-}
-
-impl Keyable for Job {
-    fn key(&self) -> [u8; 32] {
-        match self.id {
-            Some(job_id) => {
-                // Hash of job ID if it's an onchain job
-                let inner: [u8; 32] = Sha256::digest(&job_id.to_be_bytes()).into();
-                inner
-            }
-            None => {
-                // Hash of (nonce, consumer address) tuple if it's an offchain job
-                let mut hasher = Sha256::new();
-                hasher.update(
-                    &self.nonce.expect("Job will have nonce if ID doesn't exist").to_be_bytes(),
-                );
-                hasher.update(self.contract_address.clone());
-
-                // Hash the concatenated result
-                let inner: [u8; 32] = hasher.finalize().into();
-                inner
-            }
-        }
-    }
 }
 
 /// Job processor service.
@@ -186,16 +160,15 @@ where
         Ok(())
     }
 
-    /// Return whether job with `job_key` exists in DB
-    pub async fn has_job(&self, job_key: [u8; 32]) -> Result<bool, Error> {
-        let job = get_job(self.db.clone(), job_key)?;
+    /// Return whether job with `job_id` exists in DB
+    pub async fn has_job(&self, job_id: [u8; 32]) -> Result<bool, Error> {
+        let job = get_job(self.db.clone(), job_id)?;
         Ok(job.is_some())
     }
 
     /// Returns job with `job_id` from DB
-    pub async fn get_job_for_id(&self, job_id: u32) -> Result<Option<Job>, Error> {
-        let key = Sha256::digest(job_id.to_be_bytes()).into();
-        let job = get_job(self.db.clone(), key)?;
+    pub async fn get_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
+        let job = get_job(self.db.clone(), job_id)?;
         Ok(job)
     }
 
@@ -211,21 +184,21 @@ where
     }
 
     /// Returns failed relayed job with `job_id` from DB
-    pub async fn get_relay_error_job(&self, job_key: [u8; 32]) -> Result<Option<Job>, Error> {
-        let job = get_fail_relay_job(self.db.clone(), job_key)?;
+    pub async fn get_relay_error_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
+        let job = get_fail_relay_job(self.db.clone(), job_id)?;
         Ok(job)
     }
 
     /// Deletes relay error job
-    pub async fn delete_relay_err_job(db: Arc<D>, job_key: [u8; 32]) -> Result<(), Error> {
-        delete_fail_relay_job(db, job_key)?;
+    pub async fn delete_relay_err_job(db: Arc<D>, job_id: [u8; 32]) -> Result<(), Error> {
+        delete_fail_relay_job(db, job_id)?;
         Ok(())
     }
 
     /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        let job_key = job.key();
-        if self.has_job(job_key).await? {
+        let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
+        if self.has_job(job_id).await? {
             return Err(Error::JobAlreadyExists);
         }
 
@@ -282,8 +255,8 @@ where
         loop {
             let mut job =
                 exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
-            let key = job.key();
-            info!("executing job {:?}", key);
+            let id = job.id.clone();
+            info!("executing job {:?}", id);
 
             let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
                 Ok(Some(elf)) => elf,
@@ -291,7 +264,7 @@ where
                     error!(
                         ?job.contract_address,
                         "no ELF found for job {:?} with verifying key {:?}",
-                        key,
+                        id,
                         job.program_verifying_key,
                     );
                     metrics.incr_job_err(&FailureReason::MissingElf.to_string());
@@ -303,7 +276,7 @@ where
                     });
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {:?}: {:?}", key, e);
+                        error!("report this error: failed to save job {:?}: {:?}", id, e);
                         metrics.incr_job_err(&FailureReason::DbErrMissingElf.to_string());
                     }
                     continue;
@@ -312,7 +285,7 @@ where
                     error!(
                         ?error,
                         "could not find elf for job {:?} with verifying key {:?}",
-                        key,
+                        id,
                         job.program_verifying_key
                     );
 
@@ -325,28 +298,34 @@ where
                     });
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {:?}: {:?}", key, e);
+                        error!("report this error: failed to save job {:?}: {:?}", id, e);
                         metrics.incr_job_err("db_error_status_failed");
                     }
                     continue;
                 }
             };
 
+            let request_type = if job.request_signature.clone().is_empty() {
+                RequestType::Onchain
+            } else {
+                RequestType::Offchain
+            };
+
             let req = ExecuteRequest {
                 inputs: Some(JobInputs {
-                    job_key: key.to_vec(),
-                    job_id: job.id,
+                    job_id: id.clone(),
                     max_cycles: job.max_cycles,
                     program_verifying_key: job.program_verifying_key.clone(),
                     program_input: job.input.clone(),
                     program_elf: elf_with_meta.elf,
                     vm_type: VmType::Risc0 as i32,
+                    request_type: request_type as i32,
                 }),
             };
 
             let mut job = match zk_executor.execute_handler(req).await {
                 Ok(resp) => {
-                    tracing::debug!("job {:?} executed successfully", key);
+                    tracing::debug!("job {:?} executed successfully", id.clone());
 
                     job.status = Some(JobStatus {
                         status: JobStatusType::Done as i32,
@@ -359,14 +338,14 @@ where
                     job.zkvm_operator_signature = resp.zkvm_operator_signature;
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                        error!("report this error: failed to save job {:?}: {:?}", key, e);
+                        error!("report this error: failed to save job {:?}: {:?}", id, e);
                         metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                         continue;
                     }
                     job
                 }
                 Err(e) => {
-                    error!("failed to execute job {:?}: {:?}", key, e);
+                    error!("failed to execute job {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
                     job.status = Some(JobStatus {
@@ -376,30 +355,30 @@ where
                     });
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                        error!("report this error: failed to save job {:?}: {:?}", key, e);
+                        error!("report this error: failed to save job {:?}: {:?}", id, e);
                         metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
                     }
                     continue;
                 }
             };
 
-            let relay_receipt_result = match job.nonce {
-                Some(_) => {
+            let relay_receipt_result = match job.request_signature.is_empty() {
+                true => job_relayer.relay_result_for_onchain_job(job.clone()).await,
+                false => {
                     let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
                     job_relayer
                         .relay_result_for_offchain_job(job.clone(), job_request_payload)
                         .await
                 }
-                None => job_relayer.relay_result_for_onchain_job(job.clone()).await,
             };
 
             let _relay_receipt = match relay_receipt_result {
                 Ok(receipt) => receipt,
                 Err(e) => {
-                    error!("report this error: failed to relay job {:?}: {:?}", key, e);
+                    error!("report this error: failed to relay job {:?}: {:?}", id, e);
                     metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                     if let Err(e) = Self::save_relay_error_job(db.clone(), job).await {
-                        error!("report this error: failed to save relay err {:?}: {:?}", key, e);
+                        error!("report this error: failed to save relay err {:?}: {:?}", id, e);
                         metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
                     }
 
@@ -407,25 +386,8 @@ where
                 }
             };
 
-            match _relay_receipt {
-                RelayReceipt::Offchain(job_id, _) => {
-                    let key_based_on_nonce = job.key();
-                    job.id = Some(job_id);
-                    // Since we now have a job ID, save job with new key derived from job ID
-                    // and remove the old job with key (nonce, consumer address)
-                    if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                        error!("report this error: failed to save job {:?}: {:?}", key, e);
-                        metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
-                    }
-                    if let Err(e) = delete_job(db.clone(), key_based_on_nonce) {
-                        error!("report this error: failed to delete job {:?}: {:?}", key, e);
-                        metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
-                    }
-                }
-                RelayReceipt::Onchain(_) => {
-                    // TODO: Save tx hash of job receipt to DB
-                }
-            }
+            // TODO: Save tx hash of job receipt to DB
+            // [ref: https://github.com/Ethos-Works/InfinityVM/issues/46]
         }
     }
     /// Retry jobs that failed to relay
@@ -449,47 +411,49 @@ where
 
             // Retry each once
             for mut job in retry_jobs {
-                let job_key = job.key();
+                let job_id = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
 
-                let result = match job.nonce {
-                    Some(_) => {
+                let result = match job.request_signature.clone().is_empty() {
+                    true => job_relayer.relay_result_for_onchain_job(job.clone()).await,
+                    false => {
                         let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
                         job_relayer
                             .relay_result_for_offchain_job(job.clone(), job_request_payload)
                             .await
                     }
-                    None => job_relayer.relay_result_for_onchain_job(job.clone()).await,
                 };
 
                 match result {
                     Ok(_) => {
-                        info!("successfully retried job relay for job: {:?}", job_key);
-                        jobs_to_delete.push(job_key);
+                        info!("successfully retried job relay for job: {:?}", job_id);
+                        jobs_to_delete.push(job_id);
                     }
                     Err(e) => {
                         let status = match job.status.as_ref() {
                             Some(status) => status,
                             None => {
-                                error!("error retrieving status for job: {:?}", job_key);
+                                error!("error retrieving status for job: {:?}", job_id);
                                 continue
                             }
                         };
                         if status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
-                            jobs_to_delete.push(job_key);
+                            jobs_to_delete.push(job_id);
                         } else {
                             error!(
                                 "report this error: failed to retry relaying job {:?}: {:?}",
-                                job_key, e
+                                job_id, e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
-                            job.status.as_mut().map(|status| status.retries += 1);
+                            if let Some(status) = job.status.as_mut() {
+                                status.retries += 1
+                            }
                             if let Err(e) =
                                 Self::save_relay_error_job(db.clone(), job.clone()).await
                             {
                                 error!(
                                     "report this error: failed to save retried job {:?}: {:?}",
-                                    job_key, e
+                                    job_id, e
                                 );
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }
@@ -502,7 +466,7 @@ where
                     if let Err(e) = Self::delete_relay_err_job(db.clone(), *job_id).await {
                         error!(
                             "report this error: failed to delete retried job {:?}: {:?}",
-                            job_key, e
+                            job_id, e
                         );
                         metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                     }
@@ -523,14 +487,13 @@ pub type OffchainJobRequest = sol! {
 /// Returns an ABI-encoded offchain job request. This ABI-encoded response will be
 /// signed by the entity sending the job request (user, app, authorized third-party, etc.).
 pub fn abi_encode_offchain_job_request(job: Job) -> Result<Vec<u8>, Error> {
-    let nonce = job.nonce.ok_or_else(|| Error::MissingNonce)?;
-
+    // TODO MAANAV: Do we need this? Why?
     let contract_address: [u8; 20] = job.contract_address[job.contract_address.len() - 20..]
         .try_into()
         .map_err(|_| Error::InvalidAddressLength)?;
 
     Ok(OffchainJobRequest::abi_encode_params(&(
-        nonce,
+        job.nonce,
         job.max_cycles,
         contract_address,
         job.program_verifying_key,

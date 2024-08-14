@@ -28,6 +28,10 @@ pub enum Error {
     /// Reth database error
     #[error("reth database: {0}")]
     RethDbError(#[from] DatabaseError),
+
+    /// Job ID conversion error
+    #[error("job id conversion error")]
+    JobIdConversion,
 }
 
 /// Write an ELF file to the database
@@ -68,27 +72,20 @@ pub fn get_elf<D: Database>(
 pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::JobTable;
 
+    let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    let key = match job.id {
-        Some(job_id) => JobKey::from_job_id(job_id),
-        None => JobKey::from_nonce_and_consumer(
-            job.nonce.expect("If job ID is None, nonce must exist"),
-            &job.contract_address,
-        ),
-    };
-    tx.put::<JobTable>(key, job)?;
+    tx.put::<JobTable>(JobKey(job_id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
 }
 
 /// Read in an Job from the database. [None] if it does not exist
-pub fn get_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<Option<Job>, Error> {
+pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     use tables::JobTable;
 
     let tx = db.tx()?;
-    let key = JobKey(job_key);
-    let result = tx.get::<JobTable>(key);
+    let result = tx.get::<JobTable>(JobKey(job_id));
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -104,13 +101,12 @@ pub fn get_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<Option<Job>
 /// sorted duplicate data items or not. If the data parameter is [Some] only the matching
 /// data item will be deleted. Otherwise, if data parameter is [None], any/all value(s)
 /// for specified key will be deleted.
-/// We pass in [None] here since each `job_key` only maps to a single Job.
-pub fn delete_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<bool, Error> {
+/// We pass in [None] here since each `job_id` only maps to a single Job.
+pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    let key = JobKey(job_key);
-    let result = tx.delete::<JobTable>(key, None);
+    let result = tx.delete::<JobTable>(JobKey(job_id), None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -121,27 +117,20 @@ pub fn delete_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<bool, Er
 pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::RelayFailureJobs;
 
+    let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    let key = match job.nonce {
-        Some(nonce) => JobKey::from_nonce_and_consumer(nonce, &job.contract_address),
-        None => JobKey::from_job_id(job.id.expect("If nonce is None, job ID must exist")),
-    };
-    tx.put::<RelayFailureJobs>(key, job)?;
+    tx.put::<RelayFailureJobs>(JobKey(job_id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
 }
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist
-pub fn get_fail_relay_job<D: Database>(
-    db: Arc<D>,
-    job_key: [u8; 32],
-) -> Result<Option<Job>, Error> {
+pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
-    let key = JobKey(job_key);
-    let result = tx.get::<RelayFailureJobs>(key);
+    let result = tx.get::<RelayFailureJobs>(JobKey(job_id));
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -166,12 +155,11 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
 }
 
 /// Delete a failed relayed Job from the database. [None] if it does not exist.
-pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_key: [u8; 32]) -> Result<bool, Error> {
+pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    let key = JobKey(job_key);
-    let result = tx.delete::<RelayFailureJobs>(key, None);
+    let result = tx.delete::<RelayFailureJobs>(JobKey(job_id), None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 

@@ -13,7 +13,7 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use async_channel::{bounded, Receiver, Sender};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
 use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
@@ -23,7 +23,7 @@ use std::{
     sync::Arc,
 };
 use tokio::{task::JoinHandle, try_join};
-use tracing::info;
+use tracing::{info, instrument};
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
@@ -82,12 +82,6 @@ pub enum Error {
     ErrorPrometheus(#[from] std::io::Error),
 }
 
-#[derive(ValueEnum, Debug, Clone)]
-enum LoggingFormat {
-    Json,
-    Text,
-}
-
 type K256LocalSigner = LocalSigner<SigningKey>;
 
 #[derive(Debug, Clone, Subcommand)]
@@ -131,14 +125,6 @@ fn db_dir() -> String {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Opts {
-    /// Logging level
-    #[arg(long, default_value = "info")]
-    log_level: String,
-
-    /// Logging format
-    #[arg(long, default_value = "text")]
-    log_format: LoggingFormat,
-
     /// gRPC server address
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
@@ -231,6 +217,7 @@ pub struct Cli;
 
 impl Cli {
     /// Run the CLI
+    #[instrument]
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 

@@ -6,14 +6,14 @@ use alloy::{
 };
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
-use proto::JobInputs;
+use proto::{JobInputs, RequestType};
 use sha2::{Digest, Sha256};
 use std::env;
+use test_utils::get_job_id;
 use zkvm_executor::service::abi_encode_result_with_metadata;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
-const JOB_ID: u32 = 1;
 const MAX_CYCLES: u64 = 1_000_000;
 const PROGRAM_ELF: &[u8] = b"elf";
 const PROGRAM_ID: &[u8] = b"programID";
@@ -33,13 +33,14 @@ impl RequestAndResultSigner {
         let zero_addr: Address = Address::ZERO;
 
         let job_inputs = JobInputs {
-            job_key: Sha256::digest(&JOB_ID.to_be_bytes()).to_vec(),
-            job_id: Some(JOB_ID),
+            job_id: get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap())
+                .to_vec(),
             program_input: abi_encode_address(zero_addr),
             max_cycles: MAX_CYCLES,
             program_verifying_key: PROGRAM_ID.to_vec(),
             program_elf: PROGRAM_ELF.to_vec(),
             vm_type: VM_TYPE,
+            request_type: RequestType::Onchain as i32,
         };
 
         // Encode the result with metadata
@@ -63,8 +64,7 @@ impl RequestAndResultSigner {
 
         let zero_addr: Address = Address::ZERO;
 
-        let consumer_addr_str = CONSUMER_ADDR;
-        let consumer_addr: Address = Address::parse_checksummed(consumer_addr_str, None).unwrap();
+        let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
 
         let encoded_job_request = abi_encode_job_request(
             NONCE,

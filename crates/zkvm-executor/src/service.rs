@@ -6,7 +6,8 @@ use alloy::{
 };
 use base64::prelude::*;
 use proto::{
-    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
+    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, RequestType,
+    VmType,
 };
 use std::marker::Send;
 use zkvm::Zkvm;
@@ -38,6 +39,12 @@ pub enum Error {
     /// Missing job ID when encoding result
     #[error("missing job ID when encoding result for job with key {0}")]
     MissingJobId(String),
+    /// Error converting job ID
+    #[error("job id conversion error")]
+    JobIdConversion,
+    /// Error parsing request type
+    #[error("error parsing request type")]
+    RequestTypeParse,
 }
 
 ///  The implementation of the `ZkvmExecutor` trait
@@ -90,7 +97,7 @@ where
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
         info!(
-            job_key = BASE64_STANDARD.encode(&inputs.job_key),
+            job_id = ?inputs.job_id.clone(),
             vm_type = vm_type.as_str_name(),
             verifying_key = base64_verifying_key,
             "new job received"
@@ -110,15 +117,20 @@ where
             .execute(&inputs.program_elf, &inputs.program_input, inputs.max_cycles)
             .map_err(Error::ZkvmExecuteFailed)?;
 
-        let result_payload = match inputs.job_id {
-            Some(_) => abi_encode_result_with_metadata(&inputs, &raw_output)?,
-            None => abi_encode_offchain_result_with_metadata(&inputs, &raw_output)?,
+        let result_payload = match RequestType::try_from(inputs.request_type) {
+            Ok(RequestType::Onchain) => abi_encode_result_with_metadata(&inputs, &raw_output)?,
+            Ok(RequestType::Offchain) => {
+                abi_encode_offchain_result_with_metadata(&inputs, &raw_output)?
+            }
+            Err(_) => {
+                return Err(Error::RequestTypeParse);
+            }
         };
 
         let zkvm_operator_signature = self.sign_message(&result_payload).await?;
 
         info!(
-            job_key = BASE64_STANDARD.encode(inputs.job_key.clone()),
+            job_id = ?inputs.job_id.clone(),
             vm_type = vm_type.as_str_name(),
             verifying_key = base64_verifying_key,
             raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
@@ -199,7 +211,7 @@ where
 ///
 /// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
 pub type ResultWithMetadata = sol! {
-    tuple(uint32,bytes32,uint64,bytes,bytes)
+    tuple(bytes32,bytes32,uint64,bytes,bytes)
 };
 
 /// The payload that gets signed to signify that the zkvm executor has faithfully
@@ -215,10 +227,10 @@ pub type OffchainResultWithMetadata = sol! {
 pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Result<Vec<u8>, Error> {
     let program_input_hash = keccak256(&i.program_input);
 
-    let id =
-        i.job_id.ok_or_else(|| Error::MissingJobId(BASE64_STANDARD.encode(i.job_key.clone())))?;
+    let job_id: [u8; 32] = i.job_id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
+
     Ok(ResultWithMetadata::abi_encode_params(&(
-        id,
+        job_id,
         program_input_hash,
         i.max_cycles,
         &i.program_verifying_key,
