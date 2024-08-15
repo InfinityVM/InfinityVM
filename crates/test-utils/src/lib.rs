@@ -17,7 +17,6 @@ use contracts::{
 };
 use proto::{Job, JobInputs, JobStatus, JobStatusType, RequestType};
 use rand::Rng;
-use sha2::{Digest, Sha256};
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
 use zkvm_executor::service::abi_encode_result_with_metadata;

@@ -7,7 +7,6 @@ use alloy::{
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use proto::{JobInputs, RequestType};
-use sha2::{Digest, Sha256};
 use std::env;
 use test_utils::get_job_id;
 use zkvm_executor::service::abi_encode_result_with_metadata;

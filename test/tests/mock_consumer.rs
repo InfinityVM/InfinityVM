@@ -1,6 +1,8 @@
 use alloy::{
     network::EthereumWallet,
-    primitives::{aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, Signature, FixedBytes},
+    primitives::{
+        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
+    },
     providers::{Provider, ProviderBuilder},
     rpc::types::Filter,
     signers::{local::PrivateKeySigner, Signer},
@@ -24,30 +26,6 @@ use zkvm_executor::service::{
 };
 
 type MockConsumerOut = sol!((Address, U256));
-
-// /// The payload that gets signed to signify that the zkvm executor has faithfully
-// /// executed the job. Also the result payload the job manager contract expects.
-// ///
-// /// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
-// type ResultWithMetadata = sol! {
-//     tuple(bytes32,bytes32,uint64,bytes,bytes)
-// };
-
-// /// Returns an ABI-encoded result with metadata. This ABI-encoded response will be
-// /// signed by the operator.
-// pub fn abi_encode_result_with_metadata(i: &Job, raw_output: &[u8]) -> Vec<u8> {
-//     let program_input_hash = keccak256(&i.input);
-
-//     let job_id: [u8; 32] = i.id.clone().try_into().unwrap();
-
-//     ResultWithMetadata::abi_encode_params(&(
-//         job_id,
-//         program_input_hash,
-//         i.max_cycles,
-//         &i.program_verifying_key,
-//         raw_output,
-//     ))
-// }
 
 fn mock_consumer_program_id() -> Digest {
     compute_image_id(MOCK_CONSUMER_GUEST_ELF).unwrap()
@@ -84,10 +62,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .await
             .unwrap()
             .into_inner();
-        assert_eq!(
-            submit_program_response.program_verifying_key,
-            program_id
-        );
+        assert_eq!(submit_program_response.program_verifying_key, program_id);
 
         let consumer_provider = ProviderBuilder::new()
             .with_recommended_fillers()
@@ -102,12 +77,12 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let job_id = get_job_id(nonce, anvil.mock_consumer);
         let mut job = Job {
             id: job_id.to_vec(),
-            nonce: nonce,
+            nonce,
             max_cycles: MOCK_CONTRACT_MAX_CYCLES,
             contract_address: anvil.mock_consumer.abi_encode(),
             program_verifying_key: program_id.clone(),
             input: mock_user_address.abi_encode(),
-           // signature added to this job below
+            // signature added to this job below
             request_signature: vec![],
             result: vec![],
             zkvm_operator_address: vec![],
@@ -152,7 +127,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let sig = Signature::try_from(&job_with_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
             OffchainResultWithMetadata::abi_decode_params(&job_with_result.result, false).unwrap();
-    
+
         let raw_output = abi_decoded_output.3;
         let job_inputs = JobInputs {
             job_id: job_with_result.id,
@@ -195,8 +170,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 
         // Verify balance onchain
         let get_balance_call = consumer_contract.getBalance(mock_user_address);
-        let MockConsumer::getBalanceReturn { _0: balance } =
-get_balance_call.call().await.unwrap();         assert_eq!(balance, expected_balance);
+        let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
+        assert_eq!(balance, expected_balance);
 
         // Verify inputs onchain
         let get_inputs_call = consumer_contract.getProgramInputsForJob(FixedBytes(job_id));
@@ -206,7 +181,6 @@ get_balance_call.call().await.unwrap();         assert_eq!(balance, expected_bal
     }
     Integration::run(test).await;
 }
-
 
 #[ignore]
 #[tokio::test]

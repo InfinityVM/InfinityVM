@@ -4,14 +4,13 @@ use crate::{metrics::Metrics, relayer::JobRelayer};
 use alloy::{hex, primitives::Signature, signers::Signer, sol, sol_types::SolType};
 use async_channel::{Receiver, Sender};
 use db::{
-    delete_fail_relay_job, delete_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job,
-    put_elf, put_fail_relay_job, put_job,
+    delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
+    put_fail_relay_job, put_job,
 };
 use proto::{
     CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, RequestType, VmType,
 };
 use reth_db::Database;
-use sha2::{Digest, Sha256};
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use tracing::{error, info};
@@ -323,7 +322,7 @@ where
                 }),
             };
 
-            let mut job = match zk_executor.execute_handler(req).await {
+            let job = match zk_executor.execute_handler(req).await {
                 Ok(resp) => {
                     tracing::debug!("job {:?} executed successfully", id.clone());
 
