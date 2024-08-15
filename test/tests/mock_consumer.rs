@@ -179,7 +179,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 
         // Verify nonce onchain
         let get_next_nonce_call = consumer_contract.getNextNonce();
-        let MockConsumer::getNextNonceReturn { _0: nonce } = get_next_nonce_call.call().await.unwrap();
+        let MockConsumer::getNextNonceReturn { _0: nonce } =
+            get_next_nonce_call.call().await.unwrap();
         assert_eq!(nonce, 2);
     }
     Integration::run(test).await;
