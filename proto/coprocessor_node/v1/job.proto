@@ -33,6 +33,7 @@ message JobResult {
   // CPU cycle limit for job execution
   uint64 max_cycles = 3;
   // The address of the contract to execute a callback with a result with
+  // This address is not zero-padded
   bytes consumer_address = 4;
   // The ZK program verification key
   bytes program_id = 5;
