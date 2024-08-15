@@ -5,11 +5,11 @@ use alloy::{
     sol_types::SolType,
 };
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
+use db::tables::get_job_id;
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use proto::{Job, JobInputs, RequestType};
 use std::env;
-use test_utils::get_job_id;
 use zkvm_executor::service::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
 };

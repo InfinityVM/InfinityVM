@@ -1,6 +1,11 @@
 //! Database tables
 
-use alloy::rlp::bytes;
+use alloy::{
+    primitives::{utils::keccak256, Address},
+    rlp::bytes,
+    sol,
+    sol_types::SolType,
+};
 use borsh::{BorshDeserialize, BorshSerialize};
 use proto::Job;
 use reth_db::{
@@ -10,11 +15,24 @@ use reth_db::{
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+/// Returns the job ID hash for a given nonce and consumer address.
+pub fn get_job_id(nonce: u64, consumer: Address) -> [u8; 32] {
+    keccak256(abi_encode_nonce_and_consumer(nonce, consumer)).into()
+}
+
+type NonceAndConsumer = sol! {
+    tuple(uint64, address)
+};
+
+fn abi_encode_nonce_and_consumer(nonce: u64, consumer: Address) -> Vec<u8> {
+    NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
+}
+
 /// Key to tables storing job metadata and failed jobs.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub struct JobKey(pub [u8; 32]);
+pub struct JobID(pub [u8; 32]);
 
-impl Encode for JobKey {
+impl Encode for JobID {
     type Encoded = [u8; 32];
 
     fn encode(self) -> Self::Encoded {
@@ -22,7 +40,7 @@ impl Encode for JobKey {
     }
 }
 
-impl Decode for JobKey {
+impl Decode for JobID {
     fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
         let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
 
@@ -86,7 +104,7 @@ reth_db::tables! {
     /// Stores Elf files
     table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
     /// Stores jobs
-    table JobTable<Key = JobKey, Value = Job>;
+    table JobTable<Key = JobID, Value = Job>;
     /// Stores failed jobs
-    table RelayFailureJobs<Key = JobKey, Value = Job>;
+    table RelayFailureJobs<Key = JobID, Value = Job>;
 }

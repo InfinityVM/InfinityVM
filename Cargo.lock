@@ -4144,6 +4144,7 @@ dependencies = [
  "alloy",
  "contracts",
  "coprocessor-node",
+ "db",
  "futures",
  "mock-consumer-methods",
  "proto",
@@ -9392,6 +9393,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "coprocessor-node",
+ "db",
  "dotenv",
  "k256",
  "proto",
@@ -10100,6 +10102,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "contracts",
+ "db",
  "proto",
  "rand 0.8.5",
  "tokio",
