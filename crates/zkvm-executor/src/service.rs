@@ -36,9 +36,6 @@ pub enum Error {
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] zkvm::Error),
-    /// Missing job ID when encoding result
-    #[error("missing job ID when encoding result for job with key {0}")]
-    MissingJobId(String),
     /// Error converting job ID
     #[error("job id conversion error")]
     JobIdConversion,
@@ -117,7 +114,7 @@ where
             .execute(&inputs.program_elf, &inputs.program_input, inputs.max_cycles)
             .map_err(Error::ZkvmExecuteFailed)?;
 
-        let result_payload = match RequestType::try_from(inputs.request_type) {
+        let result_with_metadata = match RequestType::try_from(inputs.request_type) {
             Ok(RequestType::Onchain) => abi_encode_result_with_metadata(&inputs, &raw_output)?,
             Ok(RequestType::Offchain) => {
                 abi_encode_offchain_result_with_metadata(&inputs, &raw_output)?
@@ -127,7 +124,7 @@ where
             }
         };
 
-        let zkvm_operator_signature = self.sign_message(&result_payload).await?;
+        let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
             job_id = ?inputs.job_id.clone(),
@@ -139,7 +136,7 @@ where
 
         let response = ExecuteResponse {
             inputs: Some(inputs),
-            result_with_metadata: result_payload,
+            result_with_metadata,
             zkvm_operator_address: self.address_checksum_bytes(),
             zkvm_operator_signature,
             raw_output,

@@ -29,26 +29,26 @@ message JobInputs {
   bytes job_id = 1;
   // The maximum amount of cpu cycles. In the future this may
   // be something closer to gas/opcode count.
-  uint64 max_cycles = 3;
+  uint64 max_cycles = 2;
   // The verifying key for the program. The executor needs to check
   // that this matches up with the program ELF before using it.
-  bytes program_verifying_key = 4;
+  bytes program_verifying_key = 3;
   // The input to the zkvm program. The zkvm program is in charge
   // of deserializing this.
-  bytes program_input = 5;
+  bytes program_input = 4;
   // The ELF for the program.
-  bytes program_elf = 6;
+  bytes program_elf = 5;
   // VM type (Risc0 or Sp1).
-  VmType vm_type = 7;
+  VmType vm_type = 6;
   // Whether job was requested offchain or onchain
-  RequestType request_type = 8; 
+  RequestType request_type = 7; 
 }
 
 // A request to execute a zkvm program.
 message ExecuteRequest {
   // The job inputs for running the program that are attested to by the executor
   // operator to assert faithful execution.
-  JobInputs inputs = 2;
+  JobInputs inputs = 1;
 }
 
 // The results of executing a program
