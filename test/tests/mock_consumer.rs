@@ -1,7 +1,7 @@
 use alloy::{
     network::EthereumWallet,
     primitives::{
-        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
+        aliases::U256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
     },
     providers::{Provider, ProviderBuilder},
     rpc::types::Filter,
@@ -10,7 +10,7 @@ use alloy::{
     sol_types::{SolEvent, SolType, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-use coprocessor_node::job_processor::{abi_encode_offchain_job_request, OffchainJobRequest};
+use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use integration::{Args, Integration};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
@@ -69,8 +69,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .wallet(random_user_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
-
-        let job_manager_contract = IJobManager::new(anvil.job_manager, &consumer_provider);
 
         // Submit job to coproc node
         let nonce = 1;
