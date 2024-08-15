@@ -10,7 +10,7 @@ use reth_db::{
 };
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta, Job, JobKey};
+use tables::{ElfKey, ElfWithMeta, JobID};
 
 pub mod tables;
 
@@ -71,7 +71,7 @@ pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
 
     let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(JobKey(job_id), job)?;
+    tx.put::<JobTable>(JobID(job_id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -82,7 +82,7 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>,
     use tables::JobTable;
 
     let tx = db.tx()?;
-    let result = tx.get::<JobTable>(JobKey(job_id));
+    let result = tx.get::<JobTable>(JobID(job_id));
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -103,7 +103,7 @@ pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Err
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<JobTable>(JobKey(job_id), None);
+    let result = tx.delete::<JobTable>(JobID(job_id), None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -116,7 +116,7 @@ pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error
 
     let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    tx.put::<RelayFailureJobs>(JobKey(job_id), job)?;
+    tx.put::<RelayFailureJobs>(JobID(job_id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -127,7 +127,7 @@ pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<O
     use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
-    let result = tx.get::<RelayFailureJobs>(JobKey(job_id));
+    let result = tx.get::<RelayFailureJobs>(JobID(job_id));
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -156,7 +156,7 @@ pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Resul
     use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<RelayFailureJobs>(JobKey(job_id), None);
+    let result = tx.delete::<RelayFailureJobs>(JobID(job_id), None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 

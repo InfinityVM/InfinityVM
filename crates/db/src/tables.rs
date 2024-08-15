@@ -42,9 +42,9 @@ impl Decompress for Job {
 
 /// Key to tables storing job metadata and failed jobs.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub struct JobKey(pub [u8; 32]);
+pub struct JobID(pub [u8; 32]);
 
-impl Encode for JobKey {
+impl Encode for JobID {
     type Encoded = [u8; 32];
 
     fn encode(self) -> Self::Encoded {
@@ -52,7 +52,7 @@ impl Encode for JobKey {
     }
 }
 
-impl Decode for JobKey {
+impl Decode for JobID {
     fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
         let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
 
@@ -116,7 +116,7 @@ reth_db::tables! {
     /// Stores Elf files
     table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
     /// Stores jobs
-    table JobTable<Key = JobKey, Value = Job>;
+    table JobTable<Key = JobID, Value = Job>;
     /// Stores failed jobs
-    table RelayFailureJobs<Key = JobKey, Value = Job>;
+    table RelayFailureJobs<Key = JobID, Value = Job>;
 }

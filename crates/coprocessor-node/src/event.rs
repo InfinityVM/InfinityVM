@@ -81,7 +81,7 @@ where
                     nonce: event.nonce,
                     program_id: event.programID.clone().to_vec(),
                     input: event.programInput.into(),
-                    consumer_address: log.address().to_vec(),
+                    consumer_address: event.consumer.to_vec(),
                     max_cycles: event.maxCycles,
                     request_signature: vec![],
                     result: vec![],

@@ -299,7 +299,7 @@ where
             };
 
             // Only offchain jobs have request signatures
-            let request_type = if job.request_signature.clone().is_empty() {
+            let request_type = if job.request_signature.is_empty() {
                 RequestType::Onchain
             } else {
                 RequestType::Offchain
@@ -407,7 +407,7 @@ where
             for mut job in retry_jobs {
                 let job_id = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
 
-                let result = match job.request_signature.clone().is_empty() {
+                let result = match job.request_signature.is_empty() {
                     true => job_relayer.relay_result_for_onchain_job(job.clone()).await,
                     false => {
                         let job_request_payload = abi_encode_offchain_job_request(job.clone())?;

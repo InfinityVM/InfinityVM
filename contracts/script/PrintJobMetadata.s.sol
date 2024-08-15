@@ -33,7 +33,7 @@ contract PrintJobMetadata is Script, Utils {
         console.log("Job ID: ");
         console.logBytes32(jobID);
         console.log("Max cycles: ", jobMetadata.maxCycles);
-        console.log("Caller: ", jobMetadata.caller);
+        console.log("Consumer: ", jobMetadata.consumer);
 
         if (jobMetadata.status == 1) {
             console.log("Status: ", "Pending");

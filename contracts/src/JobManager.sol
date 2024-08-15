@@ -65,7 +65,7 @@ contract JobManager is
         address consumer = msg.sender;
         bytes32 jobID = keccak256(abi.encodePacked(nonce, consumer));
        _createJob(nonce, jobID, programID, maxCycles, consumer);
-        emit JobCreated(jobID, nonce, maxCycles, programID, programInput);
+        emit JobCreated(jobID, nonce, consumer, maxCycles, programID, programInput);
         return jobID;
     }
 
@@ -78,7 +78,7 @@ contract JobManager is
     function cancelJob(bytes32 jobID) external override {
         JobMetadata memory job = jobIDToMetadata[jobID];
         // We allow the JobManager owner to also cancel jobs so Ethos admin can veto any jobs
-        require(msg.sender == job.caller || msg.sender == owner(), "JobManager.cancelJob: caller is not the job creator or JobManager owner");
+        require(msg.sender == job.consumer || msg.sender == owner(), "JobManager.cancelJob: caller is not the job consumer or JobManager owner");
 
         require(job.status == JOB_STATE_PENDING, "JobManager.cancelJob: job is not in pending state");
         job.status = JOB_STATE_CANCELLED;
@@ -140,7 +140,7 @@ contract JobManager is
         require(job.status == JOB_STATE_PENDING, "JobManager.submitResult: job is not in pending state");
 
         // This prevents the coprocessor from using arbitrary inputs to produce a malicious result
-        require(keccak256(Consumer(job.caller).getProgramInputsForJob(jobID)) == programInputHash, 
+        require(keccak256(Consumer(job.consumer).getProgramInputsForJob(jobID)) == programInputHash, 
             "JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
         
         // This is to prevent coprocessor from using a different program ID to produce a malicious result
@@ -155,7 +155,7 @@ contract JobManager is
         emit JobCompleted(jobID, result);
 
         // Forward result to consumer
-        Consumer(job.caller).receiveResult(jobID, result);
+        Consumer(job.consumer).receiveResult(jobID, result);
     }
 
     function decodeResultWithMetadata(bytes memory resultWithMetadata) public pure returns (ResultWithMetadata memory) {

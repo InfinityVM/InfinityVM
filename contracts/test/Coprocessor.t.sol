@@ -15,7 +15,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     uint64 DEFAULT_NONCE = 1;
     bytes32 DEFAULT_JOB_ID;
 
-    event JobCreated(bytes32 indexed jobID, uint64 indexed nonce, uint64 maxCycles, bytes programID, bytes programInput);
+    event JobCreated(bytes32 indexed jobID, uint64 indexed nonce, address indexed consumer, uint64 maxCycles, bytes programID, bytes programInput);
     event JobCancelled(bytes32 indexed jobID);
     event JobCompleted(bytes32 indexed jobID, bytes result);
 
@@ -28,7 +28,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function test_JobManager_CreateJob() public {
         assertEq(consumer.getNextNonce(), DEFAULT_NONCE);
         vm.expectEmit(true, true, true, true);
-        emit JobCreated(DEFAULT_JOB_ID, DEFAULT_NONCE, DEFAULT_MAX_CYCLES, "programID", "programInput");
+        emit JobCreated(DEFAULT_JOB_ID, DEFAULT_NONCE, address(consumer), DEFAULT_MAX_CYCLES, "programID", "programInput");
         vm.prank(address(consumer));
         bytes32 jobID = jobManager.createJob(DEFAULT_NONCE, "programID", "programInput", DEFAULT_MAX_CYCLES);
         assertEq(jobID, DEFAULT_JOB_ID);
@@ -36,14 +36,14 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         assertEq(jobMetadata.programID, "programID");
         assertEq(jobMetadata.maxCycles, DEFAULT_MAX_CYCLES);
-        assertEq(jobMetadata.caller, address(consumer));
+        assertEq(jobMetadata.consumer, address(consumer));
         assertEq(jobMetadata.status, 1);
     }
 
     function test_Consumer_RequestJob() public {
         assertEq(consumer.getNextNonce(), DEFAULT_NONCE);
         vm.expectEmit(true, true, true, true);
-        emit JobCreated(DEFAULT_JOB_ID, DEFAULT_NONCE, DEFAULT_MAX_CYCLES, "programID", abi.encode(address(0)));
+        emit JobCreated(DEFAULT_JOB_ID, DEFAULT_NONCE, address(consumer), DEFAULT_MAX_CYCLES, "programID", abi.encode(address(0)));
         bytes32 jobID = consumer.requestBalance("programID", address(0));
         assertEq(jobID, DEFAULT_JOB_ID);
         assertEq(consumer.getProgramInputsForJob(jobID), abi.encode(address(0)));
@@ -51,7 +51,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         assertEq(jobMetadata.programID, "programID");
         assertEq(jobMetadata.maxCycles, DEFAULT_MAX_CYCLES);
-        assertEq(jobMetadata.caller, address(consumer));
+        assertEq(jobMetadata.consumer, address(consumer));
         assertEq(jobMetadata.status, 1);
     }
 
@@ -78,7 +78,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function testRevertWhen_JobManager_CancelJobUnauthorized() public {
         test_JobManager_CreateJob();
         vm.prank(address(1));
-        vm.expectRevert("JobManager.cancelJob: caller is not the job creator or JobManager owner");
+        vm.expectRevert("JobManager.cancelJob: caller is not the job consumer or JobManager owner");
         jobManager.cancelJob(DEFAULT_JOB_ID);
     }
 
