@@ -16,4 +16,3 @@ tokio = { workspace = true }
 contracts = { path = "../contracts" }
 proto = { path = "../proto" }
 zkvm-executor = { path = "../zkvm-executor" }
-db = { path = "../db" }

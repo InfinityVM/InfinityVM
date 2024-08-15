@@ -10,7 +10,6 @@ use alloy::{
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
-use db::tables::get_job_id;
 use futures_util::StreamExt;
 use proto::{Job, JobStatus, JobStatusType};
 use reth_db::Database;
@@ -77,7 +76,7 @@ where
                 };
 
                 let job = Job {
-                    id: get_job_id(event.nonce, event.consumer).to_vec(),
+                    id: event.jobID.to_vec(),
                     nonce: event.nonce,
                     program_verifying_key: event.programID.clone().to_vec(),
                     input: event.programInput.into(),

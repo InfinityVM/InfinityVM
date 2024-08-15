@@ -219,10 +219,10 @@ mod test {
         sol_types::SolEvent,
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-    use db::tables::get_job_id;
     use prometheus::Registry;
     use test_utils::{
-        anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
+        anvil_with_contracts, get_job_id, mock_consumer_pending_job, mock_contract_input_addr,
+        TestAnvil,
     };
     use tokio::task::JoinSet;
 
@@ -271,8 +271,7 @@ mod test {
                 .unwrap();
 
             // Ensure test setup is working as we think
-            let job_id_from_log = get_job_id(log.data().nonce, log.data().consumer);
-            assert_eq!(job.id, job_id_from_log.to_vec());
+            assert_eq!(job.id, log.data().jobID.to_vec());
 
             let relayer2 = Arc::clone(&job_relayer);
             join_set.spawn(async move {

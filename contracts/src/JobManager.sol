@@ -65,7 +65,7 @@ contract JobManager is
         address consumer = msg.sender;
         bytes32 jobID = keccak256(abi.encodePacked(nonce, consumer));
        _createJob(nonce, jobID, programID, maxCycles, consumer);
-        emit JobCreated(nonce, consumer, maxCycles, programID, programInput);
+        emit JobCreated(jobID, nonce, consumer, maxCycles, programID, programInput);
         return jobID;
     }
 

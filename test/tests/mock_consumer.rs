@@ -11,7 +11,6 @@ use alloy::{
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
-use db::tables::get_job_id;
 use integration::{Args, Integration};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
@@ -20,7 +19,7 @@ use proto::{
 };
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
-use test_utils::MOCK_CONTRACT_MAX_CYCLES;
+use test_utils::{get_job_id, MOCK_CONTRACT_MAX_CYCLES};
 use zkvm_executor::service::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
     OffchainResultWithMetadata, ResultWithMetadata,
@@ -226,7 +225,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let log = receipt.inner.as_receipt().unwrap().logs[0]
             .log_decode::<IJobManager::JobCreated>()
             .unwrap();
-        let job_id = get_job_id(log.data().nonce, log.data().consumer);
+        let job_id = log.data().jobID;
         let expected_job_id = get_job_id(1, anvil.mock_consumer);
         assert_eq!(job_id, expected_job_id);
 

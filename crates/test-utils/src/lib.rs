@@ -5,16 +5,16 @@ use std::net::TcpListener;
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
-    primitives::{Address, U256},
+    primitives::{utils::keccak256, Address, U256},
     providers::{ext::AnvilApi, ProviderBuilder},
     signers::{local::PrivateKeySigner, Signer},
-    sol_types::SolValue,
+    sol,
+    sol_types::{SolType, SolValue},
 };
 use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use db::tables::get_job_id;
 use proto::{Job, JobInputs, JobStatus, JobStatusType, RequestType};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
@@ -207,4 +207,17 @@ pub async fn mock_consumer_pending_job(
     };
 
     job
+}
+
+/// Returns the job ID hash for a given nonce and consumer address.
+pub fn get_job_id(nonce: u64, consumer: Address) -> [u8; 32] {
+    keccak256(abi_encode_nonce_and_consumer(nonce, consumer)).into()
+}
+
+type NonceAndConsumer = sol! {
+    tuple(uint64, address)
+};
+
+fn abi_encode_nonce_and_consumer(nonce: u64, consumer: Address) -> Vec<u8> {
+    NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
 }
