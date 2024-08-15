@@ -33,29 +33,29 @@ where
         request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
-        let job = req.job.ok_or_else(|| Status::invalid_argument("missing job"))?;
-        let id = job.id.clone();
+        let job = req.job_request.ok_or_else(|| Status::invalid_argument("missing job_request"))?;
+        // let id = job.id.clone();
 
         // verify fields
         if job.max_cycles == 0 {
             return Err(Status::invalid_argument("job max cycles must be positive"));
         }
 
-        let _: [u8; 32] = id
-            .clone()
-            .try_into()
-            .map_err(|_| Status::invalid_argument("job ID must be 32 bytes in length"))?;
+        // let _: [u8; 32] = id
+        //     .clone()
+        //     .try_into()
+        //     .map_err(|_| Status::invalid_argument("job ID must be 32 bytes in length"))?;
 
-        if job.request_signature.is_empty() {
+        if req.signature.is_empty() {
             return Err(Status::invalid_argument("job request signature must not be empty"));
         }
 
         let _: [u8; 20] =
-            job.contract_address.clone().try_into().map_err(|_| {
+            job.consumer_address.clone().try_into().map_err(|_| {
                 Status::invalid_argument("contract address must be 20 bytes in length")
             })?;
 
-        if job.program_verifying_key.is_empty() {
+        if job.program_id.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
         info!(job_id = ?job.id, "new job request");
@@ -101,14 +101,14 @@ where
             return Err(Status::invalid_argument("program elf must not be empty"));
         }
 
-        let verifying_key = self
+        let program_id = self
             .job_processor
             .submit_elf(req.program_elf, req.vm_type)
             .await
             .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))?;
 
-        info!(verifying_key = BASE64_STANDARD.encode(verifying_key.clone()), "new elf program");
+        info!(program_id = BASE64_STANDARD.encode(program_id.clone()), "new elf program");
 
-        Ok(Response::new(SubmitProgramResponse { program_verifying_key: verifying_key }))
+        Ok(Response::new(SubmitProgramResponse { program_id }))
     }
 }

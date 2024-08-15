@@ -32,7 +32,7 @@ message JobInputs {
   uint64 max_cycles = 2;
   // The verifying key for the program. The executor needs to check
   // that this matches up with the program ELF before using it.
-  bytes program_verifying_key = 3;
+  bytes program_id = 3;
   // The input to the zkvm program. The zkvm program is in charge
   // of deserializing this.
   bytes program_input = 4;
@@ -73,5 +73,5 @@ message CreateElfRequest {
 
 message CreateElfResponse {
   // The verifying key of the ELF submitted.
-  bytes verifying_key = 1;
+  bytes program_id = 1;
 }

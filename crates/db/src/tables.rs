@@ -17,7 +17,7 @@ pub struct Job {
     pub nonce: u64,
     pub max_cycles: u64,
     pub consumer_address: Vec<u8>,
-    pub program_verifying_key: Vec<u8>,
+    pub program_id: Vec<u8>,
     pub input: Vec<u8>,
     pub request_signature: Vec<u8>,
     pub result: Vec<u8>,
@@ -66,8 +66,8 @@ pub struct ElfKey(pub [u8; 32]);
 
 impl ElfKey {
     /// New [Self]
-    pub(crate) fn new(verifying_key: &[u8]) -> Self {
-        let inner: [u8; 32] = Sha256::digest(verifying_key).into();
+    pub(crate) fn new(program_id: &[u8]) -> Self {
+        let inner: [u8; 32] = Sha256::digest(program_id).into();
 
         Self(inner)
     }

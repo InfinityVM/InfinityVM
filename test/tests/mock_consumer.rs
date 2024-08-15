@@ -62,7 +62,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .await
             .unwrap()
             .into_inner();
-        assert_eq!(submit_program_response.program_verifying_key, program_id);
+        assert_eq!(submit_program_response.program_id, program_id);
 
         let consumer_provider = ProviderBuilder::new()
             .with_recommended_fillers()
@@ -77,8 +77,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             id: job_id.to_vec(),
             nonce,
             max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-            contract_address: anvil.mock_consumer.abi_encode_packed(),
-            program_verifying_key: program_id.clone(),
+            consumer_address: anvil.mock_consumer.abi_encode_packed(),
+            program_id: program_id.clone(),
             input: mock_user_address.abi_encode(),
             // signature added to this job below
             request_signature: vec![],
@@ -131,7 +131,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             job_id: job_with_result.id,
             program_input: job_with_result.input.clone(),
             max_cycles: job_with_result.max_cycles,
-            program_verifying_key: job_with_result.program_verifying_key.clone(),
+            program_id: job_with_result.program_id.clone(),
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
             request_type: RequestType::Offchain.into(),
@@ -179,7 +179,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 
         // Verify nonce onchain
         let get_next_nonce_call = consumer_contract.getNextNonce();
-        let MockConsumer::getNextNonceReturn { _0: nonce } = get_next_nonce_call.call().await.unwrap();
+        let MockConsumer::getNextNonceReturn { _0: nonce } =
+            get_next_nonce_call.call().await.unwrap();
         assert_eq!(nonce, 2);
     }
     Integration::run(test).await;
@@ -208,7 +209,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             .await
             .unwrap()
             .into_inner();
-        assert_eq!(submit_program_response.program_verifying_key, program_id);
+        assert_eq!(submit_program_response.program_id, program_id);
 
         let consumer_provider = ProviderBuilder::new()
             .with_recommended_fillers()
@@ -255,7 +256,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             job_id: job.id.clone(),
             program_input: job.input.clone(),
             max_cycles: job.max_cycles,
-            program_verifying_key: job.program_verifying_key.clone(),
+            program_id: job.program_id.clone(),
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
             request_type: RequestType::Onchain.into(),

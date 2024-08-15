@@ -38,12 +38,12 @@ pub enum Error {
 pub fn put_elf<D: Database>(
     db: Arc<D>,
     vm_type: VmType,
-    verifying_key: &[u8],
+    program_id: &[u8],
     elf: Vec<u8>,
 ) -> Result<(), Error> {
     use tables::ElfTable;
     let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
-    let key = ElfKey::new(verifying_key);
+    let key = ElfKey::new(program_id);
 
     let tx = db.tx_mut()?;
     tx.put::<ElfTable>(key, elf_with_meta)?;
@@ -53,12 +53,9 @@ pub fn put_elf<D: Database>(
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist
-pub fn get_elf<D: Database>(
-    db: Arc<D>,
-    verifying_key: &[u8],
-) -> Result<Option<ElfWithMeta>, Error> {
+pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfWithMeta>, Error> {
     use tables::ElfTable;
-    let key = ElfKey::new(verifying_key);
+    let key = ElfKey::new(program_id);
 
     let tx = db.tx()?;
     let result = tx.get::<ElfTable>(key);

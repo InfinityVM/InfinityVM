@@ -15,7 +15,8 @@ use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use proto::{Job, JobInputs, JobStatus, JobStatusType, RequestType};
+use db::tables::Job;
+use proto::{JobInputs, JobStatus, JobStatusType, RequestType};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
@@ -174,10 +175,11 @@ pub async fn mock_consumer_pending_job(
     let addr = mock_contract_input_addr();
     let raw_output = mock_raw_output();
 
+    let job_id = get_job_id(nonce.into(), mock_consumer);
     let inputs = JobInputs {
-        job_id: get_job_id(nonce.into(), mock_consumer).to_vec(),
+        job_id: job_id.to_vec(),
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-        program_verifying_key: bytes.clone(),
+        program_id: bytes.clone(),
         program_input: addr.abi_encode(),
         vm_type: 1,
         program_elf: bytes.clone(),
@@ -189,10 +191,10 @@ pub async fn mock_consumer_pending_job(
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 
     let job = Job {
-        id: inputs.job_id,
+        id: job_id,
         nonce: 1,
         max_cycles: inputs.max_cycles,
-        program_verifying_key: inputs.program_verifying_key,
+        program_id: inputs.program_id,
         input: inputs.program_input,
         request_signature: vec![],
         result: result_with_meta,

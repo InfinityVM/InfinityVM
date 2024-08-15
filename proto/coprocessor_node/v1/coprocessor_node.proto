@@ -73,5 +73,5 @@ message SubmitProgramRequest {
 // program verification key.
 message SubmitProgramResponse {
   // The ZK program verification key
-  bytes program_verifying_key = 1;
+  bytes program_id = 1;
 }

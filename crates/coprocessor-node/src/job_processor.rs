@@ -129,25 +129,25 @@ where
         let request = CreateElfRequest { program_elf: elf.clone(), vm_type };
         let response = self.zk_executor.create_elf_handler(request).await?;
 
-        if get_elf(self.db.clone(), &response.verifying_key)
+        if get_elf(self.db.clone(), &response.program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
             .is_some()
         {
             return Err(Error::ElfAlreadyExists(format!(
                 "elf with verifying key {:?} already exists",
-                hex::encode(response.verifying_key.as_slice()),
+                hex::encode(response.program_id.as_slice()),
             )));
         }
 
         put_elf(
             self.db.clone(),
             VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
-            &response.verifying_key,
+            &response.program_id,
             elf,
         )
         .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
 
-        Ok(response.verifying_key)
+        Ok(response.program_id)
     }
 
     /// Save job in DB
@@ -251,14 +251,14 @@ where
             let id = job.id.clone();
             info!("executing job {:?}", id);
 
-            let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
+            let elf_with_meta = match db::get_elf(db.clone(), &job.program_id) {
                 Ok(Some(elf)) => elf,
                 Ok(None) => {
                     error!(
                         ?job.consumer_address,
                         "no ELF found for job {:?} with verifying key {:?}",
                         id,
-                        job.program_verifying_key,
+                        job.program_id,
                     );
                     metrics.incr_job_err(&FailureReason::MissingElf.to_string());
 
@@ -279,7 +279,7 @@ where
                         ?error,
                         "could not find elf for job {:?} with verifying key {:?}",
                         id,
-                        job.program_verifying_key
+                        job.program_id
                     );
 
                     metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
@@ -307,9 +307,9 @@ where
 
             let req = ExecuteRequest {
                 inputs: Some(JobInputs {
-                    job_id: id.clone(),
+                    job_id: id.to_vec(),
                     max_cycles: job.max_cycles,
-                    program_verifying_key: job.program_verifying_key.clone(),
+                    program_id: job.program_id.clone(),
                     program_input: job.input.clone(),
                     program_elf: elf_with_meta.elf,
                     vm_type: VmType::Risc0 as i32,
@@ -423,14 +423,7 @@ where
                         jobs_to_delete.push(job_id);
                     }
                     Err(e) => {
-                        let status = match job.status.as_ref() {
-                            Some(status) => status,
-                            None => {
-                                error!("error retrieving status for job: {:?}", job_id);
-                                continue
-                            }
-                        };
-                        if status.retries == max_retries {
+                        if job.status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
                             jobs_to_delete.push(job_id);
                         } else {
@@ -439,9 +432,7 @@ where
                                 job_id, e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
-                            if let Some(status) = job.status.as_mut() {
-                                status.retries += 1
-                            }
+                            job.status.retries += 1;
                             if let Err(e) =
                                 Self::save_relay_error_job(db.clone(), job.clone()).await
                             {
@@ -481,14 +472,14 @@ pub type OffchainJobRequest = sol! {
 /// Returns an ABI-encoded offchain job request. This ABI-encoded response will be
 /// signed by the entity sending the job request (user, app, authorized third-party, etc.).
 pub fn abi_encode_offchain_job_request(job: Job) -> Result<Vec<u8>, Error> {
-    let contract_address: [u8; 20] =
-        job.contract_address.try_into().map_err(|_| Error::InvalidAddressLength)?;
+    let consumer_address: [u8; 20] =
+        job.consumer_address.try_into().map_err(|_| Error::InvalidAddressLength)?;
 
     Ok(OffchainJobRequest::abi_encode_params(&(
         job.nonce,
         job.max_cycles,
         consumer_address,
-        job.program_verifying_key,
+        job.program_id,
         job.input,
     )))
 }

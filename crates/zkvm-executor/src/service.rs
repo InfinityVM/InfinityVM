@@ -91,22 +91,19 @@ where
     /// This handler can be called directly.
     pub async fn execute_handler(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
         let inputs = request.inputs.expect("todo");
-        let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
+        let base64_program_id = BASE64_STANDARD.encode(inputs.program_id.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
         info!(
             job_id = ?inputs.job_id.clone(),
             vm_type = vm_type.as_str_name(),
-            verifying_key = base64_verifying_key,
+            program_id = base64_program_id,
             "new job received"
         );
 
-        if !vm
-            .is_correct_verifying_key(&inputs.program_elf, &inputs.program_verifying_key)
-            .expect("todo")
-        {
+        if !vm.is_correct_verifying_key(&inputs.program_elf, &inputs.program_id).expect("todo") {
             return Err(Error::InvalidVerifyingKey(format!(
                 "bad verifying key {}",
-                base64_verifying_key,
+                base64_program_id,
             )));
         }
 
@@ -129,7 +126,7 @@ where
         info!(
             job_id = ?inputs.job_id.clone(),
             vm_type = vm_type.as_str_name(),
-            verifying_key = base64_verifying_key,
+            program_id = base64_program_id,
             raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
             "job complete"
         );
@@ -143,27 +140,23 @@ where
         Ok(response)
     }
 
-    /// Derives and returns verifying key for the given program ELF.
-    /// This handler can be called directly.
+    /// Derives and returns program ID (verifying key) for the
+    /// given program ELF. This handler can be called directly.
     pub async fn create_elf_handler(
         &self,
         request: CreateElfRequest,
     ) -> Result<CreateElfResponse, Error> {
         let (vm, vm_type) = self.vm(request.vm_type)?;
 
-        let verifying_key = vm
+        let program_id = vm
             .derive_verifying_key(&request.program_elf)
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
 
-        let base64_verifying_key = BASE64_STANDARD.encode(verifying_key.as_slice());
+        let base64_program_id = BASE64_STANDARD.encode(program_id.as_slice());
 
-        info!(
-            vm_type = vm_type.as_str_name(),
-            verifying_key = base64_verifying_key,
-            "new elf program"
-        );
+        info!(vm_type = vm_type.as_str_name(), program_id = base64_program_id, "new elf program");
 
-        let response = CreateElfResponse { verifying_key };
+        let response = CreateElfResponse { program_id };
 
         Ok(response)
     }
@@ -228,7 +221,7 @@ pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Resu
         job_id,
         program_input_hash,
         i.max_cycles,
-        &i.program_verifying_key,
+        &i.program_id,
         raw_output,
     )))
 }
@@ -244,7 +237,7 @@ pub fn abi_encode_offchain_result_with_metadata(
     Ok(OffchainResultWithMetadata::abi_encode_params(&(
         program_input_hash,
         i.max_cycles,
-        &i.program_verifying_key,
+        &i.program_id,
         raw_output,
     )))
 }

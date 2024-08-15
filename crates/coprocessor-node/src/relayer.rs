@@ -1,6 +1,7 @@
 //! Logic to broadcast job result onchain.
 
 use alloy::{
+    hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
     providers::ProviderBuilder,
@@ -14,6 +15,7 @@ use tracing::{error, info, instrument};
 use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
 use db::tables::Job;
+// use hex;
 
 // TODO: Figure out a way to more generically represent these types without using trait objects.
 // https://github.com/Ethos-Works/InfinityVM/issues/138
@@ -258,19 +260,18 @@ mod test {
                 mock_consumer_pending_job(i + 1, coprocessor_operator.clone(), mock_consumer).await;
 
             let mock_addr = mock_contract_input_addr();
-            let program_verifying_key = job.program_verifying_key.clone();
+            let program_id = job.program_id.clone();
 
             // Create the job on chain so the contract knows to expect the result. The consumer
             // contract will create a new job
-            let create_job_call =
-                consumer_contract.requestBalance(program_verifying_key.into(), mock_addr);
+            let create_job_call = consumer_contract.requestBalance(program_id.into(), mock_addr);
             let receipt = create_job_call.send().await.unwrap().get_receipt().await.unwrap();
             let log = receipt.inner.as_receipt().unwrap().logs[0]
                 .log_decode::<IJobManager::JobCreated>()
                 .unwrap();
 
             // Ensure test setup is working as we think
-            assert_eq!(job.id, log.data().jobID.to_vec());
+            assert_eq!(job.id, log.data().jobID);
 
             let relayer2 = Arc::clone(&job_relayer);
             join_set.spawn(async move {

@@ -8,7 +8,7 @@ fn serde_json_test() {
         job: Some(proto::Job {
             id: input.clone(),
             nonce: 1,
-            program_verifying_key: input.clone(),
+            program_id: input.clone(),
             input: input.clone(),
             consumer_address: input.clone(),
             max_cycles: 100,
