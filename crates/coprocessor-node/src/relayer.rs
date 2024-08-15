@@ -1,6 +1,7 @@
 //! Logic to broadcast job result onchain.
 
 use alloy::{
+    hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
     providers::ProviderBuilder,
