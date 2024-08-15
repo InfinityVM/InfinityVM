@@ -10,7 +10,7 @@ use alloy::{
 };
 use proto::Job;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, instrument};
 
 use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
@@ -124,12 +124,13 @@ pub struct JobRelayer {
 
 impl JobRelayer {
     /// Submit a completed jobs onchain to the `JobManager` contract.
+    #[instrument(skip(self, job), fields(job_id = ?job.id), err(Debug))]
     pub async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
-            error!(?error, job.id, "tx broadcast failure");
+            error!(?error, ?job.id, "tx broadcast failure");
             self.metrics.incr_relay_err("relay_error_broadcast_failure");
             Error::TxBroadcast(error)
         })?;
@@ -149,7 +150,7 @@ impl JobRelayer {
             receipt.block_number,
             ?receipt.block_hash,
             ?receipt.transaction_hash,
-            job.id,
+            ?job.id,
             "tx included"
         );
 
@@ -172,7 +173,8 @@ mod test {
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
     use prometheus::Registry;
     use test_utils::{
-        anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
+        anvil_with_contracts, get_job_id, mock_consumer_pending_job, mock_contract_input_addr,
+        TestAnvil,
     };
     use tokio::task::JoinSet;
 
@@ -221,7 +223,7 @@ mod test {
                 .unwrap();
 
             // Ensure test setup is working as we think
-            assert_eq!(job.id, log.data().jobID);
+            assert_eq!(job.id, log.data().jobID.to_vec());
 
             let relayer2 = Arc::clone(&job_relayer);
             join_set.spawn(async move {
@@ -236,15 +238,16 @@ mod test {
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
         let logs = consumer_provider.get_logs(&filter).await.unwrap();
 
-        let seen: HashSet<_> = logs
+        let seen: HashSet<[u8; 32]> = logs
             .into_iter()
             .map(|log| {
                 let decoded = log.log_decode::<IJobManager::JobCompleted>().unwrap().data().clone();
-                decoded.jobID as usize
+                decoded.jobID.into()
             })
             .collect();
         // job ids from the JobManager start at 1
-        let expected: HashSet<_> = (1..=JOB_COUNT).collect();
+        let expected: HashSet<[u8; 32]> =
+            (1..=JOB_COUNT).map(|i| get_job_id(i.try_into().unwrap(), mock_consumer)).collect();
 
         // We expect to see exactly job ids 0 to 29 in the JobCompleted events
         assert_eq!(seen, expected);

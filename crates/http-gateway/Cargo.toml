@@ -17,3 +17,4 @@ serde = { workspace = true }
 tracing = { workspace = true }
 
 proto = { path = "../proto" }
+zkvm-tracing = { package = "tracing", path = "../tracing" }
