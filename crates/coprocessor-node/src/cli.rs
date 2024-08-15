@@ -174,7 +174,7 @@ struct Opts {
     job_sync_start: BlockNumberOrTag,
 
     /// Required confirmations for tx
-    #[arg(long, default_value_t = 2)]
+    #[arg(long, default_value_t = 1)]
     confirmations: u64,
 }
 

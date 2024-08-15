@@ -140,7 +140,7 @@ impl JobRelayer {
             .get_receipt()
             .await
             .map_err(|error| {
-                error!(?error, job.id, "tx inclusion failed");
+                error!(?error, ?job.id, "tx inclusion failed");
                 self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
                 Error::TxInclusion(error)
             })?;
