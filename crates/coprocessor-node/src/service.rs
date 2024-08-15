@@ -58,6 +58,10 @@ where
         if job.program_id.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
+
+        // TODO: Make contract calls to verify nonce, signature, etc. on job request
+        // [ref: https://github.com/Ethos-Works/InfinityVM/issues/168]
+
         info!(job_id = ?job.id, "new job request");
 
         self.job_processor
