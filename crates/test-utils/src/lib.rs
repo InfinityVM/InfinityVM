@@ -196,12 +196,12 @@ pub async fn mock_consumer_pending_job(
         input: inputs.program_input,
         request_signature: vec![],
         result: result_with_meta,
-        status: Some(JobStatus {
+        status: JobStatus {
             status: JobStatusType::Pending as i32,
             failure_reason: None,
             retries: 0,
-        }),
-        contract_address: mock_consumer.abi_encode(),
+        },
+        consumer_address: mock_consumer.abi_encode(),
         zkvm_operator_signature: operator_signature,
         zkvm_operator_address: operator.address().to_checksum(None).as_bytes().to_vec(),
     };

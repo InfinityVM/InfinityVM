@@ -8,12 +8,12 @@ use alloy::{
     signers::Signature,
     transports::http::reqwest,
 };
-use proto::Job;
 use std::sync::Arc;
 use tracing::{error, info, instrument};
 
 use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
+use db::tables::Job;
 
 // TODO: Figure out a way to more generically represent these types without using trait objects.
 // https://github.com/Ethos-Works/InfinityVM/issues/138
@@ -173,8 +173,8 @@ impl JobRelayer {
             error!(
                 ?error,
                 job.nonce,
-                "tx broadcast failure: contract_address = {}",
-                hex::encode(&job.contract_address)
+                "tx broadcast failure: consumer_address = {}",
+                hex::encode(&job.consumer_address)
             );
             self.metrics.incr_relay_err(BROADCAST_ERROR);
             Error::TxBroadcast(error)
@@ -185,8 +185,8 @@ impl JobRelayer {
                 error!(
                     ?error,
                     job.nonce,
-                    "tx inclusion failed: contract_address = {}",
-                    hex::encode(&job.contract_address)
+                    "tx inclusion failed: consumer_address = {}",
+                    hex::encode(&job.consumer_address)
                 );
                 self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
                 Error::TxInclusion(error)

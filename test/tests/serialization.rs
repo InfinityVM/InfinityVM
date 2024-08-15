@@ -10,17 +10,17 @@ fn serde_json_test() {
             nonce: 1,
             program_verifying_key: input.clone(),
             input: input.clone(),
-            contract_address: input.clone(),
+            consumer_address: input.clone(),
             max_cycles: 100,
             request_signature: input.clone(),
             result: input.clone(),
             zkvm_operator_address: input.clone(),
             zkvm_operator_signature: input,
-            status: Some(JobStatus {
+            status: JobStatus {
                 status: JobStatusType::Unspecified as i32,
                 failure_reason: None,
                 retries: 0,
-            }),
+            },
         }),
     };
 

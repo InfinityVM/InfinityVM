@@ -50,7 +50,7 @@ where
             return Err(Status::invalid_argument("job request signature must not be empty"));
         }
 
-        if job.contract_address.is_empty() {
+        if job.consumer_address.is_empty() {
             return Err(Status::invalid_argument("job contract address must not be empty"));
         }
 

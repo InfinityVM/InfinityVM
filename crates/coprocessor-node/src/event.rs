@@ -10,8 +10,9 @@ use alloy::{
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
+use db::tables::Job;
 use futures_util::StreamExt;
-use proto::{Job, JobStatus, JobStatusType};
+use proto::{JobStatus, JobStatusType};
 use reth_db::Database;
 use tokio::{
     task::JoinHandle,
@@ -76,21 +77,21 @@ where
                 };
 
                 let job = Job {
-                    id: event.jobID.to_vec(),
+                    id: event.jobID,
                     nonce: event.nonce,
                     program_verifying_key: event.programID.clone().to_vec(),
                     input: event.programInput.into(),
-                    contract_address: log.address().to_vec(),
+                    consumer_address: log.address().to_vec(),
                     max_cycles: event.maxCycles,
                     request_signature: vec![],
                     result: vec![],
                     zkvm_operator_address: vec![],
                     zkvm_operator_signature: vec![],
-                    status: Some(JobStatus {
+                    status: JobStatus {
                         status: JobStatusType::Pending as i32,
                         failure_reason: None,
                         retries: 0,
-                    }),
+                    },
                 };
 
                 if let Err(error) = job_processor.submit_job(job).await {

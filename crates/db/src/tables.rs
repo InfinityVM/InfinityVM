@@ -2,13 +2,43 @@
 
 use alloy::rlp::bytes;
 use borsh::{BorshDeserialize, BorshSerialize};
-use proto::Job;
+use proto::JobStatus;
 use reth_db::{
     table::{Compress, Decode, Decompress, Encode},
     tables, DatabaseError, TableType, TableViewer,
 };
 use sha2::{Digest, Sha256};
 use std::fmt;
+
+// Job used internally and stored in DB
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, BorshSerialize, BorshDeserialize)]
+pub struct Job {
+    pub id: [u8; 32],
+    pub nonce: u64,
+    pub max_cycles: u64,
+    pub consumer_address: Vec<u8>,
+    pub program_verifying_key: Vec<u8>,
+    pub input: Vec<u8>,
+    pub request_signature: Vec<u8>,
+    pub result: Vec<u8>,
+    pub zkvm_operator_address: Vec<u8>,
+    pub zkvm_operator_signature: Vec<u8>,
+    pub status: JobStatus,
+}
+
+impl Compress for Job {
+    type Compressed = Vec<u8>;
+    fn compress_to_buf<B: bytes::BufMut + AsMut<[u8]>>(self, dest: &mut B) {
+        let src = borsh::to_vec(&self).expect("borsh serialize works. qed.");
+        dest.put(&src[..])
+    }
+}
+
+impl Decompress for Job {
+    fn decompress<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
+        borsh::from_slice(value.as_ref()).map_err(|_| DatabaseError::Decode)
+    }
+}
 
 /// Key to tables storing job metadata and failed jobs.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]

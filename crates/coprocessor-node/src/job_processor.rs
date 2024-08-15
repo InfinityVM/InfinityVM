@@ -5,10 +5,10 @@ use alloy::{hex, primitives::Signature, signers::Signer, sol, sol_types::SolType
 use async_channel::{Receiver, Sender};
 use db::{
     delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
-    put_fail_relay_job, put_job,
+    put_fail_relay_job, put_job, tables::Job,
 };
 use proto::{
-    CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, RequestType, VmType,
+    CreateElfRequest, ExecuteRequest, JobInputs, JobStatus, JobStatusType, RequestType, VmType,
 };
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
@@ -201,11 +201,8 @@ where
             return Err(Error::JobAlreadyExists);
         }
 
-        job.status = Some(JobStatus {
-            status: JobStatusType::Pending as i32,
-            failure_reason: None,
-            retries: 0,
-        });
+        job.status =
+            JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
 
         Self::save_job(self.db.clone(), job.clone()).await?;
 
@@ -261,18 +258,18 @@ where
                 Ok(Some(elf)) => elf,
                 Ok(None) => {
                     error!(
-                        ?job.contract_address,
+                        ?job.consumer_address,
                         "no ELF found for job {:?} with verifying key {:?}",
                         id,
                         job.program_verifying_key,
                     );
                     metrics.incr_job_err(&FailureReason::MissingElf.to_string());
 
-                    job.status = Some(JobStatus {
+                    job.status = JobStatus {
                         status: JobStatusType::Failed as i32,
                         failure_reason: Some(FailureReason::MissingElf.to_string()),
                         retries: 0,
-                    });
+                    };
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {:?}: {:?}", id, e);
@@ -290,11 +287,11 @@ where
 
                     metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
 
-                    job.status = Some(JobStatus {
+                    job.status = JobStatus {
                         status: JobStatusType::Failed as i32,
                         failure_reason: Some(FailureReason::ErrGetElf.to_string()),
                         retries: 0,
-                    });
+                    };
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {:?}: {:?}", id, e);
@@ -326,11 +323,11 @@ where
                 Ok(resp) => {
                     tracing::debug!("job {:?} executed successfully", id.clone());
 
-                    job.status = Some(JobStatus {
+                    job.status = JobStatus {
                         status: JobStatusType::Done as i32,
                         failure_reason: None,
                         retries: 0,
-                    });
+                    };
 
                     job.result = resp.result_with_metadata;
                     job.zkvm_operator_address = resp.zkvm_operator_address;
@@ -347,11 +344,11 @@ where
                     error!("failed to execute job {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
-                    job.status = Some(JobStatus {
+                    job.status = JobStatus {
                         status: JobStatusType::Failed as i32,
                         failure_reason: Some(FailureReason::ExecErr.to_string()),
                         retries: 0,
-                    });
+                    };
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
                         error!("report this error: failed to save job {:?}: {:?}", id, e);
@@ -487,14 +484,14 @@ pub type OffchainJobRequest = sol! {
 /// signed by the entity sending the job request (user, app, authorized third-party, etc.).
 pub fn abi_encode_offchain_job_request(job: Job) -> Result<Vec<u8>, Error> {
     // TODO MAANAV: Do we need this? Why?
-    let contract_address: [u8; 20] = job.contract_address[job.contract_address.len() - 20..]
+    let consumer_address: [u8; 20] = job.consumer_address[job.consumer_address.len() - 20..]
         .try_into()
         .map_err(|_| Error::InvalidAddressLength)?;
 
     Ok(OffchainJobRequest::abi_encode_params(&(
         job.nonce,
         job.max_cycles,
-        contract_address,
+        consumer_address,
         job.program_verifying_key,
         job.input,
     )))

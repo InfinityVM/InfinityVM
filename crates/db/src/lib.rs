@@ -1,6 +1,6 @@
 //! Executor database
 
-use proto::{Job, VmType};
+use proto::VmType;
 use reth_db::{
     create_db,
     mdbx::{DatabaseArguments, DatabaseFlags},
@@ -10,7 +10,7 @@ use reth_db::{
 };
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta, JobKey};
+use tables::{ElfKey, ElfWithMeta, Job, JobKey};
 
 pub mod tables;
 

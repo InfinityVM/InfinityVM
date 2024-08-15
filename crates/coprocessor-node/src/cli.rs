@@ -14,9 +14,10 @@ use alloy::{
 };
 use async_channel::{bounded, Receiver, Sender};
 use clap::{Parser, Subcommand};
+use db::tables::Job;
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
-use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
+use proto::coprocessor_node_server::CoprocessorNodeServer;
 use std::{
     net::{SocketAddr, SocketAddrV4},
     path::PathBuf,

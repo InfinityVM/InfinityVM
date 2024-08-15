@@ -71,7 +71,7 @@ impl RequestAndResultSigner {
             id: vec![],
             nonce: NONCE,
             max_cycles: MAX_CYCLES,
-            contract_address: abi_encode_address(consumer_addr),
+            consumer_address: abi_encode_address(consumer_addr),
             program_verifying_key: PROGRAM_ID.to_vec(),
             input: abi_encode_address(zero_addr),
             request_signature: vec![],
