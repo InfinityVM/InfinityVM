@@ -66,6 +66,8 @@ impl Integration {
         let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
+        let prometheus_port = get_localhost_port();
+        let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
 
@@ -75,6 +77,8 @@ impl Integration {
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
+            .arg("--prom-address")
+            .arg(&prometheus_addr)
             .arg("--http-eth-rpc")
             .arg(http_rpc_url)
             .arg("--ws-eth-rpc")

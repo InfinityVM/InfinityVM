@@ -15,7 +15,7 @@ use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use proto::JobStatus;
+use proto::{Job, JobInputs, JobStatus, JobStatusType, RequestType};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
@@ -28,12 +28,14 @@ pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
 pub const LOCALHOST: &str = "127.0.0.1";
 
 /// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
+/// If the tracing subscriber has already been initialized in a previous test, this
+/// function will silently fail due to `try_init()`, which does not reinitialize
+/// the subscriber if one is already set.
 pub fn test_tracing() {
-    tracing_subscriber::fmt()
+    let _ = tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::from_default_env())
         .with_writer(std::io::stderr)
-        .try_init()
-        .unwrap();
+        .try_init();
 }
 
 /// Find a free port on localhost.
@@ -167,32 +169,35 @@ pub async fn mock_consumer_pending_job(
     nonce: u8,
     operator: PrivateKeySigner,
     mock_consumer: Address,
-) -> proto::Job {
+) -> Job {
     let bytes = vec![nonce; 32];
     let addr = mock_contract_input_addr();
     let raw_output = mock_raw_output();
 
-    let inputs = proto::JobInputs {
+    let inputs = JobInputs {
         job_id: get_job_id(nonce.into(), mock_consumer).to_vec(),
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
         program_verifying_key: bytes.clone(),
         program_input: addr.abi_encode(),
         vm_type: 1,
         program_elf: bytes.clone(),
+        request_type: RequestType::Onchain as i32,
     };
 
     let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output).unwrap();
     let operator_signature =
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 
-    let job = proto::Job {
+    let job = Job {
         id: inputs.job_id,
+        nonce: 1,
         max_cycles: inputs.max_cycles,
         program_verifying_key: inputs.program_verifying_key,
         input: inputs.program_input,
+        request_signature: vec![],
         result: result_with_meta,
         status: Some(JobStatus {
-            status: proto::JobStatusType::Pending as i32,
+            status: JobStatusType::Pending as i32,
             failure_reason: None,
             retries: 0,
         }),

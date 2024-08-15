@@ -77,10 +77,12 @@ where
 
                 let job = Job {
                     id: event.jobID.to_vec(),
+                    nonce: event.nonce,
                     program_verifying_key: event.programID.clone().to_vec(),
                     input: event.programInput.into(),
-                    contract_address: log.address().to_vec(),
+                    contract_address: event.consumer.to_vec(),
                     max_cycles: event.maxCycles,
+                    request_signature: vec![],
                     result: vec![],
                     zkvm_operator_address: vec![],
                     zkvm_operator_signature: vec![],

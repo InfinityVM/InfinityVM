@@ -4143,6 +4143,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "contracts",
+ "coprocessor-node",
  "futures",
  "mock-consumer-methods",
  "proto",
@@ -4154,6 +4155,7 @@ dependencies = [
  "test-utils",
  "tokio",
  "tonic",
+ "zkvm-executor",
 ]
 
 [[package]]
@@ -9389,6 +9391,7 @@ name = "scripts"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "coprocessor-node",
  "dotenv",
  "k256",
  "proto",

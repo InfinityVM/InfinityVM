@@ -1,6 +1,7 @@
 //! Logic to broadcast job result onchain.
 
 use alloy::{
+    hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
     providers::ProviderBuilder,
@@ -40,6 +41,9 @@ type JobManagerContract = IJobManager::IJobManagerInstance<
     alloy::transports::http::Http<reqwest::Client>,
     RelayerProvider,
 >;
+
+const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
+const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
 
 /// Relayer errors
 #[derive(thiserror::Error, Debug)]
@@ -123,15 +127,18 @@ pub struct JobRelayer {
 }
 
 impl JobRelayer {
-    /// Submit a completed jobs onchain to the `JobManager` contract.
+    /// Submit a completed job to the `JobManager` contract for an onchain job request.
     #[instrument(skip(self, job), fields(job_id = ?job.id), err(Debug))]
-    pub async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
+    pub async fn relay_result_for_onchain_job(
+        &self,
+        job: Job,
+    ) -> Result<TransactionReceipt, Error> {
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, ?job.id, "tx broadcast failure");
-            self.metrics.incr_relay_err("relay_error_broadcast_failure");
+            self.metrics.incr_relay_err(BROADCAST_ERROR);
             Error::TxBroadcast(error)
         })?;
 
@@ -141,7 +148,54 @@ impl JobRelayer {
             .await
             .map_err(|error| {
                 error!(?error, ?job.id, "tx inclusion failed");
-                self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
+                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
+                Error::TxInclusion(error)
+            })?;
+
+        info!(
+            receipt.transaction_index,
+            receipt.block_number,
+            ?receipt.block_hash,
+            ?receipt.transaction_hash,
+            ?job.id,
+            "tx included"
+        );
+
+        Ok(receipt)
+    }
+    /// Submit a completed job to the `JobManager` contract for an offchain job request.
+    pub async fn relay_result_for_offchain_job(
+        &self,
+        job: Job,
+        job_request_payload: Vec<u8>,
+    ) -> Result<TransactionReceipt, Error> {
+        let call_builder = self.job_manager.submitResultForOffchainJob(
+            job.result.into(),
+            job.zkvm_operator_signature.into(),
+            job_request_payload.into(),
+            job.request_signature.into(),
+        );
+
+        let pending_tx = call_builder.send().await.map_err(|error| {
+            error!(
+                ?error,
+                job.nonce,
+                "tx broadcast failure: contract_address = {}",
+                hex::encode(&job.contract_address)
+            );
+            self.metrics.incr_relay_err(BROADCAST_ERROR);
+            Error::TxBroadcast(error)
+        })?;
+
+        let receipt =
+            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+                error!(
+                    ?error,
+                    job.nonce,
+                    "tx inclusion failed: contract_address = {}",
+                    hex::encode(&job.contract_address)
+                );
+                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
                 Error::TxInclusion(error)
             })?;
 
@@ -227,7 +281,7 @@ mod test {
 
             let relayer2 = Arc::clone(&job_relayer);
             join_set.spawn(async move {
-                assert!(relayer2.relay(job).await.is_ok());
+                assert!(relayer2.relay_result_for_onchain_job(job).await.is_ok());
             });
         }
 
@@ -245,7 +299,7 @@ mod test {
                 decoded.jobID.into()
             })
             .collect();
-        // job ids from the JobManager start at 1
+        // nonces from the consumer start at 1
         let expected: HashSet<[u8; 32]> =
             (1..=JOB_COUNT).map(|i| get_job_id(i.try_into().unwrap(), mock_consumer)).collect();
 
