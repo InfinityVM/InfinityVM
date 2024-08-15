@@ -11,7 +11,6 @@ tokio = { workspace = true }
 alloy = { workspace = true }
 k256 = { workspace = true }
 dotenv = { workspace = true }
-sha2 = { workspace = true }
 
 proto = { path = "../proto" }
 coprocessor-node = { path = "../coprocessor-node" }
