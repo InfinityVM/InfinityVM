@@ -12,7 +12,6 @@ alloy = { workspace = true, features = ["provider-anvil-node"] }
 tracing-subscriber = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }
-sha2 = { workspace = true }
 
 contracts = { path = "../contracts" }
 proto = { path = "../proto" }

@@ -1,5 +1,5 @@
 use alloy::{
-    primitives::{hex, keccak256, Address, Uint, U256},
+    primitives::{hex, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
     sol,
     sol_types::SolType,

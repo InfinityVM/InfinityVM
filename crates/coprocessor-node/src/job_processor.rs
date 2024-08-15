@@ -46,9 +46,6 @@ pub enum Error {
     /// exec queue channel unexpected closed
     #[error("exec queue channel unexpected closed")]
     ExecQueueChannelClosed,
-    /// missing nonce while encoding offchain job request
-    #[error("missing nonce while encoding offchain job request")]
-    MissingNonce,
     /// invalid address length
     #[error("invalid address length")]
     InvalidAddressLength,
@@ -301,6 +298,7 @@ where
                 }
             };
 
+            // Only offchain jobs have request signatures
             let request_type = if job.request_signature.clone().is_empty() {
                 RequestType::Onchain
             } else {
@@ -483,10 +481,8 @@ pub type OffchainJobRequest = sol! {
 /// Returns an ABI-encoded offchain job request. This ABI-encoded response will be
 /// signed by the entity sending the job request (user, app, authorized third-party, etc.).
 pub fn abi_encode_offchain_job_request(job: Job) -> Result<Vec<u8>, Error> {
-    // TODO MAANAV: Do we need this? Why?
-    let consumer_address: [u8; 20] = job.consumer_address[job.consumer_address.len() - 20..]
-        .try_into()
-        .map_err(|_| Error::InvalidAddressLength)?;
+    let contract_address: [u8; 20] =
+        job.contract_address.try_into().map_err(|_| Error::InvalidAddressLength)?;
 
     Ok(OffchainJobRequest::abi_encode_params(&(
         job.nonce,

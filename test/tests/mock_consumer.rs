@@ -1,7 +1,7 @@
 use alloy::{
     network::EthereumWallet,
     primitives::{
-        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
+        aliases::U256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
     },
     providers::{Provider, ProviderBuilder},
     rpc::types::Filter,
@@ -10,7 +10,7 @@ use alloy::{
     sol_types::{SolEvent, SolType, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-use coprocessor_node::job_processor::{abi_encode_offchain_job_request, OffchainJobRequest};
+use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use integration::{Args, Integration};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
@@ -70,8 +70,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
 
-        let job_manager_contract = IJobManager::new(anvil.job_manager, &consumer_provider);
-
         // Submit job to coproc node
         let nonce = 1;
         let job_id = get_job_id(nonce, anvil.mock_consumer);
@@ -79,7 +77,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             id: job_id.to_vec(),
             nonce,
             max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-            consumer_address: anvil.mock_consumer.abi_encode(),
+            contract_address: anvil.mock_consumer.abi_encode_packed(),
             program_verifying_key: program_id.clone(),
             input: mock_user_address.abi_encode(),
             // signature added to this job below
@@ -178,6 +176,11 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let MockConsumer::getProgramInputsForJobReturn { _0: inputs } =
             get_inputs_call.call().await.unwrap();
         assert_eq!(Address::abi_encode(&mock_user_address), inputs);
+
+        // Verify nonce onchain
+        let get_next_nonce_call = consumer_contract.getNextNonce();
+        let MockConsumer::getNextNonceReturn { _0: nonce } = get_next_nonce_call.call().await.unwrap();
+        assert_eq!(nonce, 2);
     }
     Integration::run(test).await;
 }

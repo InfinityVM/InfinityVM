@@ -41,18 +41,19 @@ where
             return Err(Status::invalid_argument("job max cycles must be positive"));
         }
 
-        let job_id_array: Result<[u8; 32], _> = id.clone().try_into();
-        if job_id_array.is_err() {
-            return Err(Status::invalid_argument("job ID must be 32 bytes in length"));
-        }
+        let _: [u8; 32] = id
+            .clone()
+            .try_into()
+            .map_err(|_| Status::invalid_argument("job ID must be 32 bytes in length"))?;
 
         if job.request_signature.is_empty() {
             return Err(Status::invalid_argument("job request signature must not be empty"));
         }
 
-        if job.consumer_address.is_empty() {
-            return Err(Status::invalid_argument("job contract address must not be empty"));
-        }
+        let _: [u8; 20] =
+            job.contract_address.clone().try_into().map_err(|_| {
+                Status::invalid_argument("contract address must be 20 bytes in length")
+            })?;
 
         if job.program_verifying_key.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));

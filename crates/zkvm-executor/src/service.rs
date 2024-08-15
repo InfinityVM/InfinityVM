@@ -36,9 +36,6 @@ pub enum Error {
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] zkvm::Error),
-    /// Missing job ID when encoding result
-    #[error("missing job ID when encoding result for job with key {0}")]
-    MissingJobId(String),
     /// Error converting job ID
     #[error("job id conversion error")]
     JobIdConversion,
