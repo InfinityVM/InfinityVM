@@ -4,12 +4,15 @@ use alloy::{
     sol,
     sol_types::SolType,
 };
+use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
-use proto::{JobInputs, RequestType};
+use proto::{Job, JobInputs, RequestType};
 use std::env;
 use test_utils::get_job_id;
-use zkvm_executor::service::abi_encode_result_with_metadata;
+use zkvm_executor::service::{
+    abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
+};
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -62,16 +65,22 @@ impl RequestAndResultSigner {
         dotenv().ok();
 
         let zero_addr: Address = Address::ZERO;
-
         let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
 
-        let encoded_job_request = abi_encode_job_request(
-            NONCE,
-            MAX_CYCLES,
-            consumer_addr,
-            PROGRAM_ID.to_vec(),
-            abi_encode_address(zero_addr),
-        );
+        let job = Job {
+            id: vec![],
+            nonce: NONCE,
+            max_cycles: MAX_CYCLES,
+            contract_address: abi_encode_address(consumer_addr),
+            program_verifying_key: PROGRAM_ID.to_vec(),
+            input: abi_encode_address(zero_addr),
+            request_signature: vec![],
+            result: vec![],
+            zkvm_operator_address: vec![],
+            zkvm_operator_signature: vec![],
+            status: None,
+        };
+        let encoded_job_request = abi_encode_offchain_job_request(job).unwrap();
 
         let private_key_hex = env::var("OFFCHAIN_SIGNER_PRIVATE_KEY")
             .expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");
@@ -89,14 +98,18 @@ impl RequestAndResultSigner {
 
         let zero_addr: Address = Address::ZERO;
 
-        let program_input_hash = keccak256(abi_encode_address(zero_addr));
         let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
-        let encoded_offchain_result = abi_encode_offchain_result(
-            program_input_hash.into(),
-            MAX_CYCLES,
-            PROGRAM_ID.to_vec(),
-            raw_output,
-        );
+        let job_inputs = JobInputs {
+            job_id: vec![],
+            program_input: abi_encode_address(zero_addr),
+            max_cycles: MAX_CYCLES,
+            program_verifying_key: PROGRAM_ID.to_vec(),
+            program_elf: PROGRAM_ELF.to_vec(),
+            vm_type: VM_TYPE,
+            request_type: RequestType::Onchain as i32,
+        };
+        let encoded_offchain_result =
+            abi_encode_offchain_result_with_metadata(&job_inputs, &raw_output).unwrap();
 
         // Sign the message
         let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY")
@@ -124,31 +137,4 @@ type AddressWithBalance = sol! {
 
 fn abi_encode_address_with_balance(address: Address, balance: U256) -> Vec<u8> {
     AddressWithBalance::abi_encode(&(address, balance))
-}
-
-type JobRequest = sol! {
-    tuple(uint64,uint64,address,bytes,bytes)
-};
-
-fn abi_encode_job_request(
-    nonce: u64,
-    max_cycles: u64,
-    consumer: Address,
-    program_id: Vec<u8>,
-    program_input: Vec<u8>,
-) -> Vec<u8> {
-    JobRequest::abi_encode_params(&(nonce, max_cycles, consumer, program_id, program_input))
-}
-
-type OffchainResult = sol! {
-    tuple(bytes32,uint64,bytes,bytes)
-};
-
-fn abi_encode_offchain_result(
-    program_input_hash: [u8; 32],
-    max_cycles: u64,
-    program_id: Vec<u8>,
-    result: Vec<u8>,
-) -> Vec<u8> {
-    OffchainResult::abi_encode_params(&(program_input_hash, max_cycles, program_id, result))
 }
