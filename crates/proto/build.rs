@@ -19,7 +19,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute(".coprocessor_node", SERDE_AS)
         .type_attribute(".coprocessor_node", SERDE_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node", SERDE_RENAME_CAMELCASE)
-        .type_attribute(".coprocessor_node.v1.JobResult", BORSH_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node.v1.JobStatus", BORSH_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_USE_DISCRIMINANT_TRUE)
