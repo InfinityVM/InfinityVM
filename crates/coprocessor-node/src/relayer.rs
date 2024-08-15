@@ -93,6 +93,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
         self,
         http_rpc_url: String,
         job_manager: Address,
+        confirmations: u64,
         metrics: Arc<Metrics>,
     ) -> Result<JobRelayer, Error> {
         let url: reqwest::Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
@@ -105,7 +106,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
             ProviderBuilder::new().with_recommended_fillers().wallet(wallet).on_http(url);
         let job_manager = JobManagerContract::new(job_manager, provider);
 
-        Ok(JobRelayer { job_manager, metrics })
+        Ok(JobRelayer { job_manager, confirmations, metrics })
     }
 }
 
@@ -117,6 +118,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
 #[derive(Debug)]
 pub struct JobRelayer {
     job_manager: JobManagerContract,
+    confirmations: u64,
     metrics: Arc<Metrics>,
 }
 
@@ -126,14 +128,18 @@ impl JobRelayer {
     pub async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
+
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, ?job.id, "tx broadcast failure");
             self.metrics.incr_relay_err("relay_error_broadcast_failure");
             Error::TxBroadcast(error)
         })?;
 
-        let receipt =
-            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+        let receipt = pending_tx
+            .with_required_confirmations(self.confirmations)
+            .get_receipt()
+            .await
+            .map_err(|error| {
                 error!(?error, ?job.id, "tx inclusion failed");
                 self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
                 Error::TxInclusion(error)
@@ -195,7 +201,7 @@ mod test {
 
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
-            .build(anvil.endpoint().parse().unwrap(), job_manager, metrics)
+            .build(anvil.endpoint().parse().unwrap(), job_manager, 1, metrics)
             .unwrap();
         let job_relayer = Arc::new(job_relayer);
         let mut join_set = JoinSet::new();
