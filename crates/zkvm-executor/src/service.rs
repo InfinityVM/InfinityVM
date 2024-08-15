@@ -241,19 +241,3 @@ pub fn abi_encode_offchain_result_with_metadata(
         raw_output,
     )))
 }
-
-/// Returns an ABI-encoded offchain result with metadata. This ABI-encoded response will be
-/// signed by the operator.
-pub fn abi_encode_offchain_result_with_metadata(
-    i: &JobInputs,
-    raw_output: &[u8],
-) -> Result<Vec<u8>, Error> {
-    let program_input_hash = keccak256(&i.program_input);
-
-    Ok(OffchainResultWithMetadata::abi_encode_params(&(
-        program_input_hash,
-        i.max_cycles,
-        &i.program_verifying_key,
-        raw_output,
-    )))
-}

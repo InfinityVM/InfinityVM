@@ -10,7 +10,7 @@ use reth_db::{
 };
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta, JobID};
+use tables::{ElfKey, ElfWithMeta, Job, JobID};
 
 pub mod tables;
 

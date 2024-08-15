@@ -36,8 +36,8 @@ service CoprocessorNode {
 // SubmitJobRequest defines the request structure to submit a job to the
 // coprocessing coprocessor_node.
 message SubmitJobRequest {
-  // Offchain job request
-  JobRequest job_request = 1;
+  // ABI-encoded offchain job request
+  bytes request = 1;
   // Signature on ABI-encoded offchain job request
   bytes signature = 2;
 }

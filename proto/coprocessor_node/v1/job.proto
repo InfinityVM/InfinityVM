@@ -23,20 +23,6 @@ message JobStatus {
   uint32 retries = 3;
 }
 
-// Offchain job request
-message JobRequest {
-  // Nonce of the job request for a given consumer contract
-  uint64 nonce = 1;
-  // CPU cycle limit for job execution
-  uint64 max_cycles = 2;
-  // The address of the contract to execute a callback with a result with
-  bytes consumer_address = 3;
-  // The ZK program verification key
-  bytes program_id = 4;
-  // Program execution input
-  bytes input = 5;
-}
-
 // JobResult represents the result of a program executed by the coprocessor with specific
 // inputs.
 message JobResult {

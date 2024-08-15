@@ -182,7 +182,7 @@ impl JobRelayer {
                 ?error,
                 job.nonce,
                 "tx broadcast failure: contract_address = {}",
-                hex::encode(&job.contract_address)
+                hex::encode(&job.consumer_address)
             );
             self.metrics.incr_relay_err(BROADCAST_ERROR);
             Error::TxBroadcast(error)
@@ -194,7 +194,7 @@ impl JobRelayer {
                     ?error,
                     job.nonce,
                     "tx inclusion failed: contract_address = {}",
-                    hex::encode(&job.contract_address)
+                    hex::encode(&job.consumer_address)
                 );
                 self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
                 Error::TxInclusion(error)
