@@ -185,7 +185,7 @@ where
 /// The payload that gets signed to signify that the zkvm executor has faithfully
 /// executed the job. Also the result payload the job manager contract expects.
 ///
-/// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
+/// tuple(JobID,ProgramInputHash,MaxCycles,ProgramID,RawOutput)
 pub type ResultWithMetadata = sol! {
     tuple(bytes32,bytes32,uint64,bytes,bytes)
 };
