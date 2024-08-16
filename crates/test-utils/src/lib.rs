@@ -91,14 +91,12 @@ pub struct Params {
     pub rpc_url: String,
 }
 
-pub struct TestDeployment {
+pub struct TestAddresses {
     pub job_manager: Address,
-    pub relayer: PrivateKeySigner,
-    pub coprocessor_operator: PrivateKeySigner,
     pub mock_consumer: Address,
 }
 
-pub async fn deploy_contracts(params: Params) -> TestDeployment{
+pub async fn deploy_contracts(params: Params) -> TestAddresses{
     // Ensure the anvil instance will not collide with anything already running on the OS
     // let port = get_localhost_port();
     // Set block time to 0.01 seconds - I WANNA GO FAST MOM
@@ -165,7 +163,7 @@ pub async fn deploy_contracts(params: Params) -> TestDeployment{
         .unwrap();
     let mock_consumer = *mock_consumer.address();
 
-    TestDeployment { job_manager, relayer: params.relayer, coprocessor_operator: params.coprocessor_operator, mock_consumer }
+    TestAddresses { job_manager,  mock_consumer }
 }
 
 /// Setup an anvil instance with job manager contracts.

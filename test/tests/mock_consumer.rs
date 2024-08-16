@@ -11,7 +11,7 @@ use alloy::{
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
-use integration::{Args, Integration, ParamsArgs};
+use integration::{Integration, Args};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     GetResultRequest, Job, JobInputs, JobStatus, JobStatusType, SubmitJobRequest,
@@ -39,9 +39,7 @@ fn invariants() {
 #[tokio::test]
 #[ignore]
 async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
-    async fn test(mut args: ParamsArgs) {
-        // let anvil = args.anvil;
-        // let chain_id = anvil.anvil.chain_id();
+    async fn test(mut args: Args) {
         let chain_id = args.chain_id;
         let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
@@ -180,15 +178,17 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             get_next_nonce_call.call().await.unwrap();
         assert_eq!(nonce, 2);
     }
-    Integration::run(test).await;
+    // Integration::run(test).await;
+    Integration::new()
+        // .with_reth()
+        .run(test)
+        .await;
 }
 
 #[ignore]
 #[tokio::test]
 async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
-    async fn test(mut args: ParamsArgs) {
-        // let anvil = args.anvil;
-        // let chain_id = anvil.anvil.chain_id();
+    async fn test(mut args: Args) {
         let chain_id = args.chain_id;
         let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
@@ -291,5 +291,5 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
         assert_eq!(balance, expected_balance);
     }
-    Integration::run(test).await;
+    Integration::new().run(test).await;
 }
