@@ -49,6 +49,10 @@ pub struct ZkvmExecutorService<S> {
     chain_id: Option<u64>,
 }
 
+pub struct ExecuteInputs {
+    
+}
+
 impl<S> ZkvmExecutorService<S>
 where
     S: Signer<Signature> + Send + Sync + 'static + Clone,
@@ -130,7 +134,6 @@ where
 
         let response = ExecuteResponse {
             result_with_metadata,
-            zkvm_operator_address: self.address_checksum_bytes(),
             zkvm_operator_signature,
         };
 

@@ -31,7 +31,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .field_attribute("request_signature", SERDE_BYTES_BASE64)
         .field_attribute("result", SERDE_BYTES_BASE64)
         .field_attribute("zkvm_operator_signature", SERDE_BYTES_BASE64)
-        .field_attribute("zkvm_operator_address", SERDE_BYTES_HEX)
         .field_attribute("consumer_address", SERDE_BYTES_HEX)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .compile(

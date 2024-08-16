@@ -83,7 +83,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             // signature added to this job below
             request_signature: vec![],
             result: vec![],
-            zkvm_operator_address: vec![],
             zkvm_operator_signature: vec![],
             status: JobStatus {
                 status: JobStatusType::Pending as i32,
@@ -113,13 +112,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Verify the job execution result
         let done_status: i32 = JobStatusType::Done.into();
         assert_eq!(job_with_result.status.unwrap().status, done_status);
-
-        // Verify address
-        let address = {
-            let address = String::from_utf8(job_with_result.zkvm_operator_address).unwrap();
-            Address::parse_checksummed(address, Some(chain_id)).unwrap()
-        };
-        assert_eq!(address, anvil.coprocessor_operator.address());
 
         // Verify signature and message format
         let sig = Signature::try_from(&job_with_result.zkvm_operator_signature[..]).unwrap();
@@ -240,13 +232,6 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         // Verify the job execution result
         let done_status = JobStatusType::Done as i32;
         assert_eq!(job.status.unwrap().status, done_status);
-
-        // Verify address
-        let address = {
-            let address = String::from_utf8(job.zkvm_operator_address.clone()).unwrap();
-            Address::parse_checksummed(address, Some(chain_id)).unwrap()
-        };
-        assert_eq!(address, anvil.coprocessor_operator.address());
 
         // Verify signature and message format
         let sig = Signature::try_from(&job.zkvm_operator_signature[..]).unwrap();

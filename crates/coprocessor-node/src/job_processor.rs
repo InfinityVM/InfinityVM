@@ -328,7 +328,6 @@ where
                     };
 
                     job.result = resp.result_with_metadata;
-                    job.zkvm_operator_address = resp.zkvm_operator_address;
                     job.zkvm_operator_signature = resp.zkvm_operator_signature;
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {

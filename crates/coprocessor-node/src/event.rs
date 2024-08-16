@@ -85,7 +85,6 @@ where
                     max_cycles: event.maxCycles,
                     request_signature: vec![],
                     result: vec![],
-                    zkvm_operator_address: vec![],
                     zkvm_operator_signature: vec![],
                     status: JobStatus {
                         status: JobStatusType::Pending as i32,

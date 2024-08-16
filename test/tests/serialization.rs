@@ -14,7 +14,6 @@ fn serde_json_test() {
             max_cycles: 100,
             request_signature: input.clone(),
             result: input.clone(),
-            zkvm_operator_address: input.clone(),
             zkvm_operator_signature: input,
             status: JobStatus {
                 status: JobStatusType::Unspecified as i32,
@@ -36,7 +35,6 @@ fn serde_json_test() {
                 "maxCycles": 100,
                 "requestSignature": "AAAB",
                 "result": "AAAB",
-                "zkvmOperatorAddress": "000001",
                 "zkvmOperatorSignature": "AAAB",
                 "status": {
                     "status": 0,

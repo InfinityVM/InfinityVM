@@ -205,7 +205,6 @@ pub async fn mock_consumer_pending_job(
         },
         consumer_address: mock_consumer.abi_encode(),
         zkvm_operator_signature: operator_signature,
-        zkvm_operator_address: operator.address().to_checksum(None).as_bytes().to_vec(),
     };
 
     job

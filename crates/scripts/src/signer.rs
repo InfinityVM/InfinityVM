@@ -76,7 +76,6 @@ impl RequestAndResultSigner {
             input: abi_encode_address(zero_addr),
             request_signature: vec![],
             result: vec![],
-            zkvm_operator_address: vec![],
             zkvm_operator_signature: vec![],
             status: None,
         };
