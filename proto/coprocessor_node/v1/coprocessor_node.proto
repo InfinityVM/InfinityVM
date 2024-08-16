@@ -62,7 +62,7 @@ message GetResultRequest {
 // GetResultResponse defines the response structure to get the result of a
 // coprocessing job.
 message GetResultResponse {
-  JobResult job = 1;
+  JobResult job_result = 1;
 }
 
 // SubmitProgramRequest defines the request structure to submit a new program,

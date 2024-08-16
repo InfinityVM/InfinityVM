@@ -257,7 +257,7 @@ impl Cli {
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
             bounded(opts.exec_queue_bound);
 
-        let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
+        let executor = ZkvmExecutorService::new(zkvm_operator);
 
         let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
             opts.http_eth_rpc.clone(),

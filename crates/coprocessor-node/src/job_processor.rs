@@ -7,12 +7,12 @@ use db::{
     delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
     put_fail_relay_job, put_job, tables::Job,
 };
-use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
+use proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use tracing::{error, info};
-use zkvm_executor::service::ZkvmExecutorService;
+use zkvm_executor::service::{ExecuteRequest, ZkvmExecutorService};
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -124,28 +124,30 @@ where
 
     /// Submit program ELF, save it in DB, and return verifying key.
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
-        let request = CreateElfRequest { program_elf: elf.clone(), vm_type };
-        let response = self.zk_executor.create_elf_handler(request).await?;
+        let program_id = self
+            .zk_executor
+            .create_elf(elf.clone(), VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?)
+            .await?;
 
-        if get_elf(self.db.clone(), &response.program_id)
+        if get_elf(self.db.clone(), &program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
             .is_some()
         {
             return Err(Error::ElfAlreadyExists(format!(
                 "elf with verifying key {:?} already exists",
-                hex::encode(response.program_id.as_slice()),
+                hex::encode(program_id.as_slice()),
             )));
         }
 
         put_elf(
             self.db.clone(),
             VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
-            &response.program_id,
+            &program_id,
             elf,
         )
         .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
 
-        Ok(response.program_id)
+        Ok(program_id)
     }
 
     /// Save job in DB
@@ -297,17 +299,15 @@ where
             };
 
             let req = ExecuteRequest {
-                inputs: Some(JobInputs {
-                    job_id: id.to_vec(),
-                    max_cycles: job.max_cycles,
-                    program_id: job.program_id.clone(),
-                    program_input: job.input.clone(),
-                    program_elf: elf_with_meta.elf,
-                    vm_type: VmType::Risc0 as i32,
-                }),
+                job_id: id,
+                max_cycles: job.max_cycles,
+                program_id: job.program_id.clone(),
+                input: job.input.clone(),
+                elf: elf_with_meta.elf,
+                vm_type: VmType::Risc0,
             };
 
-            let job = match zk_executor.execute_handler(req).await {
+            let job = match zk_executor.execute(req).await {
                 Ok(resp) => {
                     tracing::debug!("job {:?} executed successfully", id.clone());
 
@@ -317,7 +317,7 @@ where
                         retries: 0,
                     };
 
-                    job.result = resp.result_with_metadata;
+                    job.result_with_metadata = resp.result_with_metadata;
                     job.zkvm_operator_signature = resp.zkvm_operator_signature;
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {

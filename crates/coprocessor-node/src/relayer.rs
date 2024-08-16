@@ -134,8 +134,9 @@ impl JobRelayer {
         &self,
         job: Job,
     ) -> Result<TransactionReceipt, Error> {
-        let call_builder =
-            self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
+        let call_builder = self
+            .job_manager
+            .submitResult(job.result_with_metadata.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, ?job.id, "tx broadcast failure");
@@ -171,7 +172,7 @@ impl JobRelayer {
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
         let call_builder = self.job_manager.submitResultForOffchainJob(
-            job.result.into(),
+            job.result_with_metadata.into(),
             job.zkvm_operator_signature.into(),
             job_request_payload.into(),
             job.request_signature.into(),
@@ -226,10 +227,10 @@ mod test {
         sol_types::SolEvent,
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+    use db::tables::get_job_id;
     use prometheus::Registry;
     use test_utils::{
-        anvil_with_contracts, get_job_id, mock_consumer_pending_job, mock_contract_input_addr,
-        TestAnvil,
+        anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
     };
     use tokio::task::JoinSet;
 
@@ -262,7 +263,7 @@ mod test {
         let mut join_set = JoinSet::new();
 
         for i in 0u8..JOB_COUNT as u8 {
-            let job =
+            let job: db::tables::Job =
                 mock_consumer_pending_job(i + 1, coprocessor_operator.clone(), mock_consumer).await;
 
             let mock_addr = mock_contract_input_addr();

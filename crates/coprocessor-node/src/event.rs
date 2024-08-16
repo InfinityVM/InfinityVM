@@ -84,7 +84,7 @@ where
                     consumer_address: event.consumer.to_vec(),
                     max_cycles: event.maxCycles,
                     request_signature: vec![],
-                    result: vec![],
+                    result_with_metadata: vec![],
                     zkvm_operator_signature: vec![],
                     status: JobStatus {
                         status: JobStatusType::Pending as i32,

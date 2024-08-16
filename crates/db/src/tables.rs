@@ -1,6 +1,12 @@
 //! Database tables
 
-use alloy::rlp::bytes;
+use alloy::{
+    primitives::{utils::keccak256, Address},
+    rlp::bytes,
+    sol,
+    sol_types::SolType,
+};
+
 use borsh::{BorshDeserialize, BorshSerialize};
 use proto::JobStatus;
 use reth_db::{
@@ -48,6 +54,19 @@ impl Decompress for Job {
     fn decompress<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
         borsh::from_slice(value.as_ref()).map_err(|_| DatabaseError::Decode)
     }
+}
+
+/// Returns the job ID hash for a given nonce and consumer address.
+pub fn get_job_id(nonce: u64, consumer: Address) -> [u8; 32] {
+    keccak256(abi_encode_nonce_and_consumer(nonce, consumer)).into()
+}
+
+type NonceAndConsumer = sol! {
+    tuple(uint64, address)
+};
+
+fn abi_encode_nonce_and_consumer(nonce: u64, consumer: Address) -> Vec<u8> {
+    NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
 }
 
 /// Key to tables storing job metadata and failed jobs.
