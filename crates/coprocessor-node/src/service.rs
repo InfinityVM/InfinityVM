@@ -34,25 +34,35 @@ where
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
         let job = req.job.ok_or_else(|| Status::invalid_argument("missing job"))?;
-        let id = job.id;
+        let id = job.id.clone();
 
         // verify fields
         if job.max_cycles == 0 {
             return Err(Status::invalid_argument("job max cycles must be positive"));
         }
 
-        if id == 0 {
-            return Err(Status::invalid_argument("job ID must be positive"));
+        let _: [u8; 32] = id
+            .clone()
+            .try_into()
+            .map_err(|_| Status::invalid_argument("job ID must be 32 bytes in length"))?;
+
+        if job.request_signature.is_empty() {
+            return Err(Status::invalid_argument("job request signature must not be empty"));
         }
 
-        if job.contract_address.is_empty() {
-            return Err(Status::invalid_argument("job contract address must not be empty"));
-        }
+        let _: [u8; 20] =
+            job.contract_address.clone().try_into().map_err(|_| {
+                Status::invalid_argument("contract address must be 20 bytes in length")
+            })?;
 
         if job.program_verifying_key.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
-        info!(job_id = job.id, "new job request");
+
+        // TODO: Make contract calls to verify nonce, signature, etc. on job request
+        // [ref: https://github.com/Ethos-Works/InfinityVM/issues/168]
+
+        info!(job_id = ?job.id, "new job request");
 
         self.job_processor
             .submit_job(job)
@@ -68,17 +78,20 @@ where
         request: Request<GetResultRequest>,
     ) -> Result<Response<GetResultResponse>, Status> {
         let req = request.into_inner();
-        if req.job_id == 0 {
-            return Err(Status::invalid_argument("job ID must be positive"));
+        let job_id_array: Result<[u8; 32], _> = req.job_id.clone().try_into();
+
+        match job_id_array {
+            Ok(job_id) => {
+                let job = self
+                    .job_processor
+                    .get_job(job_id)
+                    .await
+                    .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
+
+                Ok(Response::new(GetResultResponse { job }))
+            }
+            Err(_) => Err(Status::invalid_argument("job ID must be 32 bytes in length")),
         }
-
-        let job = self
-            .job_processor
-            .get_job(req.job_id)
-            .await
-            .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
-
-        Ok(Response::new(GetResultResponse { job }))
     }
     /// SubmitProgram defines the gRPC method for submitting a new program to
     /// generate a unique program verification key.

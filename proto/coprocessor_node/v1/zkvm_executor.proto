@@ -21,7 +21,7 @@ enum VmType {
 // The inputs to the zkvm program that get attested to by the zkvm operator.
 message JobInputs {
   // Job identifier, as defined by the ethos chain job manager contracts.
-  uint32 job_id = 1;
+  bytes job_id = 1;
   // The maximum amount of cpu cycles. In the future this may
   // be something closer to gas/opcode count.
   uint64 max_cycles = 2;
@@ -41,7 +41,7 @@ message JobInputs {
 message ExecuteRequest {
   // The job inputs for running the program that are attested to by the executor
   // operator to assert faithful execution.
-  JobInputs inputs = 2;
+  JobInputs inputs = 1;
 }
 
 // The results of executing a program

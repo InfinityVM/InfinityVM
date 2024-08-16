@@ -35,6 +35,9 @@ pub enum Error {
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] zkvm::Error),
+    /// Error converting job ID
+    #[error("job id conversion error")]
+    JobIdConversion,
 }
 
 ///  The implementation of the `ZkvmExecutor` trait
@@ -87,7 +90,7 @@ where
         let base64_verifying_key = BASE64_STANDARD.encode(inputs.program_verifying_key.as_slice());
         let (vm, vm_type) = self.vm(inputs.vm_type)?;
         info!(
-            inputs.job_id,
+            job_id = ?inputs.job_id.clone(),
             vm_type = vm_type.as_str_name(),
             verifying_key = base64_verifying_key,
             "new job received"
@@ -107,12 +110,11 @@ where
             .execute(&inputs.program_elf, &inputs.program_input, inputs.max_cycles)
             .map_err(Error::ZkvmExecuteFailed)?;
 
-        let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output);
-
+        let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output)?;
         let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
-            inputs.job_id,
+            job_id = ?inputs.job_id.clone(),
             vm_type = vm_type.as_str_name(),
             verifying_key = base64_verifying_key,
             raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
@@ -193,19 +195,21 @@ where
 ///
 /// tuple(JobID,ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
 pub type ResultWithMetadata = sol! {
-    tuple(uint32,bytes32,uint64,bytes,bytes)
+    tuple(bytes32,bytes32,uint64,bytes,bytes)
 };
 
 /// Returns an ABI-encoded result with metadata. This ABI-encoded response will be
 /// signed by the operator.
-pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Vec<u8> {
+pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Result<Vec<u8>, Error> {
     let program_input_hash = keccak256(&i.program_input);
 
-    ResultWithMetadata::abi_encode_params(&(
-        i.job_id,
+    let job_id: [u8; 32] = i.job_id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
+
+    Ok(ResultWithMetadata::abi_encode_params(&(
+        job_id,
         program_input_hash,
         i.max_cycles,
         &i.program_verifying_key,
         raw_output,
-    ))
+    )))
 }

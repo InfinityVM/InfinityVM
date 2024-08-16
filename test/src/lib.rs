@@ -13,6 +13,9 @@ use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 
+/// The ethos reth crate is not part of the workspace so the binary is located
+/// within the crate
+pub const ETHOS_RETH_DEBUG_BIN: &str = "../bin/ethos-reth/target/debug/ethos-reth";
 const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
 
 /// Kill [`std::process::Child`] on `drop`
@@ -63,6 +66,8 @@ impl Integration {
         let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
+        let prometheus_port = get_localhost_port();
+        let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
 
@@ -72,6 +77,8 @@ impl Integration {
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
+            .arg("--prom-address")
+            .arg(&prometheus_addr)
             .arg("--http-eth-rpc")
             .arg(http_rpc_url)
             .arg("--ws-eth-rpc")
@@ -95,5 +102,21 @@ impl Integration {
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::{ProcKill, ETHOS_RETH_DEBUG_BIN};
+    use reth_e2e_test_utils::wallet::Wallet;
+    use std::process::Command;
+
+    #[test]
+    fn ethos_reth_exists() {
+        let _proc: ProcKill =
+            Command::new(ETHOS_RETH_DEBUG_BIN).arg("node").arg("--dev").spawn().unwrap().into();
+
+        // Just check that this works
+        let _signers = Wallet::new(6).gen();
     }
 }

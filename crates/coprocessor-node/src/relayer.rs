@@ -1,6 +1,7 @@
 //! Logic to broadcast job result onchain.
 
 use alloy::{
+    hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
     providers::ProviderBuilder,
@@ -40,6 +41,9 @@ type JobManagerContract = IJobManager::IJobManagerInstance<
     alloy::transports::http::Http<reqwest::Client>,
     RelayerProvider,
 >;
+
+const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
+const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
 
 /// Relayer errors
 #[derive(thiserror::Error, Debug)]
@@ -93,6 +97,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
         self,
         http_rpc_url: String,
         job_manager: Address,
+        confirmations: u64,
         metrics: Arc<Metrics>,
     ) -> Result<JobRelayer, Error> {
         let url: reqwest::Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
@@ -105,7 +110,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
             ProviderBuilder::new().with_recommended_fillers().wallet(wallet).on_http(url);
         let job_manager = JobManagerContract::new(job_manager, provider);
 
-        Ok(JobRelayer { job_manager, metrics })
+        Ok(JobRelayer { job_manager, confirmations, metrics })
     }
 }
 
@@ -117,26 +122,33 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
 #[derive(Debug)]
 pub struct JobRelayer {
     job_manager: JobManagerContract,
+    confirmations: u64,
     metrics: Arc<Metrics>,
 }
 
 impl JobRelayer {
-    /// Submit a completed jobs onchain to the `JobManager` contract.
-    #[instrument(skip(self, job), fields(job_id = %job.id), err(Debug))]
-    pub async fn relay(&self, job: Job) -> Result<TransactionReceipt, Error> {
+    /// Submit a completed job to the `JobManager` contract for an onchain job request.
+    #[instrument(skip(self, job), fields(job_id = ?job.id), err(Debug))]
+    pub async fn relay_result_for_onchain_job(
+        &self,
+        job: Job,
+    ) -> Result<TransactionReceipt, Error> {
         let call_builder =
             self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
-            error!(?error, job.id, "tx broadcast failure");
-            self.metrics.incr_relay_err("relay_error_broadcast_failure");
+            error!(?error, ?job.id, "tx broadcast failure");
+            self.metrics.incr_relay_err(BROADCAST_ERROR);
             Error::TxBroadcast(error)
         })?;
 
-        let receipt =
-            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
-                error!(?error, job.id, "tx inclusion failed");
-                self.metrics.incr_relay_err("relay_error_tx_inclusion_error");
+        let receipt = pending_tx
+            .with_required_confirmations(self.confirmations)
+            .get_receipt()
+            .await
+            .map_err(|error| {
+                error!(?error, ?job.id, "tx inclusion failed");
+                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
                 Error::TxInclusion(error)
             })?;
 
@@ -145,7 +157,54 @@ impl JobRelayer {
             receipt.block_number,
             ?receipt.block_hash,
             ?receipt.transaction_hash,
-            job.id,
+            ?job.id,
+            "tx included"
+        );
+
+        Ok(receipt)
+    }
+    /// Submit a completed job to the `JobManager` contract for an offchain job request.
+    pub async fn relay_result_for_offchain_job(
+        &self,
+        job: Job,
+        job_request_payload: Vec<u8>,
+    ) -> Result<TransactionReceipt, Error> {
+        let call_builder = self.job_manager.submitResultForOffchainJob(
+            job.result.into(),
+            job.zkvm_operator_signature.into(),
+            job_request_payload.into(),
+            job.request_signature.into(),
+        );
+
+        let pending_tx = call_builder.send().await.map_err(|error| {
+            error!(
+                ?error,
+                job.nonce,
+                "tx broadcast failure: contract_address = {}",
+                hex::encode(&job.contract_address)
+            );
+            self.metrics.incr_relay_err(BROADCAST_ERROR);
+            Error::TxBroadcast(error)
+        })?;
+
+        let receipt =
+            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+                error!(
+                    ?error,
+                    job.nonce,
+                    "tx inclusion failed: contract_address = {}",
+                    hex::encode(&job.contract_address)
+                );
+                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
+                Error::TxInclusion(error)
+            })?;
+
+        info!(
+            receipt.transaction_index,
+            receipt.block_number,
+            ?receipt.block_hash,
+            ?receipt.transaction_hash,
+            ?job.id,
             "tx included"
         );
 
@@ -168,7 +227,8 @@ mod test {
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
     use prometheus::Registry;
     use test_utils::{
-        anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
+        anvil_with_contracts, get_job_id, mock_consumer_pending_job, mock_contract_input_addr,
+        TestAnvil,
     };
     use tokio::task::JoinSet;
 
@@ -195,7 +255,7 @@ mod test {
 
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
-            .build(anvil.endpoint().parse().unwrap(), job_manager, metrics)
+            .build(anvil.endpoint().parse().unwrap(), job_manager, 1, metrics)
             .unwrap();
         let job_relayer = Arc::new(job_relayer);
         let mut join_set = JoinSet::new();
@@ -217,11 +277,11 @@ mod test {
                 .unwrap();
 
             // Ensure test setup is working as we think
-            assert_eq!(job.id, log.data().jobID);
+            assert_eq!(job.id, log.data().jobID.to_vec());
 
             let relayer2 = Arc::clone(&job_relayer);
             join_set.spawn(async move {
-                assert!(relayer2.relay(job).await.is_ok());
+                assert!(relayer2.relay_result_for_onchain_job(job).await.is_ok());
             });
         }
 
@@ -232,15 +292,16 @@ mod test {
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
         let logs = consumer_provider.get_logs(&filter).await.unwrap();
 
-        let seen: HashSet<_> = logs
+        let seen: HashSet<[u8; 32]> = logs
             .into_iter()
             .map(|log| {
                 let decoded = log.log_decode::<IJobManager::JobCompleted>().unwrap().data().clone();
-                decoded.jobID as usize
+                decoded.jobID.into()
             })
             .collect();
-        // job ids from the JobManager start at 1
-        let expected: HashSet<_> = (1..=JOB_COUNT).collect();
+        // nonces from the consumer start at 1
+        let expected: HashSet<[u8; 32]> =
+            (1..=JOB_COUNT).map(|i| get_job_id(i.try_into().unwrap(), mock_consumer)).collect();
 
         // We expect to see exactly job ids 0 to 29 in the JobCompleted events
         assert_eq!(seen, expected);

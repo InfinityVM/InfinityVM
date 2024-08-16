@@ -17,7 +17,7 @@ crates/scripts/.env
 programs/**/methods/Cargo.lock
 programs/**/program/target
 programs/**/program/elf
-/target/
+**/target/
 /debug/
 
 # ide

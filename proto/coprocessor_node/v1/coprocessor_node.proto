@@ -43,13 +43,13 @@ message SubmitJobRequest {
 // SubmitJobResponse defines the response structure to submit a job to the
 // coprocessing coprocessor_node.
 message SubmitJobResponse {
-  uint32 job_id = 1;
+  bytes job_id = 1;
 }
 
 // GetResultRequest defines the request structure to get the result of a
 // coprocessing job.
 message GetResultRequest {
-  uint32 job_id = 1;
+  bytes job_id = 1;
 }
 
 // GetResultResponse defines the response structure to get the result of a

@@ -10,7 +10,7 @@ use reth_db::{
 };
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta};
+use tables::{ElfKey, ElfWithMeta, JobID};
 
 pub mod tables;
 
@@ -30,6 +30,10 @@ pub enum Error {
     /// Reth database error
     #[error("reth database: {0}")]
     RethDbError(#[from] DatabaseError),
+
+    /// Job ID conversion error
+    #[error("job id conversion error")]
+    JobIdConversion,
 }
 
 /// Write an ELF file to the database
@@ -70,19 +74,20 @@ pub fn get_elf<D: Database>(
 pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::JobTable;
 
+    let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(job.id, job)?;
+    tx.put::<JobTable>(JobID(job_id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
 }
 
 /// Read in an Job from the database. [None] if it does not exist
-pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
+pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     use tables::JobTable;
 
     let tx = db.tx()?;
-    let result = tx.get::<JobTable>(job_id);
+    let result = tx.get::<JobTable>(JobID(job_id));
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -122,11 +127,11 @@ pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Err
 /// data item will be deleted. Otherwise, if data parameter is [None], any/all value(s)
 /// for specified key will be deleted.
 /// We pass in [None] here since each `job_id` only maps to a single Job.
-pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
+pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<JobTable>(job_id, None);
+    let result = tx.delete::<JobTable>(JobID(job_id), None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -137,19 +142,20 @@ pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
 pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::RelayFailureJobs;
 
+    let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    tx.put::<RelayFailureJobs>(job.id, job)?;
+    tx.put::<RelayFailureJobs>(JobID(job_id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
 }
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist
-pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
+pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
-    let result = tx.get::<RelayFailureJobs>(job_id);
+    let result = tx.get::<RelayFailureJobs>(JobID(job_id));
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -174,11 +180,11 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
 }
 
 /// Delete a failed relayed Job from the database. [None] if it does not exist.
-pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
+pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<RelayFailureJobs>(job_id, None);
+    let result = tx.delete::<RelayFailureJobs>(JobID(job_id), None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 

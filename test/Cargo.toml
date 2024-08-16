@@ -16,9 +16,13 @@ risc0-zkp = { workspace = true }
 alloy = { workspace = true }
 tempfile = { workspace = true }
 contracts = { path = "../crates/contracts" }
-proto = { path = "../crates/proto"}
-mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods"}
-test-utils = { path = "../crates/test-utils"}
+proto = { path = "../crates/proto" }
+mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }
+coprocessor-node = { path = "../crates/coprocessor-node" }
+zkvm-executor = { path = "../crates/zkvm-executor" }
+test-utils = { path = "../crates/test-utils" }
+
+reth-e2e-test-utils = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", default-features = false }
 
 [dev-dependencies]
 serde_json = { workspace = true }

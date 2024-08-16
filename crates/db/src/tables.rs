@@ -10,6 +10,26 @@ use reth_db::{
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+/// Key to tables storing job metadata and failed jobs.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct JobID(pub [u8; 32]);
+
+impl Encode for JobID {
+    type Encoded = [u8; 32];
+
+    fn encode(self) -> Self::Encoded {
+        self.0
+    }
+}
+
+impl Decode for JobID {
+    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
+        let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
+
+        Ok(Self(inner))
+    }
+}
+
 /// Key to a table storing ELFs. The first byte of the key is the vm type
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 pub struct ElfKey(pub [u8; 32]);
@@ -66,9 +86,9 @@ reth_db::tables! {
     /// Stores Elf files
     table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
     /// Stores jobs
-    table JobTable<Key = u32, Value = Job>;
+    table JobTable<Key = JobID, Value = Job>;
     /// Stores failed jobs
-    table RelayFailureJobs<Key = u32, Value = Job>;
+    table RelayFailureJobs<Key = JobID, Value = Job>;
     /// Last seen block height
     table LastBlockHeight<Key = String, Value = u64>;
 }
