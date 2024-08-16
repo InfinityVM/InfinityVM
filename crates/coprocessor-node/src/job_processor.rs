@@ -13,7 +13,7 @@ use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use tracing::{error, info};
-use zkvm_executor::service::{ExecuteRequest, ZkvmExecutorService};
+use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -299,17 +299,18 @@ where
                 }
             };
 
-            let req = ExecuteRequest {
-                job_id: id,
-                max_cycles: job.max_cycles,
-                program_id: job.program_id.clone(),
-                input: job.input.clone(),
-                elf: elf_with_meta.elf,
-                vm_type: VmType::Risc0,
-            };
-
-            let job = match zk_executor.execute(req).await {
-                Ok(resp) => {
+            let job = match zk_executor
+                .execute(
+                    id,
+                    job.max_cycles,
+                    job.program_id.clone(),
+                    job.input.clone(),
+                    elf_with_meta.elf,
+                    VmType::Risc0,
+                )
+                .await
+            {
+                Ok((result_with_metadata, zkvm_operator_signature)) => {
                     tracing::debug!("job {:?} executed successfully", id.clone());
 
                     job.status = JobStatus {
@@ -318,8 +319,8 @@ where
                         retries: 0,
                     };
 
-                    job.result_with_metadata = resp.result_with_metadata;
-                    job.zkvm_operator_signature = resp.zkvm_operator_signature;
+                    job.result_with_metadata = result_with_metadata;
+                    job.zkvm_operator_signature = zkvm_operator_signature;
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
                         error!("report this error: failed to save job {:?}: {:?}", id, e);

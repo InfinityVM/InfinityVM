@@ -15,11 +15,11 @@ use contracts::{
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
 use db::tables::{get_job_id, Job, RequestType};
-use proto::{JobStatus, JobStatusType, VmType};
+use proto::{JobStatus, JobStatusType};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
-use zkvm_executor::service::{abi_encode_result_with_metadata, ExecuteRequest};
+use zkvm_executor::service::abi_encode_result_with_metadata;
 
 /// Max cycles that the `MockContract` calls create job with.
 pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
@@ -175,25 +175,23 @@ pub async fn mock_consumer_pending_job(
     let raw_output = mock_raw_output();
 
     let job_id = get_job_id(nonce.into(), mock_consumer);
-    let execute_request = ExecuteRequest {
+    let result_with_meta = abi_encode_result_with_metadata(
         job_id,
-        max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-        program_id: bytes.clone(),
-        input: addr.abi_encode(),
-        vm_type: VmType::Risc0,
-        elf: bytes.clone(),
-    };
-
-    let result_with_meta = abi_encode_result_with_metadata(&execute_request, &raw_output).unwrap();
+        &addr.abi_encode(),
+        MOCK_CONTRACT_MAX_CYCLES,
+        &bytes,
+        &raw_output,
+    )
+    .unwrap();
     let operator_signature =
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 
     let job = Job {
         id: job_id,
         nonce: 1,
-        max_cycles: execute_request.max_cycles,
-        program_id: execute_request.program_id,
-        input: execute_request.input,
+        max_cycles: MOCK_CONTRACT_MAX_CYCLES,
+        program_id: bytes,
+        input: addr.abi_encode(),
         request_type: RequestType::Onchain,
         result_with_metadata: result_with_meta,
         status: JobStatus {

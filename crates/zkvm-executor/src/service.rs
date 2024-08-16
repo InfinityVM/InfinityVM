@@ -45,33 +45,6 @@ pub struct ZkvmExecutorService<S> {
     signer: S,
 }
 
-/// Inputs provided for execution of a job
-#[derive(Debug, Clone)]
-pub struct ExecuteRequest {
-    /// The job ID (hash of nonce and consumer address)
-    pub job_id: [u8; 32],
-    /// CPU cycle limit for job execution
-    pub max_cycles: u64,
-    /// The ZK program verification key
-    pub program_id: Vec<u8>,
-    /// Program execution input
-    pub input: Vec<u8>,
-    /// ELF of the program to execute
-    pub elf: Vec<u8>,
-    /// VM type
-    pub vm_type: VmType,
-}
-
-/// Outputs from the execution of a job
-#[derive(Debug, Clone)]
-pub struct ExecuteResponse {
-    /// ABI-encoded result of job execution with metadata
-    /// tuple(JobID,ProgramInputHash,MaxCycles,ProgramID,RawOutput)
-    pub result_with_metadata: Vec<u8>,
-    /// Signature of the operator that executed the job on the result with metadata
-    pub zkvm_operator_signature: Vec<u8>,
-}
-
 impl<S> ZkvmExecutorService<S>
 where
     S: Signer<Signature> + Send + Sync + 'static + Clone,
@@ -102,41 +75,47 @@ where
     }
 
     /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
-    pub async fn execute(&self, request: ExecuteRequest) -> Result<ExecuteResponse, Error> {
-        let base64_program_id = BASE64_STANDARD.encode(request.program_id.as_slice());
-        let vm = self.vm(request.vm_type)?;
+    /// Returns (result_with_metadata, zkvm_operator_signature)
+    pub async fn execute(
+        &self,
+        job_id: [u8; 32],
+        max_cycles: u64,
+        program_id: Vec<u8>,
+        input: Vec<u8>,
+        elf: Vec<u8>,
+        vm_type: VmType,
+    ) -> Result<(Vec<u8>, Vec<u8>), Error> {
+        let base64_program_id = BASE64_STANDARD.encode(program_id.as_slice());
+        let vm = self.vm(vm_type)?;
         info!(
-            ?request.job_id,
-            vm_type = request.vm_type.as_str_name(),
+            ?job_id,
+            vm_type = vm_type.as_str_name(),
             program_id = base64_program_id,
             "new job received"
         );
 
-        if !vm.is_correct_verifying_key(&request.elf, &request.program_id).expect("todo") {
+        if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
             return Err(Error::InvalidVerifyingKey(format!(
                 "bad verifying key {}",
                 base64_program_id,
             )));
         }
 
-        let raw_output = vm
-            .execute(&request.elf, &request.input, request.max_cycles)
-            .map_err(Error::ZkvmExecuteFailed)?;
+        let raw_output = vm.execute(&elf, &input, max_cycles).map_err(Error::ZkvmExecuteFailed)?;
 
-        let result_with_metadata = abi_encode_result_with_metadata(&request, &raw_output)?;
+        let result_with_metadata =
+            abi_encode_result_with_metadata(job_id, &input, max_cycles, &program_id, &raw_output)?;
         let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
-            job_id = ?request.job_id,
-            vm_type = request.vm_type.as_str_name(),
+            job_id = ?job_id,
+            vm_type = vm_type.as_str_name(),
             program_id = base64_program_id,
             raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
             "job complete"
         );
 
-        let response = ExecuteResponse { result_with_metadata, zkvm_operator_signature };
-
-        Ok(response)
+        Ok((result_with_metadata, zkvm_operator_signature))
     }
 
     /// Derives and returns program ID (verifying key) for the
@@ -167,18 +146,19 @@ pub type ResultWithMetadata = sol! {
 /// Returns an ABI-encoded result with metadata. This ABI-encoded response will be
 /// signed by the operator.
 pub fn abi_encode_result_with_metadata(
-    req: &ExecuteRequest,
+    job_id: [u8; 32],
+    input: &[u8],
+    max_cycles: u64,
+    program_id: &[u8],
     raw_output: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    let program_input_hash = keccak256(&req.input);
-
-    let job_id: [u8; 32] = req.job_id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
+    let program_input_hash = keccak256(input);
 
     Ok(ResultWithMetadata::abi_encode_params(&(
         job_id,
         program_input_hash,
-        req.max_cycles,
-        &req.program_id,
+        max_cycles,
+        program_id,
         raw_output,
     )))
 }

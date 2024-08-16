@@ -20,7 +20,7 @@ use proto::{
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
 use test_utils::MOCK_CONTRACT_MAX_CYCLES;
-use zkvm_executor::service::{abi_encode_result_with_metadata, ExecuteRequest, ResultWithMetadata};
+use zkvm_executor::service::{abi_encode_result_with_metadata, ResultWithMetadata};
 
 type MockConsumerOut = sol!((Address, U256));
 
@@ -116,16 +116,14 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             ResultWithMetadata::abi_decode_params(&job_result.result_with_metadata, false).unwrap();
 
         let raw_output = abi_decoded_output.4;
-        let job_inputs = ExecuteRequest {
+        let signing_payload = abi_encode_result_with_metadata(
             job_id,
-            input: job_result.input.clone(),
-            max_cycles: job_result.max_cycles,
-            program_id: job_result.program_id.clone(),
-            elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
-        };
-
-        let signing_payload = abi_encode_result_with_metadata(&job_inputs, &raw_output).unwrap();
+            &job_result.input,
+            job_result.max_cycles,
+            &job_result.program_id,
+            &raw_output,
+        )
+        .unwrap();
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
         assert_eq!(recovered1, anvil.coprocessor_operator.address());
@@ -232,15 +230,14 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let abi_decoded_output =
             ResultWithMetadata::abi_decode_params(&job_result.result_with_metadata, false).unwrap();
         let raw_output = abi_decoded_output.4;
-        let job_inputs = ExecuteRequest {
-            job_id: job_id.into(),
-            input: job_result.input.clone(),
-            max_cycles: job_result.max_cycles,
-            program_id: job_result.program_id.clone(),
-            elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
-        };
-        let signing_payload = abi_encode_result_with_metadata(&job_inputs, &raw_output).unwrap();
+        let signing_payload = abi_encode_result_with_metadata(
+            job_id.into(),
+            &job_result.input,
+            job_result.max_cycles,
+            &job_result.program_id,
+            &raw_output,
+        )
+        .unwrap();
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
         assert_eq!(recovered1, anvil.coprocessor_operator.address());
