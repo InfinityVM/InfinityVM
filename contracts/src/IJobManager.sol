@@ -8,7 +8,6 @@ uint8 constant JOB_STATE_COMPLETED = 3;
 
 interface IJobManager {
     // EVENTS
-    // JobID can be derived from keccak256(abi.encodePacked(nonce, consumer))
     event JobCreated(bytes32 indexed jobID, uint64 indexed nonce, address indexed consumer, uint64 maxCycles, bytes programID, bytes programInput);
     event JobCancelled(bytes32 indexed jobID);
     event JobCompleted(bytes32 indexed jobID, bytes result);

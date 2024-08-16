@@ -6,8 +6,9 @@ use async_channel::{Receiver, Sender};
 use db::{
     delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
     put_fail_relay_job, put_job,
+    tables::{Job, RequestType},
 };
-use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
+use proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
@@ -47,9 +48,6 @@ pub enum Error {
     /// invalid address length
     #[error("invalid address length")]
     InvalidAddressLength,
-    /// Job ID conversion error
-    #[error("failed to convert job ID")]
-    JobIdConversion,
 }
 
 /// `JobStatus` Failure Reasons
@@ -124,28 +122,30 @@ where
 
     /// Submit program ELF, save it in DB, and return verifying key.
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
-        let request = CreateElfRequest { program_elf: elf.clone(), vm_type };
-        let response = self.zk_executor.create_elf_handler(request).await?;
+        let program_id = self
+            .zk_executor
+            .create_elf(&elf, VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?)
+            .await?;
 
-        if get_elf(self.db.clone(), &response.verifying_key)
+        if get_elf(self.db.clone(), &program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
             .is_some()
         {
             return Err(Error::ElfAlreadyExists(format!(
                 "elf with verifying key {:?} already exists",
-                hex::encode(response.verifying_key.as_slice()),
+                hex::encode(program_id.as_slice()),
             )));
         }
 
         put_elf(
             self.db.clone(),
             VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
-            &response.verifying_key,
+            &program_id,
             elf,
         )
         .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
 
-        Ok(response.verifying_key)
+        Ok(program_id)
     }
 
     /// Save job in DB
@@ -191,16 +191,12 @@ where
 
     /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
-        if self.has_job(job_id).await? {
+        if self.has_job(job.id).await? {
             return Err(Error::JobAlreadyExists);
         }
 
-        job.status = Some(JobStatus {
-            status: JobStatusType::Pending as i32,
-            failure_reason: None,
-            retries: 0,
-        });
+        job.status =
+            JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
 
         Self::save_job(self.db.clone(), job.clone()).await?;
 
@@ -249,25 +245,25 @@ where
         loop {
             let mut job =
                 exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
-            let id = job.id.clone();
+            let id = job.id;
             info!("executing job {:?}", id);
 
-            let elf_with_meta = match db::get_elf(db.clone(), &job.program_verifying_key) {
+            let elf_with_meta = match db::get_elf(db.clone(), &job.program_id) {
                 Ok(Some(elf)) => elf,
                 Ok(None) => {
                     error!(
-                        ?job.contract_address,
+                        ?job.consumer_address,
                         "no ELF found for job {:?} with verifying key {:?}",
                         id,
-                        job.program_verifying_key,
+                        job.program_id,
                     );
                     metrics.incr_job_err(&FailureReason::MissingElf.to_string());
 
-                    job.status = Some(JobStatus {
+                    job.status = JobStatus {
                         status: JobStatusType::Failed as i32,
                         failure_reason: Some(FailureReason::MissingElf.to_string()),
                         retries: 0,
-                    });
+                    };
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {:?}: {:?}", id, e);
@@ -280,16 +276,16 @@ where
                         ?error,
                         "could not find elf for job {:?} with verifying key {:?}",
                         id,
-                        job.program_verifying_key
+                        job.program_id
                     );
 
                     metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
 
-                    job.status = Some(JobStatus {
+                    job.status = JobStatus {
                         status: JobStatusType::Failed as i32,
                         failure_reason: Some(FailureReason::ErrGetElf.to_string()),
                         retries: 0,
-                    });
+                    };
 
                     if let Err(e) = Self::save_job(db.clone(), job).await {
                         error!("report this error: failed to save job {:?}: {:?}", id, e);
@@ -299,30 +295,28 @@ where
                 }
             };
 
-            let req = ExecuteRequest {
-                inputs: Some(JobInputs {
-                    job_id: id.clone(),
-                    max_cycles: job.max_cycles,
-                    program_verifying_key: job.program_verifying_key.clone(),
-                    program_input: job.input.clone(),
-                    program_elf: elf_with_meta.elf,
-                    vm_type: VmType::Risc0 as i32,
-                }),
-            };
-
-            let job = match zk_executor.execute_handler(req).await {
-                Ok(resp) => {
+            let job = match zk_executor
+                .execute(
+                    id,
+                    job.max_cycles,
+                    job.program_id.clone(),
+                    job.input.clone(),
+                    elf_with_meta.elf,
+                    VmType::Risc0,
+                )
+                .await
+            {
+                Ok((result_with_metadata, zkvm_operator_signature)) => {
                     tracing::debug!("job {:?} executed successfully", id.clone());
 
-                    job.status = Some(JobStatus {
+                    job.status = JobStatus {
                         status: JobStatusType::Done as i32,
                         failure_reason: None,
                         retries: 0,
-                    });
+                    };
 
-                    job.result = resp.result_with_metadata;
-                    job.zkvm_operator_address = resp.zkvm_operator_address;
-                    job.zkvm_operator_signature = resp.zkvm_operator_signature;
+                    job.result_with_metadata = result_with_metadata;
+                    job.zkvm_operator_signature = zkvm_operator_signature;
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
                         error!("report this error: failed to save job {:?}: {:?}", id, e);
@@ -335,11 +329,11 @@ where
                     error!("failed to execute job {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
-                    job.status = Some(JobStatus {
+                    job.status = JobStatus {
                         status: JobStatusType::Failed as i32,
                         failure_reason: Some(FailureReason::ExecErr.to_string()),
                         retries: 0,
-                    });
+                    };
 
                     if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
                         error!("report this error: failed to save job {:?}: {:?}", id, e);
@@ -349,9 +343,9 @@ where
                 }
             };
 
-            let relay_receipt_result = match job.request_signature.is_empty() {
-                true => job_relayer.relay_result_for_onchain_job(job.clone()).await,
-                false => {
+            let relay_receipt_result = match job.request_type {
+                RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
+                RequestType::Offchain(_) => {
                     let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
                     job_relayer
                         .relay_result_for_offchain_job(job.clone(), job_request_payload)
@@ -398,11 +392,11 @@ where
 
             // Retry each once
             for mut job in retry_jobs {
-                let job_id = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
-
-                let result = match job.request_signature.is_empty() {
-                    true => job_relayer.relay_result_for_onchain_job(job.clone()).await,
-                    false => {
+                let result = match job.request_type {
+                    RequestType::Onchain => {
+                        job_relayer.relay_result_for_onchain_job(job.clone()).await
+                    }
+                    RequestType::Offchain(_) => {
                         let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
                         job_relayer
                             .relay_result_for_offchain_job(job.clone(), job_request_payload)
@@ -412,35 +406,26 @@ where
 
                 match result {
                     Ok(_) => {
-                        info!("successfully retried job relay for job: {:?}", job_id);
-                        jobs_to_delete.push(job_id);
+                        info!("successfully retried job relay for job: {:?}", job.id);
+                        jobs_to_delete.push(job.id);
                     }
                     Err(e) => {
-                        let status = match job.status.as_ref() {
-                            Some(status) => status,
-                            None => {
-                                error!("error retrieving status for job: {:?}", job_id);
-                                continue
-                            }
-                        };
-                        if status.retries == max_retries {
+                        if job.status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
-                            jobs_to_delete.push(job_id);
+                            jobs_to_delete.push(job.id);
                         } else {
                             error!(
                                 "report this error: failed to retry relaying job {:?}: {:?}",
-                                job_id, e
+                                job.id, e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
-                            if let Some(status) = job.status.as_mut() {
-                                status.retries += 1
-                            }
+                            job.status.retries += 1;
                             if let Err(e) =
                                 Self::save_relay_error_job(db.clone(), job.clone()).await
                             {
                                 error!(
                                     "report this error: failed to save retried job {:?}: {:?}",
-                                    job_id, e
+                                    job.id, e
                                 );
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }
@@ -474,14 +459,14 @@ pub type OffchainJobRequest = sol! {
 /// Returns an ABI-encoded offchain job request. This ABI-encoded response will be
 /// signed by the entity sending the job request (user, app, authorized third-party, etc.).
 pub fn abi_encode_offchain_job_request(job: Job) -> Result<Vec<u8>, Error> {
-    let contract_address: [u8; 20] =
-        job.contract_address.try_into().map_err(|_| Error::InvalidAddressLength)?;
+    let consumer_address: [u8; 20] =
+        job.consumer_address.try_into().map_err(|_| Error::InvalidAddressLength)?;
 
     Ok(OffchainJobRequest::abi_encode_params(&(
         job.nonce,
         job.max_cycles,
-        contract_address,
-        job.program_verifying_key,
+        consumer_address,
+        job.program_id,
         job.input,
     )))
 }

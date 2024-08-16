@@ -1,6 +1,6 @@
 //! Executor database
 
-use proto::{Job, VmType};
+use proto::VmType;
 use reth_db::{
     create_db,
     mdbx::{DatabaseArguments, DatabaseFlags},
@@ -10,7 +10,7 @@ use reth_db::{
 };
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta, JobID};
+use tables::{ElfKey, ElfWithMeta, Job, JobID};
 
 pub mod tables;
 
@@ -28,22 +28,18 @@ pub enum Error {
     /// Reth database error
     #[error("reth database: {0}")]
     RethDbError(#[from] DatabaseError),
-
-    /// Job ID conversion error
-    #[error("job id conversion error")]
-    JobIdConversion,
 }
 
 /// Write an ELF file to the database
 pub fn put_elf<D: Database>(
     db: Arc<D>,
     vm_type: VmType,
-    verifying_key: &[u8],
+    program_id: &[u8],
     elf: Vec<u8>,
 ) -> Result<(), Error> {
     use tables::ElfTable;
     let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
-    let key = ElfKey::new(verifying_key);
+    let key = ElfKey::new(program_id);
 
     let tx = db.tx_mut()?;
     tx.put::<ElfTable>(key, elf_with_meta)?;
@@ -53,12 +49,9 @@ pub fn put_elf<D: Database>(
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist
-pub fn get_elf<D: Database>(
-    db: Arc<D>,
-    verifying_key: &[u8],
-) -> Result<Option<ElfWithMeta>, Error> {
+pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfWithMeta>, Error> {
     use tables::ElfTable;
-    let key = ElfKey::new(verifying_key);
+    let key = ElfKey::new(program_id);
 
     let tx = db.tx()?;
     let result = tx.get::<ElfTable>(key);
@@ -72,9 +65,8 @@ pub fn get_elf<D: Database>(
 pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::JobTable;
 
-    let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(JobID(job_id), job)?;
+    tx.put::<JobTable>(JobID(job.id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -117,9 +109,8 @@ pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Err
 pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::RelayFailureJobs;
 
-    let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    tx.put::<RelayFailureJobs>(JobID(job_id), job)?;
+    tx.put::<RelayFailureJobs>(JobID(job.id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
