@@ -11,6 +11,7 @@ use alloy::{
     sol,
     sol_types::{SolType, SolValue},
 };
+use alloy::transports::http::reqwest::Url;
 use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
@@ -80,6 +81,93 @@ pub struct TestAnvil {
     pub mock_consumer: Address,
 }
 
+pub struct Params {
+    pub initial_owner: PrivateKeySigner,
+    pub relayer: PrivateKeySigner,
+    pub coprocessor_operator: PrivateKeySigner,
+    pub proxy_admin: PrivateKeySigner,
+    pub consumer_owner: PrivateKeySigner,
+    pub offchain_signer: PrivateKeySigner,
+    pub rpc_url: String,
+}
+
+pub struct TestDeployment {
+    pub job_manager: Address,
+    pub relayer: PrivateKeySigner,
+    pub coprocessor_operator: PrivateKeySigner,
+    pub mock_consumer: Address,
+}
+
+pub async fn deploy_contracts(params: Params) -> TestDeployment{
+    // Ensure the anvil instance will not collide with anything already running on the OS
+    // let port = get_localhost_port();
+    // Set block time to 0.01 seconds - I WANNA GO FAST MOM
+    // let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
+
+    // let initial_owner: PrivateKeySigner = anvil.keys()[0].clone().into();
+    // let relayer: PrivateKeySigner = anvil.keys()[1].clone().into();
+    // let coprocessor_operator: PrivateKeySigner = anvil.keys()[2].clone().into();
+    // let proxy_admin: PrivateKeySigner = anvil.keys()[3].clone().into();
+    // let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
+    // let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
+
+    let initial_owner_wallet = EthereumWallet::from(params.initial_owner.clone());
+    let consumer_owner_wallet = EthereumWallet::from(params.consumer_owner.clone());
+
+    let rpc_url: Url = params.rpc_url.parse().unwrap();
+    let provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .wallet(initial_owner_wallet.clone())
+        .on_http(rpc_url.clone());
+
+    // configure anvil over rpc
+    // note: we can also configure the url in the future
+    // provider.anvil_set_logging(true).await.unwrap();
+    // provider.anvil_set_auto_mine(true).await.unwrap();
+
+    // Deploy the JobManager implementation contract
+    let job_manager_implementation = JobManager::deploy(&provider).await.unwrap();
+
+    // initializeJobManager will be called later when we deploy the proxy
+    let initializer = job_manager_implementation.initializeJobManager(
+        params.initial_owner.address(),
+        params.relayer.address(),
+        params.coprocessor_operator.address(),
+    );
+    let initializer_calldata = initializer.calldata();
+
+    // Deploy a proxy contract for JobManager
+    let proxy = TransparentUpgradeableProxy::deploy(
+        &provider,
+        *job_manager_implementation.address(),
+        params.proxy_admin.address(),
+        initializer_calldata.clone(),
+    )
+        .await
+        .unwrap();
+
+    let job_manager = *proxy.address();
+
+    let consumer_provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .wallet(consumer_owner_wallet)
+        .on_http(rpc_url);
+
+    // Deploy the mock consumer contract. This can take jobs and accept results.
+    let initial_max_nonce = 0;
+    let mock_consumer = MockConsumer::deploy(
+        consumer_provider,
+        job_manager,
+        params.offchain_signer.address(),
+        initial_max_nonce,
+    )
+        .await
+        .unwrap();
+    let mock_consumer = *mock_consumer.address();
+
+    TestDeployment { job_manager, relayer: params.relayer, coprocessor_operator: params.coprocessor_operator, mock_consumer }
+}
+
 /// Setup an anvil instance with job manager contracts.
 pub async fn anvil_with_contracts() -> TestAnvil {
     // Ensure the anvil instance will not collide with anything already running on the OS
@@ -105,8 +193,8 @@ pub async fn anvil_with_contracts() -> TestAnvil {
 
     // configure anvil over rpc
     // note: we can also configure the url in the future
-    provider.anvil_set_logging(true).await.unwrap();
-    provider.anvil_set_auto_mine(true).await.unwrap();
+    // provider.anvil_set_logging(true).await.unwrap();
+    // provider.anvil_set_auto_mine(true).await.unwrap();
 
     // Deploy the JobManager implementation contract
     let job_manager_implementation = JobManager::deploy(&provider).await.unwrap();

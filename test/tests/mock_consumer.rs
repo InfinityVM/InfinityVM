@@ -11,7 +11,7 @@ use alloy::{
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
-use integration::{Args, Integration};
+use integration::{Args, Integration, ParamsArgs};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     GetResultRequest, Job, JobInputs, JobStatus, JobStatusType, SubmitJobRequest,
@@ -39,13 +39,14 @@ fn invariants() {
 #[tokio::test]
 #[ignore]
 async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
-    async fn test(mut args: Args) {
-        let anvil = args.anvil;
-        let chain_id = anvil.anvil.chain_id();
+    async fn test(mut args: ParamsArgs) {
+        // let anvil = args.anvil;
+        // let chain_id = anvil.anvil.chain_id();
+        let chain_id = args.chain_id;
         let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
 
-        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+        let random_user: PrivateKeySigner = args.random_signer;
         let random_user_wallet = EthereumWallet::from(random_user.clone());
 
         // Seed coprocessor-node with ELF
@@ -61,20 +62,21 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .into_inner();
         assert_eq!(submit_program_response.program_verifying_key, program_id);
 
+        let endpoint = args.endpoint.parse().unwrap();
         let consumer_provider = ProviderBuilder::new()
             .with_recommended_fillers()
             .wallet(random_user_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
+            .on_http(endpoint);
+        let consumer_contract = MockConsumer::new(args.mock_consumer, &consumer_provider);
 
         // Submit job to coproc node
         let nonce = 1;
-        let job_id = get_job_id(nonce, anvil.mock_consumer);
+        let job_id = get_job_id(nonce, args.mock_consumer);
         let mut job = Job {
             id: job_id.to_vec(),
             nonce,
             max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-            contract_address: anvil.mock_consumer.abi_encode_packed(),
+            contract_address: args.mock_consumer.abi_encode_packed(),
             program_verifying_key: program_id.clone(),
             input: mock_user_address.abi_encode(),
             // signature added to this job below
@@ -116,7 +118,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             let address = String::from_utf8(job_with_result.zkvm_operator_address).unwrap();
             Address::parse_checksummed(address, Some(chain_id)).unwrap()
         };
-        assert_eq!(address, anvil.coprocessor_operator.address());
+        assert_eq!(address, args.coprocessor_operator_addr);
 
         // Verify signature and message format
         let sig = Signature::try_from(&job_with_result.zkvm_operator_signature[..]).unwrap();
@@ -136,12 +138,12 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_result_with_metadata(&job_inputs, &raw_output).unwrap();
         assert_eq!(job_with_result.result, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
-        assert_eq!(recovered1, anvil.coprocessor_operator.address());
+        assert_eq!(recovered1, args.coprocessor_operator_addr);
 
         // confirm we are hashing as expected
         let hash = eip191_hash_message(&signing_payload);
         let recovered2 = sig.recover_address_from_prehash(&hash).unwrap();
-        assert_eq!(recovered2, anvil.coprocessor_operator.address());
+        assert_eq!(recovered2, args.coprocessor_operator_addr);
 
         // Verify input
         assert_eq!(Address::abi_encode(&mock_user_address), job_with_result.input);
@@ -184,13 +186,14 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 #[ignore]
 #[tokio::test]
 async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
-    async fn test(mut args: Args) {
-        let anvil = args.anvil;
-        let chain_id = anvil.anvil.chain_id();
+    async fn test(mut args: ParamsArgs) {
+        // let anvil = args.anvil;
+        // let chain_id = anvil.anvil.chain_id();
+        let chain_id = args.chain_id;
         let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
 
-        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+        let random_user: PrivateKeySigner = args.random_signer;
         let random_user_wallet = EthereumWallet::from(random_user);
 
         // Seed coprocessor-node with ELF
@@ -206,11 +209,12 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             .into_inner();
         assert_eq!(submit_program_response.program_verifying_key, program_id);
 
+        let endpoint = args.endpoint.parse().unwrap();
         let consumer_provider = ProviderBuilder::new()
             .with_recommended_fillers()
             .wallet(random_user_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
+            .on_http(endpoint);
+        let consumer_contract = MockConsumer::new(args.mock_consumer, &consumer_provider);
 
         // Make onchain job request
         let create_job_call = consumer_contract
@@ -221,7 +225,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             .log_decode::<IJobManager::JobCreated>()
             .unwrap();
         let job_id = log.data().jobID;
-        let expected_job_id = get_job_id(1, anvil.mock_consumer);
+        let expected_job_id = get_job_id(1, args.mock_consumer);
         assert_eq!(job_id, expected_job_id);
 
         // Wait for the job to be processed
@@ -241,7 +245,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             let address = String::from_utf8(job.zkvm_operator_address.clone()).unwrap();
             Address::parse_checksummed(address, Some(chain_id)).unwrap()
         };
-        assert_eq!(address, anvil.coprocessor_operator.address());
+        assert_eq!(address, args.coprocessor_operator_addr );
 
         // Verify signature and message format
         let sig = Signature::try_from(&job.zkvm_operator_signature[..]).unwrap();
@@ -258,12 +262,12 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_result_with_metadata(&job_inputs, &raw_output).unwrap();
         assert_eq!(job.result, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
-        assert_eq!(recovered1, anvil.coprocessor_operator.address());
+        assert_eq!(recovered1, args.coprocessor_operator_addr);
 
         // confirm we are hashing as expected
         let hash = eip191_hash_message(&signing_payload);
         let recovered2 = sig.recover_address_from_prehash(&hash).unwrap();
-        assert_eq!(recovered2, anvil.coprocessor_operator.address());
+        assert_eq!(recovered2, args.coprocessor_operator_addr);
 
         // Verify input
         assert_eq!(Address::abi_encode(&mock_user_address), job.input);

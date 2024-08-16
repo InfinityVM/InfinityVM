@@ -1,14 +1,22 @@
 //! Integration tests and helpers.
-use alloy::primitives::hex;
+use alloy::primitives::{ChainId, hex};
 use futures::future::FutureExt;
 use std::{
     future::Future,
     panic::AssertUnwindSafe,
     process::{self, Command},
 };
-use test_utils::{
-    anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil, LOCALHOST,
+
+use alloy::{
+    network::EthereumWallet,
+    node_bindings::{Anvil, AnvilInstance},
+    primitives::{utils::keccak256, Address, U256},
+    providers::{ext::AnvilApi, ProviderBuilder},
+    signers::{local::PrivateKeySigner, Signer},
+    sol,
+    sol_types::{SolType, SolValue},
 };
+use test_utils::{anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil, LOCALHOST, deploy_contracts, Params};
 use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
@@ -43,6 +51,15 @@ pub struct Args {
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
 }
 
+pub struct ParamsArgs {
+    pub coprocessor_operator_addr: Address,
+    pub mock_consumer: Address,
+    pub random_signer: PrivateKeySigner,
+    pub endpoint: String,
+    pub chain_id: ChainId,
+    pub coprocessor_node: CoprocessorNodeClient<Channel>,
+}
+
 /// Integration test environment builder and runner.
 #[derive(Debug)]
 pub struct Integration;
@@ -51,25 +68,51 @@ impl Integration {
     /// Run the given `test_fn`.
     pub async fn run<F, R>(test_fn: F)
     where
-        F: Fn(Args) -> R,
+        F: Fn(ParamsArgs) -> R,
         R: Future<Output = ()>,
     {
         test_utils::test_tracing();
 
+        let port = get_localhost_port();
+        // Set block time to 0.01 seconds - I WANNA GO FAST MOM
+        let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
+
+        let initial_owner: PrivateKeySigner = anvil.keys()[0].clone().into();
+        let relayer: PrivateKeySigner = anvil.keys()[1].clone().into();
+        let coprocessor_operator: PrivateKeySigner = anvil.keys()[2].clone().into();
+        let proxy_admin: PrivateKeySigner = anvil.keys()[3].clone().into();
+        let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
+        let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
+        let random_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
+        let rpc_url = anvil.endpoint().clone();
+
         // Start an anvil node
-        let anvil = anvil_with_contracts().await;
-        let job_manager = anvil.job_manager.to_string();
-        let chain_id = anvil.anvil.chain_id().to_string();
-        let http_rpc_url = anvil.anvil.endpoint();
-        let ws_rpc_url = anvil.anvil.ws_endpoint();
+        // let anvil = anvil_with_contracts().await;
+        let coprocessor_clone = coprocessor_operator.clone();
+        let params = Params{
+            initial_owner,
+            relayer,
+            coprocessor_operator: coprocessor_clone,
+            proxy_admin,
+            consumer_owner,
+            offchain_signer,
+            rpc_url: rpc_url.clone(),
+        };
+        let res = deploy_contracts(params).await;
+        let mock_consumer = res.mock_consumer;
+
+        let job_manager = res.job_manager.to_string();
+        let chain_id = anvil.chain_id().to_string();
+        let http_rpc_url = anvil.endpoint();
+        let ws_rpc_url = anvil.ws_endpoint();
 
         let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
         let prometheus_port = get_localhost_port();
         let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
-        let relayer_private = hex::encode(anvil.relayer.to_bytes());
-        let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
+        let relayer_private = hex::encode(res.relayer.to_bytes());
+        let operator_private = hex::encode(res.coprocessor_operator.to_bytes());
 
         // The coprocessor-node expects the relayer private key as an env var
         std::env::set_var("RELAYER_PRIVATE_KEY", relayer_private);
@@ -98,7 +141,15 @@ impl Integration {
                 .await
                 .unwrap();
 
-        let args = Args { anvil, coprocessor_node };
+        // let args = Args { anvil, coprocessor_node };
+        let args = ParamsArgs {
+            coprocessor_operator_addr: coprocessor_operator.address(),
+            mock_consumer,
+            random_signer,
+            endpoint: rpc_url,
+            chain_id: anvil.chain_id(),
+            coprocessor_node,
+        };
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
