@@ -106,7 +106,7 @@ where
         let base64_program_id = BASE64_STANDARD.encode(request.program_id.as_slice());
         let vm = self.vm(request.vm_type)?;
         info!(
-            job_id = ?request.job_id.clone(),
+            ?request.job_id,
             vm_type = request.vm_type.as_str_name(),
             program_id = base64_program_id,
             "new job received"
