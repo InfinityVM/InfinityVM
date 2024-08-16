@@ -28,13 +28,6 @@ interface IJobManager {
         bytes result;
     }
 
-    struct OffChainResultWithMetadata {
-        bytes32 programInputHash;
-        uint64 maxCycles;
-        bytes programID;
-        bytes result;
-    }
-
     struct OffchainJobRequest {
         uint64 nonce;
         uint64 maxCycles;

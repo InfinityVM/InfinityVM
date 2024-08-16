@@ -2,17 +2,15 @@ use alloy::{
     primitives::{hex, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
     sol,
-    sol_types::SolType,
+    sol_types::{SolType, SolValue},
 };
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
-use proto::{Job, JobInputs, RequestType};
+use proto::{Job, JobInputs};
 use std::env;
 use test_utils::get_job_id;
-use zkvm_executor::service::{
-    abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
-};
+use zkvm_executor::service::abi_encode_result_with_metadata;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -37,12 +35,11 @@ impl RequestAndResultSigner {
         let job_inputs = JobInputs {
             job_id: get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap())
                 .to_vec(),
-            program_input: abi_encode_address(zero_addr),
+            program_input: Address::abi_encode(&zero_addr),
             max_cycles: MAX_CYCLES,
             program_id: PROGRAM_ID.to_vec(),
             program_elf: PROGRAM_ELF.to_vec(),
             vm_type: VM_TYPE,
-            request_type: RequestType::Onchain as i32,
         };
 
         // Encode the result with metadata
@@ -71,9 +68,11 @@ impl RequestAndResultSigner {
             id: vec![],
             nonce: NONCE,
             max_cycles: MAX_CYCLES,
-            consumer_address: abi_encode_address(consumer_addr),
+            // Need to use abi_encode_packed because the contract address
+            // should not be zero-padded
+            consumer_address: Address::abi_encode_packed(&consumer_addr),
             program_id: PROGRAM_ID.to_vec(),
-            input: abi_encode_address(zero_addr),
+            input: Address::abi_encode(&zero_addr),
             request_signature: vec![],
             result: vec![],
             zkvm_operator_signature: vec![],
@@ -90,44 +89,6 @@ impl RequestAndResultSigner {
         println!("Encoded job request: {}", hex::encode(&encoded_job_request));
         println!("Signature for encoded job request: {}", hex::encode(signature.as_bytes()));
     }
-
-    /// Sign a result for a job requested offchain
-    pub async fn sign_offchain_result() {
-        dotenv().ok();
-
-        let zero_addr: Address = Address::ZERO;
-
-        let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
-        let job_inputs = JobInputs {
-            job_id: vec![],
-            program_input: abi_encode_address(zero_addr),
-            max_cycles: MAX_CYCLES,
-            program_id: PROGRAM_ID.to_vec(),
-            program_elf: PROGRAM_ELF.to_vec(),
-            vm_type: VM_TYPE,
-            request_type: RequestType::Onchain as i32,
-        };
-        let encoded_offchain_result =
-            abi_encode_offchain_result_with_metadata(&job_inputs, &raw_output).unwrap();
-
-        // Sign the message
-        let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY")
-            .expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
-        let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
-        let signer = K256LocalSigner::from_slice(&decoded).unwrap();
-        let signature = signer.sign_message(&encoded_offchain_result).await.unwrap();
-
-        println!("Encoded offchain result: {}", hex::encode(&encoded_offchain_result));
-        println!("Signature for encoded offchain result: {}", hex::encode(signature.as_bytes()));
-    }
-}
-
-type AddressEncodeable = sol! {
-    address
-};
-
-fn abi_encode_address(address: Address) -> Vec<u8> {
-    AddressEncodeable::abi_encode(&address)
 }
 
 type AddressWithBalance = sol! {

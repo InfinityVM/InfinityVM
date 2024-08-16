@@ -8,7 +8,4 @@ async fn main() {
 
     println!("===== JOB REQUEST =====");
     RequestAndResultSigner::sign_job_request().await;
-
-    println!("===== OFFCHAIN RESULT =====");
-    RequestAndResultSigner::sign_offchain_result().await;
 }
