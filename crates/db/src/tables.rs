@@ -21,7 +21,7 @@ use std::fmt;
 pub enum RequestType {
     /// Onchain job request (originating from contracts)
     Onchain,
-    /// Offchain job request with signature on request
+    /// Offchain job request. This contains the signature over the ABI-encoded request.
     Offchain(Vec<u8>),
 }
 
