@@ -106,7 +106,7 @@ where
 
                 let job_result = match job {
                     Some(job) => {
-                        let request_signature = match job.request_type.clone() {
+                        let request_signature = match job.request_type {
                             RequestType::Onchain => vec![],
                             RequestType::Offchain(signature) => signature,
                         };
@@ -114,13 +114,13 @@ where
                         Some(JobResult {
                             id: job.id.to_vec(),
                             nonce: job.nonce,
-                            program_id: job.program_id.clone(),
-                            input: job.input.clone(),
-                            consumer_address: job.consumer_address.clone(),
+                            program_id: job.program_id,
+                            input: job.input,
+                            consumer_address: job.consumer_address,
                             max_cycles: job.max_cycles,
                             request_signature,
-                            result_with_metadata: job.result_with_metadata.clone(),
-                            zkvm_operator_signature: job.zkvm_operator_signature.clone(),
+                            result_with_metadata: job.result_with_metadata,
+                            zkvm_operator_signature: job.zkvm_operator_signature,
                             status: Some(job.status),
                         })
                     }

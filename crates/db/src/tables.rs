@@ -34,7 +34,7 @@ pub struct Job {
     pub nonce: u64,
     /// CPU cycle limit for job execution
     pub max_cycles: u64,
-    // Address of consumer contract to receive this result. The address is 20 bytes (no zero padding).
+    /// Address of consumer contract to receive this result. The address is 20 bytes (no zero padding).
     pub consumer_address: Vec<u8>,
     /// The ZK program verification key
     pub program_id: Vec<u8>,
