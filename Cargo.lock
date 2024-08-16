@@ -6045,10 +6045,8 @@ dependencies = [
 name = "proto"
 version = "0.0.1"
 dependencies = [
- "alloy",
  "borsh",
  "prost 0.13.1",
- "reth-db",
  "serde",
  "serde_with",
  "tokio",
@@ -11686,7 +11684,6 @@ dependencies = [
  "base64 0.22.1",
  "proto",
  "thiserror",
- "tonic",
  "tracing 0.1.40",
  "zkvm",
 ]
