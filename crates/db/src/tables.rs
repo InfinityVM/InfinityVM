@@ -90,5 +90,5 @@ reth_db::tables! {
     /// Stores failed jobs
     table RelayFailureJobs<Key = JobID, Value = Job>;
     /// Last seen block height
-    table LastBlockHeight<Key = String, Value = u64>;
+    table LastBlockHeight<Key = u32, Value = u64>;
 }

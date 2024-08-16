@@ -14,7 +14,7 @@ use tables::{ElfKey, ElfWithMeta, JobID};
 
 pub mod tables;
 
-const LAST_HEIGHT_KEY: &str = "LAST_HEIGHT";
+const LAST_HEIGHT_KEY: u32 = 0;
 
 /// DB module errors
 #[derive(thiserror::Error, Debug)]
@@ -99,7 +99,7 @@ pub fn set_last_block_height<D: Database>(db: Arc<D>, height: u64) -> Result<(),
     use tables::LastBlockHeight;
 
     let tx = db.tx_mut()?;
-    tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY.to_string(), height)?;
+    tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY, height)?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -110,7 +110,7 @@ pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Err
     use tables::LastBlockHeight;
 
     let tx = db.tx()?;
-    let result = tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY.to_string());
+    let result = tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
