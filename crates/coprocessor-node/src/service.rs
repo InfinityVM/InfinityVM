@@ -47,10 +47,9 @@ where
             return Err(Status::invalid_argument("job request signature must not be empty"));
         }
 
-        let _: [u8; 20] = consumer_address
-            .clone()
-            .try_into()
-            .map_err(|_| Status::invalid_argument("contract address must be 20 bytes in length"))?;
+        if consumer_address.len() != 20 {
+            return Err(Status::invalid_argument("contract address must be 20 bytes in length"));
+        }
 
         if program_id.is_empty() {
             return Err(Status::invalid_argument("job program verification key must not be empty"));
