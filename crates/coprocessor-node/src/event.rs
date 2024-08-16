@@ -36,7 +36,7 @@ pub enum Error {
     UnexpectedExit,
 }
 
-/// Listen for job request events and push a corresponding [`proto::Job`] onto the
+/// Listen for job request events and push a corresponding [`Job`] onto the
 /// execution queue.
 pub async fn start_job_event_listener<S, D>(
     ws_rpc_url: String,

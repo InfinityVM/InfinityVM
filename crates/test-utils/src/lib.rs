@@ -186,7 +186,7 @@ pub async fn mock_consumer_pending_job(
     let operator_signature =
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 
-    let job = Job {
+    Job {
         id: job_id,
         nonce: 1,
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
@@ -201,7 +201,5 @@ pub async fn mock_consumer_pending_job(
         },
         consumer_address: mock_consumer.abi_encode(),
         zkvm_operator_signature: operator_signature,
-    };
-
-    job
+    }
 }

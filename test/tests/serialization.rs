@@ -13,7 +13,7 @@ fn serde_json_test() {
         input: input.clone(),
         request_signature: input.clone(),
         result_with_metadata: input.clone(),
-        zkvm_operator_signature: input.clone(),
+        zkvm_operator_signature: input,
         status: Some(JobStatus {
             status: JobStatusType::Pending as i32,
             failure_reason: None,

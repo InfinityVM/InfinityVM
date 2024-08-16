@@ -48,9 +48,6 @@ pub enum Error {
     /// invalid address length
     #[error("invalid address length")]
     InvalidAddressLength,
-    /// Job ID conversion error
-    #[error("failed to convert job ID")]
-    JobIdConversion,
 }
 
 /// `JobStatus` Failure Reasons
@@ -194,8 +191,7 @@ where
 
     /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
-        if self.has_job(job_id).await? {
+        if self.has_job(job.id).await? {
             return Err(Error::JobAlreadyExists);
         }
 
@@ -249,7 +245,7 @@ where
         loop {
             let mut job =
                 exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
-            let id = job.id.clone();
+            let id = job.id;
             info!("executing job {:?}", id);
 
             let elf_with_meta = match db::get_elf(db.clone(), &job.program_id) {
@@ -396,8 +392,6 @@ where
 
             // Retry each once
             for mut job in retry_jobs {
-                let job_id = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
-
                 let result = match job.request_type {
                     RequestType::Onchain => {
                         job_relayer.relay_result_for_onchain_job(job.clone()).await
@@ -412,17 +406,17 @@ where
 
                 match result {
                     Ok(_) => {
-                        info!("successfully retried job relay for job: {:?}", job_id);
-                        jobs_to_delete.push(job_id);
+                        info!("successfully retried job relay for job: {:?}", job.id);
+                        jobs_to_delete.push(job.id);
                     }
                     Err(e) => {
                         if job.status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
-                            jobs_to_delete.push(job_id);
+                            jobs_to_delete.push(job.id);
                         } else {
                             error!(
                                 "report this error: failed to retry relaying job {:?}: {:?}",
-                                job_id, e
+                                job.id, e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.retries += 1;
@@ -431,7 +425,7 @@ where
                             {
                                 error!(
                                     "report this error: failed to save retried job {:?}: {:?}",
-                                    job_id, e
+                                    job.id, e
                                 );
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }

@@ -75,7 +75,7 @@ where
     }
 
     /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
-    /// Returns (result_with_metadata, zkvm_operator_signature)
+    /// Returns (`result_with_metadata`, `zkvm_operator_signature`)
     pub async fn execute(
         &self,
         job_id: [u8; 32],
@@ -124,7 +124,7 @@ where
         let vm = self.vm(vm_type)?;
 
         let program_id = vm
-            .derive_verifying_key(&elf)
+            .derive_verifying_key(elf)
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
 
         let base64_program_id = BASE64_STANDARD.encode(program_id.as_slice());

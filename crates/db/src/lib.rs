@@ -28,10 +28,6 @@ pub enum Error {
     /// Reth database error
     #[error("reth database: {0}")]
     RethDbError(#[from] DatabaseError),
-
-    /// Job ID conversion error
-    #[error("job id conversion error")]
-    JobIdConversion,
 }
 
 /// Write an ELF file to the database
@@ -69,9 +65,8 @@ pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfW
 pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::JobTable;
 
-    let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(JobID(job_id), job)?;
+    tx.put::<JobTable>(JobID(job.id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
@@ -114,9 +109,8 @@ pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Err
 pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::RelayFailureJobs;
 
-    let job_id: [u8; 32] = job.id.clone().try_into().map_err(|_| Error::JobIdConversion)?;
     let tx = db.tx_mut()?;
-    tx.put::<RelayFailureJobs>(JobID(job_id), job)?;
+    tx.put::<RelayFailureJobs>(JobID(job.id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
