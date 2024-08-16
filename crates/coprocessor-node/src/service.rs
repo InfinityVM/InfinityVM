@@ -34,6 +34,7 @@ where
         request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
+
         let (nonce, max_cycles, consumer_address, program_id, input) =
             OffchainJobRequest::abi_decode_params(&req.request, false)
                 .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;

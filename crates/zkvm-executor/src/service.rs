@@ -141,7 +141,7 @@ where
 
     /// Derives and returns program ID (verifying key) for the
     /// given program ELF.
-    pub async fn create_elf(&self, elf: Vec<u8>, vm_type: VmType) -> Result<Vec<u8>, Error> {
+    pub async fn create_elf(&self, elf: &[u8], vm_type: VmType) -> Result<Vec<u8>, Error> {
         let vm = self.vm(vm_type)?;
 
         let program_id = vm

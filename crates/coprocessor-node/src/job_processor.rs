@@ -127,7 +127,7 @@ where
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
         let program_id = self
             .zk_executor
-            .create_elf(elf.clone(), VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?)
+            .create_elf(&elf, VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?)
             .await?;
 
         if get_elf(self.db.clone(), &program_id)
