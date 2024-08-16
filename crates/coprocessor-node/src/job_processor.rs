@@ -8,7 +8,7 @@ use db::{
     put_fail_relay_job, put_job,
 };
 use proto::{
-    CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, RequestType, VmType,
+    CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType,
 };
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
@@ -301,13 +301,6 @@ where
                 }
             };
 
-            // Only offchain jobs have request signatures
-            let request_type = if job.request_signature.is_empty() {
-                RequestType::Onchain
-            } else {
-                RequestType::Offchain
-            };
-
             let req = ExecuteRequest {
                 inputs: Some(JobInputs {
                     job_id: id.clone(),
@@ -316,7 +309,6 @@ where
                     program_input: job.input.clone(),
                     program_elf: elf_with_meta.elf,
                     vm_type: VmType::Risc0 as i32,
-                    request_type: request_type as i32,
                 }),
             };
 

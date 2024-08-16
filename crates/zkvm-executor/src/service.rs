@@ -6,7 +6,7 @@ use alloy::{
 };
 use base64::prelude::*;
 use proto::{
-    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, RequestType,
+    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs,
     VmType,
 };
 use std::marker::Send;
@@ -39,9 +39,6 @@ pub enum Error {
     /// Error converting job ID
     #[error("job id conversion error")]
     JobIdConversion,
-    /// Error parsing request type
-    #[error("error parsing request type")]
-    RequestTypeParse,
 }
 
 ///  The implementation of the `ZkvmExecutor` trait
@@ -114,16 +111,7 @@ where
             .execute(&inputs.program_elf, &inputs.program_input, inputs.max_cycles)
             .map_err(Error::ZkvmExecuteFailed)?;
 
-        let result_with_metadata = match RequestType::try_from(inputs.request_type) {
-            Ok(RequestType::Onchain) => abi_encode_result_with_metadata(&inputs, &raw_output)?,
-            Ok(RequestType::Offchain) => {
-                abi_encode_offchain_result_with_metadata(&inputs, &raw_output)?
-            }
-            Err(_) => {
-                return Err(Error::RequestTypeParse);
-            }
-        };
-
+        let result_with_metadata = abi_encode_result_with_metadata(&inputs, &raw_output)?;
         let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
@@ -211,14 +199,6 @@ pub type ResultWithMetadata = sol! {
     tuple(bytes32,bytes32,uint64,bytes,bytes)
 };
 
-/// The payload that gets signed to signify that the zkvm executor has faithfully
-/// executed an offchain job. Also the result payload the job manager contract expects.
-///
-/// tuple(ProgramInputHash,MaxCycles,VerifyingKey,RawOutput)
-pub type OffchainResultWithMetadata = sol! {
-    tuple(bytes32,uint64,bytes,bytes)
-};
-
 /// Returns an ABI-encoded result with metadata. This ABI-encoded response will be
 /// signed by the operator.
 pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Result<Vec<u8>, Error> {
@@ -228,22 +208,6 @@ pub fn abi_encode_result_with_metadata(i: &JobInputs, raw_output: &[u8]) -> Resu
 
     Ok(ResultWithMetadata::abi_encode_params(&(
         job_id,
-        program_input_hash,
-        i.max_cycles,
-        &i.program_verifying_key,
-        raw_output,
-    )))
-}
-
-/// Returns an ABI-encoded offchain result with metadata. This ABI-encoded response will be
-/// signed by the operator.
-pub fn abi_encode_offchain_result_with_metadata(
-    i: &JobInputs,
-    raw_output: &[u8],
-) -> Result<Vec<u8>, Error> {
-    let program_input_hash = keccak256(&i.program_input);
-
-    Ok(OffchainResultWithMetadata::abi_encode_params(&(
         program_input_hash,
         i.max_cycles,
         &i.program_verifying_key,
