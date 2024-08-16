@@ -5,7 +5,7 @@ use alloy::{
     sol_types::{SolType, SolValue},
 };
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
-use db::tables::{get_job_id, Job};
+use db::tables::{get_job_id, Job, RequestType};
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use proto::{JobStatus, JobStatusType, VmType};
@@ -72,7 +72,7 @@ impl RequestAndResultSigner {
             consumer_address: Address::abi_encode_packed(&consumer_addr),
             program_id: PROGRAM_ID.to_vec(),
             input: Address::abi_encode(&zero_addr),
-            request_signature: vec![],
+            request_type: RequestType::Offchain(vec![]),
             result_with_metadata: vec![],
             zkvm_operator_signature: vec![],
             status: JobStatus {

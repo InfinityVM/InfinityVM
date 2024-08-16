@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::job_processor::{JobProcessorService, OffchainJobRequest};
 use alloy::{primitives::Signature, signers::Signer, sol_types::SolType};
 use base64::{prelude::BASE64_STANDARD, Engine};
-use db::tables::{get_job_id, Job};
+use db::tables::{get_job_id, Job, RequestType};
 use proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
     GetResultResponse, JobResult, JobStatus, JobStatusType, SubmitJobRequest, SubmitJobResponse,
@@ -70,7 +70,7 @@ where
             consumer_address: consumer_address.to_vec(),
             program_id: program_id.to_vec(),
             input: input.to_vec(),
-            request_signature: req.signature,
+            request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],
             zkvm_operator_signature: vec![],
             status: JobStatus {
@@ -105,18 +105,25 @@ where
                     .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
 
                 let job_result = match job {
-                    Some(job) => Some(JobResult {
-                        id: job.id.to_vec(),
-                        nonce: job.nonce,
-                        program_id: job.program_id.clone(),
-                        input: job.input.clone(),
-                        consumer_address: job.consumer_address.clone(),
-                        max_cycles: job.max_cycles,
-                        request_signature: job.request_signature.clone(),
-                        result_with_metadata: job.result_with_metadata.clone(),
-                        zkvm_operator_signature: job.zkvm_operator_signature.clone(),
-                        status: Some(job.status),
-                    }),
+                    Some(job) => {
+                        let request_signature = match job.request_type.clone() {
+                            RequestType::Onchain => vec![],
+                            RequestType::Offchain(signature) => signature,
+                        };
+
+                        Some(JobResult {
+                            id: job.id.to_vec(),
+                            nonce: job.nonce,
+                            program_id: job.program_id.clone(),
+                            input: job.input.clone(),
+                            consumer_address: job.consumer_address.clone(),
+                            max_cycles: job.max_cycles,
+                            request_signature,
+                            result_with_metadata: job.result_with_metadata.clone(),
+                            zkvm_operator_signature: job.zkvm_operator_signature.clone(),
+                            status: Some(job.status),
+                        })
+                    }
                     None => return Err(Status::not_found("job not found")),
                 };
 

@@ -16,6 +16,15 @@ use reth_db::{
 use sha2::{Digest, Sha256};
 use std::fmt;
 
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, BorshSerialize, BorshDeserialize)]
+/// Request type for a job
+pub enum RequestType {
+    /// Onchain job request (originating from contracts)
+    Onchain,
+    /// Offchain job request with signature on request
+    Offchain(Vec<u8>),
+}
+
 /// Job used internally and stored in DB
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, BorshSerialize, BorshDeserialize)]
 pub struct Job {
@@ -32,7 +41,7 @@ pub struct Job {
     /// Program execution input
     pub input: Vec<u8>,
     /// Signature on the offchain job request
-    pub request_signature: Vec<u8>,
+    pub request_type: RequestType,
     /// ABI-encoded result of job execution with metadata
     /// tuple(JobID,ProgramInputHash,MaxCycles,ProgramID,RawOutput)
     pub result_with_metadata: Vec<u8>,

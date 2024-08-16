@@ -10,7 +10,7 @@ use alloy::{
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
-use db::tables::Job;
+use db::tables::{Job, RequestType};
 use futures_util::StreamExt;
 use proto::{JobStatus, JobStatusType};
 use reth_db::Database;
@@ -83,7 +83,7 @@ where
                     input: event.programInput.into(),
                     consumer_address: event.consumer.to_vec(),
                     max_cycles: event.maxCycles,
-                    request_signature: vec![],
+                    request_type: RequestType::Onchain,
                     result_with_metadata: vec![],
                     zkvm_operator_signature: vec![],
                     status: JobStatus {

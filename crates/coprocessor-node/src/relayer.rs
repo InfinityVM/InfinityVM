@@ -14,8 +14,7 @@ use tracing::{error, info, instrument};
 
 use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
-use db::tables::Job;
-// use hex;
+use db::tables::{Job, RequestType};
 
 // TODO: Figure out a way to more generically represent these types without using trait objects.
 // https://github.com/Ethos-Works/InfinityVM/issues/138
@@ -67,6 +66,9 @@ pub enum Error {
     /// must call [`JobRelayerBuilder::signer`] before building
     #[error("must call JobRelayerBuilder::signer before building")]
     MissingSigner,
+    /// invalid job request type
+    #[error("invalid job request type")]
+    InvalidJobRequestType,
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
@@ -171,46 +173,51 @@ impl JobRelayer {
         job: Job,
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
-        let call_builder = self.job_manager.submitResultForOffchainJob(
-            job.result_with_metadata.into(),
-            job.zkvm_operator_signature.into(),
-            job_request_payload.into(),
-            job.request_signature.into(),
-        );
-
-        let pending_tx = call_builder.send().await.map_err(|error| {
-            error!(
-                ?error,
-                job.nonce,
-                "tx broadcast failure: contract_address = {}",
-                hex::encode(&job.consumer_address)
+        if let RequestType::Offchain(request_signature) = job.request_type {
+            let call_builder = self.job_manager.submitResultForOffchainJob(
+                job.result_with_metadata.into(),
+                job.zkvm_operator_signature.into(),
+                job_request_payload.into(),
+                request_signature.into(),
             );
-            self.metrics.incr_relay_err(BROADCAST_ERROR);
-            Error::TxBroadcast(error)
-        })?;
 
-        let receipt =
-            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+            let pending_tx = call_builder.send().await.map_err(|error| {
                 error!(
                     ?error,
                     job.nonce,
-                    "tx inclusion failed: contract_address = {}",
+                    "tx broadcast failure: contract_address = {}",
                     hex::encode(&job.consumer_address)
                 );
-                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
-                Error::TxInclusion(error)
+                self.metrics.incr_relay_err(BROADCAST_ERROR);
+                Error::TxBroadcast(error)
             })?;
 
-        info!(
-            receipt.transaction_index,
-            receipt.block_number,
-            ?receipt.block_hash,
-            ?receipt.transaction_hash,
-            ?job.id,
-            "tx included"
-        );
+            let receipt =
+                pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+                    error!(
+                        ?error,
+                        job.nonce,
+                        "tx inclusion failed: contract_address = {}",
+                        hex::encode(&job.consumer_address)
+                    );
+                    self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
+                    Error::TxInclusion(error)
+                })?;
 
-        Ok(receipt)
+            info!(
+                receipt.transaction_index,
+                receipt.block_number,
+                ?receipt.block_hash,
+                ?receipt.transaction_hash,
+                ?job.id,
+                "tx included"
+            );
+
+            Ok(receipt)
+        } else {
+            error!("not an offchain job request");
+            Err(Error::InvalidJobRequestType)
+        }
     }
 }
 

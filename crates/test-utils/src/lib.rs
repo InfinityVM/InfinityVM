@@ -14,7 +14,7 @@ use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use db::tables::{get_job_id, Job};
+use db::tables::{get_job_id, Job, RequestType};
 use proto::{JobStatus, JobStatusType, VmType};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
@@ -194,7 +194,7 @@ pub async fn mock_consumer_pending_job(
         max_cycles: execute_request.max_cycles,
         program_id: execute_request.program_id,
         input: execute_request.input,
-        request_signature: vec![],
+        request_type: RequestType::Onchain,
         result_with_metadata: result_with_meta,
         status: JobStatus {
             status: JobStatusType::Pending as i32,

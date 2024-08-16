@@ -11,7 +11,7 @@ use alloy::{
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
-use db::tables::{get_job_id, Job};
+use db::tables::{get_job_id, Job, RequestType};
 use integration::{Args, Integration};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
@@ -77,7 +77,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             program_id: program_id.clone(),
             input: mock_user_address.abi_encode(),
             // signature added to this job below
-            request_signature: vec![],
+            request_type: RequestType::Offchain(vec![]),
             result_with_metadata: vec![],
             zkvm_operator_signature: vec![],
             status: JobStatus {
@@ -90,7 +90,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Add signature from user on job request
         let job_request_payload = abi_encode_offchain_job_request(job.clone()).unwrap();
         let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
-        job.request_signature = request_signature.as_bytes().to_vec();
+        job.request_type = RequestType::Offchain(request_signature.as_bytes().to_vec());
 
         let submit_job_request =
             SubmitJobRequest { request: job_request_payload, signature: request_signature.into() };
