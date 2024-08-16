@@ -30,8 +30,7 @@ message JobResult {
   uint64 nonce = 2;
   // CPU cycle limit for job execution
   uint64 max_cycles = 3;
-  // The address of the contract to execute a callback with a result with
-  // This address is not zero-padded
+  // Address of consumer contract to receive this result. The address is 20 bytes (no zero padding).
   bytes consumer_address = 4;
   // The ZK program verification key
   bytes program_id = 5;
