@@ -14,16 +14,13 @@ use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use integration::{Args, Integration};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
-    GetResultRequest, Job, JobInputs, JobStatus, JobStatusType, RequestType, SubmitJobRequest,
+    GetResultRequest, Job, JobInputs, JobStatus, JobStatusType, SubmitJobRequest,
     SubmitProgramRequest, VmType,
 };
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
 use test_utils::{get_job_id, MOCK_CONTRACT_MAX_CYCLES};
-use zkvm_executor::service::{
-    abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
-    OffchainResultWithMetadata, ResultWithMetadata,
-};
+use zkvm_executor::service::{abi_encode_result_with_metadata, ResultWithMetadata};
 
 type MockConsumerOut = sol!((Address, U256));
 
@@ -124,9 +121,9 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Verify signature and message format
         let sig = Signature::try_from(&job_with_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
-            OffchainResultWithMetadata::abi_decode_params(&job_with_result.result, false).unwrap();
+            ResultWithMetadata::abi_decode_params(&job_with_result.result, false).unwrap();
 
-        let raw_output = abi_decoded_output.3;
+        let raw_output = abi_decoded_output.4;
         let job_inputs = JobInputs {
             job_id: job_with_result.id,
             program_input: job_with_result.input.clone(),
@@ -134,11 +131,9 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             program_verifying_key: job_with_result.program_verifying_key.clone(),
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
-            request_type: RequestType::Offchain.into(),
         };
 
-        let signing_payload =
-            abi_encode_offchain_result_with_metadata(&job_inputs, &raw_output).unwrap();
+        let signing_payload = abi_encode_result_with_metadata(&job_inputs, &raw_output).unwrap();
         assert_eq!(job_with_result.result, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
         assert_eq!(recovered1, anvil.coprocessor_operator.address());
@@ -259,7 +254,6 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             program_verifying_key: job.program_verifying_key.clone(),
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
-            request_type: RequestType::Onchain.into(),
         };
         let signing_payload = abi_encode_result_with_metadata(&job_inputs, &raw_output).unwrap();
         assert_eq!(job.result, signing_payload);

@@ -15,7 +15,7 @@ use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use proto::{Job, JobInputs, JobStatus, JobStatusType, RequestType};
+use proto::{Job, JobInputs, JobStatus, JobStatusType};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
@@ -181,7 +181,6 @@ pub async fn mock_consumer_pending_job(
         program_input: addr.abi_encode(),
         vm_type: 1,
         program_elf: bytes.clone(),
-        request_type: RequestType::Onchain as i32,
     };
 
     let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output).unwrap();

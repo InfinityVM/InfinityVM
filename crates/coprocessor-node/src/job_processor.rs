@@ -7,9 +7,7 @@ use db::{
     delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
     put_fail_relay_job, put_job,
 };
-use proto::{
-    CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, RequestType, VmType,
-};
+use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
@@ -301,13 +299,6 @@ where
                 }
             };
 
-            // Only offchain jobs have request signatures
-            let request_type = if job.request_signature.is_empty() {
-                RequestType::Onchain
-            } else {
-                RequestType::Offchain
-            };
-
             let req = ExecuteRequest {
                 inputs: Some(JobInputs {
                     job_id: id.clone(),
@@ -316,7 +307,6 @@ where
                     program_input: job.input.clone(),
                     program_elf: elf_with_meta.elf,
                     vm_type: VmType::Risc0 as i32,
-                    request_type: request_type as i32,
                 }),
             };
 

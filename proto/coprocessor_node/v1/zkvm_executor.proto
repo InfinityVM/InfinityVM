@@ -18,11 +18,6 @@ enum VmType {
   Sp1 = 1;
 }
 
-enum RequestType {
-  Onchain = 0;
-  Offchain = 1;
-}
-
 // The inputs to the zkvm program that get attested to by the zkvm operator.
 message JobInputs {
   // Job identifier, as defined by the ethos chain job manager contracts.
@@ -40,8 +35,6 @@ message JobInputs {
   bytes program_elf = 5;
   // VM type (Risc0 or Sp1).
   VmType vm_type = 6;
-  // Whether job was requested offchain or onchain
-  RequestType request_type = 7; 
 }
 
 // A request to execute a zkvm program.
