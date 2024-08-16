@@ -97,18 +97,6 @@ pub struct TestAddresses {
 }
 
 pub async fn deploy_contracts(params: Params) -> TestAddresses{
-    // Ensure the anvil instance will not collide with anything already running on the OS
-    // let port = get_localhost_port();
-    // Set block time to 0.01 seconds - I WANNA GO FAST MOM
-    // let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
-
-    // let initial_owner: PrivateKeySigner = anvil.keys()[0].clone().into();
-    // let relayer: PrivateKeySigner = anvil.keys()[1].clone().into();
-    // let coprocessor_operator: PrivateKeySigner = anvil.keys()[2].clone().into();
-    // let proxy_admin: PrivateKeySigner = anvil.keys()[3].clone().into();
-    // let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
-    // let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
-
     let initial_owner_wallet = EthereumWallet::from(params.initial_owner.clone());
     let consumer_owner_wallet = EthereumWallet::from(params.consumer_owner.clone());
 
@@ -117,11 +105,6 @@ pub async fn deploy_contracts(params: Params) -> TestAddresses{
         .with_recommended_fillers()
         .wallet(initial_owner_wallet.clone())
         .on_http(rpc_url.clone());
-
-    // configure anvil over rpc
-    // note: we can also configure the url in the future
-    // provider.anvil_set_logging(true).await.unwrap();
-    // provider.anvil_set_auto_mine(true).await.unwrap();
 
     // Deploy the JobManager implementation contract
     let job_manager_implementation = JobManager::deploy(&provider).await.unwrap();
@@ -188,11 +171,6 @@ pub async fn anvil_with_contracts() -> TestAnvil {
         .with_recommended_fillers()
         .wallet(initial_owner_wallet.clone())
         .on_http(rpc_url.parse().unwrap());
-
-    // configure anvil over rpc
-    // note: we can also configure the url in the future
-    // provider.anvil_set_logging(true).await.unwrap();
-    // provider.anvil_set_auto_mine(true).await.unwrap();
 
     // Deploy the JobManager implementation contract
     let job_manager_implementation = JobManager::deploy(&provider).await.unwrap();
