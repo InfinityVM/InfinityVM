@@ -48,18 +48,27 @@ pub struct ZkvmExecutorService<S> {
 /// Inputs provided for execution of a job
 #[derive(Debug, Clone)]
 pub struct ExecuteRequest {
+    /// The job ID (hash of nonce and consumer address)
     pub job_id: [u8; 32],
+    /// CPU cycle limit for job execution
     pub max_cycles: u64,
+    /// The ZK program verification key
     pub program_id: Vec<u8>,
+    /// Program execution input
     pub input: Vec<u8>,
+    /// ELF of the program to execute
     pub elf: Vec<u8>,
+    /// VM type
     pub vm_type: VmType,
 }
 
 /// Outputs from the execution of a job
 #[derive(Debug, Clone)]
 pub struct ExecuteResponse {
+    /// ABI-encoded result of job execution with metadata
+    /// tuple(JobID,ProgramInputHash,MaxCycles,ProgramID,RawOutput)
     pub result_with_metadata: Vec<u8>,
+    /// Signature of the operator that executed the job on the result with metadata
     pub zkvm_operator_signature: Vec<u8>,
 }
 

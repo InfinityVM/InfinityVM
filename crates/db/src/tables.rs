@@ -19,7 +19,7 @@ use std::fmt;
 /// Job used internally and stored in DB
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize, BorshSerialize, BorshDeserialize)]
 pub struct Job {
-    /// The job ID (hash of nonce and consumer address).
+    /// The job ID (hash of nonce and consumer address)
     pub id: [u8; 32],
     /// Nonce of the job request for a given consumer contract
     pub nonce: u64,
@@ -38,7 +38,7 @@ pub struct Job {
     pub result_with_metadata: Vec<u8>,
     /// The signature of the operator that executed the job
     pub zkvm_operator_signature: Vec<u8>,
-    /// The status of the job.
+    /// The status of the job
     pub status: JobStatus,
 }
 

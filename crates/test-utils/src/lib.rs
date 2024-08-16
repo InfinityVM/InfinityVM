@@ -5,11 +5,10 @@ use std::net::TcpListener;
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
-    primitives::{utils::keccak256, Address, U256},
+    primitives::{Address, U256},
     providers::{ext::AnvilApi, ProviderBuilder},
     signers::{local::PrivateKeySigner, Signer},
-    sol,
-    sol_types::{SolType, SolValue},
+    sol_types::SolValue,
 };
 use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
