@@ -123,6 +123,8 @@ If you are working in VSCode, try installing the rust-analyzer extension. We rec
 
 [Coprocessor Architecture Diagram](coprocessor_architecture.png)
 
+<!-- https://app.excalidraw.com/s/8oh7cYrMkAR/5fsQ8hJAP0k -->
+
 ## Acknowledgements
 
 - reth: the workspace configuration was largely inspired by [Reth][2].
