@@ -36,7 +36,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .compile(
             &[
-                "../../proto/coprocessor_node/v1/zkvm_executor.proto",
                 "../../proto/coprocessor_node/v1/coprocessor_node.proto",
                 "../../proto/coprocessor_node/v1/job.proto",
             ],

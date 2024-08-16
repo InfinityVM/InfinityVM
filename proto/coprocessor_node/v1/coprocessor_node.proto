@@ -3,7 +3,6 @@ package coprocessor_node.v1;
 
 import "google/api/annotations.proto";
 import "coprocessor_node/v1/job.proto";
-import "coprocessor_node/v1/zkvm_executor.proto";
 
 option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
 
@@ -31,6 +30,12 @@ service CoprocessorNode {
       body: "*"
     };
   }
+}
+
+// Type of ZKVM to execute
+enum VmType {
+  Risc0 = 0;
+  Sp1 = 1;
 }
 
 // SubmitJobRequest defines the request structure to submit a job to the

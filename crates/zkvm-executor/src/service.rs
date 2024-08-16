@@ -5,10 +5,7 @@ use alloy::{
     signers::Signer,
 };
 use base64::prelude::*;
-use proto::{
-    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, RequestType,
-    VmType,
-};
+use proto::VmType;
 use std::marker::Send;
 use zkvm::Zkvm;
 
