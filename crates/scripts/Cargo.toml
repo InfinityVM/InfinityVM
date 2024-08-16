@@ -15,7 +15,6 @@ dotenv = { workspace = true }
 proto = { path = "../proto" }
 coprocessor-node = { path = "../coprocessor-node" }
 zkvm-executor = { path = "../zkvm-executor" }
-test-utils = { path = "../test-utils" }
 db = { path = "../db" }
 
 [lints]
