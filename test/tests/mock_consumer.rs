@@ -120,7 +120,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 
         // Verify signature and message format
         let sig = Signature::try_from(&job_with_result.zkvm_operator_signature[..]).unwrap();
-        let abi_decoded_output = ResultWithMetadata::abi_decode_params(&job_with_result.result, false).unwrap();
+        let abi_decoded_output =
+            ResultWithMetadata::abi_decode_params(&job_with_result.result, false).unwrap();
 
         let raw_output = abi_decoded_output.4;
         let job_inputs = JobInputs {

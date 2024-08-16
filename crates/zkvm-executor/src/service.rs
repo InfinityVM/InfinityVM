@@ -6,8 +6,7 @@ use alloy::{
 };
 use base64::prelude::*;
 use proto::{
-    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs,
-    VmType,
+    CreateElfRequest, CreateElfResponse, ExecuteRequest, ExecuteResponse, JobInputs, VmType,
 };
 use std::marker::Send;
 use zkvm::Zkvm;

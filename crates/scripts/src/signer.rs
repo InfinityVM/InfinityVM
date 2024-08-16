@@ -2,7 +2,7 @@ use alloy::{
     primitives::{hex, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
     sol,
-    sol_types::SolType,
+    sol_types::{SolType, SolValue},
 };
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use dotenv::dotenv;
@@ -35,7 +35,7 @@ impl RequestAndResultSigner {
         let job_inputs = JobInputs {
             job_id: get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap())
                 .to_vec(),
-            program_input: abi_encode_address(zero_addr),
+            program_input: Address::abi_encode(&zero_addr),
             max_cycles: MAX_CYCLES,
             program_verifying_key: PROGRAM_ID.to_vec(),
             program_elf: PROGRAM_ELF.to_vec(),
@@ -68,9 +68,11 @@ impl RequestAndResultSigner {
             id: vec![],
             nonce: NONCE,
             max_cycles: MAX_CYCLES,
-            contract_address: abi_encode_address(consumer_addr),
+            // Need to use abi_encode_packed because the contract address
+            // should not be zero-padded
+            contract_address: Address::abi_encode_packed(&consumer_addr),
             program_verifying_key: PROGRAM_ID.to_vec(),
-            input: abi_encode_address(zero_addr),
+            input: Address::abi_encode(&zero_addr),
             request_signature: vec![],
             result: vec![],
             zkvm_operator_address: vec![],
@@ -88,14 +90,6 @@ impl RequestAndResultSigner {
         println!("Encoded job request: {}", hex::encode(&encoded_job_request));
         println!("Signature for encoded job request: {}", hex::encode(signature.as_bytes()));
     }
-}
-
-type AddressEncodeable = sol! {
-    address
-};
-
-fn abi_encode_address(address: Address) -> Vec<u8> {
-    AddressEncodeable::abi_encode(&address)
 }
 
 type AddressWithBalance = sol! {

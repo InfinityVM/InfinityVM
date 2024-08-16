@@ -7,9 +7,7 @@ use db::{
     delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
     put_fail_relay_job, put_job,
 };
-use proto::{
-    CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType,
-};
+use proto::{CreateElfRequest, ExecuteRequest, Job, JobInputs, JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
