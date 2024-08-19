@@ -20,6 +20,10 @@ pub enum Error {
         /// The underlying error from the Sp1
         source: anyhow::Error,
     },
+
+    /// Error exceeded cycle limit
+    #[error("Cycle limit exceeded")]
+    CycleLimitExceeded,
 }
 
 /// Something that can execute programs and generate ZK proofs for them.
