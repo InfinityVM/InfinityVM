@@ -3,7 +3,6 @@ package coprocessor_node.v1;
 
 import "google/api/annotations.proto";
 import "coprocessor_node/v1/job.proto";
-import "coprocessor_node/v1/zkvm_executor.proto";
 
 option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
 
@@ -33,11 +32,19 @@ service CoprocessorNode {
   }
 }
 
+// Type of ZKVM to execute
+enum VmType {
+  Risc0 = 0;
+  Sp1 = 1;
+}
+
 // SubmitJobRequest defines the request structure to submit a job to the
 // coprocessing coprocessor_node.
 message SubmitJobRequest {
-  // The zkvm job to run.
-  Job job = 1;
+  // ABI-encoded offchain job request
+  bytes request = 1;
+  // Signature on ABI-encoded offchain job request
+  bytes signature = 2;
 }
 
 // SubmitJobResponse defines the response structure to submit a job to the
@@ -55,7 +62,7 @@ message GetResultRequest {
 // GetResultResponse defines the response structure to get the result of a
 // coprocessing job.
 message GetResultResponse {
-  Job job = 1;
+  JobResult job_result = 1;
 }
 
 // SubmitProgramRequest defines the request structure to submit a new program,
@@ -71,5 +78,5 @@ message SubmitProgramRequest {
 // program verification key.
 message SubmitProgramResponse {
   // The ZK program verification key
-  bytes program_verifying_key = 1;
+  bytes program_id = 1;
 }

@@ -8,7 +8,6 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-tonic = { workspace = true }
 tracing = { workspace = true }
 alloy = { workspace = true }
 thiserror = { workspace = true }

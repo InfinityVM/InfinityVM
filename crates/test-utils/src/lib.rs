@@ -5,17 +5,17 @@ use std::net::TcpListener;
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
-    primitives::{utils::keccak256, Address, U256},
+    primitives::{Address, U256},
     providers::{ext::AnvilApi, ProviderBuilder},
     signers::{local::PrivateKeySigner, Signer},
-    sol,
-    sol_types::{SolType, SolValue},
+    sol_types::SolValue,
 };
 use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
     transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use proto::{Job, JobInputs, JobStatus, JobStatusType};
+use db::tables::{get_job_id, Job, RequestType};
+use proto::{JobStatus, JobStatusType};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
@@ -174,49 +174,32 @@ pub async fn mock_consumer_pending_job(
     let addr = mock_contract_input_addr();
     let raw_output = mock_raw_output();
 
-    let inputs = JobInputs {
-        job_id: get_job_id(nonce.into(), mock_consumer).to_vec(),
-        max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-        program_verifying_key: bytes.clone(),
-        program_input: addr.abi_encode(),
-        vm_type: 1,
-        program_elf: bytes.clone(),
-    };
-
-    let result_with_meta = abi_encode_result_with_metadata(&inputs, &raw_output).unwrap();
+    let job_id = get_job_id(nonce.into(), mock_consumer);
+    let result_with_meta = abi_encode_result_with_metadata(
+        job_id,
+        &addr.abi_encode(),
+        MOCK_CONTRACT_MAX_CYCLES,
+        &bytes,
+        &raw_output,
+    )
+    .unwrap();
     let operator_signature =
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 
-    let job = Job {
-        id: inputs.job_id,
+    Job {
+        id: job_id,
         nonce: 1,
-        max_cycles: inputs.max_cycles,
-        program_verifying_key: inputs.program_verifying_key,
-        input: inputs.program_input,
-        request_signature: vec![],
-        result: result_with_meta,
-        status: Some(JobStatus {
+        max_cycles: MOCK_CONTRACT_MAX_CYCLES,
+        program_id: bytes,
+        input: addr.abi_encode(),
+        request_type: RequestType::Onchain,
+        result_with_metadata: result_with_meta,
+        status: JobStatus {
             status: JobStatusType::Pending as i32,
             failure_reason: None,
             retries: 0,
-        }),
-        contract_address: mock_consumer.abi_encode(),
+        },
+        consumer_address: mock_consumer.abi_encode(),
         zkvm_operator_signature: operator_signature,
-        zkvm_operator_address: operator.address().to_checksum(None).as_bytes().to_vec(),
-    };
-
-    job
-}
-
-/// Returns the job ID hash for a given nonce and consumer address.
-pub fn get_job_id(nonce: u64, consumer: Address) -> [u8; 32] {
-    keccak256(abi_encode_nonce_and_consumer(nonce, consumer)).into()
-}
-
-type NonceAndConsumer = sol! {
-    tuple(uint64, address)
-};
-
-fn abi_encode_nonce_and_consumer(nonce: u64, consumer: Address) -> Vec<u8> {
-    NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
+    }
 }

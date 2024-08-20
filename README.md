@@ -19,6 +19,7 @@ rustup toolchain install nightly
 Proto
 
 - MacOS
+
 ```sh
 # install protobuf compilation tools
 brew update
@@ -26,11 +27,13 @@ brew install protobuf
 ```
 
 - Debian/Ubuntu
+
 ```sh
 # install protobuf compilation tools
 apt-get update
 apt-get install install protobuf-compiler
 ```
+
 Risc0
 
 ```sh
@@ -92,7 +95,6 @@ Unit tests
 cargo test
 ```
 
-
 Integration tests
 
 ```sh
@@ -138,6 +140,12 @@ If you are working in VSCode, try installing the rust-analyzer extension. We rec
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
 }
 ```
+
+## Coprocessor Architecture Diagram
+
+[Coprocessor Architecture Diagram](coprocessor_architecture.png)
+
+<!-- https://app.excalidraw.com/s/8oh7cYrMkAR/5fsQ8hJAP0k -->
 
 ## Acknowledgements
 

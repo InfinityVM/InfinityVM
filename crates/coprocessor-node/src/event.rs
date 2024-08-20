@@ -10,8 +10,9 @@ use alloy::{
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
+use db::tables::{Job, RequestType};
 use futures_util::StreamExt;
-use proto::{Job, JobStatus, JobStatusType};
+use proto::{JobStatus, JobStatusType};
 use reth_db::Database;
 use tokio::{
     task::JoinHandle,
@@ -35,7 +36,7 @@ pub enum Error {
     UnexpectedExit,
 }
 
-/// Listen for job request events and push a corresponding [`proto::Job`] onto the
+/// Listen for job request events and push a corresponding [`Job`] onto the
 /// execution queue.
 pub async fn start_job_event_listener<S, D>(
     ws_rpc_url: String,
@@ -82,21 +83,20 @@ where
                 };
 
                 let job = Job {
-                    id: event.jobID.to_vec(),
+                    id: event.jobID.into(),
                     nonce: event.nonce,
-                    program_verifying_key: event.programID.clone().to_vec(),
+                    program_id: event.programID.clone().to_vec(),
                     input: event.programInput.into(),
-                    contract_address: event.consumer.to_vec(),
+                    consumer_address: event.consumer.to_vec(),
                     max_cycles: event.maxCycles,
-                    request_signature: vec![],
-                    result: vec![],
-                    zkvm_operator_address: vec![],
+                    request_type: RequestType::Onchain,
+                    result_with_metadata: vec![],
                     zkvm_operator_signature: vec![],
-                    status: Some(JobStatus {
+                    status: JobStatus {
                         status: JobStatusType::Pending as i32,
                         failure_reason: None,
                         retries: 0,
-                    }),
+                    },
                 };
 
                 if let Err(error) = job_processor.submit_job(job).await {

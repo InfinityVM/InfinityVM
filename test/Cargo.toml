@@ -21,7 +21,7 @@ mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }
 coprocessor-node = { path = "../crates/coprocessor-node" }
 zkvm-executor = { path = "../crates/zkvm-executor" }
 test-utils = { path = "../crates/test-utils" }
-db = { path = "../crates/db"}
+db = { path = "../crates/db" }
 
 reth-e2e-test-utils = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", default-features = false }
 

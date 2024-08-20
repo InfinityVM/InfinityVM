@@ -9,12 +9,12 @@ use alloy::{
     signers::Signature,
     transports::http::reqwest,
 };
-use proto::Job;
 use std::sync::Arc;
 use tracing::{error, info, instrument};
 
 use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
+use db::tables::{Job, RequestType};
 
 // TODO: Figure out a way to more generically represent these types without using trait objects.
 // https://github.com/Ethos-Works/InfinityVM/issues/138
@@ -66,6 +66,9 @@ pub enum Error {
     /// must call [`JobRelayerBuilder::signer`] before building
     #[error("must call JobRelayerBuilder::signer before building")]
     MissingSigner,
+    /// invalid job request type
+    #[error("invalid job request type")]
+    InvalidJobRequestType,
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
@@ -133,8 +136,9 @@ impl JobRelayer {
         &self,
         job: Job,
     ) -> Result<TransactionReceipt, Error> {
-        let call_builder =
-            self.job_manager.submitResult(job.result.into(), job.zkvm_operator_signature.into());
+        let call_builder = self
+            .job_manager
+            .submitResult(job.result_with_metadata.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, ?job.id, "tx broadcast failure");
@@ -169,46 +173,51 @@ impl JobRelayer {
         job: Job,
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
-        let call_builder = self.job_manager.submitResultForOffchainJob(
-            job.result.into(),
-            job.zkvm_operator_signature.into(),
-            job_request_payload.into(),
-            job.request_signature.into(),
-        );
-
-        let pending_tx = call_builder.send().await.map_err(|error| {
-            error!(
-                ?error,
-                job.nonce,
-                "tx broadcast failure: contract_address = {}",
-                hex::encode(&job.contract_address)
+        if let RequestType::Offchain(request_signature) = job.request_type {
+            let call_builder = self.job_manager.submitResultForOffchainJob(
+                job.result_with_metadata.into(),
+                job.zkvm_operator_signature.into(),
+                job_request_payload.into(),
+                request_signature.into(),
             );
-            self.metrics.incr_relay_err(BROADCAST_ERROR);
-            Error::TxBroadcast(error)
-        })?;
 
-        let receipt =
-            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+            let pending_tx = call_builder.send().await.map_err(|error| {
                 error!(
                     ?error,
                     job.nonce,
-                    "tx inclusion failed: contract_address = {}",
-                    hex::encode(&job.contract_address)
+                    "tx broadcast failure: contract_address = {}",
+                    hex::encode(&job.consumer_address)
                 );
-                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
-                Error::TxInclusion(error)
+                self.metrics.incr_relay_err(BROADCAST_ERROR);
+                Error::TxBroadcast(error)
             })?;
 
-        info!(
-            receipt.transaction_index,
-            receipt.block_number,
-            ?receipt.block_hash,
-            ?receipt.transaction_hash,
-            ?job.id,
-            "tx included"
-        );
+            let receipt =
+                pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+                    error!(
+                        ?error,
+                        job.nonce,
+                        "tx inclusion failed: contract_address = {}",
+                        hex::encode(&job.consumer_address)
+                    );
+                    self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
+                    Error::TxInclusion(error)
+                })?;
 
-        Ok(receipt)
+            info!(
+                receipt.transaction_index,
+                receipt.block_number,
+                ?receipt.block_hash,
+                ?receipt.transaction_hash,
+                ?job.id,
+                "tx included"
+            );
+
+            Ok(receipt)
+        } else {
+            error!("not an offchain job request");
+            Err(Error::InvalidJobRequestType)
+        }
     }
 }
 
@@ -225,10 +234,10 @@ mod test {
         sol_types::SolEvent,
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+    use db::tables::get_job_id;
     use prometheus::Registry;
     use test_utils::{
-        anvil_with_contracts, get_job_id, mock_consumer_pending_job, mock_contract_input_addr,
-        TestAnvil,
+        anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
     };
     use tokio::task::JoinSet;
 
@@ -261,23 +270,22 @@ mod test {
         let mut join_set = JoinSet::new();
 
         for i in 0u8..JOB_COUNT as u8 {
-            let job =
+            let job: db::tables::Job =
                 mock_consumer_pending_job(i + 1, coprocessor_operator.clone(), mock_consumer).await;
 
             let mock_addr = mock_contract_input_addr();
-            let program_verifying_key = job.program_verifying_key.clone();
+            let program_id = job.program_id.clone();
 
             // Create the job on chain so the contract knows to expect the result. The consumer
             // contract will create a new job
-            let create_job_call =
-                consumer_contract.requestBalance(program_verifying_key.into(), mock_addr);
+            let create_job_call = consumer_contract.requestBalance(program_id.into(), mock_addr);
             let receipt = create_job_call.send().await.unwrap().get_receipt().await.unwrap();
             let log = receipt.inner.as_receipt().unwrap().logs[0]
                 .log_decode::<IJobManager::JobCreated>()
                 .unwrap();
 
             // Ensure test setup is working as we think
-            assert_eq!(job.id, log.data().jobID.to_vec());
+            assert_eq!(job.id, log.data().jobID);
 
             let relayer2 = Arc::clone(&job_relayer);
             join_set.spawn(async move {
