@@ -236,6 +236,14 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let done_status = JobStatusType::Done as i32;
         assert_eq!(job.status.unwrap().status, done_status);
 
+        // Check saved height
+        let test_db = db::open_db_read_only(args.db_dir.path()).unwrap();
+        let saved_height = db::get_last_block_height(test_db).unwrap().unwrap();
+        let block_number = log.block_number.unwrap();
+
+        assert_ne!(block_number, 0);
+        assert_eq!(block_number, saved_height);
+
         // Verify address
         let address = {
             let address = String::from_utf8(job.zkvm_operator_address.clone()).unwrap();

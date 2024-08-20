@@ -6,6 +6,7 @@ use std::{
     panic::AssertUnwindSafe,
     process::{self, Command},
 };
+use tempfile::TempDir;
 use test_utils::{
     anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil, LOCALHOST,
 };
@@ -41,6 +42,8 @@ pub struct Args {
     pub anvil: TestAnvil,
     /// Coprocessor Node gRPC client
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
+    /// db dir path for test
+    pub db_dir: TempDir,
 }
 
 /// Integration test environment builder and runner.
@@ -98,7 +101,7 @@ impl Integration {
                 .await
                 .unwrap();
 
-        let args = Args { anvil, coprocessor_node };
+        let args = Args { anvil, coprocessor_node, db_dir };
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())

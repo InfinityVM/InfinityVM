@@ -4144,6 +4144,7 @@ dependencies = [
  "alloy",
  "contracts",
  "coprocessor-node",
+ "db",
  "futures",
  "mock-consumer-methods",
  "proto",
