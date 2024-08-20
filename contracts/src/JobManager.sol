@@ -126,6 +126,7 @@ contract JobManager is
 
         // Decode the result using abi.decode
         ResultWithMetadata memory result = decodeResultWithMetadata(resultWithMetadata);
+        require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
         _submitResult(jobID, result.maxCycles, result.programInputHash, result.programID, result.result);
     }
 
