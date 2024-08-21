@@ -5,20 +5,19 @@ use std::sync::Arc;
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
-    providers::{ProviderBuilder, WsConnect},
+    providers::{Provider, ProviderBuilder, WsConnect},
     signers::{Signature, Signer},
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
 use db::tables::{Job, RequestType};
-use futures_util::StreamExt;
 use proto::{JobStatus, JobStatusType};
 use reth_db::Database;
 use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
 };
-use tracing::{error, warn};
+use tracing::error;
 
 use crate::job_processor::JobProcessorService;
 
@@ -49,70 +48,68 @@ where
     D: Database + 'static,
 {
     let handle = tokio::spawn(async move {
-        let mut last_seen_block = from_block;
+        let mut last_seen_block = from_block.as_number().unwrap_or_default();
         let last_saved_height = job_processor.get_last_block_height().await.unwrap_or_default();
-        if last_saved_height > last_seen_block.as_number().unwrap_or_default() {
+        if last_saved_height > last_seen_block {
             // update last seen block height
-            last_seen_block = BlockNumberOrTag::Number(last_saved_height);
+            last_seen_block = last_saved_height;
         }
 
-        let mut retry = 1;
         let ws = WsConnect::new(ws_rpc_url.clone());
         let provider = ProviderBuilder::new().on_ws(ws).await?;
-        let contract = JobManager::new(job_manager, provider);
+        let contract = JobManager::new(job_manager, provider.clone());
+        let mut latest_block = provider.get_block_number().await.unwrap();
         loop {
-            // We have this loop so we can recreate a subscription stream in case any issue is
-            // encountered
-            let sub =
-                match contract.JobCreated_filter().from_block(last_seen_block).subscribe().await {
-                    Ok(sub) => sub,
+            // Iterate from the last seen block to the latest block
+            while last_seen_block <= latest_block {
+                let events = match contract
+                    .JobCreated_filter()
+                    .from_block(last_seen_block)
+                    .to_block(last_seen_block)
+                    .query()
+                    .await
+                {
+                    Ok(events) => events,
                     Err(error) => {
-                        error!(?error, "attempted to create websocket subscription");
-                        continue;
-                    }
-                };
-            let mut stream = sub.into_stream();
-
-            while let Some(event) = stream.next().await {
-                let (event, log) = match event {
-                    Ok((event, log)) => (event, log),
-                    Err(error) => {
-                        error!(?error, "event listener");
+                        error!(?error, "Error fetching events");
+                        sleep(Duration::from_secs(10)).await;
                         continue;
                     }
                 };
 
-                let job = Job {
-                    id: event.jobID.into(),
-                    nonce: event.nonce,
-                    program_id: event.programID.clone().to_vec(),
-                    input: event.programInput.into(),
-                    consumer_address: event.consumer.to_vec(),
-                    max_cycles: event.maxCycles,
-                    request_type: RequestType::Onchain,
-                    result_with_metadata: vec![],
-                    zkvm_operator_signature: vec![],
-                    status: JobStatus {
-                        status: JobStatusType::Pending as i32,
-                        failure_reason: None,
-                        retries: 0,
-                    },
-                };
-
-                if let Err(error) = job_processor.submit_job(job).await {
-                    error!(?error, "failed while submitting to job processor");
+                for (event, _) in events {
+                    let job = Job {
+                        id: event.jobID.into(),
+                        nonce: event.nonce,
+                        program_id: event.programID.to_vec(),
+                        input: event.programInput.into(),
+                        consumer_address: event.consumer.to_vec(),
+                        max_cycles: event.maxCycles,
+                        request_type: RequestType::Onchain,
+                        result_with_metadata: vec![],
+                        zkvm_operator_signature: vec![],
+                        status: JobStatus {
+                            status: JobStatusType::Pending as i32,
+                            failure_reason: None,
+                            retries: 0,
+                        },
+                    };
+                    if let Err(error) = job_processor.submit_job(job).await {
+                        error!(?error, "failed while submitting to job processor");
+                    }
                 }
-                if let Some(n) = log.block_number {
-                    last_seen_block = BlockNumberOrTag::Number(n);
-                    if let Err(error) = job_processor.set_last_block_height(n).await {
-                        error!(?error, "failed to set last seen block height");
-                    }
+
+                // update the last seen block height after processing the events
+                last_seen_block += 1;
+                if let Err(error) = job_processor.set_last_block_height(last_seen_block).await {
+                    error!(?error, "failed to set last seen block height");
                 }
             }
 
-            sleep(Duration::from_millis(retry * 10)).await;
-            warn!(?retry, ?last_seen_block, "websocket reconnecting");
-            retry += 1;
+            // get latest block
+            latest_block = provider.get_block_number().await.unwrap();
+
+            sleep(Duration::from_secs(5)).await;
         }
     });
 
