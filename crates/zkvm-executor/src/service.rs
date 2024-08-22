@@ -101,7 +101,8 @@ where
             )));
         }
 
-        let raw_output = vm.execute(&elf, &input, max_cycles).map_err(Error::ZkvmExecuteFailed)?;
+        let raw_output =
+            vm.execute(&elf, &input, max_cycles).await.map_err(Error::ZkvmExecuteFailed)?;
 
         let result_with_metadata =
             abi_encode_result_with_metadata(job_id, &input, max_cycles, &program_id, &raw_output)?;
