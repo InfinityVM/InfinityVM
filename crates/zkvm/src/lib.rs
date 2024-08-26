@@ -20,6 +20,10 @@ pub enum Error {
         /// The underlying error from the Sp1
         source: anyhow::Error,
     },
+
+    /// Error exceeded cycle limit
+    #[error("Cycle limit exceeded")]
+    CycleLimitExceeded,
 }
 
 /// Something that can execute programs and generate ZK proofs for them.
@@ -81,8 +85,12 @@ impl Zkvm for Risc0 {
 
         let prover = LocalProver::new("locals only");
 
-        let prove_info =
-            prover.execute(env, program_elf).map_err(|source| Error::Risc0 { source })?;
+        let prove_info = prover.execute(env, program_elf).map_err(|source| {
+            match source.downcast_ref::<&str>() {
+                Some(&"Session limit exceeded") => Error::CycleLimitExceeded,
+                _ => Error::Risc0 { source },
+            }
+        })?;
 
         Ok(prove_info.journal.bytes)
     }
