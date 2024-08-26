@@ -227,6 +227,8 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
 
         // Check saved height
         let test_db = db::open_db_read_only(args.db_dir.path()).unwrap();
+        assert!(test_db.is_read_only());
+
         let saved_height = db::get_last_block_height(test_db).unwrap().unwrap();
         let block_number = consumer_provider.get_block_number().await.unwrap();
 
