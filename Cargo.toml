@@ -20,6 +20,7 @@ members = [
 	"clob/core",
 	"clob/contracts",
 	"clob/programs",
+	"clob/node",
 ]
 default-members = [
 	"crates/contracts",
@@ -197,9 +198,14 @@ tracing-appender = { version = "0.2.3", default-features = false }
 # y
 # z
 
-# clob
+# clob only deps
 alloy-sol-types = { version = "0.8", default-features = false }
+bytes = "1.7"
+paste = "1"
 
+# local
 clob-contracts ={ path = "clob/contracts" }
 clob-core = { path = "clob/core" }
+clob-node = { path = "clob/node" }
 clob-programs = { path = "clob/programs" }
+proto = { path = "crates/proto" }

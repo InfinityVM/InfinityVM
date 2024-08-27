@@ -1,7 +1,7 @@
 //! The Infinity CLOB node binary.
 
 use alloy::hex;
-use node::{batcher, engine, http_listen, AppState, K256LocalSigner};
+use clob_node::{batcher, engine, http_listen, AppState, K256LocalSigner};
 use std::{env, sync::Arc};
 
 // Small for now to get to failure cases quicker
@@ -40,7 +40,7 @@ async fn main() {
         K256LocalSigner::from_slice(&decoded).unwrap()
     };
 
-    let db = node::db::init_db(db_dir).expect("todo");
+    let db = clob_node::db::init_db(db_dir).expect("todo");
     let db = Arc::new(db);
 
     let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(CHANEL_SIZE);
