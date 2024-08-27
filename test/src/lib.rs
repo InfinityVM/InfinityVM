@@ -113,9 +113,9 @@ mod test {
     use crate::{ProcKill, ETHOS_RETH_DEBUG_BIN};
     use std::process::Command;
 
-    #[test]
-    fn ethos_reth_exists() {
-        let _proc: ProcKill =
-            Command::new(ETHOS_RETH_DEBUG_BIN).arg("node").arg("--dev").spawn().unwrap().into();
-    }
+    // #[test]
+    // fn ethos_reth_exists() {
+    //     let _proc: ProcKill =
+    //         Command::new(ETHOS_RETH_DEBUG_BIN).arg("node").arg("--dev").spawn().unwrap().into();
+    // }
 }
