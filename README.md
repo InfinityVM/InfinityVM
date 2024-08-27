@@ -12,7 +12,7 @@ Rust
 
 ```sh
 # set rust version
-rustup use 1.80
+rustup default 1.80.1
 rustup toolchain install nightly
 ```
 
