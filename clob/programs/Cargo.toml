@@ -1,0 +1,15 @@
+[package]
+name = "clob-programs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[build-dependencies]
+risc0-build = { workspace = true }
+
+# local
+# clob-zkvm-utils = { workspace = true }
+
+[package.metadata.risc0]
+methods = ["app"]
