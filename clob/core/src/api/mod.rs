@@ -197,7 +197,7 @@ impl Order {
     }
 
     /// Size of the quote asset required to fill this order.
-    pub fn quote_size(&self) -> u64 {
+    pub const fn quote_size(&self) -> u64 {
         self.size * self.limit_price
     }
 }
@@ -252,7 +252,7 @@ impl OrderFill {
     }
 
     /// Size of the quote asset exchanged
-    pub fn quote_size(&self) -> u64 {
+    pub const fn quote_size(&self) -> u64 {
         self.size * self.price
     }
 }
