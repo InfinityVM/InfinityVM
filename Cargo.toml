@@ -18,6 +18,7 @@ members = [
 	"programs/risc0/mock-consumer/methods",
 	"programs/risc0/vapenation/methods",
 	"clob/core",
+	"clob/contracts",
 	"clob/programs",
 ]
 default-members = [
@@ -199,5 +200,6 @@ tracing-appender = { version = "0.2.3", default-features = false }
 # clob
 alloy-sol-types = { version = "0.8", default-features = false }
 
+clob-contracts ={ path = "clob/contracts" }
 clob-core = { path = "clob/core" }
 clob-programs = { path = "clob/programs" }
