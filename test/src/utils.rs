@@ -122,8 +122,15 @@ pub async fn anvil_with_clob_consumer() -> AnvilClob {
         .on_http(rpc_url.parse().unwrap());
 
     // Deploy 2 erc20s
-    let base_erc20 = *erc20::Erc20::deploy(&provider).await.unwrap().address();
-    let quote_erc20 = *erc20::Erc20::deploy(&provider).await.unwrap().address();
+    base_name = "base".to_string();
+    base_symbol = "BASE".to_string();
+    let base_erc20 =
+        *erc20::Erc20::deploy(&provider, base_name, base_symbol).await.unwrap().address();
+
+    let quote_name = "quote".to_string();
+    let quote_symbol = "QUOTE".to_string();
+    let quote_erc20 =
+        *erc20::Erc20::deploy(&provider, quote_name, quote_symbol).await.unwrap().address();
 
     // Deploy the clob consumer
     let clob_consumer = *ClobConsumer::deploy(

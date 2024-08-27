@@ -22,11 +22,6 @@ members = [
 	"clob/programs",
 	"clob/node",
 ]
-default-members = [
-	"clob/node",
-	"crates/coprocessor-node",
-	"test",
-]
 exclude = [
 	"bin/ethos-reth",
 ]
