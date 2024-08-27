@@ -147,7 +147,7 @@ impl BalanceChange {
     }
 }
 
-/// A state diff to balances. Version BalanceChange that uses rust native types and allows us to
+/// A state diff to balances. Version `BalanceChange` that uses rust native types and allows us to
 /// derive for DB storage.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(rename_all = "camelCase")]
