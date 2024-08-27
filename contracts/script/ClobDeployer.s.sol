@@ -13,7 +13,7 @@ import "./utils/EmptyContract.sol";
 import {MockERC20} from "../test/mocks/MockERC20.sol";
 
 // To deploy and verify:
-// forge script Deployer.s.sol:Deployer --sig "deployContracts(address relayer, address coprocessorOperator, address offchainRequestSigner)" $RELAYER $COPROCESSOR_OPERATOR $OFFCHAIN_REQUEST_SIGNER --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
+// forge script ClobDeployer.s.sol:ClobDeployer --sig "deployClobContracts(address relayer, address coprocessorOperator, address offchainRequestSigner, uint64 initialMaxNonce)" $RELAYER $COPROCESSOR_OPERATOR $OFFCHAIN_REQUEST_SIGNER $INITIAL_MAX_NONCE --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
 contract ClobDeployer is Script, Utils {
     ProxyAdmin public coprocessorProxyAdmin;
     JobManager public jobManager;
