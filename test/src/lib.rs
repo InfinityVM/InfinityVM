@@ -1,4 +1,4 @@
-//! Integration tests and helpers.
+//! E2E tests and helpers.
 use alloy::primitives::hex;
 use futures::future::FutureExt;
 use std::{
@@ -46,11 +46,11 @@ pub struct Args {
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
 }
 
-/// Integration test environment builder and runner.
+/// E2E test environment builder and runner.
 #[derive(Debug)]
-pub struct Integration;
+pub struct E2E;
 
-impl Integration {
+impl E2E {
     /// Run the given `test_fn`.
     pub async fn run<F, R>(test_fn: F)
     where
