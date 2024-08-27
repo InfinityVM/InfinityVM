@@ -111,12 +111,5 @@ mod test {
     use reth_e2e_test_utils::wallet::Wallet;
     use std::process::Command;
 
-    #[test]
-    fn ethos_reth_exists() {
-        let _proc: ProcKill =
-            Command::new(ETHOS_RETH_DEBUG_BIN).arg("node").arg("--dev").spawn().unwrap().into();
-
-        // Just check that this works
-        let _signers = Wallet::new(6).gen();
-    }
+gi
 }
