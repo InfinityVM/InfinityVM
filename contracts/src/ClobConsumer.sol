@@ -57,7 +57,7 @@ contract ClobConsumer is Consumer, OffchainRequester {
 
     bytes32 public latestStateRootHash;  
 
-    constructor(address jobManager, address _offchainSigner, IERC20 _baseToken, IERC20 _quoteToken) Consumer(jobManager, 0) OffchainRequester() {
+    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken) Consumer(jobManager, initialMaxNonce) OffchainRequester() {
         // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
         offchainSigner = _offchainSigner;
 
@@ -115,40 +115,40 @@ contract ClobConsumer is Consumer, OffchainRequester {
     function _receiveResult(bytes32 jobID, bytes memory result) internal override  {
         ClobResult memory clobResult = abi.decode(result, (ClobResult));
 
-    //     // TODO (Maanav): Figure out how to generalize this state root check etc.
-    //     // [ref]: https://github.com/Ethos-Works/InfinityVM/issues/178
-    //     // bytes memory batchInput = getProgramInputsForJob(jobID);
-    //    //(bytes32 previousStateHash, bytes memory orders) = abi.decode(batchInput, (bytes32, bytes));
-    //    // require(previousStateHash == latestStateRootHash, "Invalid state hash passed as input");
+        // TODO (Maanav): Figure out how to generalize this state root check etc.
+        // [ref]: https://github.com/Ethos-Works/InfinityVM/issues/178
+        bytes memory batchInput = getProgramInputsForJob(jobID);
+        (bytes32 previousStateHash, bytes memory orders) = abi.decode(batchInput, (bytes32, bytes));
+        require(previousStateHash == latestStateRootHash, "Invalid state hash passed as input");
 
-    //     // Update the state root hash
-    //    // latestStateRootHash = clobResult.nextStateRootHash;
+        // Update the state root hash
+        latestStateRootHash = clobResult.nextStateRootHash;
 
-    //     // Apply the deposit deltas
-    //     //for (uint256 i = 0; i < clobResult.depositDeltas.length; i++) {
-    //     //    address user = clobResult.depositDeltas[i].user;
-    //     //    depositedBalanceBase[user] -= clobResult.depositDeltas[i].baseDelta;
-    //     //    depositedBalanceQuote[user] -= clobResult.depositDeltas[i].quoteDelta;
-    //     }
+        // Apply the deposit deltas
+        for (uint256 i = 0; i < clobResult.depositDeltas.length; i++) {
+           address user = clobResult.depositDeltas[i].user;
+           depositedBalanceBase[user] -= clobResult.depositDeltas[i].baseDelta;
+           depositedBalanceQuote[user] -= clobResult.depositDeltas[i].quoteDelta;
+        }
 
-    //     // Apply the order deltas
-    //     //for (uint256 i = 0; i < clobResult.orderDeltas.length; i++) {
-    //     //    address user = clobResult.orderDeltas[i].user;
-    //     //    freeBalanceBase[user] = applyDelta(freeBalanceBase[user], clobResult.orderDeltas[i].freeBaseDelta);
-    //     //    lockedBalanceBase[user] = applyDelta(lockedBalanceBase[user], clobResult.orderDeltas[i].lockedBaseDelta);
-    //     //    freeBalanceQuote[user] = applyDelta(freeBalanceQuote[user], clobResult.orderDeltas[i].freeQuoteDelta);
-    //     //    lockedBalanceQuote[user] = applyDelta(lockedBalanceQuote[user], clobResult.orderDeltas[i].lockedQuoteDelta);
-    //     //}
+        // Apply the order deltas
+        for (uint256 i = 0; i < clobResult.orderDeltas.length; i++) {
+           address user = clobResult.orderDeltas[i].user;
+           freeBalanceBase[user] = applyDelta(freeBalanceBase[user], clobResult.orderDeltas[i].freeBaseDelta);
+           lockedBalanceBase[user] = applyDelta(lockedBalanceBase[user], clobResult.orderDeltas[i].lockedBaseDelta);
+           freeBalanceQuote[user] = applyDelta(freeBalanceQuote[user], clobResult.orderDeltas[i].freeQuoteDelta);
+           lockedBalanceQuote[user] = applyDelta(lockedBalanceQuote[user], clobResult.orderDeltas[i].lockedQuoteDelta);
+        }
 
-    //     // Apply the withdraw deltas
-    //     // for (uint256 i = 0; i < clobResult.withdrawDeltas.length; i++) {
-    //     //    address user = clobResult.withdrawDeltas[i].user;
-    //     //    freeBalanceBase[user] -= clobResult.withdrawDeltas[i].baseDelta;
-    //     //    freeBalanceQuote[user] -= clobResult.withdrawDeltas[i].quoteDelta;
+        // Apply the withdraw deltas
+        for (uint256 i = 0; i < clobResult.withdrawDeltas.length; i++) {
+           address user = clobResult.withdrawDeltas[i].user;
+           freeBalanceBase[user] -= clobResult.withdrawDeltas[i].baseDelta;
+           freeBalanceQuote[user] -= clobResult.withdrawDeltas[i].quoteDelta;
 
-    //     //    require(baseToken.transfer(user, clobResult.withdrawDeltas[i].baseDelta), "Transfer failed");
-    //     //    require(quoteToken.transfer(user, clobResult.withdrawDeltas[i].quoteDelta), "Transfer failed");
-    //    // }
+           require(baseToken.transfer(user, clobResult.withdrawDeltas[i].baseDelta), "Transfer failed");
+           require(quoteToken.transfer(user, clobResult.withdrawDeltas[i].quoteDelta), "Transfer failed");
+       }
     }
 
     // @dev Apply an int256 delta to a uint256 value.
