@@ -137,6 +137,7 @@ pub async fn anvil_with_clob_consumer() -> AnvilClob {
         provider,
         job_manager,
         clob_signer.address(),
+        0,
         base_erc20,
         quote_erc20,
     )
