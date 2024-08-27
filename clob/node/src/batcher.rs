@@ -4,8 +4,8 @@ use crate::db::{
     tables::{ClobStateTable, GlobalIndexTable, RequestTable},
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
-use clob_contracts::{abi_encode_offchain_job_request, JobParams};
 use alloy::signers::Signer;
+use clob_contracts::{abi_encode_offchain_job_request, JobParams};
 use clob_programs::CLOB_ID;
 use proto::SubmitJobRequest;
 use reth_db::transaction::{DbTx, DbTxMut};

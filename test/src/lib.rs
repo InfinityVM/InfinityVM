@@ -13,6 +13,9 @@ use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 
+/// Test utilities.
+pub mod utils;
+
 /// The ethos reth crate is not part of the workspace so the binary is located
 /// within the crate
 pub const ETHOS_RETH_DEBUG_BIN: &str = "../bin/ethos-reth/target/debug/ethos-reth";

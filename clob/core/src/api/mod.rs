@@ -41,7 +41,7 @@ pub enum Response {
 pub struct ApiResponse {
     /// The response from processing the request with one engine tick
     pub response: Response,
-    /// The global index of the request. The request is guranteed to be processed
+    /// The global index of the request. The request is guaranteed to be processed
     /// via ordering indicated by this index
     pub global_index: u64,
 }

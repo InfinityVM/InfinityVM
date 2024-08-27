@@ -23,7 +23,7 @@ zkvm-executor = { path = "../crates/zkvm-executor" }
 test-utils = { path = "../crates/test-utils" }
 db = { path = "../crates/db" }
 
-reth-e2e-test-utils = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", default-features = false }
+clob-contracts = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

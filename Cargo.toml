@@ -23,10 +23,9 @@ members = [
 	"clob/node",
 ]
 default-members = [
-	"crates/contracts",
-	"crates/proto",
+	"clob/node",
 	"crates/coprocessor-node",
-	"crates/zkvm-executor",
+	"test",
 ]
 exclude = [
 	"bin/ethos-reth",
