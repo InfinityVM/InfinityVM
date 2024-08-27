@@ -17,7 +17,6 @@ alloy = { workspace = true }
 tempfile = { workspace = true }
 contracts = { path = "../crates/contracts" }
 proto = { path = "../crates/proto" }
-mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }
 coprocessor-node = { path = "../crates/coprocessor-node" }
 zkvm-executor = { path = "../crates/zkvm-executor" }
 test-utils = { path = "../crates/test-utils" }
@@ -26,4 +25,5 @@ db = { path = "../crates/db" }
 clob-contracts = { workspace = true }
 
 [dev-dependencies]
+mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }
 serde_json = { workspace = true }
