@@ -61,8 +61,6 @@ pub async fn run_engine<D>(
     loop {
         global_index += 1;
 
-        // TODO: refactor so this recieves a nonce and then uses that nonce to read from DB
-        // This should help ensure ordering
         let (request, response_sender) = receiver.recv().await.expect("todo");
         info!(?request);
 

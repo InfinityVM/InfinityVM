@@ -47,23 +47,23 @@ pub struct ClobState {
 
 impl ClobState {
     /// Get the oid.
-    pub fn oid(&self) -> u64 {
+    pub const fn oid(&self) -> u64 {
         self.oid
     }
     /// Get the base asset balances.
-    pub fn base_balances(&self) -> &HashMap<[u8; 20], AssetBalance> {
+    pub const fn base_balances(&self) -> &HashMap<[u8; 20], AssetBalance> {
         &self.base_balances
     }
     /// Get the base asset balances.
-    pub fn quote_balances(&self) -> &HashMap<[u8; 20], AssetBalance> {
+    pub const fn quote_balances(&self) -> &HashMap<[u8; 20], AssetBalance> {
         &self.quote_balances
     }
     /// Get the book
-    pub fn book(&self) -> &OrderBook {
+    pub const fn book(&self) -> &OrderBook {
         &self.book
     }
     /// Get the order status.
-    pub fn order_status(&self) -> &HashMap<u64, FillStatus> {
+    pub const fn order_status(&self) -> &HashMap<u64, FillStatus> {
         &self.order_status
     }
 }

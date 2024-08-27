@@ -41,7 +41,7 @@ pub enum Response {
 pub struct ApiResponse {
     /// The response from processing the request with one engine tick
     pub response: Response,
-    /// The global index of the request. The request is guranteed to be processed
+    /// The global index of the request. The request is guaranteed to be processed
     /// via ordering indicated by this index
     pub global_index: u64,
 }
@@ -197,7 +197,7 @@ impl Order {
     }
 
     /// Size of the quote asset required to fill this order.
-    pub fn quote_size(&self) -> u64 {
+    pub const fn quote_size(&self) -> u64 {
         self.size * self.limit_price
     }
 }
@@ -252,7 +252,7 @@ impl OrderFill {
     }
 
     /// Size of the quote asset exchanged
-    pub fn quote_size(&self) -> u64 {
+    pub const fn quote_size(&self) -> u64 {
         self.size * self.price
     }
 }
