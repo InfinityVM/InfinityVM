@@ -192,6 +192,7 @@ pub async fn mock_consumer_pending_job(
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
         program_id: bytes,
         input: addr.abi_encode(),
+        program_state: vec![],
         request_type: RequestType::Onchain,
         result_with_metadata: result_with_meta,
         status: JobStatus {

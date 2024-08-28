@@ -68,6 +68,7 @@ impl RequestAndResultSigner {
             consumer_address: Address::abi_encode_packed(&consumer_addr),
             program_id: PROGRAM_ID.to_vec(),
             input: Address::abi_encode(&zero_addr),
+            program_state: vec![],
             request_type: RequestType::Offchain(vec![]),
             result_with_metadata: vec![],
             zkvm_operator_signature: vec![],

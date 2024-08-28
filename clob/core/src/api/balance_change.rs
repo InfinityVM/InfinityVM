@@ -75,6 +75,15 @@ alloy_sol_types::sol! {
         int256 locked_quote;
     }
 
+    /// Input to zkvm program.
+    #[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+    struct ClobProgramInput {
+        /// Hash of previous state output of zkvm.
+        bytes32 prev_state_hash;
+        /// List of orders.
+        bytes orders;
+    }
+
     /// Output of zkvm program.
      #[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
     struct ClobProgramOutput {

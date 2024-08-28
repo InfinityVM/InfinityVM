@@ -70,6 +70,7 @@ where
             consumer_address: consumer_address.to_vec(),
             program_id: program_id.to_vec(),
             input: input.to_vec(),
+            program_state: req.program_state,
             request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],
             zkvm_operator_signature: vec![],

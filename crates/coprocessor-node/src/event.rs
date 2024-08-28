@@ -81,6 +81,7 @@ where
                     nonce: event.nonce,
                     program_id: event.programID.clone().to_vec(),
                     input: event.programInput.into(),
+                    program_state: vec![], // Onchain jobs are stateless
                     consumer_address: event.consumer.to_vec(),
                     max_cycles: event.maxCycles,
                     request_type: RequestType::Onchain,

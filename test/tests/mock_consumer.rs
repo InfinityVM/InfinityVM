@@ -76,6 +76,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             consumer_address: anvil.mock_consumer.abi_encode_packed(),
             program_id: program_id.clone(),
             input: mock_user_address.abi_encode(),
+            program_state: vec![],
             // signature added to this job below
             request_type: RequestType::Offchain(vec![]),
             result_with_metadata: vec![],
@@ -92,8 +93,11 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
         job.request_type = RequestType::Offchain(request_signature.as_bytes().to_vec());
 
-        let submit_job_request =
-            SubmitJobRequest { request: job_request_payload, signature: request_signature.into() };
+        let submit_job_request = SubmitJobRequest {
+            request: job_request_payload,
+            signature: request_signature.into(),
+            program_state: vec![],
+        };
         let submit_job_response =
             args.coprocessor_node.submit_job(submit_job_request).await.unwrap().into_inner();
         assert_eq!(submit_job_response.job_id, job_id);
