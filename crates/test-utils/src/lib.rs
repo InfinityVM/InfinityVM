@@ -61,7 +61,7 @@ pub async fn sleep_until_bound(port: u16) {
     panic!("localhost:{port} was not successfully bound");
 }
 
-/// Output from [`anvil_with_contracts`]
+/// Output from [`anvil_with_mock_consumer`]
 #[derive(Debug)]
 pub struct AnvilMockConsumer {
     /// Address of the mock consumer contract

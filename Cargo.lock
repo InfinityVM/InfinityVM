@@ -2224,6 +2224,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "clob-contracts",
+ "clob-programs",
  "contracts",
  "coprocessor-node",
  "db",
