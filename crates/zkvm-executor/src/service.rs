@@ -76,6 +76,7 @@ where
 
     /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
     /// Returns (`result_with_metadata`, `zkvm_operator_signature`)
+    #[allow(clippy::too_many_arguments)]
     pub async fn execute(
         &self,
         job_id: [u8; 32],
