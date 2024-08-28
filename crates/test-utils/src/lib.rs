@@ -82,7 +82,6 @@ pub struct AnvilJobManager {
 }
 
 /// Spin up anvil instance with job manager contracts.
-// TODO: DRY this with stuff in test utils crate.
 pub async fn anvil_with_job_manager() -> AnvilJobManager {
     // Ensure the anvil instance will not collide with anything already running on the OS
     let port = get_localhost_port();
@@ -130,7 +129,7 @@ pub async fn anvil_with_job_manager() -> AnvilJobManager {
     AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator }
 }
 
-/// Setup an anvil instance with job manager contracts.
+/// Deploy `MockConsumer` contracts to anvil instance
 pub async fn anvil_with_mock_consumer(anvil_job_manger: &AnvilJobManager) -> AnvilMockConsumer {
     let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manger;
 

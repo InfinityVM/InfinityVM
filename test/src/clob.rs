@@ -1,10 +1,10 @@
 use alloy::{
-    network::EthereumWallet, node_bindings::AnvilInstance, primitives::Address,
-    providers::ProviderBuilder, signers::local::PrivateKeySigner,
+    network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
+    signers::local::PrivateKeySigner,
 };
 use clob_contracts::clob_consumer::ClobConsumer;
 
-use test_utils::{anvil_with_job_manager, AnvilJobManager};
+use test_utils::AnvilJobManager;
 
 /// `ERC20.sol` bindings
 pub mod erc20 {
@@ -30,7 +30,7 @@ pub struct AnvilClob {
     pub base_erc20: Address,
 }
 
-/// Spin up an anvil instance with job manager and clob consumer contracts.
+/// Deploy `ClobConsumer` to anvil instance.
 pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
     let AnvilJobManager { anvil, job_manager, .. } = anvil;
 
