@@ -7,7 +7,8 @@ use std::{
     process::{self, Command},
 };
 use test_utils::{
-    anvil_with_mock_consumer, get_localhost_port, sleep_until_bound, AnvilMockConsumer, LOCALHOST,
+    anvil_with_job_manager, anvil_with_mock_consumer, get_localhost_port, sleep_until_bound,
+    AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
 use tonic::transport::Channel;
 use utils::AnvilClob;
@@ -41,35 +42,38 @@ impl Drop for ProcKill {
 /// Arguments passed to the test function.
 #[derive(Debug)]
 pub struct Args {
-    /// Anvil setup with `MockConsumer`.
+    /// `MockConsumer` deployment.
     pub mock_consumer: Option<AnvilMockConsumer>,
-    /// Anvil setup with `ClobConsumer`.
+    /// `ClobConsumer` deployment.
     pub clob_consumer: Option<AnvilClob>,
+    /// Anvil setup with `JobManager`.
+    pub anvil: AnvilJobManager,
     /// Coprocessor Node gRPC client
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
 }
 
 /// E2E test environment builder and runner.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct E2EBuilder {
     clob: bool,
-}
-
-impl Default for E2EBuilder {
-    fn default() -> Self {
-        Self::new()
-    }
+    mock_consumer: bool,
 }
 
 impl E2EBuilder {
     /// Create a new [Self]
     pub const fn new() -> Self {
-        Self { clob: false }
+        Self { clob: false, mock_consumer: false }
     }
 
     /// Setup the clob
     pub const fn clob(mut self) -> Self {
         self.clob = true;
+        self
+    }
+
+    /// Setup the clob
+    pub const fn mock_consumer(mut self) -> Self {
+        self.mock_consumer = true;
         self
     }
 }
@@ -86,8 +90,9 @@ impl E2EBuilder {
         // let mut args = Args
         //  { mock_consumer: None, clob_consumer: None, coprocessor_node: None };
 
+        let anvil = anvil_with_job_manager().await;
         // Start an anvil node
-        let anvil = anvil_with_mock_consumer().await;
+
         let job_manager = anvil.job_manager.to_string();
         let chain_id = anvil.anvil.chain_id().to_string();
         let http_rpc_url = anvil.anvil.endpoint();
@@ -128,7 +133,11 @@ impl E2EBuilder {
                 .await
                 .unwrap();
 
-        let args = Args { mock_consumer: Some(anvil), coprocessor_node, clob_consumer: None };
+        let mut args = Args { mock_consumer: None, coprocessor_node, clob_consumer: None };
+
+        if self.mock_consumer {
+            args.mock_consumer = Some(anvil_with_mock_consumer(&anvil).await)
+        }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())

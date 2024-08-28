@@ -40,7 +40,8 @@ fn invariants() {
 #[ignore]
 async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
-        let anvil = args.mock_consumer.unwrap();
+        let mock = args.mock_consumer.unwrap();
+        let anvil = args.anvil;
         let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
 
@@ -64,16 +65,16 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .with_recommended_fillers()
             .wallet(random_user_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
+        let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
         // Submit job to coproc node
         let nonce = 1;
-        let job_id = get_job_id(nonce, anvil.mock_consumer);
+        let job_id = get_job_id(nonce, mock.mock_consumer);
         let mut job = Job {
             id: job_id,
             nonce,
             max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-            consumer_address: anvil.mock_consumer.abi_encode_packed(),
+            consumer_address: mock.mock_consumer.abi_encode_packed(),
             program_id: program_id.clone(),
             input: mock_user_address.abi_encode(),
             // signature added to this job below
@@ -175,7 +176,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 #[tokio::test]
 async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
-        let anvil = args.mock_consumer.unwrap();
+        let mock = args.mock_consumer.unwrap();
+        let anvil = args.anvil;
         let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
 
@@ -210,7 +212,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             .log_decode::<IJobManager::JobCreated>()
             .unwrap();
         let job_id = log.data().jobID;
-        let expected_job_id = get_job_id(1, anvil.mock_consumer);
+        let expected_job_id = get_job_id(1, mock.mock_consumer);
         assert_eq!(job_id, expected_job_id);
 
         // Wait for the job to be processed

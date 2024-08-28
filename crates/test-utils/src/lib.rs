@@ -64,14 +64,6 @@ pub async fn sleep_until_bound(port: u16) {
 /// Output from [`anvil_with_contracts`]
 #[derive(Debug)]
 pub struct AnvilMockConsumer {
-    /// Anvil instance
-    pub anvil: AnvilInstance,
-    /// Address of the job manager contract
-    pub job_manager: Address,
-    /// Relayer private key
-    pub relayer: PrivateKeySigner,
-    /// Coprocessor operator private key
-    pub coprocessor_operator: PrivateKeySigner,
     /// Address of the mock consumer contract
     pub mock_consumer: Address,
 }
@@ -139,9 +131,8 @@ pub async fn anvil_with_job_manager() -> AnvilJobManager {
 }
 
 /// Setup an anvil instance with job manager contracts.
-pub async fn anvil_with_mock_consumer() -> AnvilMockConsumer {
-    let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } =
-        anvil_with_job_manager().await;
+pub async fn anvil_with_mock_consumer(anvil_job_manger: &AnvilJobManager) -> AnvilMockConsumer {
+    let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } = anvil_job_manger;
 
     let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
     let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
@@ -157,7 +148,7 @@ pub async fn anvil_with_mock_consumer() -> AnvilMockConsumer {
     let initial_max_nonce = 0;
     let mock_consumer = MockConsumer::deploy(
         consumer_provider,
-        job_manager,
+        job_manager.clone(),
         offchain_signer.address(),
         initial_max_nonce,
     )
@@ -165,5 +156,5 @@ pub async fn anvil_with_mock_consumer() -> AnvilMockConsumer {
     .unwrap();
     let mock_consumer = *mock_consumer.address();
 
-    AnvilMockConsumer { anvil, job_manager, relayer, coprocessor_operator, mock_consumer }
+    AnvilMockConsumer { mock_consumer }
 }
