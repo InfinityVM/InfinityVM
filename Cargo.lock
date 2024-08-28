@@ -5874,12 +5874,9 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "contracts",
- "db",
- "proto",
  "rand 0.8.5",
  "tokio",
  "tracing-subscriber 0.3.18",
- "zkvm-executor",
 ]
 
 [[package]]
