@@ -57,13 +57,6 @@ async fn state_job_submission_clob_consumer() {
                 limit_price: 4,
                 size: 100,
             }),
-            // Buy 100 base for 4*100 quote
-            Request::AddOrder(AddOrderRequest {
-                address: bob,
-                is_buy: true,
-                limit_price: 4,
-                size: 100,
-            }),
             // Buy 100 base for 1*100 quote, this won't match but will lock funds
             Request::AddOrder(AddOrderRequest {
                 address: bob,
@@ -71,10 +64,16 @@ async fn state_job_submission_clob_consumer() {
                 limit_price: 1,
                 size: 100,
             }),
+            // Buy 100 base for 4*100 quote
+            Request::AddOrder(AddOrderRequest {
+                address: bob,
+                is_buy: true,
+                limit_price: 4,
+                size: 100,
+            }),
         ];
 
         let requests3 = vec![
-            // Sell 100 base for 4*100 quote
             Request::Withdraw(WithdrawRequest { address: alice, base_free: 0, quote_free: 400 }),
             // Bob has 100 quote locked in order, 100 base free from fill, and lost 400 quote
             // in a fill.

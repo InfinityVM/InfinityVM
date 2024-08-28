@@ -101,6 +101,11 @@ pub fn withdraw(req: WithdrawRequest, mut state: ClobState) -> (WithdrawResponse
         base_balance.free -= req.base_free;
         quote_balance.free -= req.quote_free;
 
+        if *quote_balance == AssetBalance::default() && *base_balance == AssetBalance::default() {
+            state.quote_balances.remove(&addr);
+            state.base_balances.remove(&addr);
+        }
+
         let change = Dif::withdraw(req.address, req.base_free, req.quote_free);
         (WithdrawResponse { success: true }, state, change)
     }
@@ -132,7 +137,7 @@ pub fn cancel_order(
     };
 
     let fill_status = state.order_status.remove(&o.oid);
-    (CancelOrderResponse { success: false, fill_status }, state, change)
+    (CancelOrderResponse { success: true, fill_status }, state, change)
 }
 
 /// Add an order.
@@ -310,8 +315,9 @@ impl<T: BorshSerialize> BorshKeccack256 for T {
 mod tests {
     use crate::{
         api::{
-            AddOrderRequest, AddOrderResponse, AssetBalance, DepositRequest, DepositResponse,
-            FillStatus, Request, Response,
+            AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest,
+            CancelOrderResponse, DepositRequest, DepositResponse, FillStatus, OrderFill, Request,
+            Response, WithdrawRequest, WithdrawResponse,
         },
         tick, ClobState,
     };
@@ -364,5 +370,109 @@ mod tests {
             *clob_state.base_balances.get(&alice).unwrap(),
             AssetBalance { free: 100, locked: 100 }
         );
+
+        let bob_limit1 = Request::AddOrder(AddOrderRequest {
+            address: bob,
+            is_buy: true,
+            limit_price: 1,
+            size: 100,
+        });
+        let (resp, clob_state, _) = tick(bob_limit1, clob_state).unwrap();
+        assert_eq!(
+            Response::AddOrder(AddOrderResponse {
+                success: true,
+                status: Some(FillStatus {
+                    oid: 1,
+                    size: 100,
+                    address: bob,
+                    filled_size: 0,
+                    fills: vec![]
+                })
+            }),
+            resp
+        );
+        assert_eq!(
+            *clob_state.quote_balances.get(&bob).unwrap(),
+            AssetBalance { free: 700, locked: 100 }
+        );
+
+        let bob_limit2 = Request::AddOrder(AddOrderRequest {
+            address: bob,
+            is_buy: true,
+            limit_price: 4,
+            size: 100,
+        });
+        let (resp, clob_state, _) = tick(bob_limit2, clob_state).unwrap();
+        assert_eq!(
+            Response::AddOrder(AddOrderResponse {
+                success: true,
+                status: Some(FillStatus {
+                    oid: 2,
+                    size: 100,
+                    address: bob,
+                    filled_size: 100,
+                    fills: vec![OrderFill {
+                        maker_oid: 0,
+                        taker_oid: 2,
+                        buyer: bob,
+                        seller: alice,
+                        price: 4,
+                        size: 100
+                    }]
+                })
+            }),
+            resp
+        );
+        assert_eq!(
+            *clob_state.base_balances.get(&alice).unwrap(),
+            AssetBalance { free: 100, locked: 0 }
+        );
+        assert_eq!(
+            *clob_state.quote_balances.get(&alice).unwrap(),
+            AssetBalance { free: 400, locked: 0 }
+        );
+        assert_eq!(
+            *clob_state.base_balances.get(&bob).unwrap(),
+            AssetBalance { free: 100, locked: 0 }
+        );
+        assert_eq!(
+            *clob_state.quote_balances.get(&bob).unwrap(),
+            AssetBalance { free: 300, locked: 100 }
+        );
+
+        let alice_withdraw =
+            Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 });
+        let (resp, clob_state, _) = tick(alice_withdraw, clob_state).unwrap();
+        assert_eq!(Response::Withdraw(WithdrawResponse { success: true }), resp);
+        assert!(clob_state.quote_balances.get(&alice).is_none());
+        assert!(clob_state.base_balances.get(&alice).is_none());
+
+        let bob_cancel = Request::CancelOrder(CancelOrderRequest { oid: 1 });
+        let (resp, clob_state, _) = tick(bob_cancel, clob_state).unwrap();
+        assert_eq!(
+            Response::CancelOrder(CancelOrderResponse {
+                success: true,
+                fill_status: Some(FillStatus {
+                    oid: 1,
+                    size: 100,
+                    address: bob,
+                    filled_size: 0,
+                    fills: vec![]
+                })
+            }),
+            resp
+        );
+        assert_eq!(
+            *clob_state.quote_balances.get(&bob).unwrap(),
+            AssetBalance { free: 400, locked: 0 }
+        );
+
+        let bob_withdraw =
+            Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 });
+        let (resp, clob_state, _) = tick(bob_withdraw, clob_state).unwrap();
+        assert_eq!(Response::Withdraw(WithdrawResponse { success: true }), resp);
+
+        assert!(clob_state.quote_balances.is_empty());
+        assert!(clob_state.base_balances.is_empty());
     }
 }
