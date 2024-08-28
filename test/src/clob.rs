@@ -59,7 +59,7 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
     // Deploy the clob consumer
     let clob_consumer = *ClobConsumer::deploy(
         provider,
-        job_manager.clone(),
+        *job_manager,
         clob_signer.address(),
         0,
         base_erc20,

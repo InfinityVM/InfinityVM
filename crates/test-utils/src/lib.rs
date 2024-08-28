@@ -7,7 +7,7 @@ use alloy::{
     node_bindings::{Anvil, AnvilInstance},
     primitives::Address,
     providers::{ext::AnvilApi, ProviderBuilder},
-    signers::{local::PrivateKeySigner, Signer},
+    signers::local::PrivateKeySigner,
 };
 use contracts::{
     job_manager::JobManager, mock_consumer::MockConsumer,
@@ -147,7 +147,7 @@ pub async fn anvil_with_mock_consumer(anvil_job_manger: &AnvilJobManager) -> Anv
     let initial_max_nonce = 0;
     let mock_consumer = MockConsumer::deploy(
         consumer_provider,
-        job_manager.clone(),
+        *job_manager,
         offchain_signer.address(),
         initial_max_nonce,
     )
