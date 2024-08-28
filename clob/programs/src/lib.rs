@@ -36,16 +36,8 @@ mod tests {
         assert_eq!(
             clob_out.deposit_deltas,
             vec![
-                DepositDelta {
-                    account: alice.into(),
-                    base: U256::from(200),
-                    quote: U256::from(0)
-                },
-                DepositDelta {
-                    account: bob.into(),
-                    base: U256::from(0),
-                    quote: U256::from(800)
-                },
+                DepositDelta { account: alice.into(), base: U256::from(200), quote: U256::from(0) },
+                DepositDelta { account: bob.into(), base: U256::from(0), quote: U256::from(800) },
             ]
         );
 
@@ -110,16 +102,10 @@ mod tests {
             locked_quote: I256::try_from(-100i64).unwrap(),
         };
         assert_eq!(clob_out.order_deltas, vec![a]);
-        let a = WithdrawDelta {
-            account: alice.into(),
-            base: U256::from(100),
-            quote: U256::from(400),
-        };
-        let b = WithdrawDelta {
-            account: bob.into(),
-            base: U256::from(100),
-            quote: U256::from(400),
-        };
+        let a =
+            WithdrawDelta { account: alice.into(), base: U256::from(100), quote: U256::from(400) };
+        let b =
+            WithdrawDelta { account: bob.into(), base: U256::from(100), quote: U256::from(400) };
         assert_eq!(clob_out.withdraw_deltas, vec![a, b]);
     }
 
