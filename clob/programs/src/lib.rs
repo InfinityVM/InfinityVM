@@ -37,12 +37,12 @@ mod tests {
             clob_out.deposit_deltas,
             vec![
                 DepositDelta {
-                    account: alice.clone().into(),
+                    account: alice.into(),
                     base: U256::from(200),
                     quote: U256::from(0)
                 },
                 DepositDelta {
-                    account: bob.clone().into(),
+                    account: bob.into(),
                     base: U256::from(0),
                     quote: U256::from(800)
                 },
@@ -78,14 +78,14 @@ mod tests {
         assert!(clob_out.withdraw_deltas.is_empty());
         assert!(clob_out.deposit_deltas.is_empty());
         let a = OrderDelta {
-            account: alice.clone().into(),
+            account: alice.into(),
             free_base: I256::try_from(-100i64).unwrap(),
             locked_base: I256::try_from(0).unwrap(),
             free_quote: I256::try_from(400).unwrap(),
             locked_quote: I256::try_from(0).unwrap(),
         };
         let b = OrderDelta {
-            account: bob.clone().into(),
+            account: bob.into(),
             free_base: I256::try_from(100).unwrap(),
             locked_base: I256::try_from(0).unwrap(),
             free_quote: I256::try_from(-500i64).unwrap(),
@@ -103,7 +103,7 @@ mod tests {
         assert_eq!(clob_out.next_state_hash, clob_state3.borsh_keccak256());
         assert!(clob_out.deposit_deltas.is_empty());
         let a = OrderDelta {
-            account: bob.clone().into(),
+            account: bob.into(),
             free_base: I256::try_from(0).unwrap(),
             locked_base: I256::try_from(0).unwrap(),
             free_quote: I256::try_from(100).unwrap(),
@@ -111,12 +111,12 @@ mod tests {
         };
         assert_eq!(clob_out.order_deltas, vec![a]);
         let a = WithdrawDelta {
-            account: alice.clone().into(),
+            account: alice.into(),
             base: U256::from(100),
             quote: U256::from(400),
         };
         let b = WithdrawDelta {
-            account: bob.clone().into(),
+            account: bob.into(),
             base: U256::from(100),
             quote: U256::from(400),
         };
