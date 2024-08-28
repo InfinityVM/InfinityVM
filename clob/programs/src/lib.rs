@@ -14,31 +14,38 @@ mod tests {
     // TODO: fix this
     #[test]
     fn executes_program() {
-        let zkvm_executor = LocalProver::new("locals only");
+        let executor = LocalProver::new("locals only");
 
+        let clob_state0 = ClobState::default();
         let bob = [69u8; 20];
         let alice = [42u8; 20];
+
         let requests1 = vec![
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 }),
         ];
-
-        let clob_state0 = ClobState::default();
-        let inputs = [requests1].map(|rs| {
-            // TODO: add some logic DRY logic to iterate over requests and get next statec
-            let mut next_clob_state = clob_state0.clone();
-            for r in rs.iter().cloned() {
-                (_, next_clob_state, _) = tick(r, next_clob_state).unwrap();
-            }
-
-            (rs, next_clob_state)
-        });
-
+        let clob_state1 = next_state(requests1.clone(), clob_state0.clone());
         // Deposits
+        let clob_out = execute(requests1, clob_state0.clone(), &executor);
+        assert_eq!(clob_out.next_state_hash, clob_state1.borsh_keccak256());
+    }
 
-        let (txns, next_state) = inputs[0].clone();
+    fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
+        let mut next_clob_state = init_state;
+        for tx in txns.iter().cloned() {
+            (_, next_clob_state, _) = tick(tx, next_clob_state).unwrap();
+        }
+
+        next_clob_state
+    }
+
+    fn execute(
+        txns: Vec<Request>,
+        init_state: ClobState,
+        executor: &LocalProver,
+    ) -> ClobProgramOutput {
         let txns_b = borsh::to_vec(&txns).unwrap();
-        let state_b = borsh::to_vec(&clob_state0).unwrap();
+        let state_b = borsh::to_vec(&init_state).unwrap();
         let txns_len = txns_b.len() as u32;
         let state_len = state_b.len() as u32;
         let env = ExecutorEnv::builder()
@@ -50,8 +57,10 @@ mod tests {
             .write_slice(&txns_b)
             .build()
             .unwrap();
-        let out_bytes = zkvm_executor.execute(env, super::CLOB_ELF).unwrap().journal.bytes;
-        let out = ClobProgramOutput::abi_decode(&out_bytes, true).unwrap();
-        assert_eq!(out.next_state_hash, next_state.borsh_keccak256());
+        let out_bytes = executor.execute(env, super::CLOB_ELF).unwrap().journal.bytes;
+        
+        
+        
+        ClobProgramOutput::abi_decode(&out_bytes, true).unwrap()
     }
 }
