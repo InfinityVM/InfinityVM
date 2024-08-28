@@ -30,8 +30,15 @@ contract ClobConsumer is Consumer, OffchainRequester {
         uint256 quoteDelta;
     }
 
+    // Struct passed into zkVM program as input
+    struct ClobProgramInput {
+        bytes32 previousStateHash;
+        // Borsh-encoded orders
+        bytes orders;
+    }
+
     // Struct returned by zkVM program as the result
-    struct ClobResult {
+    struct ClobProgramOutput {
         bytes32 nextStateRootHash;
         DepositDelta[] depositDeltas;
         OrderDelta[] orderDeltas;
@@ -113,13 +120,13 @@ contract ClobConsumer is Consumer, OffchainRequester {
     }
 
     function _receiveResult(bytes32 jobID, bytes memory result) internal override  {
-        ClobResult memory clobResult = abi.decode(result, (ClobResult));
+        ClobProgramOutput memory clobResult = abi.decode(result, (ClobProgramOutput));
 
         // TODO (Maanav): Figure out how to generalize this state root check etc.
         // [ref]: https://github.com/Ethos-Works/InfinityVM/issues/178
-        bytes memory batchInput = getProgramInputsForJob(jobID);
-        (bytes32 previousStateHash, bytes memory orders) = abi.decode(batchInput, (bytes32, bytes));
-        require(previousStateHash == latestStateRootHash, "Invalid state hash passed as input");
+        bytes memory encodedBatchInput = getProgramInputsForJob(jobID);
+        ClobProgramInput memory batchInput = abi.decode(encodedBatchInput, (ClobProgramInput));
+        require(batchInput.previousStateHash == latestStateRootHash, "Invalid state hash passed as input");
 
         // Update the state root hash
         latestStateRootHash = clobResult.nextStateRootHash;
