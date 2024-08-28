@@ -1,13 +1,23 @@
-use alloy::{network::EthereumWallet, providers::ProviderBuilder};
+use alloy::{network::EthereumWallet, providers::ProviderBuilder, signers::Signer};
+use alloy_sol_types::SolValue;
 use clob_contracts::clob_consumer::ClobConsumer;
+use clob_core::api::ClobProgramOutput;
 use clob_core::{
-    api::{AddOrderRequest, CancelOrderRequest, DepositRequest, Request, WithdrawRequest},
-    tick, ClobState,
+    api::{
+        AddOrderRequest, CancelOrderRequest, ClobProgramInput, DepositRequest, Request,
+        WithdrawRequest,
+    },
+    tick, BorshKeccack256, ClobState,
 };
 use clob_programs::CLOB_ELF;
 use e2e::{Args, E2E};
-use proto::{SubmitProgramRequest, VmType};
+use proto::GetResultRequest;
+use proto::{SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
+use zkvm_executor::service::ResultWithMetadata;
+
+// TODO: these should be in some sort of sdk-primitives crate
+use clob_contracts::{abi_encode_offchain_job_request, JobParams};
 
 fn program_id() -> Vec<u8> {
     compute_image_id(CLOB_ELF).unwrap().as_bytes().to_vec()
@@ -47,9 +57,12 @@ async fn state_job_submission_clob_consumer() {
             .with_recommended_fillers()
             .wallet(clob_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let _consumer_contract = ClobConsumer::new(clob.clob_consumer, &consumer_provider);
+        let consumer_contract = ClobConsumer::new(clob.clob_consumer, &consumer_provider);
 
         let clob_state0 = ClobState::default();
+        let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
+        let call = consumer_contract.setLatestStateRootHash(init_state_hash.into());
+        let _ = call.send().await.unwrap().get_receipt().await.unwrap();
 
         let bob = [69u8; 20];
         let alice = [42u8; 20];
@@ -91,19 +104,63 @@ async fn state_job_submission_clob_consumer() {
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
 
-        for (txns, init_state, _next_state) in [
+        let mut nonce = 420;
+        for (txns, init_state, next_state) in [
             (requests1, &clob_state0, &clob_state1),
             (requests2, &clob_state1, &clob_state2),
             (requests3, &clob_state2, &clob_state3),
         ] {
-            let _transactions_input = borsh::to_vec(&txns).unwrap();
-            let _state_input = borsh::to_vec(init_state).unwrap();
+            let input = ClobProgramInput {
+                prev_state_hash: init_state.borsh_keccak256(),
+                orders: borsh::to_vec(&txns).unwrap().into(),
+            };
 
-            // TODO: logic to call state coprocessor endpoint
-            // Verify ClobOutput - see zkvm program tests
+            let state_borsh = borsh::to_vec(&init_state).unwrap();
+            let input_abi = input.abi_encode();
+
+            let params = JobParams {
+                nonce,
+                max_cycles: 32 * 1000 * 1000,
+                consumer_address: **clob.clob_consumer,
+                program_input: input_abi,
+                program_id: program_id.clone(),
+            };
+            let request = abi_encode_offchain_job_request(params.clone());
+            let signature =
+                clob.clob_signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
+            let job_request = SubmitJobRequest { request, signature, program_state: state_borsh };
+            let submit_job_response =
+                args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
+
+            // Wait for the job to be processed
+            tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
+
+            let job_id = submit_job_response.job_id;
+            let result_with_metadata = args
+                .coprocessor_node
+                .get_result(GetResultRequest { job_id })
+                .await
+                .unwrap()
+                .into_inner()
+                .job_result
+                .unwrap()
+                .result_with_metadata;
+
+            let raw_output = {
+                use alloy::sol_types::SolType;
+                dbg!(result_with_metadata.len());
+                let abi_decoded_output =
+                    ResultWithMetadata::abi_decode(&result_with_metadata, true).unwrap();
+                abi_decoded_output.4
+            };
+
+            {
+                let clob_output = ClobProgramOutput::abi_decode(&raw_output, true).unwrap();
+                assert_eq!(clob_output.next_state_hash, next_state.borsh_keccak256());
+            }
+
+            nonce += 69;
         }
-
-        // State should now be empty
     }
     E2E::new().clob().run(test).await;
 }

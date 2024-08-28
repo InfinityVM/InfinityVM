@@ -51,3 +51,7 @@ test-all:
 .PHONY: build
 build:
 	cargo build
+
+.PHONY: contracts
+contracts:
+	cd contracts && forge build

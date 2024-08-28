@@ -1,7 +1,6 @@
 //! Contracts bindings and abi types.
 
 use alloy::sol_types::SolType;
-
 /// The payload that gets signed by the user/app for an offchain job request.
 ///
 /// tuple(Nonce,MaxCycles,Consumer,ProgramID,ProgramInput)
@@ -11,6 +10,7 @@ pub type OffchainJobRequest = alloy::sol! {
 
 /// Params for ABI encoded job input.
 // TODO: make these borrowed values for efficiency.
+#[derive(Clone)]
 pub struct JobParams {
     pub nonce: u64,
     pub max_cycles: u64,
