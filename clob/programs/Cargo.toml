@@ -5,6 +5,11 @@ edition = "2021"
 
 [dependencies]
 
+[dev-dependencies]
+risc0-zkvm = { workspace = true }
+clob-core = { workspace = true }
+borsh = { workspace = true }
+
 [build-dependencies]
 risc0-build = { workspace = true }
 

@@ -1691,7 +1691,10 @@ dependencies = [
 name = "clob-programs"
 version = "0.1.0"
 dependencies = [
+ "borsh",
+ "clob-core",
  "risc0-build",
+ "risc0-zkvm",
 ]
 
 [[package]]
