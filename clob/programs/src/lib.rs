@@ -6,8 +6,9 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 mod tests {
     use alloy_sol_types::SolValue;
     use clob_core::api::AddOrderRequest;
+    use clob_core::api::WithdrawRequest;
     use clob_core::{
-        api::{ClobProgramOutput, DepositRequest, Request},
+        api::{CancelOrderRequest, ClobProgramOutput, DepositRequest, Request},
         tick, BorshKeccack256, ClobState,
     };
     use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
@@ -37,13 +38,6 @@ mod tests {
                 limit_price: 4,
                 size: 100,
             }),
-            // Buy 100 base for 4*100 quote
-            Request::AddOrder(AddOrderRequest {
-                address: bob,
-                is_buy: true,
-                limit_price: 4,
-                size: 100,
-            }),
             // Buy 100 base for 1*100 quote, this won't match but will lock funds
             Request::AddOrder(AddOrderRequest {
                 address: bob,
@@ -51,10 +45,26 @@ mod tests {
                 limit_price: 1,
                 size: 100,
             }),
+            // Buy 100 base for 4*100 quote
+            Request::AddOrder(AddOrderRequest {
+                address: bob,
+                is_buy: true,
+                limit_price: 4,
+                size: 100,
+            }),
         ];
         let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
-        // let clob_out = execute(requests2.clone(), clob_state1.clone(), &executor);
+        let clob_out = execute(requests2.clone(), clob_state1.clone(), &executor);
         assert_eq!(clob_out.next_state_hash, clob_state2.borsh_keccak256());
+
+        let requests3 = vec![
+            Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 }),
+            Request::CancelOrder(CancelOrderRequest { oid: 1 }),
+            Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 }),
+        ];
+        let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
+        let clob_out = execute(requests3.clone(), clob_state2.clone(), &executor);
+        assert_eq!(clob_out.next_state_hash, clob_state3.borsh_keccak256());
     }
 
     fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
