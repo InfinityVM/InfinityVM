@@ -75,10 +75,20 @@ alloy_sol_types::sol! {
         int256 locked_quote;
     }
 
+    /// Input to zkvm program.
+    #[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+    struct ClobProgramInput {
+        /// Hash of previous state output of zkvm.
+        /// This is the hash of the borsh-encoded state.
+        bytes32 prev_state_hash;
+        /// List of orders (borsh-encoded).
+        bytes orders;
+    }
+
     /// Output of zkvm program.
      #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct ClobProgramOutput {
-        /// Hash of state output of zkvm.
+        /// Hash of state output of zkvm (hash of borsh-encoded state).
         bytes32 next_state_hash;
         /// Deposit balance deltas.
         DepositDelta[] deposit_deltas;

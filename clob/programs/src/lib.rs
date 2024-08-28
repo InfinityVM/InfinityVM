@@ -8,8 +8,8 @@ mod tests {
     use alloy_sol_types::SolValue;
     use clob_core::{
         api::{
-            AddOrderRequest, CancelOrderRequest, ClobProgramOutput, DepositDelta, DepositRequest,
-            OrderDelta, Request, WithdrawDelta, WithdrawRequest,
+            AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositDelta,
+            DepositRequest, OrderDelta, Request, WithdrawDelta, WithdrawRequest,
         },
         tick, BorshKeccack256, ClobState,
     };
@@ -122,17 +122,24 @@ mod tests {
         init_state: ClobState,
         executor: &LocalProver,
     ) -> ClobProgramOutput {
-        let txns_b = borsh::to_vec(&txns).unwrap();
+        let input = ClobProgramInput {
+            prev_state_hash: init_state.borsh_keccak256(),
+            orders: borsh::to_vec(&txns).unwrap().into(),
+        };
+
         let state_b = borsh::to_vec(&init_state).unwrap();
-        let txns_len = txns_b.len() as u32;
+        let abi_input = input.abi_encode();
+
         let state_len = state_b.len() as u32;
+        let abi_input_len = abi_input.len() as u32;
+
         let env = ExecutorEnv::builder()
             .write::<u32>(&state_len)
             .unwrap()
             .write_slice(&state_b)
-            .write(&txns_len)
+            .write(&abi_input_len)
             .unwrap()
-            .write_slice(&txns_b)
+            .write_slice(&abi_input)
             .build()
             .unwrap();
         let out_bytes = executor.execute(env, super::CLOB_ELF).unwrap().journal.bytes;
