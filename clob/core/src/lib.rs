@@ -166,7 +166,7 @@ pub fn add_order(
         });
         Dif::create(req.address, 0, o.quote_size())
     } else {
-        state.quote_balances.entry(req.address).and_modify(|b| {
+        state.base_balances.entry(req.address).and_modify(|b| {
             b.free -= o.size;
             b.locked += o.size;
         });
@@ -303,5 +303,66 @@ impl<T: BorshSerialize> BorshKeccack256 for T {
         let mut hasher = Keccak256::new();
         hasher.update(borsh);
         hasher.finalize()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        api::{
+            AddOrderRequest, AddOrderResponse, AssetBalance, DepositRequest, DepositResponse,
+            FillStatus, Request, Response,
+        },
+        tick, ClobState,
+    };
+
+    #[test]
+    fn deposit_order_withdraw_cancel() {
+        let clob_state = ClobState::default();
+        let bob = [69u8; 20];
+        let alice = [42u8; 20];
+
+        let alice_dep =
+            Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 });
+        let (resp, clob_state, _) = tick(alice_dep, clob_state).unwrap();
+        assert_eq!(Response::Deposit(DepositResponse { success: true }), resp);
+        assert_eq!(
+            *clob_state.base_balances.get(&alice).unwrap(),
+            AssetBalance { free: 200, locked: 0 }
+        );
+
+        let bob_dep =
+            Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 });
+        let (resp, clob_state, _) = tick(bob_dep, clob_state).unwrap();
+        assert_eq!(Response::Deposit(DepositResponse { success: true }), resp);
+        assert_eq!(
+            *clob_state.quote_balances.get(&bob).unwrap(),
+            AssetBalance { free: 800, locked: 0 }
+        );
+
+        let alice_limit = Request::AddOrder(AddOrderRequest {
+            address: alice,
+            is_buy: false,
+            limit_price: 4,
+            size: 100,
+        });
+        let (resp, clob_state, _) = tick(alice_limit, clob_state).unwrap();
+        assert_eq!(
+            Response::AddOrder(AddOrderResponse {
+                success: true,
+                status: Some(FillStatus {
+                    oid: 0,
+                    size: 100,
+                    address: alice,
+                    filled_size: 0,
+                    fills: vec![]
+                })
+            }),
+            resp
+        );
+        assert_eq!(
+            *clob_state.base_balances.get(&alice).unwrap(),
+            AssetBalance { free: 100, locked: 100 }
+        );
     }
 }

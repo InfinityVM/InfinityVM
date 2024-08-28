@@ -5,13 +5,13 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 #[cfg(test)]
 mod tests {
     use alloy_sol_types::SolValue;
+    use clob_core::api::AddOrderRequest;
     use clob_core::{
         api::{ClobProgramOutput, DepositRequest, Request},
         tick, BorshKeccack256, ClobState,
     };
     use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
 
-    // TODO: fix this
     #[test]
     fn executes_program() {
         let executor = LocalProver::new("locals only");
@@ -26,8 +26,35 @@ mod tests {
         ];
         let clob_state1 = next_state(requests1.clone(), clob_state0.clone());
         // Deposits
-        let clob_out = execute(requests1, clob_state0.clone(), &executor);
+        let clob_out = execute(requests1.clone(), clob_state0.clone(), &executor);
         assert_eq!(clob_out.next_state_hash, clob_state1.borsh_keccak256());
+
+        let requests2 = vec![
+            // Sell 100 base for 4*100 quote
+            Request::AddOrder(AddOrderRequest {
+                address: alice,
+                is_buy: false,
+                limit_price: 4,
+                size: 100,
+            }),
+            // Buy 100 base for 4*100 quote
+            Request::AddOrder(AddOrderRequest {
+                address: bob,
+                is_buy: true,
+                limit_price: 4,
+                size: 100,
+            }),
+            // Buy 100 base for 1*100 quote, this won't match but will lock funds
+            Request::AddOrder(AddOrderRequest {
+                address: bob,
+                is_buy: true,
+                limit_price: 1,
+                size: 100,
+            }),
+        ];
+        let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
+        // let clob_out = execute(requests2.clone(), clob_state1.clone(), &executor);
+        assert_eq!(clob_out.next_state_hash, clob_state2.borsh_keccak256());
     }
 
     fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
@@ -58,9 +85,7 @@ mod tests {
             .build()
             .unwrap();
         let out_bytes = executor.execute(env, super::CLOB_ELF).unwrap().journal.bytes;
-        
-        
-        
+
         ClobProgramOutput::abi_decode(&out_bytes, true).unwrap()
     }
 }
