@@ -2219,6 +2219,29 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "33d4f78a40b1ec35bf8cafdaaf607ba2f773c366b0b3bda48937cacd7a8d5134"
 
 [[package]]
+name = "e2e"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "clob-contracts",
+ "clob-programs",
+ "contracts",
+ "coprocessor-node",
+ "db",
+ "futures",
+ "mock-consumer-methods",
+ "proto",
+ "risc0-binfmt",
+ "risc0-zkp",
+ "serde_json",
+ "tempfile",
+ "test-utils",
+ "tokio",
+ "tonic",
+ "zkvm-executor",
+]
+
+[[package]]
 name = "ecdsa"
 version = "0.16.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3050,28 +3073,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a0c10553d664a4d0bcff9f4215d0aac67a639cc68ef660840afe309b807bc9f5"
 dependencies = [
  "generic-array",
-]
-
-[[package]]
-name = "integration"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "clob-contracts",
- "contracts",
- "coprocessor-node",
- "db",
- "futures",
- "mock-consumer-methods",
- "proto",
- "risc0-binfmt",
- "risc0-zkp",
- "serde_json",
- "tempfile",
- "test-utils",
- "tokio",
- "tonic",
- "zkvm-executor",
 ]
 
 [[package]]
@@ -5874,12 +5875,9 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "contracts",
- "db",
- "proto",
  "rand 0.8.5",
  "tokio",
  "tracing-subscriber 0.3.18",
- "zkvm-executor",
 ]
 
 [[package]]

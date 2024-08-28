@@ -1,5 +1,5 @@
 [package]
-name = "integration"
+name = "e2e"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -15,14 +15,15 @@ risc0-binfmt = { workspace = true }
 risc0-zkp = { workspace = true }
 alloy = { workspace = true }
 tempfile = { workspace = true }
-contracts = { path = "../crates/contracts" }
-proto = { path = "../crates/proto" }
-coprocessor-node = { path = "../crates/coprocessor-node" }
-zkvm-executor = { path = "../crates/zkvm-executor" }
-test-utils = { path = "../crates/test-utils" }
-db = { path = "../crates/db" }
 
+contracts = { workspace = true }
+proto = { workspace = true }
+coprocessor-node = { workspace = true }
+zkvm-executor = { workspace = true }
+test-utils = { workspace = true }
+db = { workspace = true }
 clob-contracts = { workspace = true }
+clob-programs = { workspace = true }
 
 [dev-dependencies]
 mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }

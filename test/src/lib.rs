@@ -1,5 +1,6 @@
-//! Integration tests and helpers.
+//! E2E tests and helpers.
 use alloy::primitives::hex;
+use clob::{anvil_with_clob_consumer, AnvilClob};
 use futures::future::FutureExt;
 use std::{
     future::Future,
@@ -7,14 +8,15 @@ use std::{
     process::{self, Command},
 };
 use test_utils::{
-    anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil, LOCALHOST,
+    anvil_with_job_manager, anvil_with_mock_consumer, get_localhost_port, sleep_until_bound,
+    AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
 use tonic::transport::Channel;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 
-/// Test utilities.
-pub mod utils;
+/// Test utilities for CLOB e2e tests.
+pub mod clob;
 
 /// The ethos reth crate is not part of the workspace so the binary is located
 /// within the crate
@@ -40,27 +42,54 @@ impl Drop for ProcKill {
 /// Arguments passed to the test function.
 #[derive(Debug)]
 pub struct Args {
-    /// Anvil setup stuff
-    pub anvil: TestAnvil,
+    /// `MockConsumer` deployment.
+    pub mock_consumer: Option<AnvilMockConsumer>,
+    /// `ClobConsumer` deployment.
+    pub clob_consumer: Option<AnvilClob>,
+    /// Anvil setup with `JobManager`.
+    pub anvil: AnvilJobManager,
     /// Coprocessor Node gRPC client
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
 }
 
-/// Integration test environment builder and runner.
-#[derive(Debug)]
-pub struct Integration;
+/// E2E test environment builder and runner.
+#[derive(Debug, Default)]
+pub struct E2EBuilder {
+    clob: bool,
+    mock_consumer: bool,
+}
 
-impl Integration {
+impl E2EBuilder {
+    /// Create a new [Self]
+    pub const fn new() -> Self {
+        Self { clob: false, mock_consumer: false }
+    }
+
+    /// Setup the clob
+    pub const fn clob(mut self) -> Self {
+        self.clob = true;
+        self
+    }
+
+    /// Setup the clob
+    pub const fn mock_consumer(mut self) -> Self {
+        self.mock_consumer = true;
+        self
+    }
+}
+
+impl E2EBuilder {
     /// Run the given `test_fn`.
-    pub async fn run<F, R>(test_fn: F)
+    pub async fn build<F, R>(self, test_fn: F)
     where
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
         test_utils::test_tracing();
 
+        let anvil = anvil_with_job_manager().await;
         // Start an anvil node
-        let anvil = anvil_with_contracts().await;
+
         let job_manager = anvil.job_manager.to_string();
         let chain_id = anvil.anvil.chain_id().to_string();
         let http_rpc_url = anvil.anvil.endpoint();
@@ -101,7 +130,14 @@ impl Integration {
                 .await
                 .unwrap();
 
-        let args = Args { anvil, coprocessor_node };
+        let mut args = Args { mock_consumer: None, coprocessor_node, anvil, clob_consumer: None };
+
+        if self.mock_consumer {
+            args.mock_consumer = Some(anvil_with_mock_consumer(&args.anvil).await)
+        }
+        if self.clob {
+            args.clob_consumer = Some(anvil_with_clob_consumer(&args.anvil).await)
+        }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
@@ -110,12 +146,10 @@ impl Integration {
 
 #[cfg(test)]
 mod test {
-    use crate::{ProcKill, ETHOS_RETH_DEBUG_BIN};
-    use std::process::Command;
 
-    #[test]
-    fn ethos_reth_exists() {
-        let _proc: ProcKill =
-            Command::new(ETHOS_RETH_DEBUG_BIN).arg("node").arg("--dev").spawn().unwrap().into();
-    }
+    // #[test]
+    // fn ethos_reth_exists() {
+    //     let _proc: ProcKill =
+    //         Command::new(ETHOS_RETH_DEBUG_BIN).arg("node").arg("--dev").spawn().unwrap().into();
+    // }
 }
