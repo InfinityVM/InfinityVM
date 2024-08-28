@@ -12,7 +12,7 @@ use alloy::{
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use db::tables::{get_job_id, Job, RequestType};
-use e2e::{Args, E2EBuilder};
+use e2e::{Args, E2E};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType,
@@ -169,7 +169,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             get_next_nonce_call.call().await.unwrap();
         assert_eq!(nonce, 2);
     }
-    E2EBuilder::new().mock_consumer().build(test).await;
+    E2E::new().mock_consumer().run(test).await;
 }
 
 #[ignore]
@@ -271,5 +271,5 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
         assert_eq!(balance, expected_balance);
     }
-    E2EBuilder::new().mock_consumer().build(test).await;
+    E2E::new().mock_consumer().run(test).await;
 }

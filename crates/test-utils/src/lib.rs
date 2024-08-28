@@ -130,8 +130,8 @@ pub async fn anvil_with_job_manager() -> AnvilJobManager {
 }
 
 /// Deploy `MockConsumer` contracts to anvil instance
-pub async fn anvil_with_mock_consumer(anvil_job_manger: &AnvilJobManager) -> AnvilMockConsumer {
-    let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manger;
+pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> AnvilMockConsumer {
+    let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manager;
 
     let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
     let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();

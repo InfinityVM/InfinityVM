@@ -2223,7 +2223,9 @@ name = "e2e"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "borsh",
  "clob-contracts",
+ "clob-core",
  "clob-programs",
  "contracts",
  "coprocessor-node",

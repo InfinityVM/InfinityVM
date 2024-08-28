@@ -28,3 +28,5 @@ clob-programs = { workspace = true }
 [dev-dependencies]
 mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }
 serde_json = { workspace = true }
+borsh = { workspace = true }
+clob-core = { workspace = true }

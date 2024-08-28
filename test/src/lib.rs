@@ -57,12 +57,12 @@ pub struct Args {
 
 /// E2E test environment builder and runner.
 #[derive(Debug, Default)]
-pub struct E2EBuilder {
+pub struct E2E {
     clob: bool,
     mock_consumer: bool,
 }
 
-impl E2EBuilder {
+impl E2E {
     /// Create a new [Self]
     pub const fn new() -> Self {
         Self { clob: false, mock_consumer: false }
@@ -81,9 +81,9 @@ impl E2EBuilder {
     }
 }
 
-impl E2EBuilder {
+impl E2E {
     /// Run the given `test_fn`.
-    pub async fn build<F, R>(self, test_fn: F)
+    pub async fn run<F, R>(self, test_fn: F)
     where
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
@@ -171,14 +171,4 @@ impl E2EBuilder {
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
     }
-}
-
-#[cfg(test)]
-mod test {
-
-    // #[test]
-    // fn ethos_reth_exists() {
-    //     let _proc: ProcKill =
-    //         Command::new(ETHOS_RETH_DEBUG_BIN).arg("node").arg("--dev").spawn().unwrap().into();
-    // }
 }
