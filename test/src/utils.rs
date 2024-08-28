@@ -20,14 +20,6 @@ pub mod erc20 {
 /// Output form [`anvil_with_clob_consumer`]
 #[derive(Debug)]
 pub struct AnvilClob {
-    /// Anvil instance
-    pub anvil: AnvilInstance,
-    /// Address of the job manager contract
-    pub job_manager: Address,
-    /// Relayer private key
-    pub relayer: PrivateKeySigner,
-    /// Coprocessor operator private key
-    pub coprocessor_operator: PrivateKeySigner,
     /// Offchain signer for clob.
     pub clob_signer: PrivateKeySigner,
     /// Address of the clob consumer contract
@@ -39,9 +31,8 @@ pub struct AnvilClob {
 }
 
 /// Spin up an anvil instance with job manager and clob consumer contracts.
-pub async fn anvil_with_clob_consumer() -> AnvilClob {
-    let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } =
-        anvil_with_job_manager().await;
+pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
+    let AnvilJobManager { anvil, job_manager, .. } = anvil;
 
     let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
     let clob_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
@@ -68,7 +59,7 @@ pub async fn anvil_with_clob_consumer() -> AnvilClob {
     // Deploy the clob consumer
     let clob_consumer = *ClobConsumer::deploy(
         provider,
-        job_manager,
+        job_manager.clone(),
         clob_signer.address(),
         0,
         base_erc20,
@@ -78,14 +69,5 @@ pub async fn anvil_with_clob_consumer() -> AnvilClob {
     .unwrap()
     .address();
 
-    AnvilClob {
-        anvil,
-        job_manager,
-        relayer,
-        coprocessor_operator,
-        clob_signer,
-        clob_consumer,
-        quote_erc20,
-        base_erc20,
-    }
+    AnvilClob { clob_signer, clob_consumer, quote_erc20, base_erc20 }
 }

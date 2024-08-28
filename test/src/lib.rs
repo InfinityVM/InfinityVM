@@ -11,7 +11,7 @@ use test_utils::{
     AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
 use tonic::transport::Channel;
-use utils::AnvilClob;
+use utils::{anvil_with_clob_consumer, AnvilClob};
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 
@@ -87,9 +87,6 @@ impl E2EBuilder {
     {
         test_utils::test_tracing();
 
-        // let mut args = Args
-        //  { mock_consumer: None, clob_consumer: None, coprocessor_node: None };
-
         let anvil = anvil_with_job_manager().await;
         // Start an anvil node
 
@@ -133,10 +130,13 @@ impl E2EBuilder {
                 .await
                 .unwrap();
 
-        let mut args = Args { mock_consumer: None, coprocessor_node, clob_consumer: None };
+        let mut args = Args { mock_consumer: None, coprocessor_node, anvil, clob_consumer: None };
 
         if self.mock_consumer {
-            args.mock_consumer = Some(anvil_with_mock_consumer(&anvil).await)
+            args.mock_consumer = Some(anvil_with_mock_consumer(&args.anvil).await)
+        }
+        if self.clob {
+            args.clob_consumer = Some(anvil_with_clob_consumer(&args.anvil).await)
         }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;

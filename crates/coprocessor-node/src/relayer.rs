@@ -238,7 +238,10 @@ mod test {
     use db::tables::{get_job_id, Job, RequestType};
     use prometheus::Registry;
     use proto::{JobStatus, JobStatusType};
-    use test_utils::{anvil_with_mock_consumer, AnvilMockConsumer, MOCK_CONTRACT_MAX_CYCLES};
+    use test_utils::{
+        anvil_with_job_manager, anvil_with_mock_consumer, AnvilJobManager, AnvilMockConsumer,
+        MOCK_CONTRACT_MAX_CYCLES,
+    };
     use tokio::task::JoinSet;
     use zkvm_executor::service::abi_encode_result_with_metadata;
 
@@ -301,8 +304,10 @@ mod test {
     async fn run_can_successfully_submit_results() {
         test_utils::test_tracing();
 
-        let AnvilMockConsumer { anvil, job_manager, relayer, coprocessor_operator, mock_consumer } =
-            anvil_with_mock_consumer().await;
+        let anvil = anvil_with_job_manager().await;
+        let AnvilMockConsumer { mock_consumer } = anvil_with_mock_consumer(&anvil).await;
+
+        let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } = anvil;
 
         let user: PrivateKeySigner = anvil.keys()[5].clone().into();
         let user_wallet = EthereumWallet::from(user);

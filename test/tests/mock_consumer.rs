@@ -169,7 +169,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             get_next_nonce_call.call().await.unwrap();
         assert_eq!(nonce, 2);
     }
-    E2EBuilder::new().build(test).await;
+    E2EBuilder::new().mock_consumer().build(test).await;
 }
 
 #[ignore]
@@ -201,7 +201,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             .with_recommended_fillers()
             .wallet(random_user_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
+        let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
         // Make onchain job request
         let create_job_call = consumer_contract
@@ -271,5 +271,5 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
         assert_eq!(balance, expected_balance);
     }
-    E2EBuilder::new().build(test).await;
+    E2EBuilder::new().mock_consumer().build(test).await;
 }

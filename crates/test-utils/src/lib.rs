@@ -132,7 +132,7 @@ pub async fn anvil_with_job_manager() -> AnvilJobManager {
 
 /// Setup an anvil instance with job manager contracts.
 pub async fn anvil_with_mock_consumer(anvil_job_manger: &AnvilJobManager) -> AnvilMockConsumer {
-    let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } = anvil_job_manger;
+    let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manger;
 
     let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
     let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
