@@ -85,7 +85,7 @@ pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, C
     (
         DepositResponse { success: true },
         state,
-        Dif::create(req.address, req.base_free, req.quote_free),
+        Dif::deposit(req.address, req.base_free, req.quote_free),
     )
 }
 

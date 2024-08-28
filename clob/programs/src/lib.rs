@@ -4,8 +4,10 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
 #[cfg(test)]
 mod tests {
+    use alloy::primitives::{Address, I256, U256};
     use alloy_sol_types::SolValue;
     use clob_core::api::AddOrderRequest;
+    use clob_core::api::DepositDelta;
     use clob_core::api::WithdrawRequest;
     use clob_core::{
         api::{CancelOrderRequest, ClobProgramOutput, DepositRequest, Request},
@@ -29,6 +31,23 @@ mod tests {
         // Deposits
         let clob_out = execute(requests1.clone(), clob_state0.clone(), &executor);
         assert_eq!(clob_out.next_state_hash, clob_state1.borsh_keccak256());
+        assert!(clob_out.withdraw_deltas.is_empty());
+        assert!(clob_out.order_deltas.is_empty());
+        assert_eq!(
+            clob_out.deposit_deltas,
+            vec![
+                DepositDelta {
+                    account: alice.clone().into(),
+                    base: U256::from(200),
+                    quote: U256::from(0)
+                },
+                DepositDelta {
+                    account: bob.clone().into(),
+                    base: U256::from(0),
+                    quote: U256::from(800)
+                },
+            ]
+        );
 
         let requests2 = vec![
             // Sell 100 base for 4*100 quote
