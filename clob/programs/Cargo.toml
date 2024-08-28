@@ -9,6 +9,7 @@ edition = "2021"
 risc0-zkvm = { workspace = true }
 clob-core = { workspace = true }
 borsh = { workspace = true }
+alloy-sol-types = { workspace = true }
 
 [build-dependencies]
 risc0-build = { workspace = true }

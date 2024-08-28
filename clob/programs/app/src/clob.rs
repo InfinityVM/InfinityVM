@@ -2,7 +2,7 @@
 
 use alloy_sol_types::SolType;
 use clob_core::{
-    api::{Request, ClobProgramOutput},
+    api::{ClobProgramOutput, Request},
     zkvm_stf, ClobState,
 };
 use risc0_zkvm::guest::env;

@@ -1691,6 +1691,7 @@ dependencies = [
 name = "clob-programs"
 version = "0.1.0"
 dependencies = [
+ "alloy-sol-types 0.8.0",
  "borsh",
  "clob-core",
  "risc0-build",
