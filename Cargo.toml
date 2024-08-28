@@ -22,12 +22,6 @@ members = [
 	"clob/programs",
 	"clob/node",
 ]
-default-members = [
-	"crates/contracts",
-	"crates/proto",
-	"crates/coprocessor-node",
-	"crates/zkvm-executor",
-]
 exclude = [
 	"bin/ethos-reth",
 ]
@@ -160,7 +154,7 @@ prost = { version = "0.13", features = ["derive", "std"], default-features = fal
 # q
 # r
 risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
-risc0-zkp = { version = "1.0.3", default-features = false } 
+risc0-zkp = { version = "1", default-features = false } 
 risc0-build = { version = "1", default-features = false }
 risc0-binfmt = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
@@ -208,4 +202,10 @@ clob-contracts ={ path = "clob/contracts" }
 clob-core = { path = "clob/core" }
 clob-node = { path = "clob/node" }
 clob-programs = { path = "clob/programs" }
+
+contracts = { path = "crates/contracts" }
+coprocessor-node = { path = "crates/coprocessor-node" }
+db = { path = "crates/db" }
 proto = { path = "crates/proto" }
+zkvm-executor = { path = "crates/zkvm-executor" }
+test-utils = { path = "crates/test-utils" }

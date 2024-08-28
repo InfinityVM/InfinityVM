@@ -43,8 +43,9 @@ test-all:
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
 	cd contracts && forge build
-	cd bin/ethos-reth && cargo build
-	cargo build -p coprocessor-node && \
+	# cd bin/ethos-reth && cargo build
+	cargo build -p clob-node
+	cargo build -p coprocessor-node
 	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: build

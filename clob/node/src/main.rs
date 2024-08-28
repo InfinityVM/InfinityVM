@@ -18,19 +18,20 @@ const CLOB_OPERATOR_KEY: &str = "CLOB_OPERATOR_KEY";
 
 #[tokio::main]
 async fn main() {
-    let listen_addr = env::var(CLOB_LISTEN_ADDR).unwrap_or("127.0.0.1:3001".to_string());
-    let db_dir = env::var(CLOB_DB_DIR).unwrap_or(DB_DIR.to_string());
-    let cn_grpc_addr = env::var(CLOB_CN_GRPC_ADDR).unwrap_or("127.0.0.1:50051".to_string());
+    let listen_addr = env::var(CLOB_LISTEN_ADDR).unwrap_or_else(|_| "127.0.0.1:3001".to_string());
+    let db_dir = env::var(CLOB_DB_DIR).unwrap_or_else(|_| DB_DIR.to_string());
+    let cn_grpc_addr =
+        env::var(CLOB_CN_GRPC_ADDR).unwrap_or_else(|_| "127.0.0.1:50051".to_string());
     let batcher_duration_ms: u64 =
-        env::var(CLOB_BATCHER_DURATION_MS).unwrap_or("1000".to_string()).parse().unwrap();
+        env::var(CLOB_BATCHER_DURATION_MS).unwrap_or_else(|_| "1000".to_string()).parse().unwrap();
     // TODO(thursday): use for listening to contracts
 
     let _eth_http_addr =
-        env::var(CLOB_ETH_HTTP_ADDR).unwrap_or("http://127.0.0.1:8545".to_string());
+        env::var(CLOB_ETH_HTTP_ADDR).unwrap_or_else(|_| "http://127.0.0.1:8545".to_string());
 
     let clob_consumer_addr = {
         let hex = env::var(CLOB_CONSUMER_ADDR)
-            .unwrap_or("b794f5ea0ba39494ce839613fffba74279579268".to_string());
+            .unwrap_or_else(|_| "b794f5ea0ba39494ce839613fffba74279579268".to_string());
         let bytes = hex::decode(hex).unwrap();
         bytes.try_into().unwrap()
     };
