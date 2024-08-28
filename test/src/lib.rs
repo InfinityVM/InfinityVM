@@ -7,9 +7,10 @@ use std::{
     process::{self, Command},
 };
 use test_utils::{
-    anvil_with_contracts, get_localhost_port, sleep_until_bound, TestAnvil, LOCALHOST,
+    anvil_with_mock_consumer, get_localhost_port, sleep_until_bound, AnvilMockConsumer, LOCALHOST,
 };
 use tonic::transport::Channel;
+use utils::AnvilClob;
 
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 
@@ -40,27 +41,53 @@ impl Drop for ProcKill {
 /// Arguments passed to the test function.
 #[derive(Debug)]
 pub struct Args {
-    /// Anvil setup stuff
-    pub anvil: TestAnvil,
+    /// Anvil setup with `MockConsumer`.
+    pub mock_consumer: Option<AnvilMockConsumer>,
+    /// Anvil setup with `ClobConsumer`.
+    pub clob_consumer: Option<AnvilClob>,
     /// Coprocessor Node gRPC client
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
 }
 
 /// E2E test environment builder and runner.
 #[derive(Debug)]
-pub struct E2E;
+pub struct E2EBuilder {
+    clob: bool,
+}
 
-impl E2E {
+impl Default for E2EBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl E2EBuilder {
+    /// Create a new [Self]
+    pub const fn new() -> Self {
+        Self { clob: false }
+    }
+
+    /// Setup the clob
+    pub const fn clob(mut self) -> Self {
+        self.clob = true;
+        self
+    }
+}
+
+impl E2EBuilder {
     /// Run the given `test_fn`.
-    pub async fn run<F, R>(test_fn: F)
+    pub async fn build<F, R>(self, test_fn: F)
     where
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
         test_utils::test_tracing();
 
+        // let mut args = Args
+        //  { mock_consumer: None, clob_consumer: None, coprocessor_node: None };
+
         // Start an anvil node
-        let anvil = anvil_with_contracts().await;
+        let anvil = anvil_with_mock_consumer().await;
         let job_manager = anvil.job_manager.to_string();
         let chain_id = anvil.anvil.chain_id().to_string();
         let http_rpc_url = anvil.anvil.endpoint();
@@ -101,7 +128,7 @@ impl E2E {
                 .await
                 .unwrap();
 
-        let args = Args { anvil, coprocessor_node };
+        let args = Args { mock_consumer: Some(anvil), coprocessor_node, clob_consumer: None };
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
@@ -110,8 +137,6 @@ impl E2E {
 
 #[cfg(test)]
 mod test {
-    use crate::{ProcKill, ETHOS_RETH_DEBUG_BIN};
-    use std::process::Command;
 
     // #[test]
     // fn ethos_reth_exists() {
