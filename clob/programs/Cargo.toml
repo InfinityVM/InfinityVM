@@ -12,6 +12,7 @@ borsh = { workspace = true }
 alloy = { workspace = true }
 # we need exact match to SolValue type in clob-core
 alloy-sol-types = { workspace = true }
+alloy-primitives = { workspace = true }
 
 [build-dependencies]
 risc0-build = { workspace = true }

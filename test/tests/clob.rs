@@ -1,9 +1,8 @@
 use alloy::{network::EthereumWallet, providers::ProviderBuilder};
 use clob_contracts::clob_consumer::ClobConsumer;
-use clob_core::tick;
 use clob_core::{
     api::{AddOrderRequest, CancelOrderRequest, DepositRequest, Request, WithdrawRequest},
-    ClobState,
+    tick, ClobState,
 };
 use clob_programs::CLOB_ELF;
 use e2e::{Args, E2E};

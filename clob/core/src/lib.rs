@@ -197,6 +197,8 @@ pub fn add_order(
             // Buyer exchanges quote for base
             state.base_balances.entry(req.address).and_modify(|b| b.free += fill.size);
             state.quote_balances.entry(req.address).and_modify(|b| b.locked -= fill.quote_size());
+
+            changes.push(Dif::fill(req.address, fill.seller, fill.size, fill.quote_size()));
         } else {
             // Seller exchanges base for quote
             state.base_balances.entry(req.address).and_modify(|b| b.locked -= fill.size);
@@ -205,6 +207,8 @@ pub fn add_order(
             // Buyer exchanges quote for base
             state.base_balances.entry(fill.buyer).and_modify(|b| b.free += fill.size);
             state.quote_balances.entry(fill.buyer).and_modify(|b| b.locked -= fill.quote_size());
+
+            changes.push(Dif::fill(fill.buyer, req.address, fill.size, fill.quote_size()));
         }
         maker_order_status.fills.push(fill);
     }
@@ -316,8 +320,8 @@ mod tests {
     use crate::{
         api::{
             AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest,
-            CancelOrderResponse, DepositRequest, DepositResponse, FillStatus, OrderFill, Request,
-            Response, WithdrawRequest, WithdrawResponse,
+            CancelOrderResponse, DepositRequest, DepositResponse, Dif, FillStatus, OrderFill,
+            Request, Response, WithdrawRequest, WithdrawResponse,
         },
         tick, ClobState,
     };
@@ -402,7 +406,7 @@ mod tests {
             limit_price: 4,
             size: 100,
         });
-        let (resp, clob_state, _) = tick(bob_limit2, clob_state).unwrap();
+        let (resp, clob_state, difs) = tick(bob_limit2, clob_state).unwrap();
         assert_eq!(
             Response::AddOrder(AddOrderResponse {
                 success: true,
@@ -439,6 +443,7 @@ mod tests {
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 300, locked: 100 }
         );
+        assert_eq!(difs, vec![Dif::create(bob, 0, 400), Dif::fill(bob, alice, 100, 400)]);
 
         let alice_withdraw =
             Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 });

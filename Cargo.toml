@@ -194,6 +194,7 @@ tracing-appender = { version = "0.2.3", default-features = false }
 
 # clob only deps
 alloy-sol-types = { version = "0.8", default-features = false }
+alloy-primitives = { version = "0.8", default-features = false }
 bytes = "1.7"
 paste = "1"
 
@@ -202,7 +203,6 @@ clob-contracts ={ path = "clob/contracts" }
 clob-core = { path = "clob/core" }
 clob-node = { path = "clob/node" }
 clob-programs = { path = "clob/programs" }
-
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
