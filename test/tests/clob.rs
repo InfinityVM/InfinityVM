@@ -1,5 +1,6 @@
 use alloy::{network::EthereumWallet, providers::ProviderBuilder};
 use clob_contracts::clob_consumer::ClobConsumer;
+use clob_core::tick;
 use clob_core::{
     api::{AddOrderRequest, CancelOrderRequest, DepositRequest, Request, WithdrawRequest},
     ClobState,
@@ -11,6 +12,15 @@ use risc0_binfmt::compute_image_id;
 
 fn program_id() -> Vec<u8> {
     compute_image_id(CLOB_ELF).unwrap().as_bytes().to_vec()
+}
+
+fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
+    let mut next_clob_state = init_state;
+    for tx in txns.iter().cloned() {
+        (_, next_clob_state, _) = tick(tx, next_clob_state).unwrap();
+    }
+
+    next_clob_state
 }
 
 #[tokio::test]
@@ -40,7 +50,7 @@ async fn state_job_submission_clob_consumer() {
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let _consumer_contract = ClobConsumer::new(clob.clob_consumer, &consumer_provider);
 
-        let clob_state = ClobState::default();
+        let clob_state0 = ClobState::default();
 
         let bob = [69u8; 20];
         let alice = [42u8; 20];
@@ -48,6 +58,7 @@ async fn state_job_submission_clob_consumer() {
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 }),
         ];
+        let clob_state1 = next_state(requests1.clone(), clob_state0.clone());
 
         let requests2 = vec![
             // Sell 100 base for 4*100 quote
@@ -72,29 +83,25 @@ async fn state_job_submission_clob_consumer() {
                 size: 100,
             }),
         ];
+        let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
 
         let requests3 = vec![
-            Request::Withdraw(WithdrawRequest { address: alice, base_free: 0, quote_free: 400 }),
-            // Bob has 100 quote locked in order, 100 base free from fill, and lost 400 quote
-            // in a fill.
-            Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 100 }),
+            Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 }),
+            Request::CancelOrder(CancelOrderRequest { oid: 1 }),
+            Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 }),
         ];
+        let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
 
-        let requests4 = vec![
-            // TODO: should be either 4 or 5, check for off by 1
-            // Bob cancels his order then never filled
-            Request::CancelOrder(CancelOrderRequest { oid: 5 }),
-            // Bob withdraws all of his funds
-            Request::Withdraw(WithdrawRequest { address: bob, base_free: 0, quote_free: 100 }),
-        ];
-
-        for requests in [requests1, requests2, requests3, requests4] {
-            let _transactions_input = borsh::to_vec(&requests).unwrap();
-            let _state_input = borsh::to_vec(&clob_state).unwrap();
+        for (txns, init_state, _next_state) in [
+            (requests1, &clob_state0, &clob_state1),
+            (requests2, &clob_state1, &clob_state2),
+            (requests3, &clob_state2, &clob_state3),
+        ] {
+            let _transactions_input = borsh::to_vec(&txns).unwrap();
+            let _state_input = borsh::to_vec(init_state).unwrap();
 
             // TODO: logic to call state coprocessor endpoint
-            // not sure the best way to create the next state state to plug into the program
-            // could just run `tick` and compare the state hash from that to zkvm program response
+            // Verify ClobOutput - see zkvm program tests
         }
 
         // State should now be empty
