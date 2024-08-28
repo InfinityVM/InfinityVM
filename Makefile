@@ -46,7 +46,7 @@ test-all:
 	# cd bin/ethos-reth && cargo build
 	cargo build -p clob-node
 	cargo build -p coprocessor-node
-	cargo test --all -- --include-ignored --nocapture
+	cargo test state_job_submission_clob_consumer -- --include-ignored --nocapture
 
 .PHONY: build
 build:

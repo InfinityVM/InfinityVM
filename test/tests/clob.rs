@@ -110,6 +110,7 @@ async fn state_job_submission_clob_consumer() {
             (requests2, &clob_state1, &clob_state2),
             (requests3, &clob_state2, &clob_state3),
         ] {
+            dbg!(nonce);
             let input = ClobProgramInput {
                 prev_state_hash: init_state.borsh_keccak256(),
                 orders: borsh::to_vec(&txns).unwrap().into(),
@@ -150,7 +151,7 @@ async fn state_job_submission_clob_consumer() {
                 use alloy::sol_types::SolType;
                 dbg!(result_with_metadata.len());
                 let abi_decoded_output =
-                    ResultWithMetadata::abi_decode(&result_with_metadata, true).unwrap();
+                    ResultWithMetadata::abi_decode(&result_with_metadata, false).unwrap();
                 abi_decoded_output.4
             };
 

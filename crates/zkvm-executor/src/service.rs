@@ -161,7 +161,7 @@ pub fn abi_encode_result_with_metadata(
 ) -> Result<Vec<u8>, Error> {
     let program_input_hash = keccak256(input);
 
-    Ok(ResultWithMetadata::abi_encode_params(&(
+    Ok(ResultWithMetadata::abi_encode(&(
         job_id,
         program_input_hash,
         max_cycles,
