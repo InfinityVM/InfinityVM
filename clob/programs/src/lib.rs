@@ -16,7 +16,7 @@ mod tests {
     use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
 
     #[test]
-    fn executes_program() {
+    fn deposit_create_cancel_withdraw() {
         let executor = LocalProver::new("locals only");
 
         let clob_state0 = ClobState::default();
@@ -28,7 +28,6 @@ mod tests {
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 }),
         ];
         let clob_state1 = next_state(requests1.clone(), clob_state0.clone());
-        // Deposits
         let clob_out = execute(requests1.clone(), clob_state0.clone(), &executor);
         assert_eq!(clob_out.next_state_hash, clob_state1.borsh_keccak256());
         assert!(clob_out.withdraw_deltas.is_empty());
@@ -56,7 +55,7 @@ mod tests {
                 limit_price: 1,
                 size: 100,
             }),
-            // Buy 100 base for 4*100 quote
+            // Buy 100 base for 4*100 quote, this will match with the first order
             Request::AddOrder(AddOrderRequest {
                 address: bob,
                 is_buy: true,
