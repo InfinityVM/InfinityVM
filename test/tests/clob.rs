@@ -6,11 +6,10 @@ use alloy::{
 };
 use alloy_sol_types::SolValue;
 use clob_contracts::clob_consumer::ClobConsumer;
-use clob_core::api::AssetBalance;
 use clob_core::{
     api::{
-        AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositRequest,
-        Request, WithdrawRequest,
+        AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest, ClobProgramInput,
+        ClobProgramOutput, DepositRequest, FillStatus, Request, WithdrawRequest,
     },
     tick, BorshKeccack256, ClobState,
 };
@@ -316,5 +315,42 @@ async fn clob_node_e2e() {
             *state.quote_balances().get(&bob).unwrap(),
             AssetBalance { free: 800, locked: 0 }
         );
+
+        let alice_limit =
+            AddOrderRequest { address: alice, is_buy: false, limit_price: 4, size: 100 };
+        let (r, i) = client.order(alice_limit).await;
+        assert_eq!(i, 2);
+        assert_eq!(
+            r,
+            AddOrderResponse {
+                success: true,
+                status: Some(FillStatus {
+                    oid: 0,
+                    size: 100,
+                    address: alice,
+                    filled_size: 0,
+                    fills: vec![]
+                })
+            }
+        );
+
+        let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100 };
+        let (r, i) = client.order(bob_limit1).await;
+        assert_eq!(i, 3);
+        assert_eq!(
+            r,
+            AddOrderResponse {
+                success: true,
+                status: Some(FillStatus {
+                    oid: 1,
+                    size: 100,
+                    address: bob,
+                    filled_size: 0,
+                    fills: vec![]
+                })
+            }
+        );
+
+        let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100 };
     }
 }
