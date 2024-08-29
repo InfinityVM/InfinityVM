@@ -349,6 +349,48 @@ mod tests {
             *state.base_balances().get(&alice).unwrap(),
             AssetBalance { free: 200, locked: 0 }
         );
-        assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free: 800, locked: 0 });
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 800, locked: 0 }
+        );
+
+        let alice_limit =
+            AddOrderRequest { address: alice, is_buy: false, limit_price: 4, size: 100 };
+        let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100 };
+        let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100 };
+        for r in [alice_limit, bob_limit1, bob_limit2] {
+            let _: ApiResponse = post(&mut app, ORDERS, r).await;
+        }
+        let state = get_clob_state(&mut app).await;
+        assert_eq!(
+            *state.base_balances().get(&alice).unwrap(),
+            AssetBalance { free: 100, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&alice).unwrap(),
+            AssetBalance { free: 400, locked: 0 }
+        );
+        assert_eq!(
+            *state.base_balances().get(&bob).unwrap(),
+            AssetBalance { free: 100, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 300, locked: 100 }
+        );
+
+        let alice_withdraw = WithdrawRequest { address: alice, base_free: 100, quote_free: 400 };
+        let _: ApiResponse = post(&mut app, WITHDRAW, alice_withdraw).await;
+        let state = get_clob_state(&mut app).await;
+        assert!(!state.quote_balances().contains_key(&alice));
+        assert!(!state.base_balances().contains_key(&alice));
+
+        let bob_cancel = CancelOrderRequest { oid: 1 };
+        let _: ApiResponse = post(&mut app, CANCEL, bob_cancel).await;
+        let bob_withdraw = WithdrawRequest { address: bob, base_free: 100, quote_free: 400 };
+        let _: ApiResponse = post(&mut app, WITHDRAW, bob_withdraw).await;
+        let state = get_clob_state(&mut app).await;
+        assert!(state.quote_balances().is_empty());
+        assert!(state.base_balances().is_empty());
     }
 }
