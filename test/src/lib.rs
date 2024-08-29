@@ -7,6 +7,7 @@ use clob_node::{
 };
 use futures::future::FutureExt;
 use proto::coprocessor_node_client::CoprocessorNodeClient;
+use std::process::Stdio;
 use std::{
     future::Future,
     panic::AssertUnwindSafe,
@@ -16,6 +17,7 @@ use test_utils::{
     anvil_with_job_manager, anvil_with_mock_consumer, get_localhost_port, sleep_until_bound,
     AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
+// use tokio::process::Command;
 use tonic::transport::Channel;
 
 /// Test utilities for CLOB e2e tests.
@@ -29,10 +31,10 @@ const CLOB_NODE_DEBUG_BIN: &str = "../target/debug/clob-node";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
-pub struct ProcKill(process::Child);
+pub struct ProcKill(std::process::Child);
 
-impl From<process::Child> for ProcKill {
-    fn from(child: process::Child) -> Self {
+impl From<std::process::Child> for ProcKill {
+    fn from(child: std::process::Child) -> Self {
         Self(child)
     }
 }
@@ -127,6 +129,8 @@ impl E2E {
             .arg(chain_id)
             .arg("--db-dir")
             .arg(db_dir.path())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
             .spawn()
             .unwrap()
             .into();
@@ -163,6 +167,8 @@ impl E2E {
                 .env(CLOB_CONSUMER_ADDR, clob_consumer.clob_consumer.to_string())
                 .env(CLOB_BATCHER_DURATION_MS, "1000")
                 .env(CLOB_OPERATOR_KEY, clob_signer)
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit())
                 .spawn()
                 .unwrap()
                 .into();

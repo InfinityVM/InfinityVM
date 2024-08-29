@@ -161,7 +161,8 @@ async fn clob_state(ExtractState(state): ExtractState<AppState>) -> Json<ClobSta
         .unwrap_or(START_GLOBAL_INDEX);
 
     let clob_state = if global_index == START_GLOBAL_INDEX {
-        ClobState::default()
+        // ClobState::default()
+        panic!("global index error");
     } else {
         tx.get::<ClobStateTable>(global_index)
             .expect("todo: db errors")

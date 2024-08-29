@@ -218,7 +218,7 @@ async fn state_job_submission_clob_consumer() {
     E2E::new().clob().run(test).await;
 }
 
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread", worker_threads = 32)]
 #[ignore]
 async fn clob_node_e2e() {
     async fn test(mut args: Args) {
@@ -311,6 +311,7 @@ async fn clob_node_e2e() {
         let bob_dep = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
         assert_eq!(client.deposit(alice_dep).await.1, 1);
         assert_eq!(client.deposit(bob_dep).await.1, 2);
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         let state = client.clob_state().await;
         dbg!(&state);
 

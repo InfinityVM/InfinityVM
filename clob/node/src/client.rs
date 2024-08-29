@@ -1,6 +1,6 @@
 //! HTTP client for the CLOB node.
 
-use crate::ClobStateResponse;
+use crate::{ClobStateResponse, ORDERS};
 use clob_core::{
     api::{
         AddOrderRequest, AddOrderResponse, ApiResponse, CancelOrderRequest, CancelOrderResponse,
@@ -56,7 +56,7 @@ impl Client {
 
     /// Post an add order request.
     pub async fn order(&self, req: AddOrderRequest) -> (AddOrderResponse, u64) {
-        let url = self.path(DEPOSIT);
+        let url = self.path(ORDERS);
         let api_resp: ApiResponse = post(&url, req).await;
         let resp = match api_resp.response {
             Response::AddOrder(resp) => resp,
@@ -88,7 +88,7 @@ async fn post<Req: Serialize, Resp: DeserializeOwned>(url: &str, req: Req) -> Re
     reqwest::Client::new().post(url).json(&req).send().await.unwrap().json().await.unwrap()
 }
 
-/// Get the `ClobState`/
+/// Get the `ClobState`.
 async fn get_state(url: &str) -> ClobState {
     let response: ClobStateResponse =
         reqwest::Client::new().get(url).send().await.unwrap().json().await.unwrap();
