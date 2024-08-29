@@ -3,8 +3,7 @@
 # RUSTFLAGS = '-Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native'
 
 .PHONY: clippy-ci
-clippy-ci:
-	cd contracts && forge build
+clippy-ci: contracts
 	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
 
 .PHONY: clippy
@@ -23,35 +22,34 @@ fmt:
 lint: clippy fmt
 
 .PHONY: doc-ci
-doc-ci:
-	cd contracts && forge build
+doc-ci: contracts
 	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps
 
 .PHONY: doc
-doc:
+doc: contracts
 	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps --open
 
-.PHONY: build-release
-build-release:
-	cargo build --release
-
 # Use this for iterating on integration tests
 .PHONY: test-all
-test-all:
+test-all: contracts debug-coprocessor-node debug-clob-node
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
-	cd contracts && forge build
-	# cd bin/ethos-reth && cargo build
-	cargo build -p clob-node
-	cargo build -p coprocessor-node
-	cargo test state_job_submission_clob_consumer -- --include-ignored --nocapture
+	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: build
-build:
+build: contracts
 	cargo build
 
 .PHONY: contracts
 contracts:
 	cd contracts && forge build
+
+.PHONY: debug-coprocessor-node
+debug-coprocessor-node:
+	cargo build -p coprocessor-node
+
+.PHONY: debug-clob-node
+debug-clob-node:
+	cargo build -p clob-node
