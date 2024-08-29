@@ -39,7 +39,7 @@ alloy_sol_types::sol! {
     }
 
     /// Balance delta for deposit.
-     #[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct DepositDelta {
         /// Target account.
         address account;
@@ -50,7 +50,7 @@ alloy_sol_types::sol! {
     }
 
     /// Balance delta for withdraw.
-     #[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct WithdrawDelta {
         /// Target account.
         address account;
@@ -61,7 +61,7 @@ alloy_sol_types::sol! {
     }
 
     /// Balance delta for fill, create, and cancel.
-     #[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct OrderDelta {
         /// Target account.
         address account;
@@ -86,7 +86,7 @@ alloy_sol_types::sol! {
     }
 
     /// Output of zkvm program.
-     #[derive(Default, PartialEq, Eq, PartialOrd, Ord)]
+     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct ClobProgramOutput {
         /// Hash of state output of zkvm (hash of borsh-encoded state).
         bytes32 next_state_hash;
@@ -265,26 +265,37 @@ impl Dif {
     ) {
         match self {
             Self::Withdraw { user, base, quote } => {
-                let delta = withdraws.entry(*user).or_default();
+                let delta = withdraws.entry(*user).or_insert(WithdrawDelta {
+                    account: Address::from(user),
+                    ..Default::default()
+                });
                 delta.base += U256::try_from(*base).expect("works");
                 delta.quote += U256::try_from(*quote).expect("works");
             }
             Self::Deposit { user, base, quote } => {
-                let delta = deposits.entry(*user).or_default();
+                let delta = deposits
+                    .entry(*user)
+                    .or_insert(DepositDelta { account: Address::from(user), ..Default::default() });
                 delta.base += U256::try_from(*base).expect("works");
                 delta.quote += U256::try_from(*quote).expect("works");
             }
             Self::Fill { buyer, seller, base, quote } => {
-                let buyer_delta = orders.entry(*buyer).or_default();
+                let buyer_delta = orders
+                    .entry(*buyer)
+                    .or_insert(OrderDelta { account: Address::from(buyer), ..Default::default() });
                 buyer_delta.locked_quote -= I256::try_from(*quote).expect("works");
                 buyer_delta.free_base += I256::try_from(*base).expect("works");
 
-                let seller_delta = orders.entry(*seller).or_default();
+                let seller_delta = orders
+                    .entry(*seller)
+                    .or_insert(OrderDelta { account: Address::from(seller), ..Default::default() });
                 seller_delta.locked_base -= I256::try_from(*base).expect("works");
                 seller_delta.free_quote += I256::try_from(*quote).expect("works");
             }
             Self::Cancel { user, base, quote } => {
-                let delta = orders.entry(*user).or_default();
+                let delta = orders
+                    .entry(*user)
+                    .or_insert(OrderDelta { account: Address::from(user), ..Default::default() });
                 let base = I256::try_from(*base).expect("works");
                 let quote = I256::try_from(*quote).expect("works");
 
@@ -294,7 +305,9 @@ impl Dif {
                 delta.free_quote += quote;
             }
             Self::Create { user, base, quote } => {
-                let delta = orders.entry(*user).or_default();
+                let delta = orders
+                    .entry(*user)
+                    .or_insert(OrderDelta { account: Address::from(user), ..Default::default() });
                 let base = I256::try_from(*base).expect("works");
                 let quote = I256::try_from(*quote).expect("works");
 

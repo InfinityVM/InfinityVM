@@ -22,6 +22,7 @@ pub mod clob;
 /// within the crate
 pub const ETHOS_RETH_DEBUG_BIN: &str = "../bin/ethos-reth/target/debug/ethos-reth";
 const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
+const CLOB_NODE_DEBUG_BIN: &str = "../target/debug/clob-node";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
@@ -46,6 +47,8 @@ pub struct Args {
     pub mock_consumer: Option<AnvilMockConsumer>,
     /// `ClobConsumer` deployment.
     pub clob_consumer: Option<AnvilClob>,
+    /// HTTP endpoint the clob node is listening on.
+    pub clob_endpoint: Option<String>,
     /// Anvil setup with `JobManager`.
     pub anvil: AnvilJobManager,
     /// Coprocessor Node gRPC client
@@ -54,12 +57,12 @@ pub struct Args {
 
 /// E2E test environment builder and runner.
 #[derive(Debug, Default)]
-pub struct E2EBuilder {
+pub struct E2E {
     clob: bool,
     mock_consumer: bool,
 }
 
-impl E2EBuilder {
+impl E2E {
     /// Create a new [Self]
     pub const fn new() -> Self {
         Self { clob: false, mock_consumer: false }
@@ -78,9 +81,9 @@ impl E2EBuilder {
     }
 }
 
-impl E2EBuilder {
+impl E2E {
     /// Run the given `test_fn`.
-    pub async fn build<F, R>(self, test_fn: F)
+    pub async fn run<F, R>(self, test_fn: F)
     where
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
@@ -104,15 +107,15 @@ impl E2EBuilder {
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
 
         // The coprocessor-node expects the relayer private key as an env var
-        std::env::set_var("RELAYER_PRIVATE_KEY", relayer_private);
-        std::env::set_var("ZKVM_OPERATOR_PRIV_KEY", operator_private);
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
+            .env("RELAYER_PRIVATE_KEY", relayer_private)
+            .env("ZKVM_OPERATOR_PRIV_KEY", operator_private)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
             .arg("--prom-address")
             .arg(&prometheus_addr)
             .arg("--http-eth-rpc")
-            .arg(http_rpc_url)
+            .arg(&http_rpc_url)
             .arg("--ws-eth-rpc")
             .arg(ws_rpc_url)
             .arg("--job-manager-address")
@@ -125,31 +128,47 @@ impl E2EBuilder {
             .unwrap()
             .into();
         sleep_until_bound(coprocessor_node_port).await;
-        let coprocessor_node =
-            CoprocessorNodeClient::connect(format!("http://{coprocessor_node_grpc}"))
-                .await
-                .unwrap();
+        let cn_grpc_addr = format!("http://{coprocessor_node_grpc}");
+        let coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_addr.clone()).await.unwrap();
 
-        let mut args = Args { mock_consumer: None, coprocessor_node, anvil, clob_consumer: None };
+        let mut args = Args {
+            mock_consumer: None,
+            coprocessor_node,
+            anvil,
+            clob_consumer: None,
+            clob_endpoint: None,
+        };
 
         if self.mock_consumer {
             args.mock_consumer = Some(anvil_with_mock_consumer(&args.anvil).await)
         }
+
         if self.clob {
-            args.clob_consumer = Some(anvil_with_clob_consumer(&args.anvil).await)
+            let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
+            let db_dir =
+                tempfile::Builder::new().prefix("clob-node-test-db").tempdir().unwrap().into_path();
+            let listen_port = get_localhost_port();
+            let listen_addr = format!("{LOCALHOST}:{listen_port}");
+
+            let _proc: ProcKill = Command::new(CLOB_NODE_DEBUG_BIN)
+                .env("CLOB_LISTEN_ADDR", &listen_addr)
+                .env("CLOB_DB_DIR", db_dir)
+                .env("CLOB_CN_GRPC_ADDR", cn_grpc_addr)
+                .env("CLOB_ETH_HTTP_ADDR", &http_rpc_url)
+                .env("CLOB_CONSUMER_ADDR", clob_consumer.clob_consumer.to_string())
+                .env("CLOB_BATCHER_DURATION_MS", "1000")
+                .env("CLOB_OPERATOR_KEY", clob_consumer.clob_signer.address().to_string())
+                .spawn()
+                .unwrap()
+                .into();
+
+            sleep_until_bound(coprocessor_node_port).await;
+
+            args.clob_consumer = Some(clob_consumer);
+            args.clob_endpoint = Some(listen_addr);
         }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
         assert!(test_result.is_ok())
     }
-}
-
-#[cfg(test)]
-mod test {
-
-    // #[test]
-    // fn ethos_reth_exists() {
-    //     let _proc: ProcKill =
-    //         Command::new(ETHOS_RETH_DEBUG_BIN).arg("node").arg("--dev").spawn().unwrap().into();
-    // }
 }

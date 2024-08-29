@@ -11,6 +11,7 @@ pub type OffchainJobRequest = alloy::sol! {
 
 /// Params for ABI encoded job input.
 // TODO: make these borrowed values for efficiency.
+#[derive(Clone)]
 pub struct JobParams {
     pub nonce: u64,
     pub max_cycles: u64,

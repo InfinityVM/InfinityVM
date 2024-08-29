@@ -6,14 +6,14 @@ use clob_contracts::clob_consumer::ClobConsumer;
 
 use test_utils::AnvilJobManager;
 
-/// `ERC20.sol` bindings
-pub mod erc20 {
+/// `E2EMockERC20.sol` bindings
+pub mod mock_erc20 {
     #![allow(clippy::all, missing_docs)]
     alloy::sol! {
-      /// ERC20
-      #[sol(rpc)]
-      Erc20,
-      "../contracts/out/ERC20.sol/ERC20.json"
+        /// MockERC20
+        #[sol(rpc)]
+        MockErc20,
+        "../contracts/out/E2EMockERC20.sol/E2EMockERC20.json"
     }
 }
 
@@ -45,16 +45,18 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
         .wallet(consumer_owner_wallet)
         .on_http(rpc_url.parse().unwrap());
 
-    // Deploy 2 erc20s
+    // Deploy base & quote erc20s
     let base_name = "base".to_string();
     let base_symbol = "BASE".to_string();
     let base_erc20 =
-        *erc20::Erc20::deploy(&provider, base_name, base_symbol).await.unwrap().address();
+        *mock_erc20::MockErc20::deploy(&provider, base_name, base_symbol).await.unwrap().address();
 
     let quote_name = "quote".to_string();
     let quote_symbol = "QUOTE".to_string();
-    let quote_erc20 =
-        *erc20::Erc20::deploy(&provider, quote_name, quote_symbol).await.unwrap().address();
+    let quote_erc20 = *mock_erc20::MockErc20::deploy(&provider, quote_name, quote_symbol)
+        .await
+        .unwrap()
+        .address();
 
     // Deploy the clob consumer
     let clob_consumer = *ClobConsumer::deploy(

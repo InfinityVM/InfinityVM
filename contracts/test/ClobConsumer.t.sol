@@ -73,21 +73,7 @@ contract ClobConsumerTest is Test, ClobDeployer {
             quoteDelta: 800
         });
 
-        ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](2);
-        orderDeltas[0] = ClobConsumer.OrderDelta({
-            user: alice,
-            freeBaseDelta: 200,
-            lockedBaseDelta: 0,
-            freeQuoteDelta: 0,
-            lockedQuoteDelta: 0
-        });
-        orderDeltas[1] = ClobConsumer.OrderDelta({
-            user: bob,
-            freeBaseDelta: 0,
-            lockedBaseDelta: 0,
-            freeQuoteDelta: 800,
-            lockedQuoteDelta: 0
-        });
+        ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](0);
         ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
         ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({

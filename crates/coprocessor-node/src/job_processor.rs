@@ -387,7 +387,7 @@ where
                 Ok(jobs) => jobs,
                 Err(e) => {
                     error!("error retrieving relay error jobs: {:?}", e);
-                    continue
+                    continue;
                 }
             };
 
@@ -431,7 +431,7 @@ where
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }
                         }
-                        continue
+                        continue;
                     }
                 }
 

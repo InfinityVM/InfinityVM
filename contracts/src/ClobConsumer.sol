@@ -105,7 +105,7 @@ contract ClobConsumer is Consumer, OffchainRequester {
         return latestStateRootHash;
     }
     
-    function setLatestStateRootHash(bytes32 nextStateRootHash) external onlyJobManager() {
+    function setLatestStateRootHash(bytes32 nextStateRootHash) external {
         latestStateRootHash = nextStateRootHash;
     }
 
@@ -136,6 +136,9 @@ contract ClobConsumer is Consumer, OffchainRequester {
            address user = clobResult.depositDeltas[i].user;
            depositedBalanceBase[user] -= clobResult.depositDeltas[i].baseDelta;
            depositedBalanceQuote[user] -= clobResult.depositDeltas[i].quoteDelta;
+
+           freeBalanceBase[user] += clobResult.depositDeltas[i].baseDelta;
+           freeBalanceQuote[user] += clobResult.depositDeltas[i].quoteDelta;
         }
 
         // Apply the order deltas
