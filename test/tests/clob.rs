@@ -68,16 +68,11 @@ async fn state_job_submission_clob_consumer() {
             .wallet(clob_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = ClobConsumer::new(clob.clob_consumer, &consumer_provider);
-        // let base_contract = MockErc20::new(clob.base_erc20, &consumer_provider);
         let base_contract = MockErc20::new(clob.base_erc20, &consumer_provider);
         let quote_contract = MockErc20::new(clob.quote_erc20, &consumer_provider);
 
         let call = base_contract.mint(alice.into(), U256::from(1_000));
         let r1 = call.send().await.unwrap().get_receipt();
-        let call = base_contract.mint(bob.into(), U256::from(1_000));
-        let r2 = call.send().await.unwrap().get_receipt();
-        let call = quote_contract.mint(alice.into(), U256::from(1_000));
-        let r3 = call.send().await.unwrap().get_receipt();
         let call = quote_contract.mint(bob.into(), U256::from(1_000));
         let r4 = call.send().await.unwrap().get_receipt();
 
@@ -108,7 +103,7 @@ async fn state_job_submission_clob_consumer() {
         let bob_contract = ClobConsumer::new(clob.clob_consumer, &bob_provider);
         let call = bob_contract.deposit(U256::from(0), U256::from(800));
         let r9 = call.send().await.unwrap().get_receipt();
-        tokio::try_join!(r1, r2, r3, r4, r5, r6, r7, r8, r9).unwrap();
+        tokio::try_join!(r1, r4, r5, r6, r7, r8, r9).unwrap();
 
         let requests1 = vec![
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),
@@ -192,7 +187,6 @@ async fn state_job_submission_clob_consumer() {
 
             let raw_output = {
                 use alloy::sol_types::SolType;
-                dbg!(result_with_metadata.len());
                 let abi_decoded_output =
                     ResultWithMetadata::abi_decode_params(&result_with_metadata, false).unwrap();
                 abi_decoded_output.4

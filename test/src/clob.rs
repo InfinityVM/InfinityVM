@@ -6,17 +6,7 @@ use clob_contracts::clob_consumer::ClobConsumer;
 
 use test_utils::AnvilJobManager;
 
-/// `ERC20.sol` bindings
-pub mod erc20 {
-    #![allow(clippy::all, missing_docs)]
-    alloy::sol! {
-      /// ERC20
-      #[sol(rpc)]
-      Erc20,
-      "../contracts/out/ERC20.sol/ERC20.json"
-    }
-}
-
+/// `E2EMockERC202.sol` bindings
 pub mod mock_erc20 {
     #![allow(clippy::all, missing_docs)]
     alloy::sol! {
@@ -68,7 +58,6 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
         .await
         .unwrap()
         .address();
-    // let quote_erc20 = *mock_erc20::MockErc20::deploy(&provider).await.unwrap().address();
 
     // Deploy the clob consumer
     let clob_consumer = *ClobConsumer::deploy(
