@@ -13,7 +13,7 @@ pub mod mock_erc20 {
         /// MockERC20
         #[sol(rpc)]
         MockErc20,
-        "../contracts/out/E2EMockERC202.sol/MockERC20.json"
+        "../contracts/out/E2EMockERC20.sol/MockERC20.json"
     }
 }
 
