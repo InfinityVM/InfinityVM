@@ -105,6 +105,8 @@ async fn state_job_submission_clob_consumer() {
         let r9 = call.send().await.unwrap().get_receipt();
         tokio::try_join!(r1, r4, r5, r6, r7, r8, r9).unwrap();
 
+        // TODO: check erc20 balances have been transferred for deposit
+
         let requests1 = vec![
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 }),
@@ -199,6 +201,8 @@ async fn state_job_submission_clob_consumer() {
 
             nonce += 1;
         }
+
+        // TODO: check erc20 balances are restored
     }
     E2E::new().clob().run(test).await;
 }
