@@ -107,6 +107,11 @@ async fn state_job_submission_clob_consumer() {
 
         // TODO: check erc20 balances have been transferred for deposit
 
+        let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
+        assert_eq!(bob_quote_bal, U256::from(200));
+        let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
+        assert_eq!(alice_base_bal, U256::from(800));
+
         let requests1 = vec![
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 }),
@@ -202,7 +207,15 @@ async fn state_job_submission_clob_consumer() {
             nonce += 1;
         }
 
-        // TODO: check erc20 balances are restored
+        let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
+        assert_eq!(bob_quote_bal, U256::from(600));
+        let bob_base_bal = alice_base.balanceOf(bob.into()).call().await.unwrap()._0;
+        assert_eq!(bob_base_bal, U256::from(100));
+
+        let alice_quote_bal = bob_quote.balanceOf(alice.into()).call().await.unwrap()._0;
+        assert_eq!(alice_quote_bal, U256::from(400));
+        let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
+        assert_eq!(alice_base_bal, U256::from(900));
     }
     E2E::new().clob().run(test).await;
 }

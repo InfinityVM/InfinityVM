@@ -50,7 +50,6 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
     let base_symbol = "BASE".to_string();
     let base_erc20 =
         *mock_erc20::MockErc20::deploy(&provider, base_name, base_symbol).await.unwrap().address();
-    // *mock_erc20::MockErc20::deploy(&provider).await.unwrap().address();
 
     let quote_name = "quote".to_string();
     let quote_symbol = "QUOTE".to_string();
