@@ -103,8 +103,10 @@ pub async fn run_batcher<D>(
         let _submit_job_response =
             coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
+        tokio::task::yield_now().await;
         let tx = db.tx_mut().expect("todo");
         tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, end_index + 1).expect("todo");
         let _ = tx.commit();
+        tokio::task::yield_now().await;
     }
 }

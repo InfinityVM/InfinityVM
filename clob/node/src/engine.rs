@@ -68,10 +68,12 @@ pub async fn run_engine<D>(
         let request2 = request.clone();
         let db2 = Arc::clone(&db);
         // handles.spawn(async move {
+        tokio::task::yield_now().await;
         let tx = db2.tx_mut().expect("todo");
         tx.put::<GlobalIndexTable>(SEEN_GLOBAL_INDEX_KEY, global_index).expect("todo");
         tx.put::<RequestTable>(global_index, RequestModel(request2)).expect("todo");
         tx.commit().expect("todo");
+        tokio::task::yield_now().await;
         // });
 
         let (response, post_state, difs) = tick(request, state).expect("TODO");
@@ -84,12 +86,14 @@ pub async fn run_engine<D>(
         let db2 = Arc::clone(&db);
 
         // handles.spawn(async move {
+        tokio::task::yield_now().await;
         let tx = db2.tx_mut().expect("todo");
         tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index).expect("todo");
         tx.put::<ResponseTable>(global_index, ResponseModel(response2)).expect("todo");
         tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2)).expect("todo");
         tx.put::<DifTable>(global_index, VecDifModel(difs)).expect("todo");
         tx.commit().expect("todo");
+        tokio::task::yield_now().await;
         // });
 
         let api_response = ApiResponse { response, global_index };

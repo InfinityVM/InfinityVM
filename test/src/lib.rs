@@ -165,7 +165,7 @@ impl E2E {
                 .env(CLOB_CN_GRPC_ADDR, cn_grpc_addr)
                 .env(CLOB_ETH_HTTP_ADDR, &http_rpc_url)
                 .env(CLOB_CONSUMER_ADDR, clob_consumer.clob_consumer.to_string())
-                .env(CLOB_BATCHER_DURATION_MS, "1000")
+                .env(CLOB_BATCHER_DURATION_MS, "10")
                 .env(CLOB_OPERATOR_KEY, clob_signer)
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit())

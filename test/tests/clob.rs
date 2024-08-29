@@ -311,9 +311,8 @@ async fn clob_node_e2e() {
         let bob_dep = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
         assert_eq!(client.deposit(alice_dep).await.1, 1);
         assert_eq!(client.deposit(bob_dep).await.1, 2);
-        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        // tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         let state = client.clob_state().await;
-        dbg!(&state);
 
         assert_eq!(
             *state.base_balances().get(&alice).unwrap(),
@@ -382,6 +381,46 @@ async fn clob_node_e2e() {
                 })
             }
         );
+        let state = client.clob_state().await;
+        assert_eq!(
+            *state.base_balances().get(&alice).unwrap(),
+            AssetBalance { free: 100, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&alice).unwrap(),
+            AssetBalance { free: 400, locked: 0 }
+        );
+        assert_eq!(
+            *state.base_balances().get(&bob).unwrap(),
+            AssetBalance { free: 100, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 300, locked: 100 }
+        );
+
+        let alice_withdraw = WithdrawRequest { address: alice, base_free: 100, quote_free: 400 };
+        let (r, i) = client.withdraw(alice_withdraw).await;
+        assert_eq!(i, 6);
+        let state = client.clob_state().await;
+        assert!(!state.quote_balances().contains_key(&alice));
+        assert!(!state.base_balances().contains_key(&alice));
+
+        let bob_cancel = CancelOrderRequest { oid: 1 };
+        let (r, i) = client.cancel(bob_cancel).await;
+        assert_eq!(i, 7);
+        let state = client.clob_state().await;
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 400, locked: 0 }
+        );
+
+        let bob_withdraw = WithdrawRequest { address: bob, base_free: 100, quote_free: 400 };
+        let (r, i) = client.withdraw(bob_withdraw).await;
+        assert_eq!(i, 8);
+        let state = client.clob_state().await;
+        assert!(state.quote_balances().is_empty());
+        assert!(state.base_balances().is_empty());
     }
     E2E::new().clob().run(test).await;
 }
