@@ -6,14 +6,14 @@ use clob_contracts::clob_consumer::ClobConsumer;
 
 use test_utils::AnvilJobManager;
 
-/// `E2EMockERC202.sol` bindings
+/// `E2EMockERC20.sol` bindings
 pub mod mock_erc20 {
     #![allow(clippy::all, missing_docs)]
     alloy::sol! {
         /// MockERC20
         #[sol(rpc)]
         MockErc20,
-        "../contracts/out/E2EMockERC20.sol/MockERC20.json"
+        "../contracts/out/E2EMockERC20.sol/E2EMockERC20.json"
     }
 }
 

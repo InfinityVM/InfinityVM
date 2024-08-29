@@ -19,7 +19,6 @@ use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use zkvm_executor::service::ResultWithMetadata;
 
-// TODO: these should be in some sort of sdk-primitives crate
 use clob_contracts::{abi_encode_offchain_job_request, JobParams};
 
 fn program_id() -> Vec<u8> {
@@ -47,8 +46,8 @@ async fn state_job_submission_clob_consumer() {
 
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
         let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
-        let bob: [u8; 20] = bob_key.address().into();
         let alice: [u8; 20] = alice_key.address().into();
+        let bob: [u8; 20] = bob_key.address().into();
         let alice_wallet = EthereumWallet::new(alice_key);
         let bob_wallet = EthereumWallet::new(bob_key);
 
@@ -104,8 +103,6 @@ async fn state_job_submission_clob_consumer() {
         let call = bob_contract.deposit(U256::from(0), U256::from(800));
         let r7 = call.send().await.unwrap().get_receipt();
         tokio::try_join!(r1, r2, r3, r4, r5, r6, r7).unwrap();
-
-        // TODO: check erc20 balances have been transferred for deposit
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(200));
