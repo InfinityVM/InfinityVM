@@ -21,7 +21,7 @@ async fn main() {
     let listen_addr = env::var(CLOB_LISTEN_ADDR).unwrap_or_else(|_| "127.0.0.1:3001".to_string());
     let db_dir = env::var(CLOB_DB_DIR).unwrap_or_else(|_| DB_DIR.to_string());
     let cn_grpc_addr =
-        env::var(CLOB_CN_GRPC_ADDR).unwrap_or_else(|_| "127.0.0.1:50051".to_string());
+        env::var(CLOB_CN_GRPC_ADDR).unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
     let batcher_duration_ms: u64 =
         env::var(CLOB_BATCHER_DURATION_MS).unwrap_or_else(|_| "1000".to_string()).parse().unwrap();
 

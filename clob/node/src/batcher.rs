@@ -71,7 +71,6 @@ pub async fn run_batcher<D>(
     ensure_initialized(Arc::clone(&db)).await;
     let program_id = Digest::from(CLOB_ID).as_bytes().to_vec();
 
-    let cn_http_url = format!("http://{cn_grpc_url}");
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_http_url).await.unwrap();
 
     loop {
