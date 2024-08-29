@@ -38,8 +38,8 @@ const CLOB_STATE: &str = "/clob-state";
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClobStateResponse {
-    // Hex encoded borsh bytes. This is just a temp hack until we have better view endpoints
-    borsh_hex_clob_state: String,
+    /// Hex encoded borsh bytes. This is just a temp hack until we have better view endpoints
+    pub borsh_hex_clob_state: String,
 }
 
 /// Stateful parts of REST server

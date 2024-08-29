@@ -216,3 +216,7 @@ async fn state_job_submission_clob_consumer() {
     }
     E2E::new().clob().run(test).await;
 }
+
+#[tokio::test]
+#[ignore]
+async fn clob_node_e2e() {}
