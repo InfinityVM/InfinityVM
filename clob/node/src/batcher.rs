@@ -71,8 +71,9 @@ pub async fn run_batcher<D>(
     ensure_initialized(Arc::clone(&db)).await;
     let program_id = Digest::from(CLOB_ID).as_bytes().to_vec();
 
-    let mut coprocessor_node = CoprocessorNodeClient::connect(cn_http_url).await.unwrap();
+    let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
 
+    tracing::error!("starting batcher");
     loop {
         sleep(sleep_duration).await;
 
@@ -88,7 +89,7 @@ pub async fn run_batcher<D>(
             })
             .unwrap();
         if start_index >= end_index {
-            info!("no new requests - skipping batch");
+            tracing::error!("no new requests - skipping batch");
             continue;
         }
         let start_state =
@@ -99,7 +100,7 @@ pub async fn run_batcher<D>(
             })
             .collect();
 
-        info!("creating batch {start_index}..={end_index}");
+        tracing::error!("creating batch {start_index}..={end_index}");
 
         let requests_borsh = borsh::to_vec(&requests).expect("valid borsh");
         let program_state_borsh = borsh::to_vec(&start_state).expect("valid borsh");

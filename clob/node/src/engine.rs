@@ -14,10 +14,7 @@ use reth_db::{
     Database,
 };
 use std::sync::Arc;
-use tokio::{
-    sync::{mpsc::Receiver, oneshot},
-    task::JoinSet,
-};
+use tokio::sync::{mpsc::Receiver, oneshot};
 use tracing::{info, instrument};
 
 pub(crate) const START_GLOBAL_INDEX: u64 = 0;

@@ -200,10 +200,6 @@ where
 
         Self::save_job(self.db.clone(), job.clone()).await?;
 
-        // If the channel is full, this method waits until there is space for a message.
-        // In the future we may want to switch to try_send, so it just fails immediately if
-        // the queue is full.
-        // <https://docs.rs/async-channel/latest/async_channel/struct.Sender.html#method.send>
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
 
         Ok(())

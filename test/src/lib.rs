@@ -17,7 +17,6 @@ use test_utils::{
     anvil_with_job_manager, anvil_with_mock_consumer, get_localhost_port, sleep_until_bound,
     AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
-// use tokio::process::{self, Command};
 use tonic::transport::Channel;
 
 /// Test utilities for CLOB e2e tests.
@@ -110,14 +109,14 @@ impl E2E {
         let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
-        let cn_grpc_addr = format!("http://{coprocessor_node_grpc}");
+        let cn_grpc_client_url = format!("http://{coprocessor_node_grpc}");
 
         // The coprocessor-node expects the relayer private key as an env var
         let proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .env("RELAYER_PRIVATE_KEY", relayer_private)
             .env("ZKVM_OPERATOR_PRIV_KEY", operator_private)
             .arg("--grpc-address")
-            .arg(&cn_grpc_addr)
+            .arg(&coprocessor_node_grpc)
             .arg("--prom-address")
             .arg(&prometheus_addr)
             .arg("--http-eth-rpc")
@@ -137,7 +136,8 @@ impl E2E {
             .into();
         procs.push(proc);
         sleep_until_bound(coprocessor_node_port).await;
-        let coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_addr.clone()).await.unwrap();
+        let coprocessor_node =
+            CoprocessorNodeClient::connect(cn_grpc_client_url.clone()).await.unwrap();
 
         let mut args = Args {
             mock_consumer: None,
@@ -162,7 +162,7 @@ impl E2E {
             let proc: ProcKill = Command::new(CLOB_NODE_DEBUG_BIN)
                 .env(CLOB_LISTEN_ADDR, &listen_addr)
                 .env(CLOB_DB_DIR, db_dir)
-                .env(CLOB_CN_GRPC_ADDR, cn_grpc_addr)
+                .env(CLOB_CN_GRPC_ADDR, cn_grpc_client_url)
                 .env(CLOB_ETH_HTTP_ADDR, &http_rpc_url)
                 .env(CLOB_CONSUMER_ADDR, clob_consumer.clob_consumer.to_string())
                 .env(CLOB_BATCHER_DURATION_MS, "10")

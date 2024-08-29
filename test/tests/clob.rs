@@ -220,6 +220,7 @@ async fn state_job_submission_clob_consumer() {
 
 #[tokio::test(flavor = "multi_thread")]
 #[ignore]
+// #[traced_test]
 async fn clob_node_e2e() {
     tracing_subscriber::fmt()
         .event_format(tracing_subscriber::fmt::format().with_file(true).with_line_number(true))
@@ -400,14 +401,14 @@ async fn clob_node_e2e() {
         );
 
         let alice_withdraw = WithdrawRequest { address: alice, base_free: 100, quote_free: 400 };
-        let (r, i) = client.withdraw(alice_withdraw).await;
+        let (_, i) = client.withdraw(alice_withdraw).await;
         assert_eq!(i, 6);
         let state = client.clob_state().await;
         assert!(!state.quote_balances().contains_key(&alice));
         assert!(!state.base_balances().contains_key(&alice));
 
         let bob_cancel = CancelOrderRequest { oid: 1 };
-        let (r, i) = client.cancel(bob_cancel).await;
+        let (_, i) = client.cancel(bob_cancel).await;
         assert_eq!(i, 7);
         let state = client.clob_state().await;
         assert_eq!(
@@ -416,7 +417,7 @@ async fn clob_node_e2e() {
         );
 
         let bob_withdraw = WithdrawRequest { address: bob, base_free: 100, quote_free: 400 };
-        let (r, i) = client.withdraw(bob_withdraw).await;
+        let (_, i) = client.withdraw(bob_withdraw).await;
         assert_eq!(i, 8);
         let state = client.clob_state().await;
         assert!(state.quote_balances().is_empty());
@@ -424,6 +425,12 @@ async fn clob_node_e2e() {
 
         // Wait for batches to hit the chain
         tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+
+        let bob_free_base = consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
+        dbg!(bob_free_base);
+        let bob_free_quote =
+            consumer_contract.freeBalanceQuote(bob.into()).call().await.unwrap()._0;
+        dbg!(bob_free_quote);
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));

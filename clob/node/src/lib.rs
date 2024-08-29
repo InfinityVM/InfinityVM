@@ -9,11 +9,8 @@ use crate::{
 };
 use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
 use axum::{extract::State as ExtractState, Json, Router};
-use clob_core::{
-    api::{
-        AddOrderRequest, ApiResponse, CancelOrderRequest, DepositRequest, Request, WithdrawRequest,
-    },
-    ClobState,
+use clob_core::api::{
+    AddOrderRequest, ApiResponse, CancelOrderRequest, DepositRequest, Request, WithdrawRequest,
 };
 use reth_db::{transaction::DbTx, Database, DatabaseEnv};
 use serde::{Deserialize, Serialize};
