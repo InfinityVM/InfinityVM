@@ -27,20 +27,32 @@ where
     D: Database + 'static,
 {
     loop {
-        let tx = db.tx_mut().expect("todo");
-
-        if tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").is_some() {
-            match tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo") {
-                Some(_) => break,
-                None => tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, 0).expect("todo"),
+        // let tx = db.tx_mut().expect("todo");
+        let has_processed = db
+            .view(|tx| {
+                tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").is_some()
+            })
+            .unwrap();
+        if has_processed {
+            let has_next_batch = db
+                .view(|tx| {
+                    tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").is_some()
+                })
+                .unwrap();
+            if has_next_batch {
+                break;
+            } else {
+                db.update(|tx| {
+                    tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, 0).expect("todo")
+                })
+                .unwrap();
+                break;
             }
         } else {
             info!("waiting for a request to be processed before starting batcher");
             sleep(Duration::from_millis(1_0000)).await;
             continue;
         }
-
-        let _ = tx.commit();
     }
 }
 
@@ -65,21 +77,29 @@ pub async fn run_batcher<D>(
     loop {
         sleep(sleep_duration).await;
 
-        let tx = db.tx().expect("todo");
-        let start_index =
-            tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").unwrap();
-        let end_index =
-            tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").unwrap();
+        // let tx = db.tx().expect("todo");
+        let start_index = db
+            .view(|tx| {
+                tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").unwrap()
+            })
+            .unwrap();
 
+        let end_index = db
+            .view(|tx| {
+                tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").unwrap()
+            })
+            .unwrap();
         if start_index >= end_index {
             info!("no new requests - skipping batch");
             continue;
         }
-        let start_state = tx.get::<ClobStateTable>(start_index).expect("todo").unwrap().0;
+        let start_state =
+            db.view(|tx| tx.get::<ClobStateTable>(start_index).expect("todo").unwrap().0).unwrap();
         let requests: Vec<_> = (start_index..=end_index)
-            .map(|index| tx.get::<RequestTable>(index).expect("todo").unwrap().0)
+            .map(|index| {
+                db.view(|tx| tx.get::<RequestTable>(index).expect("todo").unwrap().0).unwrap()
+            })
             .collect();
-        let _ = tx.commit();
 
         let requests_borsh = borsh::to_vec(&requests).expect("valid borsh");
         let program_state_borsh = borsh::to_vec(&start_state).expect("valid borsh");
@@ -103,10 +123,10 @@ pub async fn run_batcher<D>(
         let _submit_job_response =
             coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
-        tokio::task::yield_now().await;
-        let tx = db.tx_mut().expect("todo");
-        tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, end_index + 1).expect("todo");
-        let _ = tx.commit();
-        tokio::task::yield_now().await;
+        let next_batch_idx = end_index + 1;
+        db.update(|tx| {
+            tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, next_batch_idx).unwrap()
+        })
+        .unwrap();
     }
 }

@@ -49,22 +49,26 @@ async fn main() {
     let db2 = Arc::clone(&db);
     let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
 
-    // let
+    let clob_consumer_addr = {
+        let hex = env::var(CLOB_CONSUMER_ADDR)
+            .unwrap_or_else(|_| "b794f5ea0ba39494ce839613fffba74279579268".to_string());
+        let bytes = hex::decode(hex).unwrap();
+        bytes.try_into().unwrap()
+    };
+    let batcher_handle = tokio::spawn(async move {
+        let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
+        batcher::run_batcher(
+            db,
+            batcher_duration,
+            operator_signer,
+            cn_grpc_addr,
+            clob_consumer_addr,
+        )
+        .await
+    });
 
-    // let batcher_handle = tokio::spawn(async move {
-    //     let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
-    //     batcher::run_batcher(
-    //         db,
-    //         batcher_duration,
-    //         operator_signer,
-    //         cn_grpc_addr,
-    //         clob_consumer_addr,
-    //     )
-    //     .await
-    // });
-
-    // for handle in [server_handle, engine_handle, batcher_handle] {
-    for handle in [server_handle, engine_handle] {
+    for handle in [server_handle, engine_handle, batcher_handle] {
+        // for handle in [server_handle, engine_handle] {
         handle.await.unwrap()
     }
 }

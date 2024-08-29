@@ -37,7 +37,11 @@ pub enum Error {
 /// Open a DB at `path`. Creates the DB if it does not exist.
 pub fn init_db<P: AsRef<Path>>(path: P) -> Result<DatabaseEnv, Error> {
     let client_version = ClientVersion::default();
-    let args = DatabaseArguments::new(client_version.clone());
+
+    use reth_db::mdbx::MaxReadTransactionDuration;
+    let args = DatabaseArguments::new(client_version.clone())
+        .with_max_read_transaction_duration(Some(MaxReadTransactionDuration::Unbounded))
+        .with_exclusive(Some(false));
 
     let db = create_db(path, args)?;
     db.record_client_version(client_version)?;
@@ -46,6 +50,7 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<DatabaseEnv, Error> {
         // This logic is largely from reth's `create_tables` fn, but uses our tables
         // instead of their's
         let tx = db.deref().begin_rw_txn().map_err(|e| DatabaseError::InitTx(e.into()))?;
+
 
         for table in tables::Tables::ALL {
             let flags = match table.table_type() {
