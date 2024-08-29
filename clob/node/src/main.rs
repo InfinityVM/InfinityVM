@@ -16,7 +16,7 @@ use clob_node::{
     CLOB_ETH_HTTP_ADDR, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
 
-#[tokio::main(flavor = "multi_thread", worker_threads = 64)]
+#[tokio::main]
 async fn main() {
     let listen_addr = env::var(CLOB_LISTEN_ADDR).unwrap_or_else(|_| "127.0.0.1:3001".to_string());
     let db_dir = env::var(CLOB_DB_DIR).unwrap_or_else(|_| DB_DIR.to_string());
@@ -67,8 +67,5 @@ async fn main() {
         .await
     });
 
-    for handle in [server_handle, engine_handle, batcher_handle] {
-        // for handle in [server_handle, engine_handle] {
-        handle.await.unwrap()
-    }
+    tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
 }

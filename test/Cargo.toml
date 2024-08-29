@@ -34,3 +34,4 @@ clob-node = { workspace = true }
 mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }
 serde_json = { workspace = true }
 alloy-sol-types = { workspace = true }
+tracing-subscriber = { workspace = true }

@@ -71,13 +71,12 @@ pub async fn run_batcher<D>(
     ensure_initialized(Arc::clone(&db)).await;
     let program_id = Digest::from(CLOB_ID).as_bytes().to_vec();
 
-    let mut coprocessor_node =
-        CoprocessorNodeClient::connect(format!("http://{cn_grpc_url}")).await.unwrap();
+    let cn_http_url = format!("http://{cn_grpc_url}");
+    let mut coprocessor_node = CoprocessorNodeClient::connect(cn_http_url).await.unwrap();
 
     loop {
         sleep(sleep_duration).await;
 
-        // let tx = db.tx().expect("todo");
         let start_index = db
             .view(|tx| {
                 tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").unwrap()
@@ -100,6 +99,8 @@ pub async fn run_batcher<D>(
                 db.view(|tx| tx.get::<RequestTable>(index).expect("todo").unwrap().0).unwrap()
             })
             .collect();
+
+        info!("creating batch {start_index}..={end_index}");
 
         let requests_borsh = borsh::to_vec(&requests).expect("valid borsh");
         let program_state_borsh = borsh::to_vec(&start_state).expect("valid borsh");

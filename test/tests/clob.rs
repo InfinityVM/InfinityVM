@@ -218,18 +218,18 @@ async fn state_job_submission_clob_consumer() {
     E2E::new().clob().run(test).await;
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 32)]
+#[tokio::test(flavor = "multi_thread")]
 #[ignore]
 async fn clob_node_e2e() {
+    tracing_subscriber::fmt()
+        .event_format(tracing_subscriber::fmt::format().with_file(true).with_line_number(true))
+        .init();
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let clob = args.clob_consumer.unwrap();
         let program_id = program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_endpoint = args.clob_endpoint.unwrap();
-        dbg!(&clob_endpoint);
-
-        // tokio::time::sleep(tokio::time::Duration::from_secs(1000)).await;
 
         let client = clob_node::client::Client::new(clob_endpoint);
         let clob_state0 = ClobState::default();
@@ -421,6 +421,19 @@ async fn clob_node_e2e() {
         let state = client.clob_state().await;
         assert!(state.quote_balances().is_empty());
         assert!(state.base_balances().is_empty());
+
+        // Wait for batches to hit the chain
+        tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+
+        let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
+        assert_eq!(bob_quote_bal, U256::from(600));
+        let bob_base_bal = alice_base.balanceOf(bob.into()).call().await.unwrap()._0;
+        assert_eq!(bob_base_bal, U256::from(100));
+
+        let alice_quote_bal = bob_quote.balanceOf(alice.into()).call().await.unwrap()._0;
+        assert_eq!(alice_quote_bal, U256::from(400));
+        let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
+        assert_eq!(alice_base_bal, U256::from(900));
     }
     E2E::new().clob().run(test).await;
 }

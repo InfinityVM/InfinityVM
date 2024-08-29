@@ -17,7 +17,7 @@ use test_utils::{
     anvil_with_job_manager, anvil_with_mock_consumer, get_localhost_port, sleep_until_bound,
     AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
-// use tokio::process::Command;
+// use tokio::process::{self, Command};
 use tonic::transport::Channel;
 
 /// Test utilities for CLOB e2e tests.
@@ -31,10 +31,10 @@ const CLOB_NODE_DEBUG_BIN: &str = "../target/debug/clob-node";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
-pub struct ProcKill(std::process::Child);
+pub struct ProcKill(process::Child);
 
-impl From<std::process::Child> for ProcKill {
-    fn from(child: std::process::Child) -> Self {
+impl From<process::Child> for ProcKill {
+    fn from(child: process::Child) -> Self {
         Self(child)
     }
 }
@@ -93,7 +93,7 @@ impl E2E {
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
-        test_utils::test_tracing();
+        // test_utils::test_tracing();
         let mut procs = vec![];
 
         let anvil = anvil_with_job_manager().await;
@@ -110,13 +110,14 @@ impl E2E {
         let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
+        let cn_grpc_addr = format!("http://{coprocessor_node_grpc}");
 
         // The coprocessor-node expects the relayer private key as an env var
         let proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .env("RELAYER_PRIVATE_KEY", relayer_private)
             .env("ZKVM_OPERATOR_PRIV_KEY", operator_private)
             .arg("--grpc-address")
-            .arg(&coprocessor_node_grpc)
+            .arg(&cn_grpc_addr)
             .arg("--prom-address")
             .arg(&prometheus_addr)
             .arg("--http-eth-rpc")
@@ -136,7 +137,6 @@ impl E2E {
             .into();
         procs.push(proc);
         sleep_until_bound(coprocessor_node_port).await;
-        let cn_grpc_addr = format!("http://{coprocessor_node_grpc}");
         let coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_addr.clone()).await.unwrap();
 
         let mut args = Args {
