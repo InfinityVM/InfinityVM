@@ -11,8 +11,10 @@ clob-core = { workspace = true }
 borsh = { workspace = true }
 alloy = { workspace = true }
 
-# We need exact match to some types in `clob-core`. `clob-core`
-# can't use alloy facade crate directly due to zkvm constraints.
+# We need exact match to some types in `clob-core`. We initially
+# thought `clob-core`can't use alloy facade crate directly due 
+# to zkvm constraints, but looks like we can so this should be
+# changed soon.
 alloy-sol-types = { workspace = true }
 alloy-primitives = { workspace = true }
 
