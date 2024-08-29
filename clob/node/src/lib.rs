@@ -47,6 +47,43 @@ const ORDERS: &str = "/orders";
 const CANCEL: &str = "/cancel";
 const CLOB_STATE: &str = "/clob-state";
 
+pub async fn run(
+    db_dir: String,
+    listen_addr: String,
+    batcher_duration_ms: u64,
+    operator_signer: K256LocalSigner,
+    cn_grpc_url: String,
+    clob_consumer_addr: [u8; 20],
+) {
+    let db = crate::db::init_db(db_dir).expect("todo");
+    let db = Arc::new(db);
+
+    let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(32);
+    let db2 = Arc::clone(&db);
+    let server_handle = tokio::spawn(async move {
+        let server_state = AppState::new(engine_sender, db2);
+        http_listen(server_state, &listen_addr).await
+    });
+
+    let db2 = Arc::clone(&db);
+    let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
+
+    let batcher_handle = tokio::spawn(async move {
+        let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
+        batcher::run_batcher(
+            db,
+            batcher_duration,
+            operator_signer,
+            cn_grpc_url
+            ,
+            clob_consumer_addr,
+        )
+        .await
+    });
+
+    tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
+}
+
 ///  Response to the clob state endpoint
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -183,6 +220,7 @@ mod tests {
         http::{self, Request as AxumRequest},
     };
     use clob_core::api::AssetBalance;
+    use clob_core::ClobState;
     use http_body_util::BodyExt;
     use tempfile::tempdir;
     use tower::{Service, ServiceExt};

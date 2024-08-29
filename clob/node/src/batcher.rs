@@ -39,15 +39,14 @@ where
                     tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").is_some()
                 })
                 .unwrap();
-            if has_next_batch {
-                break;
-            } else {
+            if !has_next_batch {
                 db.update(|tx| {
                     tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, 0).expect("todo")
                 })
                 .unwrap();
-                break;
             }
+
+            break;
         } else {
             info!("waiting for a request to be processed before starting batcher");
             sleep(Duration::from_millis(1_0000)).await;
@@ -73,7 +72,6 @@ pub async fn run_batcher<D>(
 
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
 
-    tracing::error!("starting batcher");
     loop {
         sleep(sleep_duration).await;
 
@@ -89,7 +87,7 @@ pub async fn run_batcher<D>(
             })
             .unwrap();
         if start_index >= end_index {
-            tracing::error!("no new requests - skipping batch");
+            tracing::info!("no new requests - skipping batch");
             continue;
         }
         let start_state =
@@ -100,7 +98,7 @@ pub async fn run_batcher<D>(
             })
             .collect();
 
-        tracing::error!("creating batch {start_index}..={end_index}");
+        tracing::info!("creating batch {start_index}..={end_index}");
 
         let requests_borsh = borsh::to_vec(&requests).expect("valid borsh");
         let program_state_borsh = borsh::to_vec(&start_state).expect("valid borsh");

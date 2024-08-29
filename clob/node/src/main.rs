@@ -1,11 +1,10 @@
 //! The Infinity CLOB node binary.
 
 use alloy::hex;
-use clob_node::{batcher, engine, http_listen, AppState, K256LocalSigner};
-use std::{env, sync::Arc};
+use clob_node::K256LocalSigner;
+use std::env;
 
 // Small for now to get to failure cases quicker
-const CHANEL_SIZE: usize = 32;
 const DB_DIR: &str = "./tmp-data-dir/dev/db";
 
 /// Secret for anvil key #6
@@ -35,37 +34,20 @@ async fn main() {
         K256LocalSigner::from_slice(&decoded).unwrap()
     };
 
-    let db = clob_node::db::init_db(db_dir).expect("todo");
-    let db = Arc::new(db);
-
-    let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(CHANEL_SIZE);
-
-    let db2 = Arc::clone(&db);
-    let server_handle = tokio::spawn(async move {
-        let server_state = AppState::new(engine_sender, db2);
-        http_listen(server_state, &listen_addr).await
-    });
-
-    let db2 = Arc::clone(&db);
-    let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
-
     let clob_consumer_addr = {
         let hex = env::var(CLOB_CONSUMER_ADDR)
             .unwrap_or_else(|_| "b794f5ea0ba39494ce839613fffba74279579268".to_string());
         let bytes = hex::decode(hex).unwrap();
         bytes.try_into().unwrap()
     };
-    let batcher_handle = tokio::spawn(async move {
-        let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
-        batcher::run_batcher(
-            db,
-            batcher_duration,
-            operator_signer,
-            cn_grpc_addr,
-            clob_consumer_addr,
-        )
-        .await
-    });
 
-    tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
+    clob_node::run(
+        db_dir,
+        listen_addr,
+        batcher_duration_ms,
+        operator_signer,
+        cn_grpc_addr,
+        clob_consumer_addr,
+    )
+    .await;
 }

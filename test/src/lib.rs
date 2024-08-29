@@ -92,7 +92,7 @@ impl E2E {
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
-        // test_utils::test_tracing();
+        test_utils::test_tracing();
         let mut procs = vec![];
 
         let anvil = anvil_with_job_manager().await;
