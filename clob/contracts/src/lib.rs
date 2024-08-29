@@ -1,6 +1,7 @@
 //! Contracts bindings and abi types.
 
 use alloy::sol_types::SolType;
+
 /// The payload that gets signed by the user/app for an offchain job request.
 ///
 /// tuple(Nonce,MaxCycles,Consumer,ProgramID,ProgramInput)
