@@ -13,12 +13,11 @@ mod tests {
         },
         tick, BorshKeccack256, ClobState,
     };
-    use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
+    
+    use zkvm::Zkvm;
 
     #[test]
     fn deposit_create_cancel_withdraw() {
-        let executor = LocalProver::new("locals only");
-
         let clob_state0 = ClobState::default();
         let bob = [69u8; 20];
         let alice = [42u8; 20];
@@ -28,7 +27,7 @@ mod tests {
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 }),
         ];
         let clob_state1 = next_state(requests1.clone(), clob_state0.clone());
-        let clob_out = execute(requests1.clone(), clob_state0.clone(), &executor);
+        let clob_out = execute(requests1.clone(), clob_state0.clone());
         assert_eq!(clob_out.next_state_hash, clob_state1.borsh_keccak256());
         assert!(clob_out.withdraw_deltas.is_empty());
         assert!(clob_out.order_deltas.is_empty());
@@ -64,7 +63,7 @@ mod tests {
             }),
         ];
         let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
-        let clob_out = execute(requests2.clone(), clob_state1.clone(), &executor);
+        let clob_out = execute(requests2.clone(), clob_state1.clone());
         assert_eq!(clob_out.next_state_hash, clob_state2.borsh_keccak256());
         assert!(clob_out.withdraw_deltas.is_empty());
         assert!(clob_out.deposit_deltas.is_empty());
@@ -90,7 +89,7 @@ mod tests {
             Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 }),
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
-        let clob_out = execute(requests3.clone(), clob_state2.clone(), &executor);
+        let clob_out = execute(requests3.clone(), clob_state2.clone());
         assert_eq!(clob_out.next_state_hash, clob_state3.borsh_keccak256());
         assert!(clob_out.deposit_deltas.is_empty());
         let a = OrderDelta {
@@ -120,29 +119,17 @@ mod tests {
     fn execute(
         txns: Vec<Request>,
         init_state: ClobState,
-        executor: &LocalProver,
     ) -> ClobProgramOutput {
         let input = ClobProgramInput {
             prev_state_hash: init_state.borsh_keccak256(),
             orders: borsh::to_vec(&txns).unwrap().into(),
         };
 
-        let state_b = borsh::to_vec(&init_state).unwrap();
+        let state_borsh = borsh::to_vec(&init_state).unwrap();
         let abi_input = input.abi_encode();
-
-        let state_len = state_b.len() as u32;
-        let abi_input_len = abi_input.len() as u32;
-
-        let env = ExecutorEnv::builder()
-            .write::<u32>(&state_len)
-            .unwrap()
-            .write_slice(&state_b)
-            .write(&abi_input_len)
-            .unwrap()
-            .write_slice(&abi_input)
-            .build()
+        let out_bytes = zkvm::Risc0 {}
+            .execute_stateful(super::CLOB_ELF, &abi_input, &state_borsh, 32 * 1000 * 1000)
             .unwrap();
-        let out_bytes = executor.execute(env, super::CLOB_ELF).unwrap().journal.bytes;
 
         ClobProgramOutput::abi_decode(&out_bytes, true).unwrap()
     }

@@ -10,6 +10,7 @@ risc0-zkvm = { workspace = true }
 clob-core = { workspace = true }
 borsh = { workspace = true }
 alloy = { workspace = true }
+zkvm = { workspace = true }
 
 # We need exact match to some types in `clob-core`. We initially
 # thought `clob-core`can't use alloy facade crate directly due 

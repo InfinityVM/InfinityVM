@@ -1700,6 +1700,7 @@ dependencies = [
  "clob-core",
  "risc0-build",
  "risc0-zkvm",
+ "zkvm",
 ]
 
 [[package]]

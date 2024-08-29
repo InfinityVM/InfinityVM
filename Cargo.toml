@@ -208,4 +208,5 @@ coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
 proto = { path = "crates/proto" }
 zkvm-executor = { path = "crates/zkvm-executor" }
+zkvm = { path = "crates/zkvm" }
 test-utils = { path = "crates/test-utils" }
