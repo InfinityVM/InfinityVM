@@ -1,7 +1,12 @@
 //! E2E tests and helpers.
 use alloy::primitives::hex;
 use clob::{anvil_with_clob_consumer, AnvilClob};
+use clob_node::{
+    CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR,
+    CLOB_ETH_HTTP_ADDR, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
+};
 use futures::future::FutureExt;
+use proto::coprocessor_node_client::CoprocessorNodeClient;
 use std::{
     future::Future,
     panic::AssertUnwindSafe,
@@ -12,8 +17,6 @@ use test_utils::{
     AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
 use tonic::transport::Channel;
-
-use proto::coprocessor_node_client::CoprocessorNodeClient;
 
 /// Test utilities for CLOB e2e tests.
 pub mod clob;
@@ -89,9 +92,9 @@ impl E2E {
         R: Future<Output = ()>,
     {
         test_utils::test_tracing();
+        let mut procs = vec![];
 
         let anvil = anvil_with_job_manager().await;
-        // Start an anvil node
 
         let job_manager = anvil.job_manager.to_string();
         let chain_id = anvil.anvil.chain_id().to_string();
@@ -107,7 +110,7 @@ impl E2E {
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
 
         // The coprocessor-node expects the relayer private key as an env var
-        let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
+        let proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .env("RELAYER_PRIVATE_KEY", relayer_private)
             .env("ZKVM_OPERATOR_PRIV_KEY", operator_private)
             .arg("--grpc-address")
@@ -127,6 +130,7 @@ impl E2E {
             .spawn()
             .unwrap()
             .into();
+        procs.push(proc);
         sleep_until_bound(coprocessor_node_port).await;
         let cn_grpc_addr = format!("http://{coprocessor_node_grpc}");
         let coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_addr.clone()).await.unwrap();
@@ -149,19 +153,20 @@ impl E2E {
                 tempfile::Builder::new().prefix("clob-node-test-db").tempdir().unwrap().into_path();
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
+            let clob_signer = hex::encode(clob_consumer.clob_signer.to_bytes());
 
-            let _proc: ProcKill = Command::new(CLOB_NODE_DEBUG_BIN)
-                .env("CLOB_LISTEN_ADDR", &listen_addr)
-                .env("CLOB_DB_DIR", db_dir)
-                .env("CLOB_CN_GRPC_ADDR", cn_grpc_addr)
-                .env("CLOB_ETH_HTTP_ADDR", &http_rpc_url)
-                .env("CLOB_CONSUMER_ADDR", clob_consumer.clob_consumer.to_string())
-                .env("CLOB_BATCHER_DURATION_MS", "1000")
-                .env("CLOB_OPERATOR_KEY", clob_consumer.clob_signer.address().to_string())
+            let proc: ProcKill = Command::new(CLOB_NODE_DEBUG_BIN)
+                .env(CLOB_LISTEN_ADDR, &listen_addr)
+                .env(CLOB_DB_DIR, db_dir)
+                .env(CLOB_CN_GRPC_ADDR, cn_grpc_addr)
+                .env(CLOB_ETH_HTTP_ADDR, &http_rpc_url)
+                .env(CLOB_CONSUMER_ADDR, clob_consumer.clob_consumer.to_string())
+                .env(CLOB_BATCHER_DURATION_MS, "1000")
+                .env(CLOB_OPERATOR_KEY, clob_signer)
                 .spawn()
                 .unwrap()
                 .into();
-
+            procs.push(proc);
             sleep_until_bound(coprocessor_node_port).await;
 
             args.clob_consumer = Some(clob_consumer);

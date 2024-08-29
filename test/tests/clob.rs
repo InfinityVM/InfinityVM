@@ -20,6 +20,7 @@ use risc0_binfmt::compute_image_id;
 use zkvm_executor::service::ResultWithMetadata;
 
 use clob_contracts::{abi_encode_offchain_job_request, JobParams};
+use clob_core::api::OrderFill;
 
 fn program_id() -> Vec<u8> {
     compute_image_id(CLOB_ELF).unwrap().as_bytes().to_vec()
@@ -226,6 +227,10 @@ async fn clob_node_e2e() {
         let program_id = program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_endpoint = args.clob_endpoint.unwrap();
+        dbg!(&clob_endpoint);
+
+        // tokio::time::sleep(tokio::time::Duration::from_secs(1000)).await;
+
         let client = clob_node::client::Client::new(clob_endpoint);
         let clob_state0 = ClobState::default();
 
@@ -304,9 +309,11 @@ async fn clob_node_e2e() {
 
         let alice_dep = DepositRequest { address: alice, base_free: 200, quote_free: 0 };
         let bob_dep = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
-        assert_eq!(client.deposit(alice_dep).await.1, 0);
-        assert_eq!(client.deposit(bob_dep).await.1, 1);
+        assert_eq!(client.deposit(alice_dep).await.1, 1);
+        assert_eq!(client.deposit(bob_dep).await.1, 2);
         let state = client.clob_state().await;
+        dbg!(&state);
+
         assert_eq!(
             *state.base_balances().get(&alice).unwrap(),
             AssetBalance { free: 200, locked: 0 }
@@ -319,7 +326,7 @@ async fn clob_node_e2e() {
         let alice_limit =
             AddOrderRequest { address: alice, is_buy: false, limit_price: 4, size: 100 };
         let (r, i) = client.order(alice_limit).await;
-        assert_eq!(i, 2);
+        assert_eq!(i, 3);
         assert_eq!(
             r,
             AddOrderResponse {
@@ -336,7 +343,7 @@ async fn clob_node_e2e() {
 
         let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100 };
         let (r, i) = client.order(bob_limit1).await;
-        assert_eq!(i, 3);
+        assert_eq!(i, 4);
         assert_eq!(
             r,
             AddOrderResponse {
@@ -352,5 +359,28 @@ async fn clob_node_e2e() {
         );
 
         let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100 };
+        let (r, i) = client.order(bob_limit2).await;
+        assert_eq!(i, 5);
+        assert_eq!(
+            r,
+            AddOrderResponse {
+                success: true,
+                status: Some(FillStatus {
+                    oid: 2,
+                    size: 100,
+                    address: bob,
+                    filled_size: 100,
+                    fills: vec![OrderFill {
+                        maker_oid: 0,
+                        taker_oid: 2,
+                        buyer: bob,
+                        seller: alice,
+                        price: 4,
+                        size: 100
+                    }]
+                })
+            }
+        );
     }
+    E2E::new().clob().run(test).await;
 }

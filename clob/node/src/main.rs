@@ -8,13 +8,13 @@ use std::{env, sync::Arc};
 const CHANEL_SIZE: usize = 32;
 const DB_DIR: &str = "./tmp-data-dir/dev/db";
 
-const CLOB_LISTEN_ADDR: &str = "CLOB_LISTEN_ADDR";
-const CLOB_DB_DIR: &str = "CLOB_DB_DIR";
-const CLOB_CN_GRPC_ADDR: &str = "CLOB_CN_GRPC_ADDR";
-const CLOB_ETH_HTTP_ADDR: &str = "CLOB_ETH_HTTP_ADDR";
-const CLOB_CONSUMER_ADDR: &str = "CLOB_CONSUMER_ADDR";
-const CLOB_BATCHER_DURATION_MS: &str = "CLOB_BATCHER_DURATION_MS";
-const CLOB_OPERATOR_KEY: &str = "CLOB_OPERATOR_KEY";
+/// Secret for anvil key #6
+pub const DEV_SECRET: &str = "92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e";
+
+use clob_node::{
+    CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR,
+    CLOB_ETH_HTTP_ADDR, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
+};
 
 #[tokio::main]
 async fn main() {
@@ -36,7 +36,7 @@ async fn main() {
         bytes.try_into().unwrap()
     };
     let operator_signer = {
-        let operator_key = env::var(CLOB_OPERATOR_KEY).expect("missing operator key");
+        let operator_key = env::var(CLOB_OPERATOR_KEY).unwrap_or_else(|_| DEV_SECRET.to_string());
         let decoded = hex::decode(operator_key).unwrap();
         K256LocalSigner::from_slice(&decoded).unwrap()
     };

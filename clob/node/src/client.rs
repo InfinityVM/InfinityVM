@@ -79,7 +79,7 @@ impl Client {
     }
 
     fn path(&self, route: &str) -> String {
-        format!("{}/{route}", self.base_url)
+        format!("{}{route}", self.base_url)
     }
 }
 

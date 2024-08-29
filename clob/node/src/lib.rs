@@ -26,6 +26,21 @@ pub mod client;
 pub mod db;
 pub mod engine;
 
+/// Address to listen for HTTP requests on.
+pub const CLOB_LISTEN_ADDR: &str = "CLOB_LISTEN_ADDR";
+/// Directory for database.
+pub const CLOB_DB_DIR: &str = "CLOB_DB_DIR";
+/// Coprocessor Node gRPC address.
+pub const CLOB_CN_GRPC_ADDR: &str = "CLOB_CN_GRPC_ADDR";
+/// Execution Client HTTP address.
+pub const CLOB_ETH_HTTP_ADDR: &str = "CLOB_ETH_HTTP_ADDR";
+/// Clob Consumer contract address.
+pub const CLOB_CONSUMER_ADDR: &str = "CLOB_CONSUMER_ADDR";
+/// Duration between creating batches.
+pub const CLOB_BATCHER_DURATION_MS: &str = "CLOB_BATCHER_DURATION_MS";
+/// Clob operator's secret key.
+pub const CLOB_OPERATOR_KEY: &str = "CLOB_OPERATOR_KEY";
+
 /// Operator signer type.
 pub type K256LocalSigner = LocalSigner<SigningKey>;
 
