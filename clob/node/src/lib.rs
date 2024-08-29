@@ -22,6 +22,7 @@ use tokio::sync::{mpsc::Sender, oneshot};
 use tracing::{info, instrument};
 
 pub mod batcher;
+pub mod client;
 pub mod db;
 pub mod engine;
 

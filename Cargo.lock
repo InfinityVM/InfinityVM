@@ -1676,6 +1676,7 @@ dependencies = [
  "mime",
  "paste",
  "proto",
+ "reqwest 0.11.27",
  "reth-db",
  "reth-db-api",
  "risc0-zkvm",

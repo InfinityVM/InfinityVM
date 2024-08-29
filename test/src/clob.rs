@@ -3,28 +3,8 @@ use alloy::{
     signers::local::PrivateKeySigner,
 };
 use clob_contracts::clob_consumer::ClobConsumer;
-use clob_core::ClobState;
-use clob_node::ClobStateResponse;
-use serde::de::DeserializeOwned;
-use serde::Serialize;
 
 use test_utils::AnvilJobManager;
-
-/// Make a POST request with JSON.
-pub async fn post<Req: Serialize, Resp: DeserializeOwned>(url: &str, req: Req) -> Resp {
-    reqwest::Client::new().post(url).json(&req).send().await.unwrap().json().await.unwrap()
-}
-
-
-/// Get the ClobState/
-pub async fn get_state(url: &str) -> ClobState {
-    let response: ClobStateResponse =
-        reqwest::Client::new().get(url).send().await.unwrap().json().await.unwrap();
-
-    let borsh = alloy::hex::decode(&response.borsh_hex_clob_state).unwrap();
-
-    borsh::from_slice(&borsh).unwrap()
-}
 
 /// `E2EMockERC20.sol` bindings
 pub mod mock_erc20 {
