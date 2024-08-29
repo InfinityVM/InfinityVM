@@ -105,7 +105,6 @@ contract ClobConsumer is Consumer, OffchainRequester {
         return latestStateRootHash;
     }
     
-    // function setLatestStateRootHash(bytes32 nextStateRootHash) external onlyJobManager() {
     function setLatestStateRootHash(bytes32 nextStateRootHash) external {
         latestStateRootHash = nextStateRootHash;
     }
