@@ -165,7 +165,8 @@ impl E2E {
             sleep_until_bound(coprocessor_node_port).await;
 
             args.clob_consumer = Some(clob_consumer);
-            args.clob_endpoint = Some(listen_addr);
+            let clob_endpoint = format!("http://{listen_addr}");
+            args.clob_endpoint = Some(clob_endpoint);
         }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;

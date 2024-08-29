@@ -6,6 +6,7 @@ use alloy::{
 };
 use alloy_sol_types::SolValue;
 use clob_contracts::clob_consumer::ClobConsumer;
+use clob_core::api::AssetBalance;
 use clob_core::{
     api::{
         AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositRequest,
@@ -226,6 +227,7 @@ async fn clob_node_e2e() {
         let program_id = program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_endpoint = args.clob_endpoint.unwrap();
+        let client = clob_node::client::Client::new(clob_endpoint);
         let clob_state0 = ClobState::default();
 
         // Setup ready to use on chain accounts for Alice & Bob
@@ -300,5 +302,19 @@ async fn clob_node_e2e() {
         assert_eq!(bob_quote_bal, U256::from(200));
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
+
+        let alice_dep = DepositRequest { address: alice, base_free: 200, quote_free: 0 };
+        let bob_dep = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
+        assert_eq!(client.deposit(alice_dep).await.1, 0);
+        assert_eq!(client.deposit(bob_dep).await.1, 1);
+        let state = client.clob_state().await;
+        assert_eq!(
+            *state.base_balances().get(&alice).unwrap(),
+            AssetBalance { free: 200, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 800, locked: 0 }
+        );
     }
 }
