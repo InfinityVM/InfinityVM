@@ -13,7 +13,7 @@ mod tests {
         },
         tick, BorshKeccack256, ClobState,
     };
-    
+
     use zkvm::Zkvm;
 
     #[test]
@@ -116,10 +116,7 @@ mod tests {
         next_clob_state
     }
 
-    fn execute(
-        txns: Vec<Request>,
-        init_state: ClobState,
-    ) -> ClobProgramOutput {
+    fn execute(txns: Vec<Request>, init_state: ClobState) -> ClobProgramOutput {
         let input = ClobProgramInput {
             prev_state_hash: init_state.borsh_keccak256(),
             orders: borsh::to_vec(&txns).unwrap().into(),
