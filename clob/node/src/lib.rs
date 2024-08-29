@@ -281,10 +281,6 @@ mod tests {
 
     #[tokio::test]
     async fn place_bids() {
-        tracing_subscriber::fmt()
-            .event_format(tracing_subscriber::fmt::format().with_file(true).with_line_number(true))
-            .init();
-
         let server_state = test_setup().await;
         let mut app = app(server_state);
         let user1 = [1; 20];
@@ -329,5 +325,30 @@ mod tests {
             *state.quote_balances().get(&user3).unwrap(),
             AssetBalance { free: 30, locked: 0 }
         );
+    }
+
+    #[tokio::test]
+    async fn deposit_order_withdraw_cancel() {
+        tracing_subscriber::fmt()
+            .event_format(tracing_subscriber::fmt::format().with_file(true).with_line_number(true))
+            .init();
+
+        let server_state = test_setup().await;
+        let mut app = app(server_state);
+
+        let bob = [69u8; 20];
+        let alice = [42u8; 20];
+
+        let alice_deposit = DepositRequest { address: alice, base_free: 200, quote_free: 0 };
+        let bob_deposit = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
+        for r in [alice_deposit, bob_deposit] {
+            let _: ApiResponse = post(&mut app, DEPOSIT, r).await;
+        }
+        let state = get_clob_state(&mut app).await;
+        assert_eq!(
+            *state.base_balances().get(&alice).unwrap(),
+            AssetBalance { free: 200, locked: 0 }
+        );
+        assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free: 800, locked: 0 });
     }
 }
