@@ -87,7 +87,6 @@ impl E2E {
         R: Future<Output = ()>,
     {
         test_utils::test_tracing();
-        let mut procs = vec![];
 
         let anvil = anvil_with_job_manager().await;
 
@@ -105,8 +104,7 @@ impl E2E {
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
         let cn_grpc_client_url = format!("http://{coprocessor_node_grpc}");
 
-        // The coprocessor-node expects the relayer private key as an env var
-        let proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
+        let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .env("RELAYER_PRIVATE_KEY", relayer_private)
             .env("ZKVM_OPERATOR_PRIV_KEY", operator_private)
             .arg("--grpc-address")
@@ -128,7 +126,6 @@ impl E2E {
             .spawn()
             .unwrap()
             .into();
-        procs.push(proc);
         sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =
             CoprocessorNodeClient::connect(cn_grpc_client_url.clone()).await.unwrap();

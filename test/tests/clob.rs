@@ -218,12 +218,9 @@ async fn state_job_submission_clob_consumer() {
     E2E::new().clob().run(test).await;
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 32)]
+#[tokio::test(flavor = "multi_thread")]
 #[ignore]
 async fn clob_node_e2e() {
-    tracing_subscriber::fmt()
-        .event_format(tracing_subscriber::fmt::format().with_file(true).with_line_number(true))
-        .init();
     async fn test(mut args: Args) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(12));
         interval.tick().await; // First tick processes immediately
