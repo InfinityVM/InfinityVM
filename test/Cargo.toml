@@ -15,8 +15,6 @@ risc0-binfmt = { workspace = true }
 risc0-zkp = { workspace = true }
 alloy = { workspace = true }
 tempfile = { workspace = true }
-reqwest = { workspace = true }
-serde = { workspace = true }
 borsh = { workspace = true }
 
 contracts = { workspace = true }
