@@ -35,8 +35,8 @@ fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
     next_clob_state
 }
 
-#[tokio::test]
 #[ignore]
+#[tokio::test]
 async fn state_job_submission_clob_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
