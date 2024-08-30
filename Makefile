@@ -36,7 +36,7 @@ doc: contracts
 test-all: contracts debug-coprocessor-node
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
-	cargo test -p e2e clob_node_e2e -- --include-ignored --nocapture
+	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: build
 build: contracts

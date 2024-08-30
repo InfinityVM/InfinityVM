@@ -29,7 +29,6 @@ where
     D: Database + 'static,
 {
     loop {
-        // let tx = db.tx_mut().expect("todo");
         let has_processed = db
             .view(|tx| {
                 tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").is_some()
@@ -91,7 +90,7 @@ pub async fn run_batcher<D>(
             })
             .unwrap();
 
-        if start_index >= end_index {
+        if start_index > end_index {
             tracing::info!(start_index, end_index, "skipping batch creation");
             continue;
         }

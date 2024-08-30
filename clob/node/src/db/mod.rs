@@ -38,12 +38,9 @@ pub enum Error {
 pub fn init_db<P: AsRef<Path>>(path: P) -> Result<DatabaseEnv, Error> {
     let client_version = ClientVersion::default();
 
-    use reth_db::mdbx::MaxReadTransactionDuration;
-    let args = DatabaseArguments::new(client_version.clone())
-        .with_max_read_transaction_duration(Some(MaxReadTransactionDuration::Unbounded))
-        .with_exclusive(Some(false));
-
+    let args = DatabaseArguments::new(client_version.clone());
     let db = create_db(path, args)?;
+
     db.record_client_version(client_version)?;
 
     {
