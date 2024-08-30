@@ -47,6 +47,7 @@ const ORDERS: &str = "/orders";
 const CANCEL: &str = "/cancel";
 const CLOB_STATE: &str = "/clob-state";
 
+/// Run the clob node.
 pub async fn run(
     db_dir: String,
     listen_addr: String,
@@ -207,8 +208,7 @@ mod tests {
         body::Body,
         http::{self, Request as AxumRequest},
     };
-    use clob_core::api::AssetBalance;
-    use clob_core::ClobState;
+    use clob_core::{api::AssetBalance, ClobState};
     use http_body_util::BodyExt;
     use tempfile::tempdir;
     use tower::{Service, ServiceExt};

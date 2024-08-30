@@ -15,7 +15,7 @@ use reth_db::{
 };
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
-use tracing::{info, instrument};
+use tracing::instrument;
 
 /// The zero index never contains values. It theoretical has the default state.
 pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
@@ -95,7 +95,6 @@ pub async fn run_engine<D>(
         tx.put::<DifTable>(global_index, VecDifModel(difs)).expect("todo");
         tx.commit().expect("todo");
         tokio::task::yield_now().await;
-        // });
 
         let api_response = ApiResponse { response, global_index };
 

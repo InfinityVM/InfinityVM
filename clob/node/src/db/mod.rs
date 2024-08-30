@@ -51,7 +51,6 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<DatabaseEnv, Error> {
         // instead of their's
         let tx = db.deref().begin_rw_txn().map_err(|e| DatabaseError::InitTx(e.into()))?;
 
-
         for table in tables::Tables::ALL {
             let flags = match table.table_type() {
                 TableType::Table => DatabaseFlags::default(),

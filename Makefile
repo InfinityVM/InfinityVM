@@ -33,7 +33,7 @@ doc: contracts
 
 # Use this for iterating on integration tests
 .PHONY: test-all
-test-all: contracts debug-coprocessor-node debug-clob-node
+test-all: contracts debug-coprocessor-node
 	@# Make sure to build the bins that the integration tests rely on
 	@# and run the ignored tests
 	cargo test -p e2e clob_node_e2e -- --include-ignored --nocapture
@@ -49,7 +49,3 @@ contracts:
 .PHONY: debug-coprocessor-node
 debug-coprocessor-node:
 	cargo build -p coprocessor-node
-
-.PHONY: debug-clob-node
-debug-clob-node:
-	cargo build -p clob-node

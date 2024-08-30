@@ -1,17 +1,12 @@
 //! E2E tests and helpers.
 use alloy::primitives::hex;
 use clob::{anvil_with_clob_consumer, AnvilClob};
-use clob_node::{
-    CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR,
-    CLOB_ETH_HTTP_ADDR, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
-};
 use futures::future::FutureExt;
 use proto::coprocessor_node_client::CoprocessorNodeClient;
-use std::process::Stdio;
 use std::{
     future::Future,
     panic::AssertUnwindSafe,
-    process::{self, Command},
+    process::{self, Command, Stdio},
 };
 use test_utils::{
     anvil_with_job_manager, anvil_with_mock_consumer, get_localhost_port, sleep_until_bound,
@@ -26,7 +21,6 @@ pub mod clob;
 /// within the crate
 pub const ETHOS_RETH_DEBUG_BIN: &str = "../bin/ethos-reth/target/debug/ethos-reth";
 const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
-const CLOB_NODE_DEBUG_BIN: &str = "../target/debug/clob-node";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
@@ -64,24 +58,17 @@ pub struct Args {
 pub struct E2E {
     clob: bool,
     mock_consumer: bool,
-    clob_consumer: bool,
 }
 
 impl E2E {
     /// Create a new [Self]
     pub const fn new() -> Self {
-        Self { clob: false, mock_consumer: false, clob_consumer: false }
+        Self { clob: false, mock_consumer: false }
     }
 
     /// Setup the clob
     pub const fn clob(mut self) -> Self {
         self.clob = true;
-        self
-    }
-
-    /// Setup the clob batcher
-    pub const fn clob_consumer(mut self) -> Self {
-        self.clob_consumer = true;
         self
     }
 
@@ -158,12 +145,6 @@ impl E2E {
             args.mock_consumer = Some(anvil_with_mock_consumer(&args.anvil).await)
         }
 
-        if self.clob_consumer {
-            let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
-
-            args.clob_consumer = Some(clob_consumer);
-        }
-
         if self.clob {
             let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
             let db_dir = tempfile::Builder::new()
@@ -176,10 +157,9 @@ impl E2E {
                 .to_string();
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
-            let clob_signer = hex::encode(clob_consumer.clob_signer.to_bytes());
             let batcher_duration_ms = 1000;
 
-            let clob_consumer_addr = clob_consumer.clob_consumer.clone();
+            let clob_consumer_addr = clob_consumer.clob_consumer;
             let listen_addr2 = listen_addr.clone();
             let operator_signer = clob_consumer.clob_signer.clone();
             tokio::spawn(async move {
@@ -193,26 +173,11 @@ impl E2E {
                 )
                 .await
             });
-
-            // let proc: ProcKill = Command::new(CLOB_NODE_DEBUG_BIN)
-            //     .env(CLOB_LISTEN_ADDR, &listen_addr)
-            //     .env(CLOB_DB_DIR, db_dir)
-            //     .env(CLOB_CN_GRPC_ADDR, cn_grpc_client_url)
-            //     .env(CLOB_ETH_HTTP_ADDR, &http_rpc_url)
-            //     .env(CLOB_CONSUMER_ADDR, clob_consumer.clob_consumer.to_string())
-            //     .env(CLOB_BATCHER_DURATION_MS, "10")
-            //     .env(CLOB_OPERATOR_KEY, clob_signer)
-            //     .stdout(Stdio::inherit())
-            //     .stderr(Stdio::inherit())
-            //     .spawn()
-            //     .unwrap()
-            //     .into();
-            // procs.push(proc);
             sleep_until_bound(coprocessor_node_port).await;
 
-            args.clob_consumer = Some(clob_consumer);
             let clob_endpoint = format!("http://{listen_addr}");
             args.clob_endpoint = Some(clob_endpoint);
+            args.clob_consumer = Some(clob_consumer);
         }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
