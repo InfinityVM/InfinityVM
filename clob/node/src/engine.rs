@@ -17,7 +17,8 @@ use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
 use tracing::{info, instrument};
 
-pub(crate) const START_GLOBAL_INDEX: u64 = 0;
+/// The zero index never contains values. It theoretical has the default state.
+pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
 
 pub(crate) fn read_start_up_values<D: Database + 'static>(db: Arc<D>) -> (u64, ClobState) {
     let tx = db.tx().expect("todo");
@@ -25,11 +26,15 @@ pub(crate) fn read_start_up_values<D: Database + 'static>(db: Arc<D>) -> (u64, C
     let global_index = tx
         .get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)
         .expect("todo: db errors")
-        .unwrap_or(START_GLOBAL_INDEX);
+        .unwrap_or(GENESIS_GLOBAL_INDEX);
 
-    let clob_state = if global_index == START_GLOBAL_INDEX {
+    let clob_state = if global_index == GENESIS_GLOBAL_INDEX {
         // Initialize clob state if we haven't processed anything
-        ClobState::default()
+
+        let genesis_state = ClobState::default();
+        let model = ClobStateModel(genesis_state.clone());
+        db.update(|tx| tx.put::<ClobStateTable>(global_index, model)).unwrap().unwrap();
+        genesis_state
     } else {
         tx.get::<ClobStateTable>(global_index)
             .expect("todo: db errors")
@@ -59,7 +64,6 @@ pub async fn run_engine<D>(
         global_index += 1;
 
         let (request, response_sender) = receiver.recv().await.expect("todo");
-        info!(?request);
 
         // In background thread persist the index and request
         let request2 = request.clone();

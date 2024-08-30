@@ -64,17 +64,24 @@ pub struct Args {
 pub struct E2E {
     clob: bool,
     mock_consumer: bool,
+    clob_consumer: bool,
 }
 
 impl E2E {
     /// Create a new [Self]
     pub const fn new() -> Self {
-        Self { clob: false, mock_consumer: false }
+        Self { clob: false, mock_consumer: false, clob_consumer: false }
     }
 
     /// Setup the clob
     pub const fn clob(mut self) -> Self {
         self.clob = true;
+        self
+    }
+
+    /// Setup the clob batcher
+    pub const fn clob_consumer(mut self) -> Self {
+        self.clob_consumer = true;
         self
     }
 
@@ -151,28 +158,56 @@ impl E2E {
             args.mock_consumer = Some(anvil_with_mock_consumer(&args.anvil).await)
         }
 
+        if self.clob_consumer {
+            let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
+
+            args.clob_consumer = Some(clob_consumer);
+        }
+
         if self.clob {
             let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
-            let db_dir =
-                tempfile::Builder::new().prefix("clob-node-test-db").tempdir().unwrap().into_path();
+            let db_dir = tempfile::Builder::new()
+                .prefix("clob-node-test-db")
+                .tempdir()
+                .unwrap()
+                .into_path()
+                .to_str()
+                .unwrap()
+                .to_string();
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
             let clob_signer = hex::encode(clob_consumer.clob_signer.to_bytes());
+            let batcher_duration_ms = 1000;
 
-            let proc: ProcKill = Command::new(CLOB_NODE_DEBUG_BIN)
-                .env(CLOB_LISTEN_ADDR, &listen_addr)
-                .env(CLOB_DB_DIR, db_dir)
-                .env(CLOB_CN_GRPC_ADDR, cn_grpc_client_url)
-                .env(CLOB_ETH_HTTP_ADDR, &http_rpc_url)
-                .env(CLOB_CONSUMER_ADDR, clob_consumer.clob_consumer.to_string())
-                .env(CLOB_BATCHER_DURATION_MS, "10")
-                .env(CLOB_OPERATOR_KEY, clob_signer)
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .spawn()
-                .unwrap()
-                .into();
-            procs.push(proc);
+            let clob_consumer_addr = clob_consumer.clob_consumer.clone();
+            let listen_addr2 = listen_addr.clone();
+            let operator_signer = clob_consumer.clob_signer.clone();
+            tokio::spawn(async move {
+                clob_node::run(
+                    db_dir,
+                    listen_addr2,
+                    batcher_duration_ms,
+                    operator_signer,
+                    cn_grpc_client_url.clone(),
+                    **clob_consumer_addr,
+                )
+                .await
+            });
+
+            // let proc: ProcKill = Command::new(CLOB_NODE_DEBUG_BIN)
+            //     .env(CLOB_LISTEN_ADDR, &listen_addr)
+            //     .env(CLOB_DB_DIR, db_dir)
+            //     .env(CLOB_CN_GRPC_ADDR, cn_grpc_client_url)
+            //     .env(CLOB_ETH_HTTP_ADDR, &http_rpc_url)
+            //     .env(CLOB_CONSUMER_ADDR, clob_consumer.clob_consumer.to_string())
+            //     .env(CLOB_BATCHER_DURATION_MS, "10")
+            //     .env(CLOB_OPERATOR_KEY, clob_signer)
+            //     .stdout(Stdio::inherit())
+            //     .stderr(Stdio::inherit())
+            //     .spawn()
+            //     .unwrap()
+            //     .into();
+            // procs.push(proc);
             sleep_until_bound(coprocessor_node_port).await;
 
             args.clob_consumer = Some(clob_consumer);

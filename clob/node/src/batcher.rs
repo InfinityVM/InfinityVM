@@ -22,6 +22,8 @@ use crate::K256LocalSigner;
 
 const MAX_CYCLES: u64 = 32 * 1000 * 1000;
 
+const INIT_INDEX: u64 = 1;
+
 async fn ensure_initialized<D>(db: Arc<D>)
 where
     D: Database + 'static,
@@ -41,7 +43,8 @@ where
                 .unwrap();
             if !has_next_batch {
                 db.update(|tx| {
-                    tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, 0).expect("todo")
+                    tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, INIT_INDEX)
+                        .expect("todo")
                 })
                 .unwrap();
             }
@@ -86,18 +89,21 @@ pub async fn run_batcher<D>(
                 tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").unwrap()
             })
             .unwrap();
+        tracing::info!("found {start_index}..={end_index}");
         if start_index >= end_index {
-            tracing::info!("no new requests - skipping batch");
+            tracing::info!(start_index, end_index, "no new requests - skipping batch");
             continue;
         }
-        let start_state =
-            db.view(|tx| tx.get::<ClobStateTable>(start_index).expect("todo").unwrap().0).unwrap();
+
+        let prev_state_index = start_index - 1;
+        let start_state = db
+            .view(|tx| tx.get::<ClobStateTable>(prev_state_index).expect("todo").unwrap().0)
+            .unwrap();
         let requests: Vec<_> = (start_index..=end_index)
             .map(|index| {
                 db.view(|tx| tx.get::<RequestTable>(index).expect("todo").unwrap().0).unwrap()
             })
             .collect();
-
         tracing::info!("creating batch {start_index}..={end_index}");
 
         let requests_borsh = borsh::to_vec(&requests).expect("valid borsh");

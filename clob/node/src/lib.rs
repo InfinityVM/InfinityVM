@@ -5,7 +5,7 @@ use crate::{
         tables::{ClobStateTable, GlobalIndexTable},
         PROCESSED_GLOBAL_INDEX_KEY,
     },
-    engine::START_GLOBAL_INDEX,
+    engine::GENESIS_GLOBAL_INDEX,
 };
 use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
 use axum::{extract::State as ExtractState, Json, Router};
@@ -70,15 +70,8 @@ pub async fn run(
 
     let batcher_handle = tokio::spawn(async move {
         let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
-        batcher::run_batcher(
-            db,
-            batcher_duration,
-            operator_signer,
-            cn_grpc_url
-            ,
-            clob_consumer_addr,
-        )
-        .await
+        batcher::run_batcher(db, batcher_duration, operator_signer, cn_grpc_url, clob_consumer_addr)
+            .await
     });
 
     tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
@@ -188,21 +181,16 @@ async fn cancel(
 #[instrument(skip_all)]
 async fn clob_state(ExtractState(state): ExtractState<AppState>) -> Json<ClobStateResponse> {
     let tx = state.db.tx().expect("todo");
-
     let global_index = tx
         .get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)
         .expect("todo: db errors")
-        .unwrap_or(START_GLOBAL_INDEX);
+        .unwrap_or(GENESIS_GLOBAL_INDEX);
 
-    let clob_state = if global_index == START_GLOBAL_INDEX {
-        // ClobState::default()
-        panic!("global index error");
-    } else {
-        tx.get::<ClobStateTable>(global_index)
-            .expect("todo: db errors")
-            .expect("todo: could not find state when some was expected")
-            .0
-    };
+    let clob_state = tx
+        .get::<ClobStateTable>(global_index)
+        .expect("todo: db errors")
+        .expect("todo: could not find state when some was expected")
+        .0;
     tx.commit().expect("todo");
 
     let borsh = borsh::to_vec(&clob_state).unwrap();
