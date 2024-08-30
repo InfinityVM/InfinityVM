@@ -7,6 +7,7 @@ use alloy::{
 use base64::prelude::*;
 use proto::VmType;
 use std::marker::Send;
+use tokio::task;
 use zkvm::Zkvm;
 
 use alloy::{sol, sol_types::SolType};
@@ -101,8 +102,15 @@ where
             )));
         }
 
-        let raw_output =
-            vm.execute(&elf, &input, max_cycles).await.map_err(Error::ZkvmExecuteFailed)?;
+        let raw_output = {
+            let input_clone = input.clone();
+            task::spawn_blocking(move || {
+                vm.execute(&elf, &input_clone, max_cycles).map_err(Error::ZkvmExecuteFailed)
+            })
+            .await
+            .unwrap()
+            .unwrap()
+        };
 
         let result_with_metadata =
             abi_encode_result_with_metadata(job_id, &input, max_cycles, &program_id, &raw_output)?;
