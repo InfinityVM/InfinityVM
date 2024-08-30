@@ -41,13 +41,6 @@ pub trait Zkvm {
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
-    // fn execute<'a>(
-    //     &'a self,
-    //     program_elf: &'a [u8],
-    //     raw_input: &'a [u8],
-    //     max_cycles: u64,
-    // ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Error>> + 'a + Send>>;
-
     /// Check if the verifying key can be derived from program elf.
     fn is_correct_verifying_key(
         &self,
@@ -101,28 +94,6 @@ impl Zkvm for Risc0 {
 
         Ok(prove_info.journal.bytes)
     }
-
-    // fn execute<'a>(
-    //     &'a self,
-    //     program_elf: &'a [u8],
-    //     raw_input: &'a [u8],
-    //     max_cycles: u64,
-    // ) -> Pin<Box<dyn Future<Output = Result<Vec<u8>, Error>> + 'a + Send>> {
-    //     Box::pin(async move {
-    //         let env = ExecutorEnv::builder()
-    //             .session_limit(Some(max_cycles))
-    //             .write_slice(raw_input)
-    //             .build()
-    //             .map_err(|source| Error::Risc0 { source })?;
-    //
-    //         let prover = LocalProver::new("locals only");
-    //
-    //         let prove_info =
-    //             prover.execute(env, program_elf).map_err(|source| Error::Risc0 { source })?;
-    //
-    //         Ok(prove_info.journal.bytes)
-    //     })
-    // }
 }
 
 // TODO: https://github.com/Ethos-Works/InfinityVM/issues/120

@@ -108,8 +108,7 @@ where
                 vm.execute(&elf, &input_clone, max_cycles).map_err(Error::ZkvmExecuteFailed)
             })
             .await
-            .unwrap()
-            .unwrap()
+            .unwrap()?
         };
 
         let result_with_metadata =
