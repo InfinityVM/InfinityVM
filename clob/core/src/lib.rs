@@ -232,20 +232,20 @@ pub fn add_order(
 pub fn tick(request: Request, state: ClobState) -> Result<(Response, ClobState, Vec<Diff>), Error> {
     match request {
         Request::AddOrder(req) => {
-            let (resp, state, difs) = add_order(req, state);
-            Ok((Response::AddOrder(resp), state, difs))
+            let (resp, state, diffs) = add_order(req, state);
+            Ok((Response::AddOrder(resp), state, diffs))
         }
         Request::CancelOrder(req) => {
-            let (resp, state, dif) = cancel_order(req, state);
-            Ok((Response::CancelOrder(resp), state, vec![dif]))
+            let (resp, state, diff) = cancel_order(req, state);
+            Ok((Response::CancelOrder(resp), state, vec![diff]))
         }
         Request::Deposit(req) => {
-            let (resp, state, dif) = deposit(req, state);
-            Ok((Response::Deposit(resp), state, vec![dif]))
+            let (resp, state, diff) = deposit(req, state);
+            Ok((Response::Deposit(resp), state, vec![diff]))
         }
         Request::Withdraw(req) => {
-            let (resp, state, dif) = withdraw(req, state);
-            Ok((Response::Withdraw(resp), state, vec![dif]))
+            let (resp, state, diff) = withdraw(req, state);
+            Ok((Response::Withdraw(resp), state, vec![diff]))
         }
     }
 }
@@ -259,9 +259,9 @@ pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> ClobProgramOutp
     let mut withdraws = HashMap::<[u8; 20], WithdrawDelta>::with_capacity(requests.len());
 
     for req in requests {
-        let (_, next_state, difs) = tick(req, state).expect("todo");
-        for dif in difs {
-            dif.apply(&mut withdraws, &mut deposits, &mut orders);
+        let (_, next_state, diffs) = tick(req, state).expect("todo");
+        for diff in diffs {
+            diff.apply(&mut withdraws, &mut deposits, &mut orders);
         }
 
         state = next_state
@@ -334,23 +334,23 @@ mod tests {
 
         let alice_dep =
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 });
-        let (resp, clob_state, difs) = tick(alice_dep, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(alice_dep, clob_state).unwrap();
         assert_eq!(Response::Deposit(DepositResponse { success: true }), resp);
         assert_eq!(
             *clob_state.base_balances.get(&alice).unwrap(),
             AssetBalance { free: 200, locked: 0 }
         );
-        assert_eq!(difs, vec![Diff::deposit(alice, 200, 0)]);
+        assert_eq!(diffs, vec![Diff::deposit(alice, 200, 0)]);
 
         let bob_dep =
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 });
-        let (resp, clob_state, difs) = tick(bob_dep, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_dep, clob_state).unwrap();
         assert_eq!(Response::Deposit(DepositResponse { success: true }), resp);
         assert_eq!(
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 800, locked: 0 }
         );
-        assert_eq!(difs, vec![Diff::deposit(bob, 0, 800)]);
+        assert_eq!(diffs, vec![Diff::deposit(bob, 0, 800)]);
 
         let alice_limit = Request::AddOrder(AddOrderRequest {
             address: alice,
@@ -358,7 +358,7 @@ mod tests {
             limit_price: 4,
             size: 100,
         });
-        let (resp, clob_state, difs) = tick(alice_limit, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(alice_limit, clob_state).unwrap();
         assert_eq!(
             Response::AddOrder(AddOrderResponse {
                 success: true,
@@ -376,7 +376,7 @@ mod tests {
             *clob_state.base_balances.get(&alice).unwrap(),
             AssetBalance { free: 100, locked: 100 }
         );
-        assert_eq!(difs, vec![Diff::create(alice, 100, 0)]);
+        assert_eq!(diffs, vec![Diff::create(alice, 100, 0)]);
 
         let bob_limit1 = Request::AddOrder(AddOrderRequest {
             address: bob,
@@ -384,7 +384,7 @@ mod tests {
             limit_price: 1,
             size: 100,
         });
-        let (resp, clob_state, difs) = tick(bob_limit1, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_limit1, clob_state).unwrap();
         assert_eq!(
             Response::AddOrder(AddOrderResponse {
                 success: true,
@@ -402,7 +402,7 @@ mod tests {
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 700, locked: 100 }
         );
-        assert_eq!(difs, vec![Diff::create(bob, 0, 100)]);
+        assert_eq!(diffs, vec![Diff::create(bob, 0, 100)]);
 
         let bob_limit2 = Request::AddOrder(AddOrderRequest {
             address: bob,
@@ -410,7 +410,7 @@ mod tests {
             limit_price: 4,
             size: 100,
         });
-        let (resp, clob_state, difs) = tick(bob_limit2, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_limit2, clob_state).unwrap();
         assert_eq!(
             Response::AddOrder(AddOrderResponse {
                 success: true,
@@ -447,18 +447,18 @@ mod tests {
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 300, locked: 100 }
         );
-        assert_eq!(difs, vec![Diff::create(bob, 0, 400), Diff::fill(bob, alice, 100, 400)]);
+        assert_eq!(diffs, vec![Diff::create(bob, 0, 400), Diff::fill(bob, alice, 100, 400)]);
 
         let alice_withdraw =
             Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 });
-        let (resp, clob_state, difs) = tick(alice_withdraw, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(alice_withdraw, clob_state).unwrap();
         assert_eq!(Response::Withdraw(WithdrawResponse { success: true }), resp);
         assert!(!clob_state.quote_balances.contains_key(&alice));
         assert!(!clob_state.base_balances.contains_key(&alice));
-        assert_eq!(difs, vec![Diff::withdraw(alice, 100, 400)]);
+        assert_eq!(diffs, vec![Diff::withdraw(alice, 100, 400)]);
 
         let bob_cancel = Request::CancelOrder(CancelOrderRequest { oid: 1 });
-        let (resp, clob_state, difs) = tick(bob_cancel, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_cancel, clob_state).unwrap();
         assert_eq!(
             Response::CancelOrder(CancelOrderResponse {
                 success: true,
@@ -476,14 +476,14 @@ mod tests {
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 400, locked: 0 }
         );
-        assert_eq!(difs, vec![Diff::cancel(bob, 0, 100)]);
+        assert_eq!(diffs, vec![Diff::cancel(bob, 0, 100)]);
 
         let bob_withdraw =
             Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 });
-        let (resp, clob_state, difs) = tick(bob_withdraw, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_withdraw, clob_state).unwrap();
         assert_eq!(Response::Withdraw(WithdrawResponse { success: true }), resp);
         assert!(clob_state.quote_balances.is_empty());
         assert!(clob_state.base_balances.is_empty());
-        assert_eq!(difs, vec![Diff::withdraw(bob, 100, 400)]);
+        assert_eq!(diffs, vec![Diff::withdraw(bob, 100, 400)]);
     }
 }
