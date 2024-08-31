@@ -22,25 +22,38 @@ use crate::K256LocalSigner;
 
 const MAX_CYCLES: u64 = 32 * 1000 * 1000;
 
+const INIT_INDEX: u64 = 1;
+
 async fn ensure_initialized<D>(db: Arc<D>)
 where
     D: Database + 'static,
 {
     loop {
-        let tx = db.tx_mut().expect("todo");
-
-        if tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").is_some() {
-            match tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo") {
-                Some(_) => break,
-                None => tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, 0).expect("todo"),
+        let has_processed = db
+            .view(|tx| {
+                tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").is_some()
+            })
+            .unwrap();
+        if has_processed {
+            let has_next_batch = db
+                .view(|tx| {
+                    tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").is_some()
+                })
+                .unwrap();
+            if !has_next_batch {
+                db.update(|tx| {
+                    tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, INIT_INDEX)
+                        .expect("todo")
+                })
+                .unwrap();
             }
+
+            break;
         } else {
             info!("waiting for a request to be processed before starting batcher");
             sleep(Duration::from_millis(1_0000)).await;
             continue;
         }
-
-        let _ = tx.commit();
     }
 }
 
@@ -59,27 +72,43 @@ pub async fn run_batcher<D>(
     ensure_initialized(Arc::clone(&db)).await;
     let program_id = Digest::from(CLOB_ID).as_bytes().to_vec();
 
-    let mut coprocessor_node =
-        CoprocessorNodeClient::connect(format!("http://{cn_grpc_url}")).await.unwrap();
+    let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
+    let mut interval = tokio::time::interval(sleep_duration);
 
+    let mut job_nonce = 0;
     loop {
-        sleep(sleep_duration).await;
+        interval.tick().await;
 
-        let tx = db.tx().expect("todo");
-        let start_index =
-            tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").unwrap();
-        let end_index =
-            tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").unwrap();
+        let start_index = db
+            .view(|tx| {
+                tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").unwrap()
+            })
+            .unwrap();
+        let end_index = db
+            .view(|tx| {
+                tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").unwrap()
+            })
+            .unwrap();
 
-        if start_index >= end_index {
-            info!("no new requests - skipping batch");
+        if start_index > end_index {
+            tracing::info!(start_index, end_index, "skipping batch creation");
             continue;
         }
-        let start_state = tx.get::<ClobStateTable>(start_index).expect("todo").unwrap().0;
-        let requests: Vec<_> = (start_index..=end_index)
-            .map(|index| tx.get::<RequestTable>(index).expect("todo").unwrap().0)
-            .collect();
-        let _ = tx.commit();
+
+        tracing::info!("creating batch {start_index}..={end_index}");
+
+        let prev_state_index = start_index - 1;
+        let start_state = db
+            .view(|tx| tx.get::<ClobStateTable>(prev_state_index).expect("todo").unwrap().0)
+            .unwrap();
+        tokio::task::yield_now().await;
+
+        let mut requests = vec![];
+        for i in start_index..=end_index {
+            let r = db.view(|tx| tx.get::<RequestTable>(i).expect("todo").unwrap().0).unwrap();
+            requests.push(r);
+            tokio::task::yield_now().await;
+        }
 
         let requests_borsh = borsh::to_vec(&requests).expect("valid borsh");
         let program_state_borsh = borsh::to_vec(&start_state).expect("valid borsh");
@@ -89,7 +118,7 @@ pub async fn run_batcher<D>(
         let program_input_encoded = ClobProgramInput::abi_encode(&program_input);
 
         let job_params = JobParams {
-            nonce: 0,
+            nonce: job_nonce,
             max_cycles: MAX_CYCLES,
             program_input: program_input_encoded,
             program_id: program_id.clone(),
@@ -103,8 +132,13 @@ pub async fn run_batcher<D>(
         let _submit_job_response =
             coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
-        let tx = db.tx_mut().expect("todo");
-        tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, end_index + 1).expect("todo");
-        let _ = tx.commit();
+        let next_batch_idx = end_index + 1;
+        db.update(|tx| {
+            tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, next_batch_idx).unwrap()
+        })
+        .unwrap();
+
+        // TODO: read highest job nonce from contract
+        job_nonce += 1;
     }
 }

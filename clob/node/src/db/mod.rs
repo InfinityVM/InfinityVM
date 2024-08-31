@@ -13,7 +13,7 @@ pub const SEEN_GLOBAL_INDEX_KEY: u32 = 0;
 /// Key for highest global index that has been processed. This is gte seen.
 pub const PROCESSED_GLOBAL_INDEX_KEY: u32 = 1;
 /// Key for the index of where the next batch should start.
-pub const NEXT_BATCH_GLOBAL_INDEX_KEY: u32 = 1;
+pub const NEXT_BATCH_GLOBAL_INDEX_KEY: u32 = 2;
 
 pub mod models;
 pub mod tables;
@@ -38,7 +38,6 @@ pub enum Error {
 pub fn init_db<P: AsRef<Path>>(path: P) -> Result<DatabaseEnv, Error> {
     let client_version = ClientVersion::default();
     let args = DatabaseArguments::new(client_version.clone());
-
     let db = create_db(path, args)?;
     db.record_client_version(client_version)?;
 

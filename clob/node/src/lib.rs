@@ -5,15 +5,12 @@ use crate::{
         tables::{ClobStateTable, GlobalIndexTable},
         PROCESSED_GLOBAL_INDEX_KEY,
     },
-    engine::START_GLOBAL_INDEX,
+    engine::GENESIS_GLOBAL_INDEX,
 };
 use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
 use axum::{extract::State as ExtractState, Json, Router};
-use clob_core::{
-    api::{
-        AddOrderRequest, ApiResponse, CancelOrderRequest, DepositRequest, Request, WithdrawRequest,
-    },
-    ClobState,
+use clob_core::api::{
+    AddOrderRequest, ApiResponse, CancelOrderRequest, DepositRequest, Request, WithdrawRequest,
 };
 use reth_db::{transaction::DbTx, Database, DatabaseEnv};
 use serde::{Deserialize, Serialize};
@@ -22,8 +19,24 @@ use tokio::sync::{mpsc::Sender, oneshot};
 use tracing::{info, instrument};
 
 pub mod batcher;
+pub mod client;
 pub mod db;
 pub mod engine;
+
+/// Address to listen for HTTP requests on.
+pub const CLOB_LISTEN_ADDR: &str = "CLOB_LISTEN_ADDR";
+/// Directory for database.
+pub const CLOB_DB_DIR: &str = "CLOB_DB_DIR";
+/// Coprocessor Node gRPC address.
+pub const CLOB_CN_GRPC_ADDR: &str = "CLOB_CN_GRPC_ADDR";
+/// Execution Client HTTP address.
+pub const CLOB_ETH_HTTP_ADDR: &str = "CLOB_ETH_HTTP_ADDR";
+/// Clob Consumer contract address.
+pub const CLOB_CONSUMER_ADDR: &str = "CLOB_CONSUMER_ADDR";
+/// Duration between creating batches.
+pub const CLOB_BATCHER_DURATION_MS: &str = "CLOB_BATCHER_DURATION_MS";
+/// Clob operator's secret key.
+pub const CLOB_OPERATOR_KEY: &str = "CLOB_OPERATOR_KEY";
 
 /// Operator signer type.
 pub type K256LocalSigner = LocalSigner<SigningKey>;
@@ -34,12 +47,43 @@ const ORDERS: &str = "/orders";
 const CANCEL: &str = "/cancel";
 const CLOB_STATE: &str = "/clob-state";
 
+/// Run the clob node.
+pub async fn run(
+    db_dir: String,
+    listen_addr: String,
+    batcher_duration_ms: u64,
+    operator_signer: K256LocalSigner,
+    cn_grpc_url: String,
+    clob_consumer_addr: [u8; 20],
+) {
+    let db = crate::db::init_db(db_dir).expect("todo");
+    let db = Arc::new(db);
+
+    let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(32);
+    let db2 = Arc::clone(&db);
+    let server_handle = tokio::spawn(async move {
+        let server_state = AppState::new(engine_sender, db2);
+        http_listen(server_state, &listen_addr).await
+    });
+
+    let db2 = Arc::clone(&db);
+    let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
+
+    let batcher_handle = tokio::spawn(async move {
+        let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
+        batcher::run_batcher(db, batcher_duration, operator_signer, cn_grpc_url, clob_consumer_addr)
+            .await
+    });
+
+    tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
+}
+
 ///  Response to the clob state endpoint
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClobStateResponse {
-    // Hex encoded borsh bytes. This is just a temp hack until we have better view endpoints
-    borsh_hex_clob_state: String,
+    /// Hex encoded borsh bytes. This is just a temp hack until we have better view endpoints
+    pub borsh_hex_clob_state: String,
 }
 
 /// Stateful parts of REST server
@@ -138,20 +182,16 @@ async fn cancel(
 #[instrument(skip_all)]
 async fn clob_state(ExtractState(state): ExtractState<AppState>) -> Json<ClobStateResponse> {
     let tx = state.db.tx().expect("todo");
-
     let global_index = tx
         .get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)
         .expect("todo: db errors")
-        .unwrap_or(START_GLOBAL_INDEX);
+        .unwrap_or(GENESIS_GLOBAL_INDEX);
 
-    let clob_state = if global_index == START_GLOBAL_INDEX {
-        ClobState::default()
-    } else {
-        tx.get::<ClobStateTable>(global_index)
-            .expect("todo: db errors")
-            .expect("todo: could not find state when some was expected")
-            .0
-    };
+    let clob_state = tx
+        .get::<ClobStateTable>(global_index)
+        .expect("todo: db errors")
+        .expect("todo: could not find state when some was expected")
+        .0;
     tx.commit().expect("todo");
 
     let borsh = borsh::to_vec(&clob_state).unwrap();
@@ -168,7 +208,7 @@ mod tests {
         body::Body,
         http::{self, Request as AxumRequest},
     };
-    use clob_core::api::AssetBalance;
+    use clob_core::{api::AssetBalance, ClobState};
     use http_body_util::BodyExt;
     use tempfile::tempdir;
     use tower::{Service, ServiceExt};
@@ -281,10 +321,6 @@ mod tests {
 
     #[tokio::test]
     async fn place_bids() {
-        tracing_subscriber::fmt()
-            .event_format(tracing_subscriber::fmt::format().with_file(true).with_line_number(true))
-            .init();
-
         let server_state = test_setup().await;
         let mut app = app(server_state);
         let user1 = [1; 20];
@@ -368,5 +404,72 @@ mod tests {
             *state.quote_balances().get(&user3).unwrap(),
             AssetBalance { free: 6, locked: 24 }
         );
+    }
+
+    #[tokio::test]
+    async fn deposit_order_withdraw_cancel() {
+        tracing_subscriber::fmt()
+            .event_format(tracing_subscriber::fmt::format().with_file(true).with_line_number(true))
+            .init();
+
+        let server_state = test_setup().await;
+        let mut app = app(server_state);
+
+        let bob = [69u8; 20];
+        let alice = [42u8; 20];
+
+        let alice_deposit = DepositRequest { address: alice, base_free: 200, quote_free: 0 };
+        let bob_deposit = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
+        for r in [alice_deposit, bob_deposit] {
+            let _: ApiResponse = post(&mut app, DEPOSIT, r).await;
+        }
+        let state = get_clob_state(&mut app).await;
+        assert_eq!(
+            *state.base_balances().get(&alice).unwrap(),
+            AssetBalance { free: 200, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 800, locked: 0 }
+        );
+
+        let alice_limit =
+            AddOrderRequest { address: alice, is_buy: false, limit_price: 4, size: 100 };
+        let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100 };
+        let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100 };
+        for r in [alice_limit, bob_limit1, bob_limit2] {
+            let _: ApiResponse = post(&mut app, ORDERS, r).await;
+        }
+        let state = get_clob_state(&mut app).await;
+        assert_eq!(
+            *state.base_balances().get(&alice).unwrap(),
+            AssetBalance { free: 100, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&alice).unwrap(),
+            AssetBalance { free: 400, locked: 0 }
+        );
+        assert_eq!(
+            *state.base_balances().get(&bob).unwrap(),
+            AssetBalance { free: 100, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 300, locked: 100 }
+        );
+
+        let alice_withdraw = WithdrawRequest { address: alice, base_free: 100, quote_free: 400 };
+        let _: ApiResponse = post(&mut app, WITHDRAW, alice_withdraw).await;
+        let state = get_clob_state(&mut app).await;
+        assert!(!state.quote_balances().contains_key(&alice));
+        assert!(!state.base_balances().contains_key(&alice));
+
+        let bob_cancel = CancelOrderRequest { oid: 1 };
+        let _: ApiResponse = post(&mut app, CANCEL, bob_cancel).await;
+        let bob_withdraw = WithdrawRequest { address: bob, base_free: 100, quote_free: 400 };
+        let _: ApiResponse = post(&mut app, WITHDRAW, bob_withdraw).await;
+        let state = get_clob_state(&mut app).await;
+        assert!(state.quote_balances().is_empty());
+        assert!(state.base_balances().is_empty());
     }
 }

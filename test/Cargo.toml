@@ -9,12 +9,13 @@ workspace = true
 
 [dependencies]
 tonic = { workspace = true }
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["process"] }
 futures = { workspace = true }
 risc0-binfmt = { workspace = true }
 risc0-zkp = { workspace = true }
 alloy = { workspace = true }
 tempfile = { workspace = true }
+borsh = { workspace = true }
 
 contracts = { workspace = true }
 proto = { workspace = true }
@@ -24,10 +25,13 @@ test-utils = { workspace = true }
 db = { workspace = true }
 clob-contracts = { workspace = true }
 clob-programs = { workspace = true }
+clob-core = { workspace = true }
+clob-node = { workspace = true }
 
 [dev-dependencies]
 mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }
 serde_json = { workspace = true }
-borsh = { workspace = true }
-clob-core = { workspace = true }
 alloy-sol-types = { workspace = true }
+tracing-subscriber = { workspace = true }
+tracing = { workspace = true }
+tracing-test = "*"

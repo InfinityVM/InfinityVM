@@ -60,8 +60,7 @@ where
             let sub =
                 match contract.JobCreated_filter().from_block(last_seen_block).subscribe().await {
                     Ok(sub) => sub,
-                    Err(error) => {
-                        error!(?error, "attempted to create websocket subscription");
+                    Err(_error) => {
                         continue;
                     }
                 };
