@@ -300,13 +300,13 @@ impl<T: BorshSerialize> BorshSha256 for T {
     }
 }
 
-/// Trait for the keccack256 hash of a borsh serialized type
-pub trait BorshKeccack256 {
-    /// The keccack256 hash of a borsh serialized type
+/// Trait for the keccak256 hash of a borsh serialized type
+pub trait BorshKeccak256 {
+    /// The keccak256 hash of a borsh serialized type
     fn borsh_keccak256(&self) -> FixedBytes<32>;
 }
 
-impl<T: BorshSerialize> BorshKeccack256 for T {
+impl<T: BorshSerialize> BorshKeccak256 for T {
     fn borsh_keccak256(&self) -> FixedBytes<32> {
         let borsh = borsh::to_vec(&self).expect("T is serializable");
         let mut hasher = Keccak256::new();

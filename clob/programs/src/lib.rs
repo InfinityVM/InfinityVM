@@ -11,7 +11,7 @@ mod tests {
             AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositDelta,
             DepositRequest, OrderDelta, Request, WithdrawDelta, WithdrawRequest,
         },
-        tick, BorshKeccack256, ClobState,
+        tick, BorshKeccak256, ClobState,
     };
 
     use zkvm::Zkvm;

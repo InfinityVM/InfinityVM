@@ -11,7 +11,7 @@ use clob_core::{
         AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositRequest,
         Request, WithdrawRequest,
     },
-    tick, BorshKeccack256, ClobState,
+    tick, BorshKeccak256, ClobState,
 };
 use clob_programs::CLOB_ELF;
 use e2e::{clob::mock_erc20::MockErc20, Args, E2E};
