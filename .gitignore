@@ -19,6 +19,7 @@ programs/**/program/target
 programs/**/program/elf
 **/target/
 /debug/
+tmp-data-dir/
 
 # ide
 .idea

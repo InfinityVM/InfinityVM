@@ -2,18 +2,17 @@
 use alloy::primitives::hex;
 use clob::{anvil_with_clob_consumer, AnvilClob};
 use futures::future::FutureExt;
+use proto::coprocessor_node_client::CoprocessorNodeClient;
 use std::{
     future::Future,
     panic::AssertUnwindSafe,
-    process::{self, Command},
+    process::{self, Command, Stdio},
 };
 use test_utils::{
     anvil_with_job_manager, anvil_with_mock_consumer, get_localhost_port, sleep_until_bound,
     AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
 use tonic::transport::Channel;
-
-use proto::coprocessor_node_client::CoprocessorNodeClient;
 
 /// Test utilities for CLOB e2e tests.
 pub mod clob;
@@ -22,7 +21,6 @@ pub mod clob;
 /// within the crate
 pub const ETHOS_RETH_DEBUG_BIN: &str = "../bin/ethos-reth/target/debug/ethos-reth";
 const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
-const CLOB_NODE_DEBUG_BIN: &str = "../target/debug/clob-node";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
@@ -91,7 +89,6 @@ impl E2E {
         test_utils::test_tracing();
 
         let anvil = anvil_with_job_manager().await;
-        // Start an anvil node
 
         let job_manager = anvil.job_manager.to_string();
         let chain_id = anvil.anvil.chain_id().to_string();
@@ -105,8 +102,8 @@ impl E2E {
         let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
         let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
+        let cn_grpc_client_url = format!("http://{coprocessor_node_grpc}");
 
-        // The coprocessor-node expects the relayer private key as an env var
         let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
             .env("RELAYER_PRIVATE_KEY", relayer_private)
             .env("ZKVM_OPERATOR_PRIV_KEY", operator_private)
@@ -124,12 +121,14 @@ impl E2E {
             .arg(chain_id)
             .arg("--db-dir")
             .arg(db_dir.path())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
             .spawn()
             .unwrap()
             .into();
         sleep_until_bound(coprocessor_node_port).await;
-        let cn_grpc_addr = format!("http://{coprocessor_node_grpc}");
-        let coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_addr.clone()).await.unwrap();
+        let coprocessor_node =
+            CoprocessorNodeClient::connect(cn_grpc_client_url.clone()).await.unwrap();
 
         let mut args = Args {
             mock_consumer: None,
@@ -145,27 +144,37 @@ impl E2E {
 
         if self.clob {
             let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
-            let db_dir =
-                tempfile::Builder::new().prefix("clob-node-test-db").tempdir().unwrap().into_path();
+            let db_dir = tempfile::Builder::new()
+                .prefix("clob-node-test-db")
+                .tempdir()
+                .unwrap()
+                .into_path()
+                .to_str()
+                .unwrap()
+                .to_string();
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
+            let batcher_duration_ms = 1000;
 
-            let _proc: ProcKill = Command::new(CLOB_NODE_DEBUG_BIN)
-                .env("CLOB_LISTEN_ADDR", &listen_addr)
-                .env("CLOB_DB_DIR", db_dir)
-                .env("CLOB_CN_GRPC_ADDR", cn_grpc_addr)
-                .env("CLOB_ETH_HTTP_ADDR", &http_rpc_url)
-                .env("CLOB_CONSUMER_ADDR", clob_consumer.clob_consumer.to_string())
-                .env("CLOB_BATCHER_DURATION_MS", "1000")
-                .env("CLOB_OPERATOR_KEY", clob_consumer.clob_signer.address().to_string())
-                .spawn()
-                .unwrap()
-                .into();
-
+            let clob_consumer_addr = clob_consumer.clob_consumer;
+            let listen_addr2 = listen_addr.clone();
+            let operator_signer = clob_consumer.clob_signer.clone();
+            tokio::spawn(async move {
+                clob_node::run(
+                    db_dir,
+                    listen_addr2,
+                    batcher_duration_ms,
+                    operator_signer,
+                    cn_grpc_client_url.clone(),
+                    **clob_consumer_addr,
+                )
+                .await
+            });
             sleep_until_bound(coprocessor_node_port).await;
 
+            let clob_endpoint = format!("http://{listen_addr}");
+            args.clob_endpoint = Some(clob_endpoint);
             args.clob_consumer = Some(clob_consumer);
-            args.clob_endpoint = Some(listen_addr);
         }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;

@@ -14,32 +14,30 @@ use reth_db::{
     Database,
 };
 use std::sync::Arc;
-use tokio::{
-    sync::{mpsc::Receiver, oneshot},
-    task::JoinSet,
-};
-use tracing::{info, instrument};
+use tokio::sync::{mpsc::Receiver, oneshot};
+use tracing::instrument;
 
-pub(crate) const START_GLOBAL_INDEX: u64 = 0;
+/// The zero index only contains the default state, but no requests.
+pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
 
 pub(crate) fn read_start_up_values<D: Database + 'static>(db: Arc<D>) -> (u64, ClobState) {
     let tx = db.tx().expect("todo");
-
     let global_index = tx
         .get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)
         .expect("todo: db errors")
-        .unwrap_or(START_GLOBAL_INDEX);
+        .unwrap_or(GENESIS_GLOBAL_INDEX);
 
-    let clob_state = if global_index == START_GLOBAL_INDEX {
-        // Initialize clob state if we haven't processed anything
-        ClobState::default()
+    let clob_state = if global_index == GENESIS_GLOBAL_INDEX {
+        let genesis_state = ClobState::default();
+        let model = ClobStateModel(genesis_state.clone());
+        db.update(|tx| tx.put::<ClobStateTable>(global_index, model)).unwrap().unwrap();
+        genesis_state
     } else {
         tx.get::<ClobStateTable>(global_index)
             .expect("todo: db errors")
             .expect("todo: could not find state when some was expected")
             .0
     };
-
     tx.commit().expect("todo");
 
     (global_index, clob_state)
@@ -55,27 +53,19 @@ pub async fn run_engine<D>(
 {
     let (mut global_index, mut state) = read_start_up_values(Arc::clone(&db));
 
-    // TODO add logic to clear the joinset
-    let mut handles = JoinSet::new();
-
     loop {
         global_index += 1;
 
         let (request, response_sender) = receiver.recv().await.expect("todo");
-        info!(?request);
 
-        // In background thread persist the index and request
+        // TODO: move writes to background threads and asyncify them
         let request2 = request.clone();
         let db2 = Arc::clone(&db);
-        handles.spawn(async move {
-            let tx = db2.tx_mut().expect("todo");
-            tx.put::<GlobalIndexTable>(SEEN_GLOBAL_INDEX_KEY, global_index).expect("todo");
-            tx.put::<RequestTable>(global_index, RequestModel(request2)).expect("todo");
-            tx.commit().expect("todo");
-        });
 
-        // TODO(thursday): Do contract call to update free balance and assert locked balance
-        // We will need to do a contract view call which will slow things down
+        let tx = db2.tx_mut().expect("todo");
+        tx.put::<GlobalIndexTable>(SEEN_GLOBAL_INDEX_KEY, global_index).expect("todo");
+        tx.put::<RequestTable>(global_index, RequestModel(request2)).expect("todo");
+        tx.commit().expect("todo");
 
         let (response, post_state, diffs) = tick(request, state).expect("TODO");
 
@@ -85,14 +75,13 @@ pub async fn run_engine<D>(
         let post_state2 = post_state.clone();
         let response2 = response.clone();
         let db2 = Arc::clone(&db);
-        handles.spawn(async move {
-            let tx = db2.tx_mut().expect("todo");
-            tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index).expect("todo");
-            tx.put::<ResponseTable>(global_index, ResponseModel(response2)).expect("todo");
-            tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2)).expect("todo");
-            tx.put::<DiffTable>(global_index, VecDiffModel(diffs)).expect("todo");
-            tx.commit().expect("todo");
-        });
+
+        let tx = db2.tx_mut().expect("todo");
+        tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index).expect("todo");
+        tx.put::<ResponseTable>(global_index, ResponseModel(response2)).expect("todo");
+        tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2)).expect("todo");
+        tx.put::<DiffTable>(global_index, VecDiffModel(diffs)).expect("todo");
+        tx.commit().expect("todo");
 
         let api_response = ApiResponse { response, global_index };
 
