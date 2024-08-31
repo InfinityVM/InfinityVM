@@ -157,11 +157,12 @@ impl E2E {
             let batcher_duration_ms = 1000;
 
             let clob_consumer_addr = clob_consumer.clob_consumer;
+            let listen_addr2 = listen_addr.clone();
             let operator_signer = clob_consumer.clob_signer.clone();
             tokio::spawn(async move {
                 clob_node::run(
                     db_dir,
-                    listen_addr.clone(),
+                    listen_addr2,
                     batcher_duration_ms,
                     operator_signer,
                     cn_grpc_client_url.clone(),
