@@ -64,12 +64,14 @@ contract ClobConsumer is Consumer, OffchainRequester {
 
     bytes32 public latestStateRootHash;  
 
-    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken) Consumer(jobManager, initialMaxNonce) OffchainRequester() {
+    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 _latestStateRootHash) Consumer(jobManager, initialMaxNonce) OffchainRequester() {
         // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
         offchainSigner = _offchainSigner;
 
         baseToken = _baseToken;
         quoteToken = _quoteToken;
+
+        latestStateRootHash = _latestStateRootHash;
     }
 
     // Getter functions for balances
@@ -103,11 +105,7 @@ contract ClobConsumer is Consumer, OffchainRequester {
 
     function getLatestStateRootHash() public view returns (bytes32) {
         return latestStateRootHash;
-    }
-    
-    function setLatestStateRootHash(bytes32 nextStateRootHash) external {
-        latestStateRootHash = nextStateRootHash;
-    }
+    }    
 
     function deposit(uint256 base_amount, uint256 quote_amount) external {
         require(baseToken.transferFrom(msg.sender, address(this), base_amount), "Transfer failed");

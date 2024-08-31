@@ -43,6 +43,7 @@ async fn state_job_submission_clob_consumer() {
         let program_id = program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_state0 = ClobState::default();
+        let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
 
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
         let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
@@ -75,7 +76,6 @@ async fn state_job_submission_clob_consumer() {
         let call = quote_contract.mint(bob.into(), U256::from(1_000));
         let r2 = call.send().await.unwrap().get_receipt();
 
-        let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
         let call = consumer_contract.setLatestStateRootHash(init_state_hash.into());
         let r3 = call.send().await.unwrap().get_receipt();
 

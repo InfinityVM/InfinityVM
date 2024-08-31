@@ -43,7 +43,8 @@ contract ClobDeployer is Script, Utils {
         baseToken = new MockERC20("Token A", "WETH");
         quoteToken = new MockERC20("Token B", "USDC");
 
-        consumer = new ClobConsumer(address(jobManager), offchainRequestSigner, initialMaxNonce, baseToken, quoteToken);
+        bytes32 initialLatestStateRootHash = 0x0;
+        consumer = new ClobConsumer(address(jobManager), offchainRequestSigner, initialMaxNonce, baseToken, quoteToken, initialLatestStateRootHash);
 
         vm.stopBroadcast();
     }

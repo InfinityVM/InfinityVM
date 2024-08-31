@@ -58,8 +58,6 @@ contract ClobConsumerTest is Test, ClobDeployer {
 
         vm.prank(address(jobManager));
         consumer.setProgramInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""));
-        vm.prank(address(jobManager));
-        consumer.setLatestStateRootHash(0x0);
     
         ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](2);
         depositDeltas[0] = ClobConsumer.DepositDelta({
