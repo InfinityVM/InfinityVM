@@ -54,7 +54,7 @@ impl ClobState {
     pub const fn base_balances(&self) -> &HashMap<[u8; 20], AssetBalance> {
         &self.base_balances
     }
-    /// Get the base asset balances.
+    /// Get the quote asset balances.
     pub const fn quote_balances(&self) -> &HashMap<[u8; 20], AssetBalance> {
         &self.quote_balances
     }
