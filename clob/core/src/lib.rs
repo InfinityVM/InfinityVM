@@ -8,7 +8,7 @@ use crate::api::AssetBalance;
 use alloy_primitives::{FixedBytes, Keccak256};
 use api::{
     AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobProgramOutput,
-    DepositDelta, DepositRequest, DepositResponse, Dif, OrderDelta, Request, Response,
+    DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,
     WithdrawDelta, WithdrawRequest, WithdrawResponse,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
@@ -69,7 +69,7 @@ impl ClobState {
 }
 
 /// Deposit user funds that can be used to place orders.
-pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, ClobState, Dif) {
+pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, ClobState, Diff) {
     state
         .base_balances
         .entry(req.address)
@@ -85,18 +85,18 @@ pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, C
     (
         DepositResponse { success: true },
         state,
-        Dif::deposit(req.address, req.base_free, req.quote_free),
+        Diff::deposit(req.address, req.base_free, req.quote_free),
     )
 }
 
 /// Withdraw non-locked funds
-pub fn withdraw(req: WithdrawRequest, mut state: ClobState) -> (WithdrawResponse, ClobState, Dif) {
+pub fn withdraw(req: WithdrawRequest, mut state: ClobState) -> (WithdrawResponse, ClobState, Diff) {
     let addr = req.address;
     let base_balance = state.base_balances.get_mut(&addr).expect("TODO");
     let quote_balance = state.quote_balances.get_mut(&addr).expect("TODO");
 
     if base_balance.free < req.base_free || quote_balance.free < req.quote_free {
-        (WithdrawResponse { success: false }, state, Dif::Noop)
+        (WithdrawResponse { success: false }, state, Diff::Noop)
     } else {
         base_balance.free -= req.base_free;
         quote_balance.free -= req.quote_free;
@@ -106,7 +106,7 @@ pub fn withdraw(req: WithdrawRequest, mut state: ClobState) -> (WithdrawResponse
             state.base_balances.remove(&addr);
         }
 
-        let change = Dif::withdraw(req.address, req.base_free, req.quote_free);
+        let change = Diff::withdraw(req.address, req.base_free, req.quote_free);
         (WithdrawResponse { success: true }, state, change)
     }
 }
@@ -115,11 +115,11 @@ pub fn withdraw(req: WithdrawRequest, mut state: ClobState) -> (WithdrawResponse
 pub fn cancel_order(
     req: CancelOrderRequest,
     mut state: ClobState,
-) -> (CancelOrderResponse, ClobState, Dif) {
+) -> (CancelOrderResponse, ClobState, Diff) {
     let o = match state.book.cancel(req.oid) {
         Ok(o) => o,
         Err(_) => {
-            return (CancelOrderResponse { success: false, fill_status: None }, state, Dif::Noop)
+            return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop)
         }
     };
 
@@ -128,12 +128,12 @@ pub fn cancel_order(
         let quote_size = o.quote_size();
         quote_balances.free += quote_size;
         quote_balances.locked -= quote_size;
-        Dif::cancel(o.address, 0, quote_size)
+        Diff::cancel(o.address, 0, quote_size)
     } else {
         let base_balance = state.base_balances.get_mut(&o.address).expect("todo");
         base_balance.free += o.size;
         base_balance.locked -= o.size;
-        Dif::cancel(o.address, o.size, 0)
+        Diff::cancel(o.address, o.size, 0)
     };
 
     let fill_status = state.order_status.remove(&o.oid);
@@ -144,7 +144,7 @@ pub fn cancel_order(
 pub fn add_order(
     req: AddOrderRequest,
     mut state: ClobState,
-) -> (AddOrderResponse, ClobState, Vec<Dif>) {
+) -> (AddOrderResponse, ClobState, Vec<Diff>) {
     let base_balance = state
         .base_balances
         .get(&req.address)
@@ -161,7 +161,7 @@ pub fn add_order(
     let is_invalid_buy = o.is_buy && quote_balance.free < o.quote_size();
     let is_invalid_sell = !o.is_buy && base_balance.free < o.size;
     if is_invalid_buy || is_invalid_sell {
-        return (AddOrderResponse { success: false, status: None }, state, vec![Dif::Noop]);
+        return (AddOrderResponse { success: false, status: None }, state, vec![Diff::Noop]);
     };
 
     let create = if req.is_buy {
@@ -169,18 +169,18 @@ pub fn add_order(
             b.free -= o.quote_size();
             b.locked += o.quote_size();
         });
-        Dif::create(req.address, 0, o.quote_size())
+        Diff::create(req.address, 0, o.quote_size())
     } else {
         state.base_balances.entry(req.address).and_modify(|b| {
             b.free -= o.size;
             b.locked += o.size;
         });
-        Dif::create(req.address, o.size, 0)
+        Diff::create(req.address, o.size, 0)
     };
 
     let (remaining_amount, fills) = state.book.limit(o);
 
-    let mut changes = Vec::<Dif>::with_capacity(fills.len() + 1);
+    let mut changes = Vec::<Diff>::with_capacity(fills.len() + 1);
     changes.push(create);
     for fill in fills.iter().cloned() {
         let maker_order_status = state
@@ -198,7 +198,7 @@ pub fn add_order(
             state.base_balances.entry(req.address).and_modify(|b| b.free += fill.size);
             state.quote_balances.entry(req.address).and_modify(|b| b.locked -= fill.quote_size());
 
-            changes.push(Dif::fill(req.address, fill.seller, fill.size, fill.quote_size()));
+            changes.push(Diff::fill(req.address, fill.seller, fill.size, fill.quote_size()));
         } else {
             // Seller exchanges base for quote
             state.base_balances.entry(req.address).and_modify(|b| b.locked -= fill.size);
@@ -208,7 +208,7 @@ pub fn add_order(
             state.base_balances.entry(fill.buyer).and_modify(|b| b.free += fill.size);
             state.quote_balances.entry(fill.buyer).and_modify(|b| b.locked -= fill.quote_size());
 
-            changes.push(Dif::fill(fill.buyer, req.address, fill.size, fill.quote_size()));
+            changes.push(Diff::fill(fill.buyer, req.address, fill.size, fill.quote_size()));
         }
         maker_order_status.fills.push(fill);
     }
@@ -229,7 +229,7 @@ pub fn add_order(
 }
 
 /// A tick will execute a single request against the CLOB state.
-pub fn tick(request: Request, state: ClobState) -> Result<(Response, ClobState, Vec<Dif>), Error> {
+pub fn tick(request: Request, state: ClobState) -> Result<(Response, ClobState, Vec<Diff>), Error> {
     match request {
         Request::AddOrder(req) => {
             let (resp, state, difs) = add_order(req, state);
@@ -320,7 +320,7 @@ mod tests {
     use crate::{
         api::{
             AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest,
-            CancelOrderResponse, DepositRequest, DepositResponse, Dif, FillStatus, OrderFill,
+            CancelOrderResponse, DepositRequest, DepositResponse, Diff, FillStatus, OrderFill,
             Request, Response, WithdrawRequest, WithdrawResponse,
         },
         tick, ClobState,
@@ -340,7 +340,7 @@ mod tests {
             *clob_state.base_balances.get(&alice).unwrap(),
             AssetBalance { free: 200, locked: 0 }
         );
-        assert_eq!(difs, vec![Dif::deposit(alice, 200, 0)]);
+        assert_eq!(difs, vec![Diff::deposit(alice, 200, 0)]);
 
         let bob_dep =
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 });
@@ -350,7 +350,7 @@ mod tests {
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 800, locked: 0 }
         );
-        assert_eq!(difs, vec![Dif::deposit(bob, 0, 800)]);
+        assert_eq!(difs, vec![Diff::deposit(bob, 0, 800)]);
 
         let alice_limit = Request::AddOrder(AddOrderRequest {
             address: alice,
@@ -376,7 +376,7 @@ mod tests {
             *clob_state.base_balances.get(&alice).unwrap(),
             AssetBalance { free: 100, locked: 100 }
         );
-        assert_eq!(difs, vec![Dif::create(alice, 100, 0)]);
+        assert_eq!(difs, vec![Diff::create(alice, 100, 0)]);
 
         let bob_limit1 = Request::AddOrder(AddOrderRequest {
             address: bob,
@@ -402,7 +402,7 @@ mod tests {
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 700, locked: 100 }
         );
-        assert_eq!(difs, vec![Dif::create(bob, 0, 100)]);
+        assert_eq!(difs, vec![Diff::create(bob, 0, 100)]);
 
         let bob_limit2 = Request::AddOrder(AddOrderRequest {
             address: bob,
@@ -447,7 +447,7 @@ mod tests {
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 300, locked: 100 }
         );
-        assert_eq!(difs, vec![Dif::create(bob, 0, 400), Dif::fill(bob, alice, 100, 400)]);
+        assert_eq!(difs, vec![Diff::create(bob, 0, 400), Diff::fill(bob, alice, 100, 400)]);
 
         let alice_withdraw =
             Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 });
@@ -455,7 +455,7 @@ mod tests {
         assert_eq!(Response::Withdraw(WithdrawResponse { success: true }), resp);
         assert!(!clob_state.quote_balances.contains_key(&alice));
         assert!(!clob_state.base_balances.contains_key(&alice));
-        assert_eq!(difs, vec![Dif::withdraw(alice, 100, 400)]);
+        assert_eq!(difs, vec![Diff::withdraw(alice, 100, 400)]);
 
         let bob_cancel = Request::CancelOrder(CancelOrderRequest { oid: 1 });
         let (resp, clob_state, difs) = tick(bob_cancel, clob_state).unwrap();
@@ -476,7 +476,7 @@ mod tests {
             *clob_state.quote_balances.get(&bob).unwrap(),
             AssetBalance { free: 400, locked: 0 }
         );
-        assert_eq!(difs, vec![Dif::cancel(bob, 0, 100)]);
+        assert_eq!(difs, vec![Diff::cancel(bob, 0, 100)]);
 
         let bob_withdraw =
             Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 });
@@ -484,6 +484,6 @@ mod tests {
         assert_eq!(Response::Withdraw(WithdrawResponse { success: true }), resp);
         assert!(clob_state.quote_balances.is_empty());
         assert!(clob_state.base_balances.is_empty());
-        assert_eq!(difs, vec![Dif::withdraw(bob, 100, 400)]);
+        assert_eq!(difs, vec![Diff::withdraw(bob, 100, 400)]);
     }
 }

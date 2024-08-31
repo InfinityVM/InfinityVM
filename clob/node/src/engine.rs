@@ -1,8 +1,8 @@
 //! CLOB execution engine.
 
 use crate::db::{
-    models::{ClobStateModel, RequestModel, ResponseModel, VecDifModel},
-    tables::{ClobStateTable, DifTable, GlobalIndexTable, RequestTable, ResponseTable},
+    models::{ClobStateModel, RequestModel, ResponseModel, VecDiffModel},
+    tables::{ClobStateTable, DiffTable, GlobalIndexTable, RequestTable, ResponseTable},
     PROCESSED_GLOBAL_INDEX_KEY, SEEN_GLOBAL_INDEX_KEY,
 };
 use clob_core::{
@@ -90,7 +90,7 @@ pub async fn run_engine<D>(
             tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index).expect("todo");
             tx.put::<ResponseTable>(global_index, ResponseModel(response2)).expect("todo");
             tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2)).expect("todo");
-            tx.put::<DifTable>(global_index, VecDifModel(difs)).expect("todo");
+            tx.put::<DiffTable>(global_index, VecDiffModel(difs)).expect("todo");
             tx.commit().expect("todo");
         });
 

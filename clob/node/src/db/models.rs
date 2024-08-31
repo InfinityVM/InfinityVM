@@ -2,7 +2,7 @@
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use clob_core::{
-    api::{Dif, Request, Response},
+    api::{Diff, Request, Response},
     ClobState,
 };
 use paste::paste;
@@ -49,10 +49,10 @@ macro_rules! create_model {
     };
 }
 
-/// Ordered vec of [Dif]s.
-pub type VecDif = Vec<Dif>;
+/// Ordered vec of [Diff]s.
+pub type VecDiff = Vec<Diff>;
 
 create_model! { Request }
 create_model! { Response }
 create_model! { ClobState }
-create_model! { VecDif }
+create_model! { VecDiff }

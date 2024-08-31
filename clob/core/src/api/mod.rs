@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 mod balance_change;
 
 pub use balance_change::{
-    ClobProgramInput, ClobProgramOutput, DepositDelta, Dif, OrderDelta, WithdrawDelta,
+    ClobProgramInput, ClobProgramOutput, DepositDelta, Diff, OrderDelta, WithdrawDelta,
 };
 
 /// All possible requests that can go into the clob engine.
