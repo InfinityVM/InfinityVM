@@ -228,7 +228,7 @@ pub fn add_order(
     (resp, state, changes)
 }
 
-/// A tick is will execute a single request against the CLOB state.
+/// A tick will execute a single request against the CLOB state.
 pub fn tick(request: Request, state: ClobState) -> Result<(Response, ClobState, Vec<Dif>), Error> {
     match request {
         Request::AddOrder(req) => {
