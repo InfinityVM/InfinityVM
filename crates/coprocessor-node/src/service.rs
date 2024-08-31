@@ -117,7 +117,6 @@ where
                             nonce: job.nonce,
                             program_id: job.program_id,
                             input: job.input,
-                            program_state: job.program_state,
                             consumer_address: job.consumer_address,
                             max_cycles: job.max_cycles,
                             request_signature,
