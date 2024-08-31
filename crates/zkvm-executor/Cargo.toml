@@ -12,7 +12,6 @@ tracing = { workspace = true }
 alloy = { workspace = true }
 thiserror = { workspace = true }
 base64 = { workspace = true }
-tokio = { workspace = true }
 
 proto = { path = "../proto" }
 zkvm = { path = "../zkvm" }
