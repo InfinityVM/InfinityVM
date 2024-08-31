@@ -329,5 +329,44 @@ mod tests {
             *state.quote_balances().get(&user3).unwrap(),
             AssetBalance { free: 30, locked: 0 }
         );
+
+        let r: ApiResponse = post(
+            &mut app,
+            ORDERS,
+            AddOrderRequest { address: user1, is_buy: true, limit_price: 2, size: 4 },
+        )
+        .await;
+        assert_eq!(r.global_index, 4);
+
+        let r: ApiResponse = post(
+            &mut app,
+            ORDERS,
+            AddOrderRequest { address: user2, is_buy: true, limit_price: 2, size: 8 },
+        )
+        .await;
+        assert_eq!(r.global_index, 5);
+
+        let r: ApiResponse = post(
+            &mut app,
+            ORDERS,
+            AddOrderRequest { address: user3, is_buy: true, limit_price: 2, size: 12 },
+        )
+        .await;
+        assert_eq!(r.global_index, 6);
+
+        let state = get_clob_state(&mut app).await;
+        assert_eq!(state.oid(), 3);
+        assert_eq!(
+            *state.quote_balances().get(&user1).unwrap(),
+            AssetBalance { free: 2, locked: 8 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&user2).unwrap(),
+            AssetBalance { free: 4, locked: 16 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&user3).unwrap(),
+            AssetBalance { free: 6, locked: 24 }
+        );
     }
 }
