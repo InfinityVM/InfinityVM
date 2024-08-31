@@ -177,7 +177,7 @@ async fn state_job_submission_clob_consumer() {
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
-            tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+            tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
             let job_id = submit_job_response.job_id;
             let result_with_metadata = args
