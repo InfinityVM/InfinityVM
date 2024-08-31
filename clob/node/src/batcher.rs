@@ -1,4 +1,4 @@
-//! Collects `BalanceChange`s into batches and submits then to the coprocessor node at some regular
+//! Collects `BalanceChange`s into batches and submits them to the coprocessor node at some regular
 //! cadence.
 use crate::db::{
     tables::{ClobStateTable, GlobalIndexTable, RequestTable},
@@ -68,7 +68,7 @@ pub async fn run_batcher<D>(
 ) where
     D: Database + 'static,
 {
-    // Wait for the system to have at least one processed request least one request
+    // Wait for the system to have at least one processed request
     ensure_initialized(Arc::clone(&db)).await;
     let program_id = Digest::from(CLOB_ID).as_bytes().to_vec();
 

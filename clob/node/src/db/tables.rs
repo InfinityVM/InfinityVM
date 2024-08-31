@@ -1,6 +1,6 @@
 //! Tables for the database.
 
-use crate::db::models::{ClobStateModel, RequestModel, ResponseModel, VecDifModel};
+use crate::db::models::{ClobStateModel, RequestModel, ResponseModel, VecDiffModel};
 use reth_db::{tables, TableType, TableViewer};
 use std::fmt;
 
@@ -19,6 +19,6 @@ reth_db::tables! {
     /// ClOB State table, keyed by global index
     table ClobStateTable<Key = u64, Value = ClobStateModel>;
 
-    /// Dif table, keyed by global index
-    table DifTable<Key = u64, Value = VecDifModel>;
+    /// Diff table, keyed by global index
+    table DiffTable<Key = u64, Value = VecDiffModel>;
 }

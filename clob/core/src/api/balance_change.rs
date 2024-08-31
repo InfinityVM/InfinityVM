@@ -161,7 +161,7 @@ impl BalanceChange {
 /// derive for DB storage.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(rename_all = "camelCase")]
-pub enum Dif {
+pub enum Diff {
     /// Funds are withdrawn from free balance.
     /// Burn base/quote amounts from free.
     Withdraw {
@@ -219,7 +219,7 @@ pub enum Dif {
     Noop,
 }
 
-impl Dif {
+impl Diff {
     /// Return a withdraw dif.
     pub const fn withdraw(user: [u8; 20], base: u64, quote: u64) -> Self {
         Self::Withdraw { user, base, quote }
