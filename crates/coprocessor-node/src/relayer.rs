@@ -4,7 +4,7 @@ use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
-    providers::ProviderBuilder,
+    providers::{fillers::RecommendedFiller, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::Signature,
     transports::http::reqwest,
@@ -20,16 +20,7 @@ use db::tables::{Job, RequestType};
 // https://github.com/Ethos-Works/InfinityVM/issues/138
 type RelayerProvider = alloy::providers::fillers::FillProvider<
     alloy::providers::fillers::JoinFill<
-        alloy::providers::fillers::JoinFill<
-            alloy::providers::fillers::JoinFill<
-                alloy::providers::fillers::JoinFill<
-                    alloy::providers::Identity,
-                    alloy::providers::fillers::GasFiller,
-                >,
-                alloy::providers::fillers::NonceFiller,
-            >,
-            alloy::providers::fillers::ChainIdFiller,
-        >,
+        RecommendedFiller,
         alloy::providers::fillers::WalletFiller<EthereumWallet>,
     >,
     alloy::providers::RootProvider<alloy::transports::http::Http<reqwest::Client>>,
