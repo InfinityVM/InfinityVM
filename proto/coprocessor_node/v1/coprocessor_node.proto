@@ -16,6 +16,14 @@ service CoprocessorNode {
     };
   }
 
+  // SubmitStatefulJob defines the gRPC method for submitting a stateful coprocessing job.
+  rpc SubmitStatefulJob(SubmitStatefulJobRequest) returns (SubmitStatefulJobResponse) {
+    option (google.api.http) = {
+      post: "/v1/coprocessor_node/submit_stateful_job"
+      body: "*"
+    };
+  }
+
   // GetResult defines the gRPC method for getting the result of a coprocessing
   // job.
   rpc GetResult(GetResultRequest) returns (GetResultResponse) {
@@ -45,13 +53,28 @@ message SubmitJobRequest {
   bytes request = 1;
   // Signature on ABI-encoded offchain job request
   bytes signature = 2;
-  // Value of program state (this isn't signed over)
-  bytes program_state = 3;
 }
 
 // SubmitJobResponse defines the response structure to submit a job to the
 // coprocessing coprocessor_node.
 message SubmitJobResponse {
+  bytes job_id = 1;
+}
+
+// SubmitStatefulJobRequest defines the request structure to submit a stateful
+// job to the coprocessing coprocessor_node.
+message SubmitStatefulJobRequest {
+  // ABI-encoded offchain job request
+  bytes request = 1;
+  // Signature on ABI-encoded offchain job request
+  bytes signature = 2;
+  // Value of program state (this isn't signed over)
+  bytes program_state = 3;
+}
+
+// SubmitStatefulJobResponse defines the response structure to submit a
+// stateful job to the coprocessing coprocessor_node.
+message SubmitStatefulJobResponse {
   bytes job_id = 1;
 }
 

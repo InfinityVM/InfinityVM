@@ -10,7 +10,7 @@ use alloy_sol_types::SolType;
 use clob_contracts::{abi_encode_offchain_job_request, JobParams};
 use clob_core::api::ClobProgramInput;
 use clob_programs::CLOB_ID;
-use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
+use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitStatefulJobRequest};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;
@@ -127,10 +127,10 @@ pub async fn run_batcher<D>(
         let request = abi_encode_offchain_job_request(job_params);
         let signature = signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
         let job_request =
-            SubmitJobRequest { request, signature, program_state: program_state_borsh };
+            SubmitStatefulJobRequest { request, signature, program_state: program_state_borsh };
 
-        let _submit_job_response =
-            coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
+        let _submit_stateful_job_response =
+            coprocessor_node.submit_stateful_job(job_request).await.unwrap().into_inner();
 
         let next_batch_idx = end_index + 1;
         db.update(|tx| {
