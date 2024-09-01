@@ -44,7 +44,6 @@ async fn state_job_submission_clob_consumer() {
         let program_id = program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_state0 = ClobState::default();
-        let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
 
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
         let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
@@ -68,7 +67,6 @@ async fn state_job_submission_clob_consumer() {
             .with_recommended_fillers()
             .wallet(clob_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = ClobConsumer::new(clob.clob_consumer, &consumer_provider);
         let base_contract = MockErc20::new(clob.base_erc20, &consumer_provider);
         let quote_contract = MockErc20::new(clob.quote_erc20, &consumer_provider);
 
@@ -77,20 +75,17 @@ async fn state_job_submission_clob_consumer() {
         let call = quote_contract.mint(bob.into(), U256::from(1_000));
         let r2 = call.send().await.unwrap().get_receipt();
 
-        let call = consumer_contract.setLatestStateRootHash(init_state_hash.into());
-        let r3 = call.send().await.unwrap().get_receipt();
-
         let alice_provider = ProviderBuilder::new()
             .with_recommended_fillers()
             .wallet(alice_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let alice_base = MockErc20::new(clob.base_erc20, &alice_provider);
         let call = alice_base.approve(clob.clob_consumer, U256::from(1_000));
-        let r4 = call.send().await.unwrap().get_receipt();
+        let r3 = call.send().await.unwrap().get_receipt();
 
         let alice_contract = ClobConsumer::new(clob.clob_consumer, &alice_provider);
         let call = alice_contract.deposit(U256::from(200), U256::from(0));
-        let r5 = call.send().await.unwrap().get_receipt();
+        let r4 = call.send().await.unwrap().get_receipt();
 
         let bob_provider = ProviderBuilder::new()
             .with_recommended_fillers()
@@ -98,12 +93,12 @@ async fn state_job_submission_clob_consumer() {
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
         let call = bob_quote.approve(clob.clob_consumer, U256::from(1_000));
-        let r6 = call.send().await.unwrap().get_receipt();
+        let r5 = call.send().await.unwrap().get_receipt();
 
         let bob_contract = ClobConsumer::new(clob.clob_consumer, &bob_provider);
         let call = bob_contract.deposit(U256::from(0), U256::from(800));
-        let r7 = call.send().await.unwrap().get_receipt();
-        tokio::try_join!(r1, r2, r3, r4, r5, r6, r7).unwrap();
+        let r6 = call.send().await.unwrap().get_receipt();
+        tokio::try_join!(r1, r2, r3, r4, r5, r6).unwrap();
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(200));
@@ -232,7 +227,6 @@ async fn clob_node_e2e() {
         let clob_endpoint = args.clob_endpoint.unwrap();
 
         let client = clob_node::client::Client::new(clob_endpoint);
-        let clob_state0 = ClobState::default();
 
         // Setup ready to use on chain accounts for Alice & Bob
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
@@ -268,11 +262,6 @@ async fn clob_node_e2e() {
         let call = quote_contract.mint(bob.into(), U256::from(1_000));
         let r2 = call.send().await.unwrap().get_receipt();
 
-        // Set the initial state of the Clob Consumer so it can validate the first state transition
-        let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
-        let call = consumer_contract.setLatestStateRootHash(init_state_hash.into());
-        let r3 = call.send().await.unwrap().get_receipt();
-
         // Alice and Bob both approve the ClobConsumer to move the ERC20 and then deposit
         let alice_provider = ProviderBuilder::new()
             .with_recommended_fillers()
@@ -280,11 +269,11 @@ async fn clob_node_e2e() {
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let alice_base = MockErc20::new(clob.base_erc20, &alice_provider);
         let call = alice_base.approve(clob.clob_consumer, U256::from(1_000));
-        let r4 = call.send().await.unwrap().get_receipt();
+        let r3 = call.send().await.unwrap().get_receipt();
 
         let alice_contract = ClobConsumer::new(clob.clob_consumer, &alice_provider);
         let call = alice_contract.deposit(U256::from(200), U256::from(0));
-        let r5 = call.send().await.unwrap().get_receipt();
+        let r4 = call.send().await.unwrap().get_receipt();
 
         let bob_provider = ProviderBuilder::new()
             .with_recommended_fillers()
@@ -292,14 +281,14 @@ async fn clob_node_e2e() {
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
         let call = bob_quote.approve(clob.clob_consumer, U256::from(1_000));
-        let r6 = call.send().await.unwrap().get_receipt();
+        let r5 = call.send().await.unwrap().get_receipt();
 
         let bob_contract = ClobConsumer::new(clob.clob_consumer, &bob_provider);
         let call = bob_contract.deposit(U256::from(0), U256::from(800));
-        let r7 = call.send().await.unwrap().get_receipt();
+        let r6 = call.send().await.unwrap().get_receipt();
 
         // Wait for all the transactions to hit the chain
-        tokio::try_join!(r1, r2, r3, r4, r5, r6, r7).unwrap();
+        tokio::try_join!(r1, r2, r3, r4, r5, r6).unwrap();
 
         // Sanity check that the ERC20s transferred
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;

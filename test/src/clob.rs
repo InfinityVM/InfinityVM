@@ -3,6 +3,7 @@ use alloy::{
     signers::local::PrivateKeySigner,
 };
 use clob_contracts::clob_consumer::ClobConsumer;
+use clob_core::{BorshKeccak256, ClobState};
 
 use test_utils::AnvilJobManager;
 
@@ -58,6 +59,9 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
         .unwrap()
         .address();
 
+    let clob_state0 = ClobState::default();
+    let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
+
     // Deploy the clob consumer
     let clob_consumer = *ClobConsumer::deploy(
         provider,
@@ -66,6 +70,7 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
         0,
         base_erc20,
         quote_erc20,
+        init_state_hash.into(),
     )
     .await
     .unwrap()
