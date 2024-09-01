@@ -27,11 +27,6 @@ pub enum Error {
     OrderDoesNotExist,
 }
 
-/// Input to the STF. Expected to be the exact input given to the ZKVM program.
-pub type StfInput = (Request, ClobState);
-/// Output from the STF. Expected to be the exact output from the ZKVM program.
-pub type StfOutput = (Response, ClobState);
-
 /// The state of the universe for the CLOB.
 #[derive(
     Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
