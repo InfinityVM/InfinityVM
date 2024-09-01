@@ -1,4 +1,4 @@
-//! Collects `BalanceChange`s into batches and submits them to the coprocessor node at some regular
+//! Collects requests into batches and submits them to the coprocessor node at some regular
 //! cadence.
 use crate::db::{
     tables::{ClobStateTable, GlobalIndexTable, RequestTable},

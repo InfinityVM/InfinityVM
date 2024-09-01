@@ -7,37 +7,6 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
 alloy_sol_types::sol! {
-    /// Type of a [BalanceChange]
-    enum BalanceChangeType {
-        /// Funds are withdrawn from free balance.
-        /// Move base/quote amounts from free.
-        Withdraw,
-        /// Funds are exchanged between buyer and seller.
-        /// Buyer credited base and debited quote.
-        /// Seller credited quote and debited base.
-        Fill,
-        /// Funds are locked to create an order.
-        /// Credit base/quote amounts to locked and debit from free.
-        Create,
-        /// Funds are moved from locked to free.
-        /// Credit base/quote amounts to free and debit from locked.
-        Cancel,
-    }
-
-    /// A single balance change.
-    struct BalanceChange {
-        /// The type of balance change
-        BalanceChangeType change_type;
-        /// The user's address. Or the buyer's address if this is a fill.
-        address user_address;
-        /// Address of the seller in a fill.
-        address seller_address;
-        /// Base asset amount.
-        uint256 base_amount;
-        /// Quote asset amount.
-        uint256 quote_amount;
-    }
-
     /// Balance delta for deposit.
      #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct DepositDelta {
@@ -99,65 +68,7 @@ alloy_sol_types::sol! {
     }
 }
 
-impl BalanceChange {
-    /// Return a fill [Self].
-    pub fn fill(buyer: &[u8; 20], seller: &[u8; 20], base: u64, quote: u64) -> Self {
-        Self {
-            change_type: BalanceChangeType::Fill,
-            user_address: Address::from(buyer),
-            seller_address: Address::from(seller),
-            base_amount: U256::from(base),
-            quote_amount: U256::from(quote),
-        }
-    }
-
-    /// Return a create [Self].
-    pub fn create(user: &[u8; 20], base: u64, quote: u64) -> Self {
-        Self {
-            change_type: BalanceChangeType::Create,
-            user_address: Address::from(user),
-            seller_address: Address::default(),
-            base_amount: U256::from(base),
-            quote_amount: U256::from(quote),
-        }
-    }
-
-    /// Return a cancel [Self].
-    pub fn cancel(user: &[u8; 20], base: u64, quote: u64) -> Self {
-        Self {
-            change_type: BalanceChangeType::Cancel,
-            user_address: Address::from(user),
-            seller_address: Address::default(),
-            base_amount: U256::from(base),
-            quote_amount: U256::from(quote),
-        }
-    }
-
-    /// Return a withdraw [Self].
-    pub fn withdraw(user: &[u8; 20], base: u64, quote: u64) -> Self {
-        Self {
-            change_type: BalanceChangeType::Cancel,
-            user_address: Address::from(user),
-            seller_address: Address::default(),
-            base_amount: U256::from(base),
-            quote_amount: U256::from(quote),
-        }
-    }
-
-    /// Noop balance change
-    // TODO: this is ugly, we should have a better solution.
-    pub fn noop() -> Self {
-        Self {
-            change_type: BalanceChangeType::Cancel,
-            user_address: Address::default(),
-            seller_address: Address::default(),
-            base_amount: U256::default(),
-            quote_amount: U256::default(),
-        }
-    }
-}
-
-/// A state diff to balances. Version `BalanceChange` that uses rust native types and allows us to
+/// A state diff to balances. Uses rust native types and allows us to
 /// derive for DB storage.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(rename_all = "camelCase")]
@@ -239,21 +150,6 @@ impl Diff {
     /// Return a cancel dif.
     pub const fn deposit(user: [u8; 20], base: u64, quote: u64) -> Self {
         Self::Deposit { user, base, quote }
-    }
-
-    /// Get the balance change version.
-    pub fn to_abi_type(&self) -> Option<BalanceChange> {
-        match self {
-            Self::Noop | Self::Deposit { .. } => None,
-            Self::Withdraw { user, base, quote } => {
-                Some(BalanceChange::withdraw(user, *base, *quote))
-            }
-            Self::Fill { buyer, seller, base, quote } => {
-                Some(BalanceChange::fill(buyer, seller, *base, *quote))
-            }
-            Self::Create { user, base, quote } => Some(BalanceChange::create(user, *base, *quote)),
-            Self::Cancel { user, base, quote } => Some(BalanceChange::cancel(user, *base, *quote)),
-        }
     }
 
     /// Apply a diff to maps of delta types.
