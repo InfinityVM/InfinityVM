@@ -2,11 +2,10 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
-import {JobManager} from "../src/JobManager.sol";
-import {Consumer} from "../src/Consumer.sol";
-import {ClobConsumer} from "../src/ClobConsumer.sol";
+import {JobManager} from "../src/coprocessor/JobManager.sol";
+import {Consumer} from "../src/coprocessor/Consumer.sol";
+import {ClobConsumer} from "../src/clob/ClobConsumer.sol";
 import {ClobDeployer} from "../script/ClobDeployer.s.sol";
-import "./mocks/MockERC20.sol";
 
 contract ClobConsumerTest is Test, ClobDeployer {
     uint64 DEFAULT_MAX_CYCLES = 1_000_000;

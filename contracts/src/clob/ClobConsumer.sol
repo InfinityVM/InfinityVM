@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
-import {JobManager} from "./JobManager.sol";
-import {Consumer} from "./Consumer.sol";
-import {OffchainRequester} from "./OffchainRequester.sol";
+import {JobManager} from "../coprocessor/JobManager.sol";
+import {Consumer} from "../coprocessor/Consumer.sol";
+import {OffchainRequester} from "../coprocessor/OffchainRequester.sol";
 import {console} from "forge-std/Script.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
