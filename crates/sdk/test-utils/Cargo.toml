@@ -13,5 +13,5 @@ tracing-subscriber = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }
 
-contracts = { path = "../contracts" }
+contracts = { workspace = true }
 

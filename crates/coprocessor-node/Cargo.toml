@@ -31,4 +31,4 @@ zkvm-executor = { path = "../zkvm-executor" }
 zkvm-tracing = { package = "tracing", path = "../tracing" }
 
 [dev-dependencies]
-test-utils = { path = "../test-utils" }
+test-utils = { workspace = true }
