@@ -11,7 +11,7 @@ use clob_core::{
         AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest, ClobProgramInput,
         ClobProgramOutput, DepositRequest, FillStatus, Request, WithdrawRequest,
     },
-    tick, BorshKeccak256, ClobState,
+    next_state, BorshKeccak256, ClobState,
 };
 use clob_programs::CLOB_ELF;
 use e2e::{clob::mock_erc20::MockErc20, Args, E2E};
@@ -24,15 +24,6 @@ use clob_core::api::OrderFill;
 
 fn program_id() -> Vec<u8> {
     compute_image_id(CLOB_ELF).unwrap().as_bytes().to_vec()
-}
-
-fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
-    let mut next_clob_state = init_state;
-    for tx in txns.iter().cloned() {
-        (_, next_clob_state, _) = tick(tx, next_clob_state).unwrap();
-    }
-
-    next_clob_state
 }
 
 #[ignore]

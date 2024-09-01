@@ -68,6 +68,16 @@ impl ClobState {
     }
 }
 
+/// Returns the next state given a list of transactions.
+pub fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
+    let mut next_clob_state = init_state;
+    for tx in txns.iter().cloned() {
+        (_, next_clob_state, _) = tick(tx, next_clob_state).unwrap();
+    }
+
+    next_clob_state
+}
+
 /// Deposit user funds that can be used to place orders.
 pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, ClobState, Diff) {
     state

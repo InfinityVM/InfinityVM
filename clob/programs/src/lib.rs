@@ -11,7 +11,7 @@ mod tests {
             AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositDelta,
             DepositRequest, OrderDelta, Request, WithdrawDelta, WithdrawRequest,
         },
-        tick, BorshKeccak256, ClobState,
+        next_state, BorshKeccak256, ClobState,
     };
 
     use zkvm::Zkvm;
@@ -105,15 +105,6 @@ mod tests {
         let b =
             WithdrawDelta { account: bob.into(), base: U256::from(100), quote: U256::from(400) };
         assert_eq!(clob_out.withdraw_deltas, vec![a, b]);
-    }
-
-    fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
-        let mut next_clob_state = init_state;
-        for tx in txns.iter().cloned() {
-            (_, next_clob_state, _) = tick(tx, next_clob_state).unwrap();
-        }
-
-        next_clob_state
     }
 
     fn execute(txns: Vec<Request>, init_state: ClobState) -> ClobProgramOutput {
