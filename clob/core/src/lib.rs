@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use crate::api::AssetBalance;
-use alloy_primitives::{FixedBytes, Keccak256};
+use alloy_primitives::{FixedBytes, utils::keccak256};
 use api::{
     AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobProgramOutput,
     DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,
@@ -319,9 +319,7 @@ pub trait BorshKeccak256 {
 impl<T: BorshSerialize> BorshKeccak256 for T {
     fn borsh_keccak256(&self) -> FixedBytes<32> {
         let borsh = borsh::to_vec(&self).expect("T is serializable");
-        let mut hasher = Keccak256::new();
-        hasher.update(borsh);
-        hasher.finalize()
+        keccak256(&borsh)
     }
 }
 
