@@ -19,7 +19,7 @@ use proto::{GetResultRequest, SubmitProgramRequest, SubmitStatefulJobRequest, Vm
 use risc0_binfmt::compute_image_id;
 use zkvm_executor::service::ResultWithMetadata;
 
-use clob_contracts::{abi_encode_offchain_job_request, JobParams};
+use abi::{abi_encode_offchain_job_request, JobParams};
 use clob_core::api::OrderFill;
 
 fn program_id() -> Vec<u8> {

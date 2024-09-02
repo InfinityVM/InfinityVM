@@ -12,10 +12,11 @@ alloy = { workspace = true }
 k256 = { workspace = true }
 dotenv = { workspace = true }
 
-proto = { path = "../proto" }
-coprocessor-node = { path = "../coprocessor-node" }
-zkvm-executor = { path = "../zkvm-executor" }
-db = { path = "../db" }
+proto = { workspace = true }
+coprocessor-node = { workspace = true }
+zkvm-executor = { workspace = true }
+db = { workspace = true }
+abi = { workspace = true }
 
 [lints]
 workspace = true

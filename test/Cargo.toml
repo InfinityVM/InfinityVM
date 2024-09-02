@@ -22,6 +22,7 @@ proto = { workspace = true }
 coprocessor-node = { workspace = true }
 zkvm-executor = { workspace = true }
 test-utils = { workspace = true }
+abi = { workspace = true }
 db = { workspace = true }
 clob-contracts = { workspace = true }
 clob-programs = { workspace = true }

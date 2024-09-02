@@ -1,3 +1,4 @@
+use abi::{abi_encode_offchain_job_request, JobParams};
 use alloy::{
     network::EthereumWallet,
     primitives::{
@@ -10,7 +11,6 @@ use alloy::{
     sol_types::{SolEvent, SolType, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use db::tables::{get_job_id, Job, RequestType};
 use e2e::{Args, E2E};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
@@ -91,7 +91,14 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         };
 
         // Add signature from user on job request
-        let job_request_payload = abi_encode_offchain_job_request(job.clone()).unwrap();
+        let job_params = JobParams {
+            nonce: job.nonce,
+            max_cycles: job.max_cycles,
+            consumer_address: job.consumer_address.clone().try_into().unwrap(),
+            program_input: job.input.clone(),
+            program_id: job.program_id.clone(),
+        };
+        let job_request_payload = abi_encode_offchain_job_request(job_params);
         let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
         job.request_type = RequestType::Offchain(request_signature.as_bytes().to_vec());
 

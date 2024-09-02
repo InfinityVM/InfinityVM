@@ -1,10 +1,10 @@
+use abi::{abi_encode_offchain_job_request, JobParams};
 use alloy::{
     primitives::{hex, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
     sol,
     sol_types::{SolType, SolValue},
 };
-use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use db::tables::{get_job_id, Job, RequestType};
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
@@ -78,7 +78,14 @@ impl RequestAndResultSigner {
                 retries: 0,
             },
         };
-        let encoded_job_request = abi_encode_offchain_job_request(job).unwrap();
+        let job_params = JobParams {
+            nonce: job.nonce,
+            max_cycles: job.max_cycles,
+            consumer_address: job.consumer_address.clone().try_into().unwrap(),
+            program_input: job.input.clone(),
+            program_id: job.program_id.clone(),
+        };
+        let encoded_job_request = abi_encode_offchain_job_request(job_params);
 
         let private_key_hex = env::var("OFFCHAIN_SIGNER_PRIVATE_KEY")
             .expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");

@@ -1,6 +1,7 @@
 //! Job processor implementation.
 
 use crate::{metrics::Metrics, relayer::JobRelayer};
+use abi::{abi_encode_offchain_job_request, JobParams};
 use alloy::{hex, primitives::Signature, signers::Signer, sol, sol_types::SolType};
 use async_channel::{Receiver, Sender};
 use db::{
@@ -343,7 +344,18 @@ where
             let relay_receipt_result = match job.request_type {
                 RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
                 RequestType::Offchain(_) => {
-                    let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
+                    let job_params = JobParams {
+                        nonce: job.nonce,
+                        max_cycles: job.max_cycles,
+                        consumer_address: job
+                            .consumer_address
+                            .clone()
+                            .try_into()
+                            .map_err(|_| Error::InvalidAddressLength)?,
+                        program_input: job.input.clone(),
+                        program_id: job.program_id.clone(),
+                    };
+                    let job_request_payload = abi_encode_offchain_job_request(job_params);
                     job_relayer
                         .relay_result_for_offchain_job(job.clone(), job_request_payload)
                         .await
@@ -394,7 +406,18 @@ where
                         job_relayer.relay_result_for_onchain_job(job.clone()).await
                     }
                     RequestType::Offchain(_) => {
-                        let job_request_payload = abi_encode_offchain_job_request(job.clone())?;
+                        let job_params = JobParams {
+                            nonce: job.nonce,
+                            max_cycles: job.max_cycles,
+                            consumer_address: job
+                                .consumer_address
+                                .clone()
+                                .try_into()
+                                .map_err(|_| Error::InvalidAddressLength)?,
+                            program_input: job.input.clone(),
+                            program_id: job.program_id.clone(),
+                        };
+                        let job_request_payload = abi_encode_offchain_job_request(job_params);
                         job_relayer
                             .relay_result_for_offchain_job(job.clone(), job_request_payload)
                             .await
@@ -444,26 +467,4 @@ where
             tokio::time::sleep(Duration::from_secs(30)).await;
         }
     }
-}
-
-/// The payload that gets signed by the user/app for an offchain job request.
-///
-/// tuple(Nonce,MaxCycles,Consumer,ProgramID,ProgramInput)
-pub type OffchainJobRequest = sol! {
-    tuple(uint64,uint64,address,bytes,bytes)
-};
-
-/// Returns an ABI-encoded offchain job request. This ABI-encoded response will be
-/// signed by the entity sending the job request (user, app, authorized third-party, etc.).
-pub fn abi_encode_offchain_job_request(job: Job) -> Result<Vec<u8>, Error> {
-    let consumer_address: [u8; 20] =
-        job.consumer_address.try_into().map_err(|_| Error::InvalidAddressLength)?;
-
-    Ok(OffchainJobRequest::abi_encode_params(&(
-        job.nonce,
-        job.max_cycles,
-        consumer_address,
-        job.program_id,
-        job.input,
-    )))
 }

@@ -3,6 +3,13 @@
 version = 3
 
 [[package]]
+name = "abi"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+]
+
+[[package]]
 name = "addchain"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1662,6 +1669,7 @@ dependencies = [
 name = "clob-node"
 version = "0.1.0"
 dependencies = [
+ "abi",
  "alloy",
  "alloy-primitives 0.8.0",
  "alloy-sol-types 0.8.0",
@@ -1764,6 +1772,7 @@ dependencies = [
 name = "coprocessor-node"
 version = "0.0.1"
 dependencies = [
+ "abi",
  "alloy",
  "async-channel",
  "axum",
@@ -2232,6 +2241,7 @@ checksum = "33d4f78a40b1ec35bf8cafdaaf607ba2f773c366b0b3bda48937cacd7a8d5134"
 name = "e2e"
 version = "0.0.1"
 dependencies = [
+ "abi",
  "alloy",
  "alloy-sol-types 0.8.0",
  "borsh",
@@ -5365,6 +5375,7 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 name = "scripts"
 version = "0.0.1"
 dependencies = [
+ "abi",
  "alloy",
  "coprocessor-node",
  "db",

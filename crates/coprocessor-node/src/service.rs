@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use crate::job_processor::{JobProcessorService, OffchainJobRequest};
+use crate::job_processor::JobProcessorService;
+use abi::OffchainJobRequest;
 use alloy::{
     primitives::{Address, Bytes, Signature},
     signers::Signer,

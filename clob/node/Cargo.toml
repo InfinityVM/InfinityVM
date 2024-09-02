@@ -28,6 +28,7 @@ reth-db-api = { workspace = true }
 reth-db = { workspace = true }
 
 # local deps
+abi = { workspace = true }
 clob-contracts = { workspace = true }
 clob-core = { workspace = true }
 clob-programs = { workspace = true }
