@@ -1,8 +1,8 @@
 //! Job processor implementation.
 
 use crate::{metrics::Metrics, relayer::JobRelayer};
-use abi::{abi_encode_offchain_job_request, JobParams};
-use alloy::{hex, primitives::Signature, signers::Signer, sol, sol_types::SolType};
+use abi::abi_encode_offchain_job_request;
+use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::{Receiver, Sender};
 use db::{
     delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
@@ -48,7 +48,7 @@ pub enum Error {
     ExecQueueChannelClosed,
     /// invalid address length
     #[error("invalid address length")]
-    InvalidAddressLength,
+    InvalidAddressLength(#[from] abi::Error),
 }
 
 /// `JobStatus` Failure Reasons
@@ -344,18 +344,8 @@ where
             let relay_receipt_result = match job.request_type {
                 RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
                 RequestType::Offchain(_) => {
-                    let job_params = JobParams {
-                        nonce: job.nonce,
-                        max_cycles: job.max_cycles,
-                        consumer_address: job
-                            .consumer_address
-                            .clone()
-                            .try_into()
-                            .map_err(|_| Error::InvalidAddressLength)?,
-                        program_input: job.input.clone(),
-                        program_id: job.program_id.clone(),
-                    };
-                    let job_request_payload = abi_encode_offchain_job_request(job_params);
+                    let job_request_payload =
+                        abi_encode_offchain_job_request(job.clone().try_into()?);
                     job_relayer
                         .relay_result_for_offchain_job(job.clone(), job_request_payload)
                         .await
@@ -406,18 +396,8 @@ where
                         job_relayer.relay_result_for_onchain_job(job.clone()).await
                     }
                     RequestType::Offchain(_) => {
-                        let job_params = JobParams {
-                            nonce: job.nonce,
-                            max_cycles: job.max_cycles,
-                            consumer_address: job
-                                .consumer_address
-                                .clone()
-                                .try_into()
-                                .map_err(|_| Error::InvalidAddressLength)?,
-                            program_input: job.input.clone(),
-                            program_id: job.program_id.clone(),
-                        };
-                        let job_request_payload = abi_encode_offchain_job_request(job_params);
+                        let job_request_payload =
+                            abi_encode_offchain_job_request(job.clone().try_into()?);
                         job_relayer
                             .relay_result_for_offchain_job(job.clone(), job_request_payload)
                             .await

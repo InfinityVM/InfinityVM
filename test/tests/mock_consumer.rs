@@ -91,14 +91,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         };
 
         // Add signature from user on job request
-        let job_params = JobParams {
-            nonce: job.nonce,
-            max_cycles: job.max_cycles,
-            consumer_address: job.consumer_address.clone().try_into().unwrap(),
-            program_input: job.input.clone(),
-            program_id: job.program_id.clone(),
-        };
-        let job_request_payload = abi_encode_offchain_job_request(job_params);
+        let job_request_payload = abi_encode_offchain_job_request(job.clone().try_into().unwrap());
         let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
         job.request_type = RequestType::Offchain(request_signature.as_bytes().to_vec());
 

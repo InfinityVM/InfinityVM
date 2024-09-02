@@ -1,4 +1,4 @@
-use abi::{abi_encode_offchain_job_request, JobParams};
+use abi::abi_encode_offchain_job_request;
 use alloy::{
     primitives::{hex, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
@@ -78,14 +78,7 @@ impl RequestAndResultSigner {
                 retries: 0,
             },
         };
-        let job_params = JobParams {
-            nonce: job.nonce,
-            max_cycles: job.max_cycles,
-            consumer_address: job.consumer_address.clone().try_into().unwrap(),
-            program_input: job.input.clone(),
-            program_id: job.program_id.clone(),
-        };
-        let encoded_job_request = abi_encode_offchain_job_request(job_params);
+        let encoded_job_request = abi_encode_offchain_job_request(job.try_into().unwrap());
 
         let private_key_hex = env::var("OFFCHAIN_SIGNER_PRIVATE_KEY")
             .expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");

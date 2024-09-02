@@ -6,3 +6,5 @@ edition.workspace = true
 
 [dependencies]
 alloy = { workspace = true }
+db = { workspace = true }
+thiserror = { workspace = true }
