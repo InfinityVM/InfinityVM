@@ -1,4 +1,4 @@
-use abi::{abi_encode_offchain_job_request, JobParams};
+use abi::abi_encode_offchain_job_request;
 use alloy::{
     network::EthereumWallet,
     primitives::{
