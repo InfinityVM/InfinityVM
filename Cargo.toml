@@ -201,6 +201,7 @@ paste = "1"
 reqwest = { version = "0", features = ["json"] }
 
 # local
+abi = { path = "crates/sdk/abi" }
 clob-contracts ={ path = "clob/contracts" }
 clob-core = { path = "clob/core" }
 clob-node = { path = "clob/node" }
@@ -210,8 +211,7 @@ contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
 proto = { path = "crates/proto" }
-zkvm-executor = { path = "crates/zkvm-executor" }
-zkvm = { path = "crates/zkvm" }
-abi = { path = "crates/sdk/abi" }
 test-utils = { path = "crates/sdk/test-utils" }
+zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
+zkvm-executor = { path = "crates/zkvm-executor" }
