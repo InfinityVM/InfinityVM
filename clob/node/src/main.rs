@@ -12,7 +12,7 @@ pub const DEV_SECRET: &str = "92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8
 
 use clob_node::{
     CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR,
-    CLOB_ETH_HTTP_ADDR, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
+    CLOB_ETH_WS_ADDR, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
 
 #[tokio::main]
@@ -23,10 +23,8 @@ async fn main() {
         env::var(CLOB_CN_GRPC_ADDR).unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
     let batcher_duration_ms: u64 =
         env::var(CLOB_BATCHER_DURATION_MS).unwrap_or_else(|_| "1000".to_string()).parse().unwrap();
-
-    // TODO: contract listening deposit
-    let _eth_http_addr =
-        env::var(CLOB_ETH_HTTP_ADDR).unwrap_or_else(|_| "http://127.0.0.1:8545".to_string());
+    let eth_ws_addr =
+        env::var(CLOB_ETH_WS_ADDR).unwrap_or_else(|_| "ws://127.0.0.1:8545".to_string());
 
     let operator_signer = {
         let operator_key = env::var(CLOB_OPERATOR_KEY).unwrap_or_else(|_| DEV_SECRET.to_string());
@@ -47,6 +45,7 @@ async fn main() {
         batcher_duration_ms,
         operator_signer,
         cn_grpc_addr,
+        eth_ws_addr,
         clob_consumer_addr,
     )
     .await;

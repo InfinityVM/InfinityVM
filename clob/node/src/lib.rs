@@ -6,6 +6,7 @@ use crate::{
         PROCESSED_GLOBAL_INDEX_KEY,
     },
     engine::GENESIS_GLOBAL_INDEX,
+    event::start_deposit_event_listener,
 };
 use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
 use axum::{extract::State as ExtractState, Json, Router};
@@ -22,6 +23,7 @@ pub mod batcher;
 pub mod client;
 pub mod db;
 pub mod engine;
+pub mod event;
 
 /// Address to listen for HTTP requests on.
 pub const CLOB_LISTEN_ADDR: &str = "CLOB_LISTEN_ADDR";
@@ -29,14 +31,16 @@ pub const CLOB_LISTEN_ADDR: &str = "CLOB_LISTEN_ADDR";
 pub const CLOB_DB_DIR: &str = "CLOB_DB_DIR";
 /// Coprocessor Node gRPC address.
 pub const CLOB_CN_GRPC_ADDR: &str = "CLOB_CN_GRPC_ADDR";
-/// Execution Client HTTP address.
-pub const CLOB_ETH_HTTP_ADDR: &str = "CLOB_ETH_HTTP_ADDR";
+/// WS Ethereum RPC address.
+pub const CLOB_ETH_WS_ADDR: &str = "CLOB_ETH_WS_ADDR";
 /// Clob Consumer contract address.
 pub const CLOB_CONSUMER_ADDR: &str = "CLOB_CONSUMER_ADDR";
 /// Duration between creating batches.
 pub const CLOB_BATCHER_DURATION_MS: &str = "CLOB_BATCHER_DURATION_MS";
 /// Clob operator's secret key.
 pub const CLOB_OPERATOR_KEY: &str = "CLOB_OPERATOR_KEY";
+/// Block to start syncing from.
+pub const JOB_SYNC_START: &str = "JOB_SYNC_START";
 
 /// Operator signer type.
 pub type K256LocalSigner = LocalSigner<SigningKey>;
@@ -54,6 +58,7 @@ pub async fn run(
     batcher_duration_ms: u64,
     operator_signer: K256LocalSigner,
     cn_grpc_url: String,
+    eth_ws_url: String,
     clob_consumer_addr: [u8; 20],
 ) {
     let db = crate::db::init_db(db_dir).expect("todo");
@@ -68,6 +73,14 @@ pub async fn run(
 
     let db2 = Arc::clone(&db);
     let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
+
+    let deposit_event_listener = start_deposit_event_listener(
+        eth_ws_url,
+        clob_consumer_addr,
+        engine_sender,
+        opts.job_sync_start,
+    )
+    .await?;
 
     let batcher_handle = tokio::spawn(async move {
         let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
