@@ -5,4 +5,4 @@ rust-version.workspace = true
 edition.workspace = true
 
 [dependencies]
-alloy = { workspace = true }
+alloy = {  workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }

@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use crate::api::AssetBalance;
-use alloy_primitives::{utils::keccak256, FixedBytes};
+use alloy::primitives::{utils::keccak256, FixedBytes};
 use api::{
     AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobProgramOutput,
     DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,

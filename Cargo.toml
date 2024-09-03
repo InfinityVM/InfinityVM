@@ -115,7 +115,7 @@ significant_drop_tightening = "allow"
 # a
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
-alloy = { version = "0.2", features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"], default-features = false }
+alloy = { version = "0.2", features = ["sol-types", "signer-local"], default-features = false }
 async-channel = { version = "2", default-features = false }
 
 # b

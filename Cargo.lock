@@ -1660,8 +1660,7 @@ dependencies = [
 name = "clob-core"
 version = "0.1.0"
 dependencies = [
- "alloy-primitives 0.8.0",
- "alloy-sol-types 0.8.0",
+ "alloy",
  "borsh",
  "serde",
  "sha2",
@@ -1673,8 +1672,6 @@ version = "0.1.0"
 dependencies = [
  "abi",
  "alloy",
- "alloy-primitives 0.8.0",
- "alloy-sol-types 0.8.0",
  "axum",
  "borsh",
  "bytes",

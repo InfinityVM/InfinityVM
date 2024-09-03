@@ -18,8 +18,10 @@ name = "clob"
 path = "src/clob.rs"
 
 [dependencies]
-alloy = { version = "0.2", features = ["signer-local"], default-features = false }
-alloy-sol-types = { version = "0.8", default-features = false }
+# alloy = { version = "0.2", features = ["signer-local"], default-features = false }
+alloy = { version = "0.2", features = ["sol-types", "signer-local"], default-features = false }
+# alloy-sol-types = { version = "0.8", default-features = false }
+
 risc0-zkvm = { version = "1", default-features = false, features = ['std'] }
 borsh = { version = "1", default-features = false }
 
