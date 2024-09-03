@@ -290,7 +290,7 @@ impl Cli {
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
-            .build()
+            .build_v1()
             .expect("failed to build gRPC reflection service");
 
         let coprocessor_node_server =

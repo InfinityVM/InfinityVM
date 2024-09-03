@@ -76,12 +76,14 @@ where
 
     /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
     /// Returns (`result_with_metadata`, `zkvm_operator_signature`)
+    #[allow(clippy::too_many_arguments)]
     pub async fn execute(
         &self,
         job_id: [u8; 32],
         max_cycles: u64,
         program_id: Vec<u8>,
         input: Vec<u8>,
+        program_state: Vec<u8>,
         elf: Vec<u8>,
         vm_type: VmType,
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
@@ -101,7 +103,20 @@ where
             )));
         }
 
-        let raw_output = vm.execute(&elf, &input, max_cycles).map_err(Error::ZkvmExecuteFailed)?;
+        let input2 = input.clone();
+        let raw_output = match program_state.is_empty() {
+            true => tokio::task::spawn_blocking(move || {
+                vm.execute(&elf, &input2, max_cycles).map_err(Error::ZkvmExecuteFailed)
+            })
+            .await
+            .expect("spawn blocking join handle is infallible. qed.")?,
+            false => tokio::task::spawn_blocking(move || {
+                vm.execute_stateful(&elf, &input2, &program_state, max_cycles)
+                    .map_err(Error::ZkvmExecuteFailed)
+            })
+            .await
+            .expect("spawn blocking join handle is infallible. qed.")?,
+        };
 
         let result_with_metadata =
             abi_encode_result_with_metadata(job_id, &input, max_cycles, &program_id, &raw_output)?;

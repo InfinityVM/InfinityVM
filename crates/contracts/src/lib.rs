@@ -8,7 +8,7 @@
 pub mod i_job_manager {
     alloy::sol! {
       #[sol(rpc)]
-      "../../contracts/src/IJobManager.sol"
+      "../../contracts/src/coprocessor/IJobManager.sol"
     }
 }
 

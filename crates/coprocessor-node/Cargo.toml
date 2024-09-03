@@ -24,11 +24,12 @@ futures-util = { workspace = true }
 
 prometheus = { workspace = true }
 axum = { workspace = true }
-contracts = { path = "../contracts" }
-db = { path = "../db" }
-proto = { path = "../proto" }
-zkvm-executor = { path = "../zkvm-executor" }
-zkvm-tracing = { package = "tracing", path = "../tracing" }
+contracts = { workspace = true }
+abi = { workspace = true }
+db = { workspace = true }
+proto = { workspace = true }
+zkvm-executor = { workspace = true }
+zkvm-tracing = { workspace = true }
 
 [dev-dependencies]
-test-utils = { path = "../test-utils" }
+test-utils = { workspace = true }

@@ -1,0 +1,27 @@
+[package]
+name = "clob-programs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[dev-dependencies]
+risc0-zkvm = { workspace = true }
+clob-core = { workspace = true }
+borsh = { workspace = true }
+alloy = { workspace = true }
+zkvm = { workspace = true }
+clob-test-utils = { workspace = true }
+
+# We need exact match to some types in `clob-core`. We initially
+# thought `clob-core`can't use alloy facade crate directly due 
+# to zkvm constraints, but looks like we can so this should be
+# changed soon.
+alloy-sol-types = { workspace = true }
+alloy-primitives = { workspace = true }
+
+[build-dependencies]
+risc0-build = { workspace = true }
+
+[package.metadata.risc0]
+methods = ["app"]

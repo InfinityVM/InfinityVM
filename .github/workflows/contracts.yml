@@ -14,7 +14,7 @@ jobs:
   test:
     strategy:
       fail-fast: true
-    runs-on: ubuntu-latest
+    runs-on: ubicloud-standard-2
     defaults:
       run:
         working-directory: ./contracts

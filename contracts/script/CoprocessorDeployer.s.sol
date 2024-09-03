@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {JobManager} from "../src/JobManager.sol";
-import {IJobManager} from "../src/IJobManager.sol";
-import {Consumer} from "../src/Consumer.sol";
+import {JobManager} from "../src/coprocessor/JobManager.sol";
+import {IJobManager} from "../src/coprocessor/IJobManager.sol";
+import {Consumer} from "../src/coprocessor/Consumer.sol";
 import {MockConsumer} from "../test/mocks/MockConsumer.sol";
 import {Utils} from "./utils/Utils.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";

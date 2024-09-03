@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Utils} from "./utils/Utils.sol";
-import {JobManager} from "../src/JobManager.sol";
+import {JobManager} from "../src/coprocessor/JobManager.sol";
 import {MockConsumer} from "../test/mocks/MockConsumer.sol";
 import "forge-std/StdJson.sol";
 

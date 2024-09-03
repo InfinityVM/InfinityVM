@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
-import {JobManager} from "../../src/JobManager.sol";
-import {Consumer} from "../../src/Consumer.sol";
-import {OffchainRequester} from "../../src/OffchainRequester.sol";
+import {JobManager} from "../../src/coprocessor/JobManager.sol";
+import {Consumer} from "../../src/coprocessor/Consumer.sol";
+import {OffchainRequester} from "../../src/coprocessor/OffchainRequester.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
 
 contract MockConsumer is Consumer, OffchainRequester {
