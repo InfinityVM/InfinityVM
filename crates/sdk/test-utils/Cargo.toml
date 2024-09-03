@@ -9,7 +9,6 @@ workspace = true
 
 [dependencies]
 alloy = { workspace = true, features = ["provider-anvil-node", "full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
-
 tracing-subscriber = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }

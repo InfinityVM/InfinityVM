@@ -1716,6 +1716,7 @@ dependencies = [
  "futures-util",
  "home",
  "k256",
+ "mock-consumer",
  "prometheus",
  "proto",
  "reth-db",
@@ -2185,6 +2186,7 @@ dependencies = [
  "contracts",
  "db",
  "futures",
+ "mock-consumer",
  "mock-consumer-methods",
  "proto",
  "risc0-binfmt",
@@ -3419,7 +3421,10 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "contracts",
+ "db",
+ "proto",
  "test-utils",
+ "zkvm-executor",
 ]
 
 [[package]]

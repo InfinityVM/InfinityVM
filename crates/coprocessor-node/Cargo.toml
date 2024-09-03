@@ -33,3 +33,4 @@ zkvm-tracing = { workspace = true }
 
 [dev-dependencies]
 test-utils = { workspace = true }
+mock-consumer = { workspace = true }

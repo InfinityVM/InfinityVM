@@ -10,8 +10,7 @@ use alloy::{
     signers::local::PrivateKeySigner,
 };
 use contracts::{
-    job_manager::JobManager, mock_consumer::MockConsumer,
-    transparent_upgradeable_proxy::TransparentUpgradeableProxy,
+    job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
 use rand::Rng;
 use tokio::time::{sleep, Duration};
@@ -59,13 +58,6 @@ pub async fn sleep_until_bound(port: u16) {
     }
 
     panic!("localhost:{port} was not successfully bound");
-}
-
-/// Output from [`anvil_with_mock_consumer`]
-#[derive(Debug)]
-pub struct AnvilMockConsumer {
-    /// Address of the mock consumer contract
-    pub mock_consumer: Address,
 }
 
 /// Output from [`anvil_with_job_manager`]
@@ -127,33 +119,4 @@ pub async fn anvil_with_job_manager() -> AnvilJobManager {
     let job_manager = *proxy.address();
 
     AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator }
-}
-
-/// Deploy `MockConsumer` contracts to anvil instance
-pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> AnvilMockConsumer {
-    let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manager;
-
-    let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
-    let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
-
-    let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
-
-    let rpc_url = anvil.endpoint();
-    let consumer_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
-        .wallet(consumer_owner_wallet)
-        .on_http(rpc_url.parse().unwrap());
-
-    let initial_max_nonce = 0;
-    let mock_consumer = MockConsumer::deploy(
-        consumer_provider,
-        *job_manager,
-        offchain_signer.address(),
-        initial_max_nonce,
-    )
-    .await
-    .unwrap();
-    let mock_consumer = *mock_consumer.address();
-
-    AnvilMockConsumer { mock_consumer }
 }
