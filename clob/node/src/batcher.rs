@@ -5,9 +5,9 @@ use crate::db::{
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
 use abi::{abi_encode_offchain_job_request, JobParams};
-use alloy::signers::Signer;
-use alloy_primitives::utils::keccak256;
-use alloy_sol_types::SolType;
+
+use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
+
 use clob_core::api::ClobProgramInput;
 use clob_programs::CLOB_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitStatefulJobRequest};

@@ -10,5 +10,4 @@ workspace = true
 serde = { version = "1.0", default-features = false, features = ["derive", "std"] }
 borsh = { version = "1", features = ["derive", "std"], default-features = false }
 sha2 = { version = "0.10", features = ["std"], default-features = false }
-alloy-primitives = { workspace = true }
-alloy-sol-types = { workspace = true }
+alloy = { workspace = true }

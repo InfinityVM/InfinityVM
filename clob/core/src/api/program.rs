@@ -3,11 +3,11 @@
 
 use std::collections::HashMap;
 
-use alloy_primitives::{Address, I256, U256};
+use alloy::primitives::{Address, I256, U256};
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
-alloy_sol_types::sol! {
+alloy::sol! {
     /// Balance delta for deposit.
      #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct DepositDelta {

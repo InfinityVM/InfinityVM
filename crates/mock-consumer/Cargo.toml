@@ -1,5 +1,5 @@
 [package]
-name = "test-utils"
+name = "mock-consumer"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -9,9 +9,10 @@ workspace = true
 
 [dependencies]
 alloy = { workspace = true, features = ["provider-anvil-node", "full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
-tracing-subscriber = { workspace = true }
-rand = { workspace = true }
-tokio = { workspace = true }
 
 contracts = { workspace = true }
+db = { workspace = true }
+proto = { workspace = true }
+test-utils = { workspace = true }
+zkvm-executor = { workspace = true }
 
