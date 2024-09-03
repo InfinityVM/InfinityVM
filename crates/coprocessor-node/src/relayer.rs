@@ -18,8 +18,6 @@ use db::tables::{Job, RequestType};
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
 
-// TODO: Figure out a way to more generically represent these types without using trait objects.
-// https://github.com/Ethos-Works/InfinityVM/issues/138
 type RelayerProvider = alloy::providers::fillers::FillProvider<
     alloy::providers::fillers::JoinFill<
         RecommendedFiller,
