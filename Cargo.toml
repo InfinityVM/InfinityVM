@@ -7,6 +7,7 @@ rust-version = "1.79"
 members = [
 	"crates/contracts",
 	"crates/http-gateway",
+	"crates/mock-consumer",
 	"crates/proto",
 	"crates/scripts",
 	"crates/sdk/abi",
@@ -210,6 +211,7 @@ clob-test-utils = { path = "clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
+mock-consumer = { path = "crates/mock-consumer" }
 proto = { path = "crates/proto" }
 test-utils = { path = "crates/sdk/test-utils" }
 zkvm = { path = "crates/zkvm" }

@@ -16,6 +16,8 @@ use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
 use db::tables::{Job, RequestType};
 
+type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
+
 // TODO: Figure out a way to more generically represent these types without using trait objects.
 // https://github.com/Ethos-Works/InfinityVM/issues/138
 type RelayerProvider = alloy::providers::fillers::FillProvider<
@@ -23,15 +25,12 @@ type RelayerProvider = alloy::providers::fillers::FillProvider<
         RecommendedFiller,
         alloy::providers::fillers::WalletFiller<EthereumWallet>,
     >,
-    alloy::providers::RootProvider<alloy::transports::http::Http<reqwest::Client>>,
-    alloy::transports::http::Http<reqwest::Client>,
+    alloy::providers::RootProvider<ReqwestTransport>,
+    ReqwestTransport,
     Ethereum,
 >;
 
-type JobManagerContract = IJobManager::IJobManagerInstance<
-    alloy::transports::http::Http<reqwest::Client>,
-    RelayerProvider,
->;
+type JobManagerContract = IJobManager::IJobManagerInstance<ReqwestTransport, RelayerProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";

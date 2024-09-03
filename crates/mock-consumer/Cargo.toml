@@ -1,0 +1,15 @@
+[package]
+name = "mock-consumer"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["provider-anvil-node", "full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+
+test-utils = { workspace = true }
+contracts = { workspace = true }
+

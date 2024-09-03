@@ -3414,6 +3414,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "mock-consumer"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "contracts",
+ "test-utils",
+]
+
+[[package]]
 name = "mock-consumer-methods"
 version = "0.1.0"
 dependencies = [
