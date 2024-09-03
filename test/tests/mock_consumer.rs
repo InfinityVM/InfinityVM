@@ -15,8 +15,7 @@ use db::tables::{get_job_id, Job, RequestType};
 use e2e::{Args, E2E};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
-    GetResultRequest, JobStatus, JobStatusType, SubmitProgramRequest, SubmitStatefulJobRequest,
-    VmType,
+    GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
@@ -95,13 +94,10 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
         job.request_type = RequestType::Offchain(request_signature.as_bytes().to_vec());
 
-        let job_request = SubmitStatefulJobRequest {
-            request: job_request_payload,
-            signature: request_signature.into(),
-            program_state: vec![],
-        };
+        let job_request =
+            SubmitJobRequest { request: job_request_payload, signature: request_signature.into() };
         let submit_stateful_job_response =
-            args.coprocessor_node.submit_stateful_job(job_request).await.unwrap().into_inner();
+            args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
         assert_eq!(submit_stateful_job_response.job_id, job_id);
 
         // wait for the job to be processed
