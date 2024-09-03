@@ -18,18 +18,18 @@ pub const NEXT_BATCH_GLOBAL_INDEX_KEY: u32 = 2;
 pub mod models;
 pub mod tables;
 
-/// DB module errors
+/// DB module errors.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// Error from reth-mdbx lib
+    /// Error from reth-mdbx lib.
     #[error("mdbx (database): {0}")]
     GenericRethMdbx(#[from] eyre::Report),
 
-    /// Reth mdbx database backend error
+    /// Reth mdbx database backend error.
     #[error("mdbx (database): {0}")]
     RethMdbx(#[from] reth_db::mdbx::Error),
 
-    /// Reth database error
+    /// Reth database error.
     #[error("reth database: {0}")]
     RethDbError(#[from] DatabaseError),
 }
@@ -43,7 +43,7 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<DatabaseEnv, Error> {
 
     {
         // This logic is largely from reth's `create_tables` fn, but uses our tables
-        // instead of their's
+        // instead of their's.
         let tx = db.deref().begin_rw_txn().map_err(|e| DatabaseError::InitTx(e.into()))?;
 
         for table in tables::Tables::ALL {

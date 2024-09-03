@@ -21,7 +21,7 @@ use tracing::{info, instrument};
 use crate::K256LocalSigner;
 
 const MAX_CYCLES: u64 = 32 * 1000 * 1000;
-
+/// First global index that a request will get.
 const INIT_INDEX: u64 = 1;
 
 async fn ensure_initialized<D>(db: Arc<D>)

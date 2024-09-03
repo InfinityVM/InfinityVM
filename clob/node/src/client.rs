@@ -12,7 +12,7 @@ use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{CANCEL, CLOB_STATE, DEPOSIT, WITHDRAW};
 
-/// CLOB Node client
+/// CLOB Node client.
 #[derive(Debug, Clone)]
 pub struct Client {
     base_url: String,
@@ -36,7 +36,7 @@ impl Client {
         (resp, api_resp.global_index)
     }
 
-    /// Get the full clob state.
+    /// Get the full CLOB state.
     pub async fn clob_state(&self) -> ClobState {
         let url = self.path(CLOB_STATE);
         get_state(&url).await

@@ -58,25 +58,20 @@ pub async fn run_engine<D>(
 
         let (request, response_sender) = receiver.recv().await.expect("todo");
 
-        // TODO: move writes to background threads and asyncify them
         let request2 = request.clone();
-        let db2 = Arc::clone(&db);
-
-        let tx = db2.tx_mut().expect("todo");
+        let tx = db.tx_mut().expect("todo");
         tx.put::<GlobalIndexTable>(SEEN_GLOBAL_INDEX_KEY, global_index).expect("todo");
         tx.put::<RequestTable>(global_index, RequestModel(request2)).expect("todo");
         tx.commit().expect("todo");
 
         let (response, post_state, diffs) = tick(request, state).expect("TODO");
 
-        // In a background task persist: processed index, response, and new state.
+        // Persist: processed index, response, and new state.
         // TODO: cloning entire state is not ideal, would be better to somehow just apply state
         // diffs.
         let post_state2 = post_state.clone();
         let response2 = response.clone();
-        let db2 = Arc::clone(&db);
-
-        let tx = db2.tx_mut().expect("todo");
+        let tx = db.tx_mut().expect("todo");
         tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index).expect("todo");
         tx.put::<ResponseTable>(global_index, ResponseModel(response2)).expect("todo");
         tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2)).expect("todo");

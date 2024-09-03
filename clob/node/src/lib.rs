@@ -47,7 +47,7 @@ const ORDERS: &str = "/orders";
 const CANCEL: &str = "/cancel";
 const CLOB_STATE: &str = "/clob-state";
 
-/// Run the clob node.
+/// Run the CLOB node.
 pub async fn run(
     db_dir: String,
     listen_addr: String,
@@ -78,15 +78,15 @@ pub async fn run(
     tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
 }
 
-///  Response to the clob state endpoint
+///  Response to the clob state endpoint. This is just a temp hack until we have better view endpoints.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClobStateResponse {
-    /// Hex encoded borsh bytes. This is just a temp hack until we have better view endpoints
+    /// Hex encoded borsh bytes.
     pub borsh_hex_clob_state: String,
 }
 
-/// Stateful parts of REST server
+/// Stateful parts of REST server.
 #[derive(Debug, Clone)]
 pub struct AppState {
     /// Engine send channel handle.
@@ -116,7 +116,7 @@ fn app(state: AppState) -> Router {
 }
 
 /// Run the HTTP server.
-pub async fn http_listen(state: AppState, listen_address: &str) {
+async fn http_listen(state: AppState, listen_address: &str) {
     let app = app(state);
 
     let listener = tokio::net::TcpListener::bind(listen_address).await.expect("TODO");

@@ -10,15 +10,15 @@ reth_db::tables! {
     /// 1 => global index of latest fully processed
     table GlobalIndexTable<Key = u32, Value = u64>;
 
-    /// Requests table, keyed by global index
+    /// Requests table, keyed by global index.
     table RequestTable<Key = u64, Value = RequestModel>;
 
-    /// Responses table, keyed by global index
+    /// Responses table, keyed by global index.
     table ResponseTable<Key = u64, Value = ResponseModel>;
 
-    /// ClOB State table, keyed by global index
+    /// ClOB State table, keyed by global index.
     table ClobStateTable<Key = u64, Value = ClobStateModel>;
 
-    /// Diff table, keyed by global index
+    /// Diff table, keyed by global index.
     table DiffTable<Key = u64, Value = VecDiffModel>;
 }
