@@ -115,7 +115,8 @@ significant_drop_tightening = "allow"
 # a
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
-alloy = { version = "0", features = ["sol-types", "signer-local"], default-features = false }
+# only inlcude features that we know can be compiled into zkvm program
+alloy = { version = "0", features = ["sol-types"], default-features = false }
 async-channel = { version = "2", default-features = false }
 
 # b
