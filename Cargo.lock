@@ -7135,6 +7135,7 @@ dependencies = [
  "base64 0.22.1",
  "proto",
  "thiserror",
+ "tokio",
  "tracing 0.1.40",
  "zkvm",
 ]

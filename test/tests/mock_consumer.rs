@@ -37,8 +37,8 @@ fn invariants() {
     assert_eq!(&MOCK_CONSUMER_GUEST_ID, image_id.as_words());
 }
 
-#[tokio::test]
 #[ignore]
+#[tokio::test(flavor = "multi_thread")]
 async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
@@ -178,7 +178,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 }
 
 #[ignore]
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();

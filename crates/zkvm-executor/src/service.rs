@@ -103,11 +103,19 @@ where
             )));
         }
 
+        let input2 = input.clone();
         let raw_output = match program_state.is_empty() {
-            true => vm.execute(&elf, &input, max_cycles).map_err(Error::ZkvmExecuteFailed)?,
-            false => vm
-                .execute_stateful(&elf, &input, &program_state, max_cycles)
-                .map_err(Error::ZkvmExecuteFailed)?,
+            true => tokio::task::spawn_blocking(move || {
+                vm.execute(&elf, &input2, max_cycles).map_err(Error::ZkvmExecuteFailed)
+            })
+            .await
+            .expect("spawn blocking join handle is infallible. qed.")?,
+            false => tokio::task::spawn_blocking(move || {
+                vm.execute_stateful(&elf, &input2, &program_state, max_cycles)
+                    .map_err(Error::ZkvmExecuteFailed)
+            })
+            .await
+            .expect("spawn blocking join handle is infallible. qed.")?,
         };
 
         let result_with_metadata =
