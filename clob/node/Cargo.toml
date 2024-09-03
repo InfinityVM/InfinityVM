@@ -8,16 +8,15 @@ workspace = true
 
 [dependencies]
 axum = { workspace = true }
-# alloy = { version = "0.2", features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp"], default-features = false }
 alloy = { workspace = true  }
-alloy-primitives = { version = "0.8", default-features = false }
+alloy-primitives = { workspace = true }
 alloy-sol-types = { workspace = true }
 tokio = { workspace = true }
 thiserror = { workspace = true }
 eyre = { workspace = true }
-tracing = "0.1"
-tracing-subscriber = "0.3"
-serde_json = "1"
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde_json = { workspace = true }
 reqwest = { workspace = true }
 
 # DB deps
