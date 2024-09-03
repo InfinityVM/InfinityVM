@@ -68,7 +68,7 @@ pub async fn run_batcher<D>(
 ) where
     D: Database + 'static,
 {
-    // Wait for the system to have at least one processed request
+    // Wait for the system to have at least one processed request from the CLOB server
     ensure_initialized(Arc::clone(&db)).await;
     let program_id = Digest::from(CLOB_ID).as_bytes().to_vec();
 
