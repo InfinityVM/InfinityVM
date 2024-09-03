@@ -11,8 +11,9 @@ mod tests {
             AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositDelta,
             DepositRequest, OrderDelta, Request, WithdrawDelta, WithdrawRequest,
         },
-        next_state, BorshKeccak256, ClobState,
+        BorshKeccak256, ClobState,
     };
+    use clob_test_utils::next_state;
 
     use zkvm::Zkvm;
 

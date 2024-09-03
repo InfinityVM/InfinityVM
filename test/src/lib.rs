@@ -1,6 +1,6 @@
 //! E2E tests and helpers.
 use alloy::primitives::hex;
-use clob::{anvil_with_clob_consumer, AnvilClob};
+use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
 use futures::future::FutureExt;
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 use std::{
@@ -13,9 +13,6 @@ use test_utils::{
     AnvilJobManager, AnvilMockConsumer, LOCALHOST,
 };
 use tonic::transport::Channel;
-
-/// Test utilities for CLOB e2e tests.
-pub mod clob;
 
 /// The ethos reth crate is not part of the workspace so the binary is located
 /// within the crate

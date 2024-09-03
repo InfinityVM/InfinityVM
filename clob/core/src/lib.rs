@@ -1,6 +1,6 @@
 //! Core logic and types of the `InfinityVM` CLOB.
 //!
-//! Note that everything in here needs to be able to target the ZKVM architecture
+//! Note that everything in here needs to be able to target the ZKVM architecture.
 
 use std::collections::HashMap;
 
@@ -36,7 +36,6 @@ pub struct ClobState {
     base_balances: HashMap<[u8; 20], AssetBalance>,
     quote_balances: HashMap<[u8; 20], AssetBalance>,
     book: OrderBook,
-    // TODO: ensure we are wiping order status for filled orders
     order_status: HashMap<u64, FillStatus>,
 }
 
@@ -61,16 +60,6 @@ impl ClobState {
     pub const fn order_status(&self) -> &HashMap<u64, FillStatus> {
         &self.order_status
     }
-}
-
-/// Returns the next state given a list of transactions.
-pub fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
-    let mut next_clob_state = init_state;
-    for tx in txns.iter().cloned() {
-        (_, next_clob_state, _) = tick(tx, next_clob_state).unwrap();
-    }
-
-    next_clob_state
 }
 
 /// Deposit user funds that can be used to place orders.

@@ -22,6 +22,7 @@ members = [
 	"clob/contracts",
 	"clob/programs",
 	"clob/node",
+	"clob/test-utils",
 ]
 exclude = [
 	"bin/ethos-reth",
@@ -205,6 +206,7 @@ clob-contracts ={ path = "clob/contracts" }
 clob-core = { path = "clob/core" }
 clob-node = { path = "clob/node" }
 clob-programs = { path = "clob/programs" }
+clob-test-utils = { path = "clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }

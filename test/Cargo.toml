@@ -28,6 +28,7 @@ clob-contracts = { workspace = true }
 clob-programs = { workspace = true }
 clob-core = { workspace = true }
 clob-node = { workspace = true }
+clob-test-utils = { workspace = true }
 
 [dev-dependencies]
 mock-consumer-methods = { path = "../programs/risc0/mock-consumer/methods" }

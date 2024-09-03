@@ -1709,9 +1709,20 @@ dependencies = [
  "alloy-sol-types 0.8.0",
  "borsh",
  "clob-core",
+ "clob-test-utils",
  "risc0-build",
  "risc0-zkvm",
  "zkvm",
+]
+
+[[package]]
+name = "clob-test-utils"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "clob-contracts",
+ "clob-core",
+ "test-utils",
 ]
 
 [[package]]
@@ -2251,6 +2262,7 @@ dependencies = [
  "clob-core",
  "clob-node",
  "clob-programs",
+ "clob-test-utils",
  "contracts",
  "coprocessor-node",
  "db",

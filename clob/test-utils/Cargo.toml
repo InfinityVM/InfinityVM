@@ -1,0 +1,10 @@
+[package]
+name = "clob-test-utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clob-core = { workspace = true }
+clob-contracts = { workspace = true }
+alloy = { workspace = true }
+test-utils = { workspace = true }

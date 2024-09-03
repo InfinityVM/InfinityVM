@@ -1,8 +1,12 @@
+//! High level test utilities specifically for the CLOB.
+
 use alloy::{
     network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
     signers::local::PrivateKeySigner,
 };
 use clob_contracts::clob_consumer::ClobConsumer;
+use clob_core::api::Request;
+use clob_core::tick;
 use clob_core::{BorshKeccak256, ClobState};
 
 use test_utils::AnvilJobManager;
@@ -11,10 +15,10 @@ use test_utils::AnvilJobManager;
 pub mod mock_erc20 {
     #![allow(clippy::all, missing_docs)]
     alloy::sol! {
-        /// MockERC20
+        /// `E2EMockERC20`
         #[sol(rpc)]
         MockErc20,
-        "../contracts/out/E2EMockERC20.sol/E2EMockERC20.json"
+        "../../contracts/out/E2EMockERC20.sol/E2EMockERC20.json"
     }
 }
 
@@ -77,4 +81,14 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
     .address();
 
     AnvilClob { clob_signer, clob_consumer, quote_erc20, base_erc20 }
+}
+
+/// Returns the next state given a list of transactions.
+pub fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
+    let mut next_clob_state = init_state;
+    for tx in txns.iter().cloned() {
+        (_, next_clob_state, _) = tick(tx, next_clob_state).unwrap();
+    }
+
+    next_clob_state
 }

@@ -3,9 +3,9 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
-mod balance_change;
+mod program;
 
-pub use balance_change::{
+pub use program::{
     ClobProgramInput, ClobProgramOutput, DepositDelta, Diff, OrderDelta, WithdrawDelta,
 };
 

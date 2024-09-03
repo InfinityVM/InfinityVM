@@ -11,10 +11,11 @@ use clob_core::{
         AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest, ClobProgramInput,
         ClobProgramOutput, DepositRequest, FillStatus, Request, WithdrawRequest,
     },
-    next_state, BorshKeccak256, ClobState,
+    BorshKeccak256, ClobState,
 };
 use clob_programs::CLOB_ELF;
-use e2e::{clob::mock_erc20::MockErc20, Args, E2E};
+use clob_test_utils::{mock_erc20::MockErc20, next_state};
+use e2e::{Args, E2E};
 use proto::{GetResultRequest, SubmitProgramRequest, SubmitStatefulJobRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use zkvm_executor::service::ResultWithMetadata;
@@ -27,7 +28,7 @@ fn program_id() -> Vec<u8> {
 }
 
 #[ignore]
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn state_job_submission_clob_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;

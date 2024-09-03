@@ -1,4 +1,5 @@
-//! The balance change type for consumption by the contract.
+//! Types for the program and contract APIs. This also includes the internal
+//! type used for accounting, [Diff].
 
 use std::collections::HashMap;
 
