@@ -78,7 +78,8 @@ pub async fn run(
     tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
 }
 
-///  Response to the clob state endpoint. This is just a temp hack until we have better view endpoints.
+///  Response to the clob state endpoint. This is just a temp hack until we have better view
+/// endpoints.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClobStateResponse {

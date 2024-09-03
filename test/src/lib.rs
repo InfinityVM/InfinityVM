@@ -58,18 +58,18 @@ pub struct E2E {
 }
 
 impl E2E {
-    /// Create a new [Self]
+    /// Create a new [Self].
     pub const fn new() -> Self {
         Self { clob: false, mock_consumer: false }
     }
 
-    /// Setup the clob
+    /// Setup the clob consumer contracts and service.
     pub const fn clob(mut self) -> Self {
         self.clob = true;
         self
     }
 
-    /// Setup the clob
+    /// Setup mock consumer contract.
     pub const fn mock_consumer(mut self) -> Self {
         self.mock_consumer = true;
         self

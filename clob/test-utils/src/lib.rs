@@ -5,9 +5,7 @@ use alloy::{
     signers::local::PrivateKeySigner,
 };
 use clob_contracts::clob_consumer::ClobConsumer;
-use clob_core::api::Request;
-use clob_core::tick;
-use clob_core::{BorshKeccak256, ClobState};
+use clob_core::{api::Request, tick, BorshKeccak256, ClobState};
 
 use test_utils::AnvilJobManager;
 
