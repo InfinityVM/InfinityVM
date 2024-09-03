@@ -6,9 +6,7 @@ use crate::db::{
 };
 use abi::{abi_encode_offchain_job_request, JobParams};
 
-use alloy::signers::Signer;
-use alloy::primitives::utils::keccak256;
-use alloy::sol_types::SolType;
+use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
 
 use clob_core::api::ClobProgramInput;
 use clob_programs::CLOB_ID;

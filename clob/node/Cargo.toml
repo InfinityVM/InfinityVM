@@ -9,8 +9,6 @@ workspace = true
 [dependencies]
 axum = { workspace = true }
 alloy = {  workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
-# alloy-primitives = { workspace = true }
-# alloy-sol-types = { workspace = true }
 tokio = { workspace = true }
 thiserror = { workspace = true }
 eyre = { workspace = true }

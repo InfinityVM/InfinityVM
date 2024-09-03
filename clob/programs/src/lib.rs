@@ -4,8 +4,10 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
 #[cfg(test)]
 mod tests {
-    use alloy_primitives::{I256, U256};
-    use alloy_sol_types::SolValue;
+    use alloy::{
+        primitives::{I256, U256},
+        sol_types::SolValue,
+    };
     use clob_core::{
         api::{
             AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositDelta,

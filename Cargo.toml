@@ -195,8 +195,6 @@ tracing-appender = { version = "0.2.3", default-features = false }
 # z
 
 # clob only deps
-alloy-sol-types = { version = "0.8", default-features = false }
-alloy-primitives = { version = "0.8", default-features = false }
 bytes = "1.7"
 paste = "1"
 reqwest = { version = "0", features = ["json"] }

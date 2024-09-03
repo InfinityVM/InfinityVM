@@ -3,8 +3,8 @@ use alloy::{
     primitives::U256,
     providers::ProviderBuilder,
     signers::{local::PrivateKeySigner, Signer},
+    sol_types::SolValue,
 };
-use alloy_sol_types::SolValue;
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{
     api::{

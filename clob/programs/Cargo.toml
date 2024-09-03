@@ -13,13 +13,6 @@ alloy = {  workspace = true, features = ["full", "contract", "transport-http", "
 zkvm = { workspace = true }
 clob-test-utils = { workspace = true }
 
-# We need exact match to some types in `clob-core`. We initially
-# thought `clob-core`can't use alloy facade crate directly due 
-# to zkvm constraints, but looks like we can so this should be
-# changed soon.
-alloy-sol-types = { workspace = true }
-alloy-primitives = { workspace = true }
-
 [build-dependencies]
 risc0-build = { workspace = true }
 
