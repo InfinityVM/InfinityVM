@@ -1678,7 +1678,6 @@ dependencies = [
  "axum",
  "borsh",
  "bytes",
- "clob-contracts",
  "clob-core",
  "clob-programs",
  "eyre",
@@ -2264,7 +2263,6 @@ dependencies = [
  "clob-programs",
  "clob-test-utils",
  "contracts",
- "coprocessor-node",
  "db",
  "futures",
  "mock-consumer-methods",
@@ -5391,7 +5389,6 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
- "coprocessor-node",
  "db",
  "dotenv",
  "k256",

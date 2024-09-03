@@ -13,7 +13,6 @@ k256 = { workspace = true }
 dotenv = { workspace = true }
 
 proto = { workspace = true }
-coprocessor-node = { workspace = true }
 zkvm-executor = { workspace = true }
 db = { workspace = true }
 abi = { workspace = true }
