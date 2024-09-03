@@ -23,7 +23,7 @@ use orderbook::OrderBook;
 /// Errors for this crate.
 #[derive(Clone, Debug, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 pub enum Error {
-    /// An order could not be found
+    /// An order could not be found.
     OrderDoesNotExist,
 }
 
@@ -83,7 +83,7 @@ pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, C
     )
 }
 
-/// Withdraw non-locked funds
+/// Withdraw non-locked funds.
 pub fn withdraw(req: WithdrawRequest, mut state: ClobState) -> (WithdrawResponse, ClobState, Diff) {
     let addr = req.address;
     let base_balance = state.base_balances.get_mut(&addr).expect("TODO");

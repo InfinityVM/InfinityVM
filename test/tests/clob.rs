@@ -135,6 +135,8 @@ async fn state_job_submission_clob_consumer() {
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
 
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
+        interval.tick().await; // First tick processes immediately
         let mut nonce = 2;
         for (requests, init_state, next_state) in [
             (requests1, &clob_state0, &clob_state1),
@@ -165,7 +167,7 @@ async fn state_job_submission_clob_consumer() {
                 args.coprocessor_node.submit_stateful_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
-            tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
+            interval.tick().await;
 
             let job_id = submit_stateful_job_response.job_id;
             let result_with_metadata = args

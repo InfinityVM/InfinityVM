@@ -41,10 +41,10 @@ pub enum Response {
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ApiResponse {
-    /// The response from processing the request with one engine tick
+    /// Response to processing a request against the engine.
     pub response: Response,
     /// The global index of the request. The request is guaranteed to be processed
-    /// via ordering indicated by this index
+    /// via ordering indicated by this index.
     pub global_index: u64,
 }
 
@@ -56,11 +56,11 @@ pub struct ApiResponse {
 pub struct AddOrderRequest {
     /// Account placing the order.
     pub address: [u8; 20],
-    /// If this is a buy or sell order
+    /// If this is a buy or sell order.
     pub is_buy: bool,
-    /// The price to execute the order at
+    /// The price to execute the order at.
     pub limit_price: u64,
-    /// The size of the asset
+    /// The size of the asset.
     pub size: u64,
 }
 
@@ -77,7 +77,7 @@ impl AddOrderRequest {
     }
 }
 
-/// Response to [`AddOrderRequest`]
+/// Response to [`AddOrderRequest`].
 #[derive(
     Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
 )]
@@ -87,7 +87,6 @@ pub struct AddOrderResponse {
     pub success: bool,
     /// Any fills that happened when placing the order.
     pub status: Option<FillStatus>,
-    // TODO: OID
 }
 
 /// Cancel a limit order.
@@ -138,11 +137,11 @@ pub struct DepositResponse {
 )]
 #[serde(rename_all = "camelCase")]
 pub struct WithdrawRequest {
-    /// Account to debit funds from
+    /// Account to debit CLOB funds from.
     pub address: [u8; 20],
-    /// Amount to withdraw from base asset free balance
+    /// Amount to withdraw from base asset free balance.
     pub base_free: u64,
-    /// Amount to withdraw from quote asset free balance
+    /// Amount to withdraw from quote asset free balance.
     pub quote_free: u64,
 }
 
@@ -156,7 +155,7 @@ pub struct WithdrawResponse {
     pub success: bool,
 }
 
-/// All balances for a user.
+/// A single assets balances for a user.
 #[derive(
     Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
 )]
@@ -165,7 +164,7 @@ pub struct AssetBalance {
     /// Funds that are in the CLOB state, but not committed to orders.
     ///
     /// These funds can either be `lock`ed by a limit order or exit clob state
-    /// by being moved to withdraw.
+    /// by being withdrawn.
     ///
     /// To increase `free` funds, either some order needs to be filled or the
     /// user deposits into the clob.
@@ -183,11 +182,11 @@ pub struct Order {
     pub is_buy: bool,
     /// The price to execute the order at.
     pub limit_price: u64,
-    /// Size of the asset to exchange.
+    /// Size of the base asset remaining.
     pub size: u64,
     /// Order ID.
     pub oid: u64,
-    /// User that placed the order.
+    /// Account that placed the order.
     pub address: [u8; 20],
 }
 
@@ -208,11 +207,11 @@ impl Order {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, BorshDeserialize, BorshSerialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FillStatus {
-    /// Order ID
+    /// Order ID.
     pub oid: u64,
-    /// Size of the order
+    /// Size of the order (denominated by base asset).
     pub size: u64,
-    /// Account that owns the order
+    /// Account that owns the order.
     pub address: [u8; 20],
     /// The amount of the order that has been filled.
     pub filled_size: u64,
@@ -234,9 +233,9 @@ pub struct OrderFill {
     pub size: u64,
     /// Price of the base asset in terms of quote asset.
     pub price: u64,
-    /// Address of buyer
+    /// Account of buyer.
     pub buyer: [u8; 20],
-    /// Address of the seller
+    /// Account of seller.
     pub seller: [u8; 20],
 }
 
@@ -253,7 +252,7 @@ impl OrderFill {
         Self { maker_oid, taker_oid, size, price, buyer, seller }
     }
 
-    /// Size of the quote asset exchanged
+    /// Size of the quote asset exchanged.
     pub const fn quote_size(&self) -> u64 {
         self.size * self.price
     }
