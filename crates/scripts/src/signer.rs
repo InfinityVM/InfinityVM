@@ -78,7 +78,8 @@ impl RequestAndResultSigner {
                 retries: 0,
             },
         };
-        let encoded_job_request = abi_encode_offchain_job_request(job.try_into().unwrap());
+        let job_params = (&job).try_into().unwrap();
+        let encoded_job_request = abi_encode_offchain_job_request(job_params);
 
         let private_key_hex = env::var("OFFCHAIN_SIGNER_PRIVATE_KEY")
             .expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");

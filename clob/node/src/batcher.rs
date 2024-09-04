@@ -120,8 +120,8 @@ pub async fn run_batcher<D>(
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
-            program_input: program_input_encoded,
-            program_id: program_id.clone(),
+            program_input: &program_input_encoded,
+            program_id: &program_id,
             consumer_address: clob_consumer_addr,
         };
         let request = abi_encode_offchain_job_request(job_params);
