@@ -2,6 +2,7 @@
 
 use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
 use std::sync::Arc;
+use tokio::task::JoinHandle;
 
 pub mod app;
 pub mod batcher;
@@ -55,5 +56,14 @@ pub async fn run(
             .await
     });
 
-    tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
+    tokio::try_join!(flatten(server_handle), flatten(engine_handle), flatten(batcher_handle))
+        .unwrap();
+}
+
+async fn flatten<T>(handle: JoinHandle<Result<T, eyre::Report>>) -> eyre::Result<T> {
+    match handle.await {
+        Ok(Ok(result)) => Ok(result),
+        Ok(Err(err)) => Err(err),
+        Err(err) => Err(eyre::eyre!(format!("{err}"))),
+    }
 }

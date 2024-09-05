@@ -65,7 +65,8 @@ pub async fn run_batcher<D>(
     signer: K256LocalSigner,
     cn_grpc_url: String,
     clob_consumer_addr: [u8; 20],
-) where
+) -> eyre::Result<()>
+where
     D: Database + 'static,
 {
     // Wait for the system to have at least one processed request from the CLOB server

@@ -73,11 +73,11 @@ fn app(state: AppState) -> Router {
 }
 
 /// Run the HTTP server.
-pub async fn http_listen(state: AppState, listen_address: &str) {
+pub async fn http_listen(state: AppState, listen_address: &str) -> eyre::Result<()> {
     let app = app(state);
 
-    let listener = tokio::net::TcpListener::bind(listen_address).await.unwrap();
-    axum::serve(listener, app).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(listen_address).await?;
+    axum::serve(listener, app).await.map_err(Into::into)
 }
 
 #[instrument(skip_all)]
