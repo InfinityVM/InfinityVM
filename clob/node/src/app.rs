@@ -7,15 +7,16 @@ use crate::{
     },
     engine::GENESIS_GLOBAL_INDEX,
 };
-use axum::{extract::State as ExtractState, Json, Router};
 use axum::{
+    extract::State as ExtractState,
     http::StatusCode,
     response::{IntoResponse, Response},
+    Json, Router,
 };
 use clob_core::api::{
     AddOrderRequest, ApiResponse, CancelOrderRequest, DepositRequest, Request, WithdrawRequest,
 };
-use eyre::WrapErr;
+use eyre::{eyre, WrapErr};
 use reth_db::{transaction::DbTx, Database, DatabaseEnv};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -139,20 +140,13 @@ async fn cancel(
 async fn clob_state(
     ExtractState(state): ExtractState<AppState>,
 ) -> Result<Json<ClobStateResponse>, AppError> {
-    let tx = state.db.tx().expect("todo");
-    let global_index = tx
-        .get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)
-        .expect("todo: db errors")
-        .unwrap_or(GENESIS_GLOBAL_INDEX);
-
-    let clob_state = tx
-
-    
-        .get::<ClobStateTable>(global_index)
-        .expect("todo: db errors")
-        .expect("todo: could not find state when some was expected")
-        .0;
-    tx.commit().expect("todo");
+    let model = state.db.view(|tx| {
+        let i =
+            tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)?.unwrap_or(GENESIS_GLOBAL_INDEX);
+        tx.get::<ClobStateTable>(i)?
+            .ok_or_else(|| eyre!("fatal: state not found for global index {i}"))
+    })??;
+    let clob_state = model.0;
 
     let borsh = borsh::to_vec(&clob_state).expect("borsh serialization works. qed.");
     let response = ClobStateResponse { borsh_hex_clob_state: alloy::hex::encode(&borsh) };
