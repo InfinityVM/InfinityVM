@@ -344,8 +344,8 @@ where
             let relay_receipt_result = match job.request_type {
                 RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
                 RequestType::Offchain(_) => {
-                    let job_request_payload =
-                        abi_encode_offchain_job_request(job.clone().try_into()?);
+                    let job_params = (&job).try_into()?;
+                    let job_request_payload = abi_encode_offchain_job_request(job_params);
                     job_relayer
                         .relay_result_for_offchain_job(job.clone(), job_request_payload)
                         .await
@@ -396,8 +396,8 @@ where
                         job_relayer.relay_result_for_onchain_job(job.clone()).await
                     }
                     RequestType::Offchain(_) => {
-                        let job_request_payload =
-                            abi_encode_offchain_job_request(job.clone().try_into()?);
+                        let job_params = (&job).try_into()?;
+                        let job_request_payload = abi_encode_offchain_job_request(job_params);
                         job_relayer
                             .relay_result_for_offchain_job(job.clone(), job_request_payload)
                             .await

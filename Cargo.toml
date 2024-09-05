@@ -122,7 +122,7 @@ async-channel = { version = "2", default-features = false }
 
 # b
 base64 = { version = "0.22.1" }
-borsh = { version = "1", features = ["derive"], default-features = false }
+borsh = { version = "1", features = ["derive", "std"], default-features = false }
 
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
@@ -167,10 +167,10 @@ reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5",
 reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["std", "alloy"], default-features = false }
 
 # s
-serde = { version = "1.0", features = ["derive"], default-features = false }
+serde = { version = "1.0", features = ["derive", "std"], default-features = false }
 serde_with = {  version = "3.9.0", features = ["base64","macros","hex"], default-features = false }
 serde_json = { version = "1.0", default-features = false }
-sha2 = { version = "0.10", default-features = false }
+sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
 # TODO: https://github.com/Ethos-Works/InfinityVM/issues/120

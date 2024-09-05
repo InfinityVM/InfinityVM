@@ -19,29 +19,28 @@ pub type OffchainJobRequest = alloy::sol! {
 };
 
 /// Params for ABI encoded job input.
-// TODO: make these borrowed values for efficiency.
 #[derive(Clone)]
-pub struct JobParams {
+pub struct JobParams<'a> {
     pub nonce: u64,
     pub max_cycles: u64,
     pub consumer_address: [u8; 20],
-    pub program_input: Vec<u8>,
-    pub program_id: Vec<u8>,
+    pub program_input: &'a [u8],
+    pub program_id: &'a [u8],
 }
 
-impl TryFrom<Job> for JobParams {
+impl<'a> TryFrom<&'a Job> for JobParams<'a> {
     type Error = Error;
 
-    fn try_from(job: Job) -> Result<Self, Error> {
+    fn try_from(job: &'a Job) -> Result<Self, Error> {
         let consumer_address =
-            job.consumer_address.try_into().map_err(|_| Error::InvalidAddressLength)?;
+            job.consumer_address.clone().try_into().map_err(|_| Error::InvalidAddressLength)?;
 
         Ok(JobParams {
             nonce: job.nonce,
             max_cycles: job.max_cycles,
             consumer_address,
-            program_input: job.input,
-            program_id: job.program_id,
+            program_input: &job.input,
+            program_id: &job.program_id,
         })
     }
 }

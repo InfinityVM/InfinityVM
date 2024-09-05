@@ -155,8 +155,8 @@ async fn state_job_submission_clob_consumer() {
                 nonce,
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **clob.clob_consumer,
-                program_input: input_abi,
-                program_id: program_id.clone(),
+                program_input: &input_abi,
+                program_id: &program_id,
             };
             let request = abi_encode_offchain_job_request(params.clone());
             let signature =
