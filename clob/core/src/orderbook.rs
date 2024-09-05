@@ -69,21 +69,13 @@ fn fill_at_price_level(
 
 impl OrderBook {
     /// Get the max bid.
-    pub fn bid_max(&self) -> u64 {
-        if let Some(level) = self.bids.iter().next_back() {
-            *level.0
-        } else {
-            0
-        }
+    pub fn bid_max(&self) -> Option<u64> {
+        self.bids.keys().next_back().copied()
     }
 
-    /// Get the mid bid.
-    pub fn ask_min(&self) -> u64 {
-        if let Some(level) = self.asks.iter().next() {
-            *level.0
-        } else {
-            u64::MAX
-        }
+    /// Get the min bid.
+    pub fn ask_min(&self) -> Option<u64> {
+        self.asks.keys().next().copied()
     }
 
     fn enqueue_order(&mut self, order: Order) {
@@ -100,33 +92,23 @@ impl OrderBook {
     /// Add a limit order.
     pub fn limit(&mut self, order: Order) -> (u64, Vec<OrderFill>) {
         let mut remaining_amount = order.size;
-        let mut ask_min = self.ask_min();
-        let mut bid_max = self.bid_max();
         let mut fills = vec![];
+
         if order.is_buy {
-            if order.limit_price >= ask_min {
-                while remaining_amount > 0 && order.limit_price >= ask_min {
-                    let level = self.asks.get_mut(&ask_min).unwrap();
-                    let (new_remaining_amount, new_fills) = fill_at_price_level(
-                        level,
-                        order.oid,
-                        remaining_amount,
-                        order.is_buy,
-                        order.address,
-                    );
-                    remaining_amount = new_remaining_amount;
-                    fills.extend(new_fills);
-                    if level.is_empty() {
-                        self.asks.remove(&ask_min);
-                    }
-                    if remaining_amount > 0 {
-                        ask_min = self.ask_min();
-                    }
-                }
-            }
-        } else if order.limit_price <= bid_max {
-            while remaining_amount > 0 && order.limit_price <= bid_max {
-                let level = self.bids.get_mut(&bid_max).unwrap();
+            let valid_ask = |ask: Option<u64>, rem: u64| {
+                ask.and_then(
+                    |min| {
+                        if order.limit_price >= min && rem > 0 {
+                            Some(min)
+                        } else {
+                            None
+                        }
+                    },
+                )
+            };
+            let mut ask_min = self.ask_min();
+            while let Some(min) = valid_ask(ask_min, remaining_amount) {
+                let level = self.asks.get_mut(&min).expect("above checks that min exists");
                 let (new_remaining_amount, new_fills) = fill_at_price_level(
                     level,
                     order.oid,
@@ -137,7 +119,39 @@ impl OrderBook {
                 remaining_amount = new_remaining_amount;
                 fills.extend(new_fills);
                 if level.is_empty() {
-                    self.bids.remove(&bid_max);
+                    self.asks.remove(&min);
+                }
+                if remaining_amount > 0 {
+                    ask_min = self.ask_min();
+                }
+            }
+        } else {
+            let valid_bid = |bid: Option<u64>, rem: u64| {
+                bid.and_then(
+                    |max| {
+                        if order.limit_price <= max && rem > 0 {
+                            Some(max)
+                        } else {
+                            None
+                        }
+                    },
+                )
+            };
+            let mut bid_max = self.bid_max();
+            while let Some(max) = valid_bid(bid_max, remaining_amount) {
+                let level = self.bids.get_mut(&max).expect("above checks that max exists");
+                let (new_remaining_amount, new_fills) = fill_at_price_level(
+                    level,
+                    order.oid,
+                    remaining_amount,
+                    order.is_buy,
+                    order.address,
+                );
+                remaining_amount = new_remaining_amount;
+
+                fills.extend(new_fills);
+                if level.is_empty() {
+                    self.bids.remove(&max);
                 }
                 if remaining_amount > 0 {
                     bid_max = self.bid_max();
@@ -195,7 +209,7 @@ mod tests {
         book.limit(Order::new(true, 10, 10, 1));
         book.limit(Order::new(true, 20, 10, 2));
         book.limit(Order::new(true, 30, 10, 3));
-        assert_bid_ask!(book, 30, u64::MAX);
+        assert_bid_ask!(book, Some(30), None);
     }
 
     #[test]
@@ -204,7 +218,7 @@ mod tests {
         book.limit(Order::new(false, 10, 10, 1));
         book.limit(Order::new(false, 20, 10, 2));
         book.limit(Order::new(false, 30, 10, 3));
-        assert_bid_ask!(book, 0, 10);
+        assert_bid_ask!(book, None, Some(10));
     }
 
     #[test]
@@ -213,8 +227,16 @@ mod tests {
         book.limit(Order::new(true, 10, 10, 1));
         book.limit(Order::new(true, 20, 10, 2));
         book.limit(Order::new(true, 30, 10, 3));
-        book.limit(Order::new(false, 25, 10, 5));
-        assert_bid_ask!(book, 20, u64::MAX);
+        let (remaining, fills) = book.limit(Order::new(false, 9, 19, 5));
+        assert_eq!(remaining, 0);
+        assert_eq!(
+            fills,
+            vec![
+                OrderFill { maker_oid: 3, taker_oid: 5, size: 10, price: 30, ..Default::default() },
+                OrderFill { maker_oid: 2, taker_oid: 5, size: 9, price: 20, ..Default::default() }
+            ]
+        );
+        assert_bid_ask!(book, Some(20), None);
     }
 
     #[test]
@@ -223,8 +245,16 @@ mod tests {
         book.limit(Order::new(false, 10, 10, 1));
         book.limit(Order::new(false, 20, 10, 2));
         book.limit(Order::new(false, 30, 10, 3));
-        book.limit(Order::new(true, 25, 10, 5));
-        assert_bid_ask!(book, 0, 20);
+        let (remaining, fills) = book.limit(Order::new(true, 25, 19, 5));
+        assert_eq!(remaining, 0);
+        assert_eq!(
+            fills,
+            vec![
+                OrderFill { maker_oid: 1, taker_oid: 5, size: 10, price: 10, ..Default::default() },
+                OrderFill { maker_oid: 2, taker_oid: 5, size: 9, price: 20, ..Default::default() }
+            ]
+        );
+        assert_bid_ask!(book, None, Some(20));
     }
 
     #[test]
@@ -234,7 +264,45 @@ mod tests {
         book.limit(Order::new(true, 20, 10, 2));
         book.limit(Order::new(false, 30, 10, 3));
         book.limit(Order::new(false, 25, 10, 5));
-        assert_bid_ask!(book, 20, 25);
+        assert_bid_ask!(book, Some(20), Some(25));
+    }
+
+    #[test]
+    fn exact_crossing_bid() {
+        let mut book = OrderBook::default();
+        book.limit(Order::new(false, 4, 100, 1));
+        book.limit(Order::new(true, 1, 100, 2));
+        let (remaining, fills) = book.limit(Order::new(true, 4, 100, 3));
+        assert_eq!(remaining, 0);
+        assert_eq!(
+            fills,
+            vec![OrderFill {
+                maker_oid: 1,
+                taker_oid: 3,
+                size: 100,
+                price: 4,
+                ..Default::default()
+            }]
+        );
+    }
+
+    #[test]
+    fn exact_crossing_ask() {
+        let mut book = OrderBook::default();
+        book.limit(Order::new(true, 4, 100, 1));
+        book.limit(Order::new(true, 1, 100, 2));
+        let (remaining, fills) = book.limit(Order::new(false, 4, 100, 3));
+        assert_eq!(remaining, 0);
+        assert_eq!(
+            fills,
+            vec![OrderFill {
+                maker_oid: 1,
+                taker_oid: 3,
+                size: 100,
+                price: 4,
+                ..Default::default()
+            }]
+        );
     }
 
     #[test]
