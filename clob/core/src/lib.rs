@@ -111,8 +111,8 @@ pub fn cancel_order(
     mut state: ClobState,
 ) -> (CancelOrderResponse, ClobState, Diff) {
     let o = match state.book.cancel(req.oid) {
-        Ok(o) => o,
-        Err(_) => {
+        Some(o) => o,
+        None => {
             return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop)
         }
     };
