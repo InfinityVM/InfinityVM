@@ -179,8 +179,10 @@ pub struct AssetBalance {
     Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
 )]
 #[serde(rename_all = "camelCase")]
-struct AccountBalances {
+pub struct AccountBalances {
+    /// An accounts base balances.
     pub base: AssetBalance,
+    /// An accounts quote balances.
     pub quote: AssetBalance,
 }
 
