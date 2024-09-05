@@ -209,8 +209,10 @@ mod tests {
         body::Body,
         http::{self, Request as AxumRequest},
     };
-    use clob_core::api::Response;
-    use clob_core::{api::AssetBalance, ClobState};
+    use clob_core::{
+        api::{AssetBalance, Response},
+        ClobState,
+    };
     use http_body_util::BodyExt;
     use tempfile::tempdir;
     use tower::{Service, ServiceExt};
