@@ -174,6 +174,16 @@ pub struct AssetBalance {
     pub locked: u64,
 }
 
+/// All balances for an account on the clob
+#[derive(
+    Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
+)]
+#[serde(rename_all = "camelCase")]
+struct AccountBalances {
+    pub base: AssetBalance,
+    pub quote: AssetBalance,
+}
+
 /// A limit order.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, BorshDeserialize, BorshSerialize)]
 #[serde(rename_all = "camelCase")]

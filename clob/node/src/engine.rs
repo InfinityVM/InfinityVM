@@ -64,7 +64,7 @@ pub async fn run_engine<D>(
         tx.put::<RequestTable>(global_index, RequestModel(request2)).expect("todo");
         tx.commit().expect("todo");
 
-        let (response, post_state, diffs) = tick(request, state).expect("TODO");
+        let (response, post_state, diffs) = tick(request, state);
 
         // Persist: processed index, response, and new state.
         // TODO: cloning entire state is not ideal, would be better to somehow just apply state
