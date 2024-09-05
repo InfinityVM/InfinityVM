@@ -79,7 +79,7 @@ pub async fn run(
     let db2 = Arc::clone(&db);
     let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
 
-    let deposit_event_listener = tokio::spawn(async move {
+    let deposit_event_listener_handle = tokio::spawn(async move {
         start_deposit_event_listener(
             eth_ws_url,
             clob_consumer_addr.into(),
@@ -95,7 +95,7 @@ pub async fn run(
             .await
     });
 
-    tokio::try_join!(server_handle, engine_handle, batcher_handle).unwrap();
+    tokio::try_join!(server_handle, engine_handle, deposit_event_listener_handle, batcher_handle).unwrap();
 }
 
 ///  Response to the clob state endpoint. This is just a temp hack until we have better view

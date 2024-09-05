@@ -8,7 +8,7 @@ use alloy::{
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use clob_contracts::clob_consumer::ClobConsumer;
-use clob_core::api::{ApiResponse, Request};
+use clob_core::api::{ApiResponse, Request, DepositRequest};
 use futures_util::StreamExt;
 use reth_db::Database;
 use tokio::{
@@ -37,7 +37,7 @@ pub enum Error {
 pub async fn start_deposit_event_listener(
     ws_rpc_url: String,
     clob_consumer: Address,
-    event_sender: Sender<(Request, oneshot::Sender<ApiResponse>)>,
+    engine_sender: Sender<(Request, oneshot::Sender<ApiResponse>)>,
     from_block: BlockNumberOrTag,
 ) {
     let mut last_seen_block = from_block;
@@ -65,9 +65,15 @@ pub async fn start_deposit_event_listener(
                 }
             };
 
-            // if let Err(error) = job_processor.submit_job(job).await {
-            //     error!(?error, "failed while submitting to job processor");
-            // }
+            let req = DepositRequest {
+                address: **event.user,
+                base_free: event.baseAmount.try_into().unwrap(),
+                quote_free: event.quoteAmount.try_into().unwrap(),
+            };
+            let (tx, rx) = oneshot::channel::<ApiResponse>();
+            engine_sender.send((Request::Deposit(req), tx)).await.expect("todo");
+            let _resp = rx.await.expect("todo");
+        
             if let Some(n) = log.block_number {
                 last_seen_block = BlockNumberOrTag::Number(n);
             }
