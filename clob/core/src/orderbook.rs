@@ -29,6 +29,7 @@ fn fill_at_price_level(
     size: u64,
     is_buy: bool,
     taker_address: [u8; 20],
+    oid_to_level: &mut HashMap<u64, u64>,
 ) -> (u64, Vec<OrderFill>) {
     let mut complete_fills = 0;
     let mut remaining_amount = size;
@@ -45,11 +46,13 @@ fn fill_at_price_level(
         }
 
         if maker.size <= remaining_amount {
+            // TODO: clear make oid from
             complete_fills += 1;
             remaining_amount -= maker.size;
             fill.size = maker.size;
             fill.price = maker.limit_price;
             fills.push(fill);
+            oid_to_level.remove(&maker.oid);
             if remaining_amount == 0 {
                 break;
             }
@@ -115,6 +118,7 @@ impl OrderBook {
                     remaining_amount,
                     order.is_buy,
                     order.address,
+                    &mut self.oid_to_level,
                 );
                 remaining_amount = new_remaining_amount;
                 fills.extend(new_fills);
@@ -146,6 +150,7 @@ impl OrderBook {
                     remaining_amount,
                     order.is_buy,
                     order.address,
+                    &mut self.oid_to_level,
                 );
                 remaining_amount = new_remaining_amount;
 
@@ -308,11 +313,16 @@ mod tests {
     #[test]
     fn test_fill_at_price_level() {
         let mut level = vec![Order::new(true, 10, 10, 1), Order::new(true, 10, 10, 2)];
-        let (remaining_amount, fills) = fill_at_price_level(&mut level, 3, 10, true, [0; 20]);
+        let mut oid_to_level = HashMap::new();
+        oid_to_level.insert(1, 10);
+        oid_to_level.insert(2, 10);
+        let (remaining_amount, fills) =
+            fill_at_price_level(&mut level, 3, 10, true, [0; 20], &mut oid_to_level);
         assert_eq!(remaining_amount, 0);
         assert_eq!(fills.len(), 1);
         assert_eq!(fills[0].maker_oid, 1);
         assert_eq!(fills[0].taker_oid, 3);
         assert_eq!(fills[0].size, 10);
+        assert!(!oid_to_level.contains_key(&1));
     }
 }
