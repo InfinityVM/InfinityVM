@@ -8,9 +8,14 @@ use crate::{
     engine::GENESIS_GLOBAL_INDEX,
 };
 use axum::{extract::State as ExtractState, Json, Router};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+};
 use clob_core::api::{
     AddOrderRequest, ApiResponse, CancelOrderRequest, DepositRequest, Request, WithdrawRequest,
 };
+use eyre::WrapErr;
 use reth_db::{transaction::DbTx, Database, DatabaseEnv};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -70,68 +75,70 @@ fn app(state: AppState) -> Router {
 pub async fn http_listen(state: AppState, listen_address: &str) {
     let app = app(state);
 
-    let listener = tokio::net::TcpListener::bind(listen_address).await.expect("TODO");
-    axum::serve(listener, app).await.expect("TODO");
+    let listener = tokio::net::TcpListener::bind(listen_address).await.unwrap();
+    axum::serve(listener, app).await.unwrap();
 }
 
 #[instrument(skip_all)]
 async fn deposit(
     ExtractState(state): ExtractState<AppState>,
     Json(req): Json<DepositRequest>,
-) -> Json<ApiResponse> {
+) -> Result<Json<ApiResponse>, AppError> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
     state.engine_sender.send((Request::Deposit(req), tx)).await.expect("todo");
-    let resp = rx.await.expect("todo");
+    let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Json(resp)
+    Ok(Json(resp))
 }
 
 #[instrument(skip_all)]
 async fn withdraw(
     ExtractState(state): ExtractState<AppState>,
     Json(req): Json<WithdrawRequest>,
-) -> Json<ApiResponse> {
+) -> Result<Json<ApiResponse>, AppError> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
     state.engine_sender.send((Request::Withdraw(req), tx)).await.expect("todo");
-    let resp = rx.await.expect("todo");
+    let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Json(resp)
+    Ok(Json(resp))
 }
 
 #[instrument(skip_all)]
 async fn add_order(
     ExtractState(state): ExtractState<AppState>,
     Json(req): Json<AddOrderRequest>,
-) -> Json<ApiResponse> {
+) -> Result<Json<ApiResponse>, AppError> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
     state.engine_sender.send((Request::AddOrder(req), tx)).await.expect("todo");
-    let resp = rx.await.expect("todo");
+    let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Json(resp)
+    Ok(Json(resp))
 }
 
 #[instrument(skip_all)]
 async fn cancel(
     ExtractState(state): ExtractState<AppState>,
     Json(req): Json<CancelOrderRequest>,
-) -> Json<ApiResponse> {
+) -> Result<Json<ApiResponse>, AppError> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
     state.engine_sender.send((Request::CancelOrder(req), tx)).await.expect("todo");
-    let resp = rx.await.expect("todo");
+    let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Json(resp)
+    Ok(Json(resp))
 }
 
 #[instrument(skip_all)]
-async fn clob_state(ExtractState(state): ExtractState<AppState>) -> Json<ClobStateResponse> {
+async fn clob_state(
+    ExtractState(state): ExtractState<AppState>,
+) -> Result<Json<ClobStateResponse>, AppError> {
     let tx = state.db.tx().expect("todo");
     let global_index = tx
         .get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)
@@ -139,16 +146,38 @@ async fn clob_state(ExtractState(state): ExtractState<AppState>) -> Json<ClobSta
         .unwrap_or(GENESIS_GLOBAL_INDEX);
 
     let clob_state = tx
+
+    
         .get::<ClobStateTable>(global_index)
         .expect("todo: db errors")
         .expect("todo: could not find state when some was expected")
         .0;
     tx.commit().expect("todo");
 
-    let borsh = borsh::to_vec(&clob_state).unwrap();
+    let borsh = borsh::to_vec(&clob_state).expect("borsh serialization works. qed.");
     let response = ClobStateResponse { borsh_hex_clob_state: alloy::hex::encode(&borsh) };
 
-    Json(response)
+    Ok(Json(response))
+}
+
+// Make our own error that wraps `anyhow::Error`.
+struct AppError(eyre::Error);
+
+// Tell axum how to convert `AppError` into a response.
+impl IntoResponse for AppError {
+    fn into_response(self) -> Response {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("Something went wrong: {}", self.0))
+            .into_response()
+    }
+}
+
+impl<E> From<E> for AppError
+where
+    E: Into<eyre::Error>,
+{
+    fn from(err: E) -> Self {
+        Self(err.into())
+    }
 }
 
 #[cfg(test)]
