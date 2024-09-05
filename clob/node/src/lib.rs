@@ -8,7 +8,10 @@ use crate::{
     engine::GENESIS_GLOBAL_INDEX,
     event::start_deposit_event_listener,
 };
-use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
+use alloy::{
+    eips::BlockNumberOrTag,
+    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
+};
 use axum::{extract::State as ExtractState, Json, Router};
 use clob_core::api::{
     AddOrderRequest, ApiResponse, CancelOrderRequest, DepositRequest, Request, WithdrawRequest,
@@ -40,7 +43,7 @@ pub const CLOB_BATCHER_DURATION_MS: &str = "CLOB_BATCHER_DURATION_MS";
 /// Clob operator's secret key.
 pub const CLOB_OPERATOR_KEY: &str = "CLOB_OPERATOR_KEY";
 /// Block to start syncing from.
-pub const JOB_SYNC_START: &str = "JOB_SYNC_START";
+pub const CLOB_JOB_SYNC_START: &str = "CLOB_JOB_SYNC_START";
 
 /// Operator signer type.
 pub type K256LocalSigner = LocalSigner<SigningKey>;
@@ -60,27 +63,31 @@ pub async fn run(
     cn_grpc_url: String,
     eth_ws_url: String,
     clob_consumer_addr: [u8; 20],
+    job_sync_start: BlockNumberOrTag,
 ) {
     let db = crate::db::init_db(db_dir).expect("todo");
     let db = Arc::new(db);
 
     let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(32);
     let db2 = Arc::clone(&db);
+    let engine_sender_2 = engine_sender.clone();
     let server_handle = tokio::spawn(async move {
-        let server_state = AppState::new(engine_sender, db2);
+        let server_state = AppState::new(engine_sender_2, db2);
         http_listen(server_state, &listen_addr).await
     });
 
     let db2 = Arc::clone(&db);
     let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
 
-    let deposit_event_listener = start_deposit_event_listener(
-        eth_ws_url,
-        clob_consumer_addr,
-        engine_sender,
-        opts.job_sync_start,
-    )
-    .await?;
+    let deposit_event_listener = tokio::spawn(async move {
+        start_deposit_event_listener(
+            eth_ws_url,
+            clob_consumer_addr.into(),
+            engine_sender,
+            job_sync_start,
+        )
+        .await;
+    });
 
     let batcher_handle = tokio::spawn(async move {
         let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
