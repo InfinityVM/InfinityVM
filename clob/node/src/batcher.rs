@@ -24,37 +24,31 @@ const MAX_CYCLES: u64 = 32 * 1000 * 1000;
 /// First global index that a request will get.
 const INIT_INDEX: u64 = 1;
 
-async fn ensure_initialized<D>(db: Arc<D>)
+async fn ensure_initialized<D>(db: Arc<D>) -> eyre::Result<()>
 where
     D: Database + 'static,
 {
     loop {
-        let has_processed = db
-            .view(|tx| {
-                tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").is_some()
-            })
-            .unwrap();
+        let has_processed =
+            db.view(|tx| tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY))??.is_some();
         if has_processed {
-            let has_next_batch = db
-                .view(|tx| {
-                    tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").is_some()
-                })
-                .unwrap();
+            let has_next_batch =
+                db.view(|tx| tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY))??.is_some();
             if !has_next_batch {
                 db.update(|tx| {
                     tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, INIT_INDEX)
-                        .expect("todo")
-                })
-                .unwrap();
+                })??;
             }
 
             break;
         } else {
-            info!("waiting for a request to be processed before starting batcher");
+            info!("waiting for the first request to be processed before starting batcher");
             sleep(Duration::from_millis(1_0000)).await;
             continue;
         }
     }
+
+    Ok(())
 }
 
 /// Run the CLOB execution engine
@@ -70,7 +64,7 @@ where
     D: Database + 'static,
 {
     // Wait for the system to have at least one processed request from the CLOB server
-    ensure_initialized(Arc::clone(&db)).await;
+    ensure_initialized(Arc::clone(&db)).await?;
     let program_id = Digest::from(CLOB_ID).as_bytes().to_vec();
 
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
@@ -111,8 +105,8 @@ where
             tokio::task::yield_now().await;
         }
 
-        let requests_borsh = borsh::to_vec(&requests).expect("valid borsh");
-        let program_state_borsh = borsh::to_vec(&start_state).expect("valid borsh");
+        let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
+        let program_state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
         let prev_state_hash = keccak256(&program_state_borsh);
 
         let program_input = ClobProgramInput { prev_state_hash, orders: requests_borsh.into() };

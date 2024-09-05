@@ -9,8 +9,7 @@ use clob_core::{
     api::{ApiResponse, Request},
     tick, ClobState,
 };
-use eyre::WrapErr;
-use eyre::{eyre, OptionExt};
+use eyre::{eyre, OptionExt, WrapErr};
 use reth_db::{
     transaction::{DbTx, DbTxMut},
     Database,
@@ -74,8 +73,7 @@ where
         // Persist: processed index, response, and new state.
         // TODO: cloning entire state is not ideal, would be better to somehow just apply state
         // diffs.
-        let post_state2 = post_state
-        .clone();
+        let post_state2 = post_state.clone();
         let response2 = response.clone();
         db.update(|tx| {
             tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index)

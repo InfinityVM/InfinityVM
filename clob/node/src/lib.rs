@@ -60,7 +60,7 @@ pub async fn run(
         .unwrap();
 }
 
-async fn flatten<T>(handle: JoinHandle<Result<T, eyre::Report>>) -> eyre::Result<T> {
+async fn flatten<T>(handle: JoinHandle<eyre::Result<T>>) -> eyre::Result<T> {
     match handle.await {
         Ok(Ok(result)) => Ok(result),
         Ok(Err(err)) => Err(err),
