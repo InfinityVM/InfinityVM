@@ -291,10 +291,6 @@ async fn clob_node_e2e() {
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
 
-        // let alice_dep = DepositRequest { address: alice, base_free: 200, quote_free: 0 };
-        // let bob_dep = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
-        // assert_eq!(client.deposit(alice_dep).await.1, 1);
-        // assert_eq!(client.deposit(bob_dep).await.1, 2);
         let state = client.clob_state().await;
         assert_eq!(
             *state.base_balances().get(&alice).unwrap(),
@@ -308,6 +304,8 @@ async fn clob_node_e2e() {
         let alice_limit =
             AddOrderRequest { address: alice, is_buy: false, limit_price: 4, size: 100 };
         let (r, i) = client.order(alice_limit).await;
+        // i is 3 here because the CLOB node automatically picked up the deposit
+        // events from the contracts earlier (one each for Alice and Bob).
         assert_eq!(i, 3);
         assert_eq!(
             r,
