@@ -1713,7 +1713,6 @@ dependencies = [
  "clap",
  "contracts",
  "db",
- "futures-util",
  "home",
  "k256",
  "mock-consumer",
