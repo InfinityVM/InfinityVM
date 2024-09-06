@@ -50,6 +50,7 @@ async fn main() {
     let coproc_operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
     let coproc_db_dir =
         tempfile::Builder::new().prefix("coprocessor-node-local-db").tempdir().unwrap();
+    std::fs::create_dir_all("./logs").unwrap();
     let coproc_log_file = "./logs/coprocessor_node.log".to_string();
     info!(?coproc_log_file, "Writing coprocessor logs to: ");
     let coproc_logs = File::create(coproc_log_file).expect("failed to open log");
@@ -91,10 +92,14 @@ async fn main() {
     let clob_http = format!("{LOCALHOST}:{CLOB_PORT}");
     let batcher_duration_ms = 1000;
     let clob_log_file = "./logs/clob_node.log".to_string();
-    let clob_logs = File::create(clob_log_file).expect("failed to open log");
+    let clob_logs = File::create(clob_log_file.clone()).expect("failed to open log");
     let clob_logs2 = clob_logs.try_clone().unwrap();
     let clob_consumer_addr = clob_consumer.clob_consumer.to_string();
+    let clob_operator = hex::encode(clob_consumer.clob_signer.to_bytes());
 
+    tracing::info!("Starting CLOB");
+    tracing::info!(?clob_http, "CLOB listening on");
+    tracing::info!(?clob_log_file, "CLOB logs");
     let _proc: ProcKill = Command::new("cargo")
         .arg("run")
         .arg("-p")
@@ -105,7 +110,7 @@ async fn main() {
         .env(CLOB_ETH_HTTP_ADDR, http_rpc_url)
         .env(CLOB_CONSUMER_ADDR, clob_consumer_addr)
         .env(CLOB_BATCHER_DURATION_MS, batcher_duration_ms.to_string())
-        .env(CLOB_OPERATOR_KEY, batcher_duration_ms.to_string())
+        .env(CLOB_OPERATOR_KEY, clob_operator)
         .stdout(clob_logs)
         .stderr(clob_logs2)
         .spawn()
