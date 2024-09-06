@@ -31,12 +31,11 @@ pub(crate) fn read_start_up_values<D: Database + 'static>(db: Arc<D>) -> (u64, C
     let clob_state = if global_index == GENESIS_GLOBAL_INDEX {
         let genesis_state = ClobState::default();
         let model = ClobStateModel(genesis_state.clone());
-        db.update(|tx| tx.put::<ClobStateTable>(global_index, model)).unwrap().unwrap();
+        db.update(|tx| tx.put::<ClobStateTable>(global_index, model))??;
         genesis_state
     } else {
         tx.get::<ClobStateTable>(global_index)
-            .expect("todo: db errors")
-            .expect("todo: could not find state when some was expected")
+            ?
             .0
     };
     tx.commit().expect("todo");

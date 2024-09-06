@@ -5,6 +5,7 @@ use crate::db::{
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
 use abi::{abi_encode_offchain_job_request, JobParams};
+use eyre::OptionExt;
 
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
 
@@ -75,15 +76,11 @@ where
         interval.tick().await;
 
         let start_index = db
-            .view(|tx| {
-                tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY).expect("todo").unwrap()
-            })
-            .unwrap();
+            .view(|tx| tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY))??
+            .ok_or_eyre("start_index")?;
         let end_index = db
-            .view(|tx| {
-                tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY).expect("todo").unwrap()
-            })
-            .unwrap();
+            .view(|tx| tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY))??
+            .ok_or_eyre("end_index")?;
 
         if start_index > end_index {
             tracing::info!(start_index, end_index, "skipping batch creation");
@@ -93,14 +90,16 @@ where
         tracing::info!("creating batch {start_index}..={end_index}");
 
         let prev_state_index = start_index - 1;
-        let start_state = db
-            .view(|tx| tx.get::<ClobStateTable>(prev_state_index).expect("todo").unwrap().0)
-            .unwrap();
+        let start_state =
+            db.view(|tx| tx.get::<ClobStateTable>(prev_state_index))??.ok_or_eyre("start_state")?.0;
         tokio::task::yield_now().await;
 
-        let mut requests = vec![];
+        let mut requests = Vec::with_capacity((end_index - start_index + 1) as usize);
         for i in start_index..=end_index {
-            let r = db.view(|tx| tx.get::<RequestTable>(i).expect("todo").unwrap().0).unwrap();
+            let r = db
+                .view(|tx| tx.get::<RequestTable>(i))??
+                .ok_or_eyre(format!("batcher: request {i}"))?
+                .0;
             requests.push(r);
             tokio::task::yield_now().await;
         }
@@ -120,18 +119,16 @@ where
             consumer_address: clob_consumer_addr,
         };
         let request = abi_encode_offchain_job_request(job_params);
-        let signature = signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
+        let signature = signer.sign_message(&request).await?.as_bytes().to_vec();
         let job_request =
             SubmitStatefulJobRequest { request, signature, program_state: program_state_borsh };
 
+        // TODO: add some retry logic
         let _submit_stateful_job_response =
-            coprocessor_node.submit_stateful_job(job_request).await.unwrap().into_inner();
+            coprocessor_node.submit_stateful_job(job_request).await?.into_inner();
 
         let next_batch_idx = end_index + 1;
-        db.update(|tx| {
-            tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, next_batch_idx).unwrap()
-        })
-        .unwrap();
+        db.update(|tx| tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, next_batch_idx))??;
 
         // TODO: read highest job nonce from contract
         job_nonce += 1;
