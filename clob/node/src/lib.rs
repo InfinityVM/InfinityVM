@@ -209,7 +209,10 @@ mod tests {
         body::Body,
         http::{self, Request as AxumRequest},
     };
-    use clob_core::{api::AssetBalance, ClobState};
+    use clob_core::{
+        api::{AssetBalance, Response},
+        ClobState,
+    };
     use http_body_util::BodyExt;
     use tempfile::tempdir;
     use tower::{Service, ServiceExt};
@@ -277,47 +280,58 @@ mod tests {
         borsh::from_slice(&borsh).unwrap()
     }
 
-    // TODO: once we have good error handling, this won't panic
-    #[should_panic]
     #[tokio::test]
     async fn cannot_place_bid_with_no_deposit() {
         let server_state = test_setup().await;
         let mut app = app(server_state);
 
-        let _: ApiResponse = post(
+        let r: ApiResponse = post(
             &mut app,
             ORDERS,
             AddOrderRequest { address: [0; 20], is_buy: true, limit_price: 2, size: 3 },
         )
         .await;
+
+        match r.response {
+            Response::AddOrder(r) => assert!(!r.success),
+            _ => panic!(),
+        }
     }
 
-    #[should_panic]
     #[tokio::test]
     async fn cannot_place_ask_with_no_deposit() {
         let server_state = test_setup().await;
         let mut app = app(server_state);
 
-        let _: ApiResponse = post(
+        let r: ApiResponse = post(
             &mut app,
             ORDERS,
             AddOrderRequest { address: [0; 20], is_buy: false, limit_price: 2, size: 3 },
         )
         .await;
+
+        match r.response {
+            Response::AddOrder(r) => assert!(!r.success),
+            _ => panic!(),
+        }
     }
 
-    #[should_panic]
     #[tokio::test]
     async fn cannot_withdraw_with_no_deposit() {
         let server_state = test_setup().await;
         let mut app = app(server_state);
 
-        let _: ApiResponse = post(
+        let r: ApiResponse = post(
             &mut app,
             ORDERS,
             AddOrderRequest { address: [0; 20], is_buy: false, limit_price: 2, size: 3 },
         )
         .await;
+
+        match r.response {
+            Response::AddOrder(r) => assert!(!r.success),
+            _ => panic!(),
+        }
     }
 
     #[tokio::test]

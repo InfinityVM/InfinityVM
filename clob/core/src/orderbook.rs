@@ -5,10 +5,7 @@ use std::collections::{BTreeMap, HashMap};
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    api::{Order, OrderFill},
-    Error,
-};
+use crate::api::{Order, OrderFill};
 
 /// Orderbook type.
 #[derive(
@@ -29,6 +26,7 @@ fn fill_at_price_level(
     size: u64,
     is_buy: bool,
     taker_address: [u8; 20],
+    oid_to_level: &mut HashMap<u64, u64>,
 ) -> (u64, Vec<OrderFill>) {
     let mut complete_fills = 0;
     let mut remaining_amount = size;
@@ -50,6 +48,7 @@ fn fill_at_price_level(
             fill.size = maker.size;
             fill.price = maker.limit_price;
             fills.push(fill);
+            oid_to_level.remove(&maker.oid);
             if remaining_amount == 0 {
                 break;
             }
@@ -69,21 +68,13 @@ fn fill_at_price_level(
 
 impl OrderBook {
     /// Get the max bid.
-    pub fn bid_max(&self) -> u64 {
-        if let Some(level) = self.bids.iter().next_back() {
-            *level.0
-        } else {
-            0
-        }
+    pub fn bid_max(&self) -> Option<u64> {
+        self.bids.keys().next_back().copied()
     }
 
-    /// Get the mid bid.
-    pub fn ask_min(&self) -> u64 {
-        if let Some(level) = self.asks.iter().next() {
-            *level.0
-        } else {
-            u64::MAX
-        }
+    /// Get the min bid.
+    pub fn ask_min(&self) -> Option<u64> {
+        self.asks.keys().next().copied()
     }
 
     fn enqueue_order(&mut self, order: Order) {
@@ -100,44 +91,68 @@ impl OrderBook {
     /// Add a limit order.
     pub fn limit(&mut self, order: Order) -> (u64, Vec<OrderFill>) {
         let mut remaining_amount = order.size;
-        let mut ask_min = self.ask_min();
-        let mut bid_max = self.bid_max();
         let mut fills = vec![];
+
         if order.is_buy {
-            if order.limit_price >= ask_min {
-                while remaining_amount > 0 && order.limit_price >= ask_min {
-                    let level = self.asks.get_mut(&ask_min).unwrap();
-                    let (new_remaining_amount, new_fills) = fill_at_price_level(
-                        level,
-                        order.oid,
-                        remaining_amount,
-                        order.is_buy,
-                        order.address,
-                    );
-                    remaining_amount = new_remaining_amount;
-                    fills.extend(new_fills);
-                    if level.is_empty() {
-                        self.asks.remove(&ask_min);
-                    }
-                    if remaining_amount > 0 {
-                        ask_min = self.ask_min();
-                    }
-                }
-            }
-        } else if order.limit_price <= bid_max {
-            while remaining_amount > 0 && order.limit_price <= bid_max {
-                let level = self.bids.get_mut(&bid_max).unwrap();
+            let valid_ask = |ask: Option<u64>, rem: u64| {
+                ask.and_then(
+                    |min| {
+                        if order.limit_price >= min && rem > 0 {
+                            Some(min)
+                        } else {
+                            None
+                        }
+                    },
+                )
+            };
+            let mut ask_min = self.ask_min();
+            while let Some(min) = valid_ask(ask_min, remaining_amount) {
+                let level = self.asks.get_mut(&min).expect("above checks that min exists");
                 let (new_remaining_amount, new_fills) = fill_at_price_level(
                     level,
                     order.oid,
                     remaining_amount,
                     order.is_buy,
                     order.address,
+                    &mut self.oid_to_level,
                 );
                 remaining_amount = new_remaining_amount;
                 fills.extend(new_fills);
                 if level.is_empty() {
-                    self.bids.remove(&bid_max);
+                    self.asks.remove(&min);
+                }
+                if remaining_amount > 0 {
+                    ask_min = self.ask_min();
+                }
+            }
+        } else {
+            let valid_bid = |bid: Option<u64>, rem: u64| {
+                bid.and_then(
+                    |max| {
+                        if order.limit_price <= max && rem > 0 {
+                            Some(max)
+                        } else {
+                            None
+                        }
+                    },
+                )
+            };
+            let mut bid_max = self.bid_max();
+            while let Some(max) = valid_bid(bid_max, remaining_amount) {
+                let level = self.bids.get_mut(&max).expect("above checks that max exists");
+                let (new_remaining_amount, new_fills) = fill_at_price_level(
+                    level,
+                    order.oid,
+                    remaining_amount,
+                    order.is_buy,
+                    order.address,
+                    &mut self.oid_to_level,
+                );
+                remaining_amount = new_remaining_amount;
+
+                fills.extend(new_fills);
+                if level.is_empty() {
+                    self.bids.remove(&max);
                 }
                 if remaining_amount > 0 {
                     bid_max = self.bid_max();
@@ -152,29 +167,17 @@ impl OrderBook {
         (remaining_amount, fills)
     }
 
-    /// Cancel a limit order.
-    pub fn cancel(&mut self, oid: u64) -> Result<Order, Error> {
-        let level_price = self.oid_to_level.get(&oid).ok_or(Error::OrderDoesNotExist)?;
-        let order = if self.bids.contains_key(level_price) {
-            let level = self.bids.get_mut(level_price).ok_or(Error::OrderDoesNotExist)?;
-            level
-                .iter()
-                .position(|o| o.oid == oid)
-                .map(|i| level.remove(i))
-                .ok_or(Error::OrderDoesNotExist)?
-        } else if self.asks.contains_key(level_price) {
-            let level = self.asks.get_mut(level_price).ok_or(Error::OrderDoesNotExist)?;
-            level
-                .iter()
-                .position(|o| o.oid == oid)
-                .map(|i| level.remove(i))
-                .ok_or(Error::OrderDoesNotExist)?
-        } else {
-            return Err(Error::OrderDoesNotExist);
-        };
-        self.oid_to_level.remove(&oid);
-
-        Ok(order)
+    /// Cancel a limit order. Returns `None` if `oid` did not correspond to an active order.
+    pub fn cancel(&mut self, oid: u64) -> Option<Order> {
+        self.oid_to_level.remove(&oid).and_then(|price| {
+            if let Some(lvl) = self.bids.get_mut(&price) {
+                lvl.iter().position(|o| o.oid == oid).map(|i| lvl.remove(i))
+            } else if let Some(lvl) = self.asks.get_mut(&price) {
+                lvl.iter().position(|o| o.oid == oid).map(|i| lvl.remove(i))
+            } else {
+                None
+            }
+        })
     }
 }
 
@@ -195,7 +198,7 @@ mod tests {
         book.limit(Order::new(true, 10, 10, 1));
         book.limit(Order::new(true, 20, 10, 2));
         book.limit(Order::new(true, 30, 10, 3));
-        assert_bid_ask!(book, 30, u64::MAX);
+        assert_bid_ask!(book, Some(30), None);
     }
 
     #[test]
@@ -204,7 +207,7 @@ mod tests {
         book.limit(Order::new(false, 10, 10, 1));
         book.limit(Order::new(false, 20, 10, 2));
         book.limit(Order::new(false, 30, 10, 3));
-        assert_bid_ask!(book, 0, 10);
+        assert_bid_ask!(book, None, Some(10));
     }
 
     #[test]
@@ -213,8 +216,16 @@ mod tests {
         book.limit(Order::new(true, 10, 10, 1));
         book.limit(Order::new(true, 20, 10, 2));
         book.limit(Order::new(true, 30, 10, 3));
-        book.limit(Order::new(false, 25, 10, 5));
-        assert_bid_ask!(book, 20, u64::MAX);
+        let (remaining, fills) = book.limit(Order::new(false, 9, 19, 5));
+        assert_eq!(remaining, 0);
+        assert_eq!(
+            fills,
+            vec![
+                OrderFill { maker_oid: 3, taker_oid: 5, size: 10, price: 30, ..Default::default() },
+                OrderFill { maker_oid: 2, taker_oid: 5, size: 9, price: 20, ..Default::default() }
+            ]
+        );
+        assert_bid_ask!(book, Some(20), None);
     }
 
     #[test]
@@ -223,8 +234,16 @@ mod tests {
         book.limit(Order::new(false, 10, 10, 1));
         book.limit(Order::new(false, 20, 10, 2));
         book.limit(Order::new(false, 30, 10, 3));
-        book.limit(Order::new(true, 25, 10, 5));
-        assert_bid_ask!(book, 0, 20);
+        let (remaining, fills) = book.limit(Order::new(true, 25, 19, 5));
+        assert_eq!(remaining, 0);
+        assert_eq!(
+            fills,
+            vec![
+                OrderFill { maker_oid: 1, taker_oid: 5, size: 10, price: 10, ..Default::default() },
+                OrderFill { maker_oid: 2, taker_oid: 5, size: 9, price: 20, ..Default::default() }
+            ]
+        );
+        assert_bid_ask!(book, None, Some(20));
     }
 
     #[test]
@@ -234,17 +253,60 @@ mod tests {
         book.limit(Order::new(true, 20, 10, 2));
         book.limit(Order::new(false, 30, 10, 3));
         book.limit(Order::new(false, 25, 10, 5));
-        assert_bid_ask!(book, 20, 25);
+        assert_bid_ask!(book, Some(20), Some(25));
+    }
+
+    #[test]
+    fn exact_crossing_bid() {
+        let mut book = OrderBook::default();
+        book.limit(Order::new(false, 4, 100, 1));
+        book.limit(Order::new(true, 1, 100, 2));
+        let (remaining, fills) = book.limit(Order::new(true, 4, 100, 3));
+        assert_eq!(remaining, 0);
+        assert_eq!(
+            fills,
+            vec![OrderFill {
+                maker_oid: 1,
+                taker_oid: 3,
+                size: 100,
+                price: 4,
+                ..Default::default()
+            }]
+        );
+    }
+
+    #[test]
+    fn exact_crossing_ask() {
+        let mut book = OrderBook::default();
+        book.limit(Order::new(true, 4, 100, 1));
+        book.limit(Order::new(true, 1, 100, 2));
+        let (remaining, fills) = book.limit(Order::new(false, 4, 100, 3));
+        assert_eq!(remaining, 0);
+        assert_eq!(
+            fills,
+            vec![OrderFill {
+                maker_oid: 1,
+                taker_oid: 3,
+                size: 100,
+                price: 4,
+                ..Default::default()
+            }]
+        );
     }
 
     #[test]
     fn test_fill_at_price_level() {
         let mut level = vec![Order::new(true, 10, 10, 1), Order::new(true, 10, 10, 2)];
-        let (remaining_amount, fills) = fill_at_price_level(&mut level, 3, 10, true, [0; 20]);
+        let mut oid_to_level = HashMap::new();
+        oid_to_level.insert(1, 10);
+        oid_to_level.insert(2, 10);
+        let (remaining_amount, fills) =
+            fill_at_price_level(&mut level, 3, 10, true, [0; 20], &mut oid_to_level);
         assert_eq!(remaining_amount, 0);
         assert_eq!(fills.len(), 1);
         assert_eq!(fills[0].maker_oid, 1);
         assert_eq!(fills[0].taker_oid, 3);
         assert_eq!(fills[0].size, 10);
+        assert!(!oid_to_level.contains_key(&1));
     }
 }

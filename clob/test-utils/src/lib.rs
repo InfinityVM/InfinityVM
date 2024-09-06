@@ -85,7 +85,7 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
 pub fn next_state(txns: Vec<Request>, init_state: ClobState) -> ClobState {
     let mut next_clob_state = init_state;
     for tx in txns.iter().cloned() {
-        (_, next_clob_state, _) = tick(tx, next_clob_state).unwrap();
+        (_, next_clob_state, _) = tick(tx, next_clob_state);
     }
 
     next_clob_state
