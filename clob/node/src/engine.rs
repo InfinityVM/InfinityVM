@@ -21,11 +21,11 @@ use tracing::instrument;
 /// The zero index only contains the default state, but no requests.
 pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
 
-pub(crate) fn read_start_up_values<D: Database + 'static>(db: Arc<D>) -> (u64, ClobState) {
-    let tx = db.tx().expect("todo");
-    let global_index = tx
-        .get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)
-        .expect("todo: db errors")
+pub(crate) fn read_start_up_values<D: Database + 'static>(
+    db: Arc<D>,
+) -> eyre::Result<(u64, ClobState)> {
+    let global_index = db
+        .view(|tx| tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY))??
         .unwrap_or(GENESIS_GLOBAL_INDEX);
 
     let clob_state = if global_index == GENESIS_GLOBAL_INDEX {
@@ -34,13 +34,9 @@ pub(crate) fn read_start_up_values<D: Database + 'static>(db: Arc<D>) -> (u64, C
         db.update(|tx| tx.put::<ClobStateTable>(global_index, model))??;
         genesis_state
     } else {
-        tx.get::<ClobStateTable>(global_index)
-            ?
-            .0
+        db.view(|tx| tx.get::<ClobStateTable>(global_index))??.ok_or_eyre("missing clob state")?.0
     };
-    tx.commit().expect("todo");
-
-    (global_index, clob_state)
+    Ok((global_index, clob_state))
 }
 
 /// Run the CLOB execution engine
@@ -52,7 +48,7 @@ pub async fn run_engine<D>(
 where
     D: Database + 'static,
 {
-    let (mut global_index, mut state) = read_start_up_values(Arc::clone(&db));
+    let (mut global_index, mut state) = read_start_up_values(Arc::clone(&db))?;
 
     loop {
         global_index += 1;
