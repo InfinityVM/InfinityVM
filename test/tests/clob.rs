@@ -18,6 +18,7 @@ use clob_test_utils::{mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
 use proto::{GetResultRequest, SubmitProgramRequest, SubmitStatefulJobRequest, VmType};
 use risc0_binfmt::compute_image_id;
+use tokio::time::{sleep, Duration};
 use zkvm_executor::service::ResultWithMetadata;
 
 use abi::{abi_encode_offchain_job_request, JobParams};
@@ -97,6 +98,9 @@ async fn state_job_submission_clob_consumer() {
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
 
+        // Wait for CLOB node and coprocessor to process deposits and send batch to contracts
+        sleep(Duration::from_secs(10)).await;
+
         let requests1 = vec![
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 }),
@@ -138,11 +142,9 @@ async fn state_job_submission_clob_consumer() {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
         interval.tick().await; // First tick processes immediately
         let mut nonce = 2;
-        for (requests, init_state, next_state) in [
-            (requests1, &clob_state0, &clob_state1),
-            (requests2, &clob_state1, &clob_state2),
-            (requests3, &clob_state2, &clob_state3),
-        ] {
+        for (requests, init_state, next_state) in
+            [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
+        {
             let input = ClobProgramInput {
                 prev_state_hash: init_state.borsh_keccak256(),
                 orders: borsh::to_vec(&requests).unwrap().into(),
@@ -195,15 +197,15 @@ async fn state_job_submission_clob_consumer() {
             nonce += 1;
         }
 
-        // let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
-        // assert_eq!(bob_quote_bal, U256::from(600));
-        // let bob_base_bal = alice_base.balanceOf(bob.into()).call().await.unwrap()._0;
-        // assert_eq!(bob_base_bal, U256::from(100));
+        let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
+        assert_eq!(bob_quote_bal, U256::from(600));
+        let bob_base_bal = alice_base.balanceOf(bob.into()).call().await.unwrap()._0;
+        assert_eq!(bob_base_bal, U256::from(100));
 
-        // let alice_quote_bal = bob_quote.balanceOf(alice.into()).call().await.unwrap()._0;
-        // assert_eq!(alice_quote_bal, U256::from(400));
-        // let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
-        // assert_eq!(alice_base_bal, U256::from(900));
+        let alice_quote_bal = bob_quote.balanceOf(alice.into()).call().await.unwrap()._0;
+        assert_eq!(alice_quote_bal, U256::from(400));
+        let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
+        assert_eq!(alice_base_bal, U256::from(900));
     }
     E2E::new().clob().run(test).await;
 }
