@@ -20,6 +20,9 @@ const CLOB_PORT: u16 = 40420;
 
 #[tokio::main]
 async fn main() {
+    let subscriber = tracing_subscriber::FmtSubscriber::new();
+    tracing::subscriber::set_global_default(subscriber).unwrap();
+
     let res = Command::new("cargo")
         .arg("build")
         .arg("-p")
@@ -56,8 +59,8 @@ async fn main() {
     let coproc_logs = File::create(coproc_log_file).expect("failed to open log");
     let coproc_logs2 = coproc_logs.try_clone().unwrap();
     info!("Starting coprocessor node");
-    info!(?coproc_prometheus, ?coproc_grpc, "Coprocessor listening on: ");
-    info!(?coproc_relayer_private, ?coproc_operator_private, "Coprocessor keys: ");
+    info!(?coproc_prometheus, ?coproc_grpc, "Coprocessor listening on");
+    info!(?coproc_relayer_private, ?coproc_operator_private, "Coprocessor keys");
 
     let _proc: ProcKill = Command::new("cargo")
         .arg("run")
