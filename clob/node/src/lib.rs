@@ -36,7 +36,7 @@ pub async fn run(
     operator_signer: K256LocalSigner,
     cn_grpc_url: String,
     clob_consumer_addr: [u8; 20],
-) {
+) -> eyre::Result<()> {
     let db = crate::db::init_db(db_dir).expect("todo");
     let db = Arc::new(db);
 
@@ -57,7 +57,7 @@ pub async fn run(
     });
 
     tokio::try_join!(flatten(server_handle), flatten(engine_handle), flatten(batcher_handle))
-        .unwrap();
+        .map(|_| ())
 }
 
 async fn flatten<T>(handle: JoinHandle<eyre::Result<T>>) -> eyre::Result<T> {
