@@ -60,6 +60,8 @@ pub struct Job {
     pub program_id: Vec<u8>,
     /// Program execution input
     pub input: Vec<u8>,
+    /// Program state
+    pub program_state: Vec<u8>,
     /// Signature on the offchain job request
     pub request_type: RequestType,
     /// ABI-encoded result of job execution with metadata

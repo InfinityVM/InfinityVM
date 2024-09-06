@@ -9,9 +9,10 @@ workspace = true
 
 [dependencies]
 tracing = { workspace = true }
-alloy = { workspace = true }
+alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 thiserror = { workspace = true }
 base64 = { workspace = true }
+tokio = { workspace = true }
 
-proto = { path = "../proto" }
-zkvm = { path = "../zkvm" }
+proto = { workspace = true }
+zkvm = { workspace = true }

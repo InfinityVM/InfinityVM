@@ -4,18 +4,22 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-tokio = { workspace = true }
-alloy = { workspace = true }
-k256 = { workspace = true }
-dotenv = { workspace = true }
-
-proto = { path = "../proto" }
-coprocessor-node = { path = "../coprocessor-node" }
-zkvm-executor = { path = "../zkvm-executor" }
-db = { path = "../db" }
+[[bin]]
+name = "signer"
+path = "src/main.rs"
 
 [lints]
 workspace = true
+
+[dependencies]
+tokio = { workspace = true }
+alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+k256 = { workspace = true }
+dotenv = { workspace = true }
+
+proto = { workspace = true }
+zkvm-executor = { workspace = true }
+db = { workspace = true }
+abi = { workspace = true }
+
+

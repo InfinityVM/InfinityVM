@@ -1,3 +1,4 @@
+use abi::abi_encode_offchain_job_request;
 use alloy::{
     network::EthereumWallet,
     primitives::{
@@ -10,9 +11,8 @@ use alloy::{
     sol_types::{SolEvent, SolType, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-use coprocessor_node::job_processor::abi_encode_offchain_job_request;
 use db::tables::{get_job_id, Job, RequestType};
-use integration::{Args, Integration};
+use e2e::{Args, E2E};
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType,
@@ -36,10 +36,11 @@ fn invariants() {
     assert_eq!(&MOCK_CONSUMER_GUEST_ID, image_id.as_words());
 }
 
-#[tokio::test]
 #[ignore]
+#[tokio::test(flavor = "multi_thread")]
 async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
+        let mock = args.mock_consumer.unwrap();
         let anvil = args.anvil;
         let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
@@ -64,18 +65,19 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .with_recommended_fillers()
             .wallet(random_user_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
+        let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
         // Submit job to coproc node
         let nonce = 1;
-        let job_id = get_job_id(nonce, anvil.mock_consumer);
+        let job_id = get_job_id(nonce, mock.mock_consumer);
         let mut job = Job {
             id: job_id,
             nonce,
             max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-            consumer_address: anvil.mock_consumer.abi_encode_packed(),
+            consumer_address: mock.mock_consumer.abi_encode_packed(),
             program_id: program_id.clone(),
             input: mock_user_address.abi_encode(),
+            program_state: vec![],
             // signature added to this job below
             request_type: RequestType::Offchain(vec![]),
             result_with_metadata: vec![],
@@ -88,18 +90,18 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         };
 
         // Add signature from user on job request
-        let job_request_payload = abi_encode_offchain_job_request(job.clone()).unwrap();
+        let job_request_payload = abi_encode_offchain_job_request((&job).try_into().unwrap());
         let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
         job.request_type = RequestType::Offchain(request_signature.as_bytes().to_vec());
 
-        let submit_job_request =
+        let job_request =
             SubmitJobRequest { request: job_request_payload, signature: request_signature.into() };
-        let submit_job_response =
-            args.coprocessor_node.submit_job(submit_job_request).await.unwrap().into_inner();
-        assert_eq!(submit_job_response.job_id, job_id);
+        let submit_stateful_job_response =
+            args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
+        assert_eq!(submit_stateful_job_response.job_id, job_id);
 
         // wait for the job to be processed
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
         let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
         let get_result_response =
@@ -168,13 +170,14 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             get_next_nonce_call.call().await.unwrap();
         assert_eq!(nonce, 2);
     }
-    Integration::run(test).await;
+    E2E::new().mock_consumer().run(test).await;
 }
 
 #[ignore]
-#[tokio::test]
+#[tokio::test(flavor = "multi_thread")]
 async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
+        let mock = args.mock_consumer.unwrap();
         let anvil = args.anvil;
         let program_id = mock_consumer_program_id().as_bytes().to_vec();
         let mock_user_address = Address::repeat_byte(69);
@@ -199,7 +202,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             .with_recommended_fillers()
             .wallet(random_user_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = MockConsumer::new(anvil.mock_consumer, &consumer_provider);
+        let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
         // Make onchain job request
         let create_job_call = consumer_contract
@@ -210,7 +213,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             .log_decode::<IJobManager::JobCreated>()
             .unwrap();
         let job_id = log.data().jobID;
-        let expected_job_id = get_job_id(1, anvil.mock_consumer);
+        let expected_job_id = get_job_id(1, mock.mock_consumer);
         assert_eq!(job_id, expected_job_id);
 
         // Wait for the job to be processed
@@ -279,5 +282,5 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
         assert_eq!(balance, expected_balance);
     }
-    Integration::run(test).await;
+    E2E::new().mock_consumer().run(test).await;
 }

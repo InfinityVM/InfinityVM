@@ -7,9 +7,11 @@ rust-version = "1.79"
 members = [
 	"crates/contracts",
 	"crates/http-gateway",
+	"crates/mock-consumer",
 	"crates/proto",
 	"crates/scripts",
-	"crates/test-utils",
+	"crates/sdk/abi",
+	"crates/sdk/test-utils",
 	"crates/coprocessor-node",
 	"crates/zkvm",
 	"crates/zkvm-executor",
@@ -17,12 +19,11 @@ members = [
 	"test",
 	"programs/risc0/mock-consumer/methods",
 	"programs/risc0/vapenation/methods",
-]
-default-members = [
-	"crates/contracts",
-	"crates/proto",
-	"crates/coprocessor-node",
-	"crates/zkvm-executor",
+	"clob/core",
+	"clob/contracts",
+	"clob/programs",
+	"clob/node",
+	"clob/test-utils",
 ]
 exclude = [
 	"bin/ethos-reth",
@@ -115,12 +116,13 @@ significant_drop_tightening = "allow"
 # a
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
-alloy = { version = "0.2", features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp"], default-features = false }
+# only include features that we know can be compiled into zkvm program
+alloy = { version = "0", features = ["sol-types"], default-features = false }
 async-channel = { version = "2", default-features = false }
 
 # b
 base64 = { version = "0.22.1" }
-borsh = { version = "1", features = ["derive"], default-features = false }
+borsh = { version = "1", features = ["derive", "std"], default-features = false }
 
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
@@ -156,7 +158,7 @@ prost = { version = "0.13", features = ["derive", "std"], default-features = fal
 # q
 # r
 risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
-risc0-zkp = { version = "1.0.3", default-features = false } 
+risc0-zkp = { version = "1", default-features = false } 
 risc0-build = { version = "1", default-features = false }
 risc0-binfmt = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
@@ -165,10 +167,10 @@ reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5",
 reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["std", "alloy"], default-features = false }
 
 # s
-serde = { version = "1.0", features = ["derive"], default-features = false }
+serde = { version = "1.0", features = ["derive", "std"], default-features = false }
 serde_with = {  version = "3.9.0", features = ["base64","macros","hex"], default-features = false }
 serde_json = { version = "1.0", default-features = false }
-sha2 = { version = "0.10", default-features = false }
+sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
 # TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
@@ -193,3 +195,25 @@ tracing-appender = { version = "0.2.3", default-features = false }
 # x
 # y
 # z
+
+# clob only deps
+bytes = "1.7"
+paste = "1"
+reqwest = { version = "0", features = ["json"] }
+
+# local
+abi = { path = "crates/sdk/abi" }
+clob-contracts ={ path = "clob/contracts" }
+clob-core = { path = "clob/core" }
+clob-node = { path = "clob/node" }
+clob-programs = { path = "clob/programs" }
+clob-test-utils = { path = "clob/test-utils" }
+contracts = { path = "crates/contracts" }
+coprocessor-node = { path = "crates/coprocessor-node" }
+db = { path = "crates/db" }
+mock-consumer = { path = "crates/mock-consumer" }
+proto = { path = "crates/proto" }
+test-utils = { path = "crates/sdk/test-utils" }
+zkvm = { path = "crates/zkvm" }
+zkvm-tracing = { package = "tracing", path = "crates/tracing" }
+zkvm-executor = { path = "crates/zkvm-executor" }

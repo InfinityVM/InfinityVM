@@ -4,7 +4,7 @@ use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
-    providers::ProviderBuilder,
+    providers::{fillers::RecommendedFiller, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::Signature,
     transports::http::reqwest,
@@ -16,31 +16,19 @@ use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
 use db::tables::{Job, RequestType};
 
-// TODO: Figure out a way to more generically represent these types without using trait objects.
-// https://github.com/Ethos-Works/InfinityVM/issues/138
+type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
+
 type RelayerProvider = alloy::providers::fillers::FillProvider<
     alloy::providers::fillers::JoinFill<
-        alloy::providers::fillers::JoinFill<
-            alloy::providers::fillers::JoinFill<
-                alloy::providers::fillers::JoinFill<
-                    alloy::providers::Identity,
-                    alloy::providers::fillers::GasFiller,
-                >,
-                alloy::providers::fillers::NonceFiller,
-            >,
-            alloy::providers::fillers::ChainIdFiller,
-        >,
+        RecommendedFiller,
         alloy::providers::fillers::WalletFiller<EthereumWallet>,
     >,
-    alloy::providers::RootProvider<alloy::transports::http::Http<reqwest::Client>>,
-    alloy::transports::http::Http<reqwest::Client>,
+    alloy::providers::RootProvider<ReqwestTransport>,
+    ReqwestTransport,
     Ethereum,
 >;
 
-type JobManagerContract = IJobManager::IJobManagerInstance<
-    alloy::transports::http::Http<reqwest::Client>,
-    RelayerProvider,
->;
+type JobManagerContract = IJobManager::IJobManagerInstance<ReqwestTransport, RelayerProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
@@ -235,10 +223,13 @@ mod test {
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
     use db::tables::get_job_id;
-    use prometheus::Registry;
-    use test_utils::{
-        anvil_with_contracts, mock_consumer_pending_job, mock_contract_input_addr, TestAnvil,
+    use mock_consumer::{
+        anvil_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
+        AnvilMockConsumer,
     };
+    use prometheus::Registry;
+
+    use test_utils::{anvil_with_job_manager, AnvilJobManager};
     use tokio::task::JoinSet;
 
     const JOB_COUNT: usize = 30;
@@ -247,8 +238,10 @@ mod test {
     async fn run_can_successfully_submit_results() {
         test_utils::test_tracing();
 
-        let TestAnvil { anvil, job_manager, relayer, coprocessor_operator, mock_consumer } =
-            anvil_with_contracts().await;
+        let anvil = anvil_with_job_manager().await;
+        let AnvilMockConsumer { mock_consumer } = anvil_with_mock_consumer(&anvil).await;
+
+        let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } = anvil;
 
         let user: PrivateKeySigner = anvil.keys()[5].clone().into();
         let user_wallet = EthereumWallet::from(user);

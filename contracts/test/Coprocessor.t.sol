@@ -2,8 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
-import {JobManager} from "../src/JobManager.sol";
-import {Consumer} from "../src/Consumer.sol";
+import {JobManager} from "../src/coprocessor/JobManager.sol";
+import {Consumer} from "../src/coprocessor/Consumer.sol";
 import {MockConsumer} from "./mocks/MockConsumer.sol";
 import {CoprocessorDeployer} from "../script/CoprocessorDeployer.s.sol";
 

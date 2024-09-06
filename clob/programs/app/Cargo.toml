@@ -1,0 +1,25 @@
+[package]
+name = "app"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[lints]
+rust.missing_debug_implementations = "warn"
+rust.missing_docs = "warn"
+rust.unreachable_pub = "warn"
+rust.unused_must_use = "deny"
+rust.rust_2018_idioms = { level = "deny", priority = -1 }
+rustdoc.all = "warn"
+
+[[bin]]
+name = "clob"
+path = "src/clob.rs"
+
+[dependencies]
+alloy = { version = "0", features = ["sol-types"], default-features = false }
+risc0-zkvm = { version = "1", default-features = false, features = ['std'] }
+borsh = { version = "1", default-features = false }
+clob-core = { path = "../../core" }
+
