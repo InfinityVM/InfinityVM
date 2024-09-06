@@ -16,5 +16,5 @@ thiserror = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }
 
-proto = { path = "../proto" }
-zkvm-tracing = { package = "tracing", path = "../tracing" }
+proto = { workspace = true }
+zkvm-tracing = { workspace = true }

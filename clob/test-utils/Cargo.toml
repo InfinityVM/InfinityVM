@@ -7,7 +7,7 @@ edition = "2021"
 workspace = true
 
 [dependencies]
+alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 clob-core = { workspace = true }
 clob-contracts = { workspace = true }
-alloy = { workspace = true }
 test-utils = { workspace = true }

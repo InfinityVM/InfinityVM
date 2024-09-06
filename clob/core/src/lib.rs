@@ -5,7 +5,7 @@
 use std::collections::HashMap;
 
 use crate::api::AssetBalance;
-use alloy_primitives::{utils::keccak256, FixedBytes};
+use alloy::primitives::{utils::keccak256, FixedBytes};
 use api::{
     AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobProgramOutput,
     DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,
@@ -20,22 +20,20 @@ pub mod orderbook;
 use crate::api::FillStatus;
 use orderbook::OrderBook;
 
-/// Errors for this crate.
-#[derive(Clone, Debug, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
-pub enum Error {
-    /// An order could not be found.
-    OrderDoesNotExist,
-}
-
 /// The state of the universe for the CLOB.
 #[derive(
     Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
 )]
 pub struct ClobState {
+    /// Next order ID.
     oid: u64,
-    base_balances: HashMap<[u8; 20], AssetBalance>,
-    quote_balances: HashMap<[u8; 20], AssetBalance>,
+    /// Base asset account balances.
+    base: HashMap<[u8; 20], AssetBalance>,
+    /// Quote asset account balances.
+    quote: HashMap<[u8; 20], AssetBalance>,
+    /// Active orderbook
     book: OrderBook,
+    /// Fill status of orders, keyed by Order ID.
     order_status: HashMap<u64, FillStatus>,
 }
 
@@ -46,11 +44,11 @@ impl ClobState {
     }
     /// Get the base asset balances.
     pub const fn base_balances(&self) -> &HashMap<[u8; 20], AssetBalance> {
-        &self.base_balances
+        &self.base
     }
     /// Get the quote asset balances.
     pub const fn quote_balances(&self) -> &HashMap<[u8; 20], AssetBalance> {
-        &self.quote_balances
+        &self.quote
     }
     /// Get the book
     pub const fn book(&self) -> &OrderBook {
@@ -64,14 +62,15 @@ impl ClobState {
 
 /// Deposit user funds that can be used to place orders.
 pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, ClobState, Diff) {
+    // We enforce ensure that both balance types always exist.
     state
-        .base_balances
+        .base
         .entry(req.address)
         .and_modify(|b| b.free += req.base_free)
         .or_insert(AssetBalance { free: req.base_free, locked: 0 });
 
     state
-        .quote_balances
+        .quote
         .entry(req.address)
         .and_modify(|b| b.free += req.quote_free)
         .or_insert(AssetBalance { free: req.quote_free, locked: 0 });
@@ -85,23 +84,25 @@ pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, C
 
 /// Withdraw non-locked funds.
 pub fn withdraw(req: WithdrawRequest, mut state: ClobState) -> (WithdrawResponse, ClobState, Diff) {
-    let addr = req.address;
-    let base_balance = state.base_balances.get_mut(&addr).expect("TODO");
-    let quote_balance = state.quote_balances.get_mut(&addr).expect("TODO");
+    let a = req.address;
 
-    if base_balance.free < req.base_free || quote_balance.free < req.quote_free {
-        (WithdrawResponse { success: false }, state, Diff::Noop)
-    } else {
-        base_balance.free -= req.base_free;
-        quote_balance.free -= req.quote_free;
+    if let (Some(base), Some(quote)) = (state.base.get_mut(&a), state.quote.get_mut(&a)) {
+        if base.free < req.base_free || quote.free < req.quote_free {
+            (WithdrawResponse { success: false }, state, Diff::Noop)
+        } else {
+            base.free -= req.base_free;
+            quote.free -= req.quote_free;
 
-        if *quote_balance == AssetBalance::default() && *base_balance == AssetBalance::default() {
-            state.quote_balances.remove(&addr);
-            state.base_balances.remove(&addr);
+            if *quote == AssetBalance::default() && *base == AssetBalance::default() {
+                state.quote.remove(&a);
+                state.base.remove(&a);
+            }
+
+            let change = Diff::withdraw(req.address, req.base_free, req.quote_free);
+            (WithdrawResponse { success: true }, state, change)
         }
-
-        let change = Diff::withdraw(req.address, req.base_free, req.quote_free);
-        (WithdrawResponse { success: true }, state, change)
+    } else {
+        (WithdrawResponse { success: false }, state, Diff::Noop)
     }
 }
 
@@ -111,23 +112,30 @@ pub fn cancel_order(
     mut state: ClobState,
 ) -> (CancelOrderResponse, ClobState, Diff) {
     let o = match state.book.cancel(req.oid) {
-        Ok(o) => o,
-        Err(_) => {
+        Some(o) => o,
+        None => {
             return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop)
         }
     };
 
     let change = if o.is_buy {
-        let quote_balances = state.quote_balances.get_mut(&o.address).expect("todo");
-        let quote_size = o.quote_size();
-        quote_balances.free += quote_size;
-        quote_balances.locked -= quote_size;
-        Diff::cancel(o.address, 0, quote_size)
-    } else {
-        let base_balance = state.base_balances.get_mut(&o.address).expect("todo");
-        base_balance.free += o.size;
-        base_balance.locked -= o.size;
+        debug_assert!(state.quote.contains_key(&o.address));
+        if let Some(quote) = state.quote.get_mut(&o.address) {
+            let quote_size = o.quote_size();
+            quote.free += quote_size;
+            quote.locked -= quote_size;
+            Diff::cancel(o.address, 0, o.quote_size())
+        } else {
+            debug_assert!(false);
+            return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop);
+        }
+    } else if let Some(base) = state.base.get_mut(&o.address) {
+        base.free += o.size;
+        base.locked -= o.size;
         Diff::cancel(o.address, o.size, 0)
+    } else {
+        debug_assert!(false);
+        return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop);
     };
 
     let fill_status = state.order_status.remove(&o.oid);
@@ -139,33 +147,30 @@ pub fn add_order(
     req: AddOrderRequest,
     mut state: ClobState,
 ) -> (AddOrderResponse, ClobState, Vec<Diff>) {
-    let base_balance = state
-        .base_balances
-        .get(&req.address)
-        .expect("todo: depositing ensures base balance exists");
-    let quote_balance = state
-        .quote_balances
-        .get(&req.address)
-        .expect("todo: depositing ensures quote balance exists");
+    let (base, quote) = match (state.base.get_mut(&req.address), state.quote.get_mut(&req.address))
+    {
+        (Some(base), Some(quote)) => (base, quote),
+        _ => return (AddOrderResponse { success: false, status: None }, state, vec![Diff::Noop]),
+    };
 
     let o = req.to_order(state.oid);
     let order_id = o.oid;
     state.oid += 1;
 
-    let is_invalid_buy = o.is_buy && quote_balance.free < o.quote_size();
-    let is_invalid_sell = !o.is_buy && base_balance.free < o.size;
+    let is_invalid_buy = o.is_buy && quote.free < o.quote_size();
+    let is_invalid_sell = !o.is_buy && base.free < o.size;
     if is_invalid_buy || is_invalid_sell {
         return (AddOrderResponse { success: false, status: None }, state, vec![Diff::Noop]);
     };
 
     let create = if req.is_buy {
-        state.quote_balances.entry(req.address).and_modify(|b| {
+        state.quote.entry(req.address).and_modify(|b| {
             b.free -= o.quote_size();
             b.locked += o.quote_size();
         });
         Diff::create(req.address, 0, o.quote_size())
     } else {
-        state.base_balances.entry(req.address).and_modify(|b| {
+        state.base.entry(req.address).and_modify(|b| {
             b.free -= o.size;
             b.locked += o.size;
         });
@@ -177,34 +182,32 @@ pub fn add_order(
     let mut changes = Vec::<Diff>::with_capacity(fills.len() + 1);
     changes.push(create);
     for fill in fills.iter().cloned() {
-        let maker_order_status = state
-            .order_status
-            .get_mut(&fill.maker_oid)
-            .expect("fill status is created when order is added");
-        maker_order_status.filled_size += fill.size;
-
         if req.is_buy {
             // Seller exchanges base for quote
-            state.base_balances.entry(fill.seller).and_modify(|b| b.locked -= fill.size);
-            state.quote_balances.entry(fill.seller).and_modify(|b| b.free += fill.quote_size());
+            state.base.entry(fill.seller).and_modify(|b| b.locked -= fill.size);
+            state.quote.entry(fill.seller).and_modify(|b| b.free += fill.quote_size());
 
             // Buyer exchanges quote for base
-            state.base_balances.entry(req.address).and_modify(|b| b.free += fill.size);
-            state.quote_balances.entry(req.address).and_modify(|b| b.locked -= fill.quote_size());
+            state.base.entry(req.address).and_modify(|b| b.free += fill.size);
+            state.quote.entry(req.address).and_modify(|b| b.locked -= fill.quote_size());
 
             changes.push(Diff::fill(req.address, fill.seller, fill.size, fill.quote_size()));
         } else {
             // Seller exchanges base for quote
-            state.base_balances.entry(req.address).and_modify(|b| b.locked -= fill.size);
-            state.quote_balances.entry(req.address).and_modify(|b| b.free += fill.quote_size());
+            state.base.entry(req.address).and_modify(|b| b.locked -= fill.size);
+            state.quote.entry(req.address).and_modify(|b| b.free += fill.quote_size());
 
             // Buyer exchanges quote for base
-            state.base_balances.entry(fill.buyer).and_modify(|b| b.free += fill.size);
-            state.quote_balances.entry(fill.buyer).and_modify(|b| b.locked -= fill.quote_size());
+            state.base.entry(fill.buyer).and_modify(|b| b.free += fill.size);
+            state.quote.entry(fill.buyer).and_modify(|b| b.locked -= fill.quote_size());
 
             changes.push(Diff::fill(fill.buyer, req.address, fill.size, fill.quote_size()));
         }
-        maker_order_status.fills.push(fill);
+
+        if let Some(make_order_status) = state.order_status.get_mut(&fill.maker_oid) {
+            make_order_status.filled_size += fill.size;
+            make_order_status.fills.push(fill);
+        };
     }
 
     let fill_size = req.size - remaining_amount;
@@ -223,23 +226,23 @@ pub fn add_order(
 }
 
 /// A tick will execute a single request against the CLOB state.
-pub fn tick(request: Request, state: ClobState) -> Result<(Response, ClobState, Vec<Diff>), Error> {
+pub fn tick(request: Request, state: ClobState) -> (Response, ClobState, Vec<Diff>) {
     match request {
         Request::AddOrder(req) => {
             let (resp, state, diffs) = add_order(req, state);
-            Ok((Response::AddOrder(resp), state, diffs))
+            (Response::AddOrder(resp), state, diffs)
         }
         Request::CancelOrder(req) => {
             let (resp, state, diff) = cancel_order(req, state);
-            Ok((Response::CancelOrder(resp), state, vec![diff]))
+            (Response::CancelOrder(resp), state, vec![diff])
         }
         Request::Deposit(req) => {
             let (resp, state, diff) = deposit(req, state);
-            Ok((Response::Deposit(resp), state, vec![diff]))
+            (Response::Deposit(resp), state, vec![diff])
         }
         Request::Withdraw(req) => {
             let (resp, state, diff) = withdraw(req, state);
-            Ok((Response::Withdraw(resp), state, vec![diff]))
+            (Response::Withdraw(resp), state, vec![diff])
         }
     }
 }
@@ -253,7 +256,7 @@ pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> ClobProgramOutp
     let mut withdraws = HashMap::<[u8; 20], WithdrawDelta>::with_capacity(requests.len());
 
     for req in requests {
-        let (_, next_state, diffs) = tick(req, state).expect("todo");
+        let (_, next_state, diffs) = tick(req, state);
         for diff in diffs {
             diff.apply(&mut withdraws, &mut deposits, &mut orders);
         }
@@ -326,22 +329,16 @@ mod tests {
 
         let alice_dep =
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 });
-        let (resp, clob_state, diffs) = tick(alice_dep, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(alice_dep, clob_state);
         assert_eq!(Response::Deposit(DepositResponse { success: true }), resp);
-        assert_eq!(
-            *clob_state.base_balances.get(&alice).unwrap(),
-            AssetBalance { free: 200, locked: 0 }
-        );
+        assert_eq!(*clob_state.base.get(&alice).unwrap(), AssetBalance { free: 200, locked: 0 });
         assert_eq!(diffs, vec![Diff::deposit(alice, 200, 0)]);
 
         let bob_dep =
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 });
-        let (resp, clob_state, diffs) = tick(bob_dep, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_dep, clob_state);
         assert_eq!(Response::Deposit(DepositResponse { success: true }), resp);
-        assert_eq!(
-            *clob_state.quote_balances.get(&bob).unwrap(),
-            AssetBalance { free: 800, locked: 0 }
-        );
+        assert_eq!(*clob_state.quote.get(&bob).unwrap(), AssetBalance { free: 800, locked: 0 });
         assert_eq!(diffs, vec![Diff::deposit(bob, 0, 800)]);
 
         let alice_limit = Request::AddOrder(AddOrderRequest {
@@ -350,7 +347,7 @@ mod tests {
             limit_price: 4,
             size: 100,
         });
-        let (resp, clob_state, diffs) = tick(alice_limit, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(alice_limit, clob_state);
         assert_eq!(
             Response::AddOrder(AddOrderResponse {
                 success: true,
@@ -364,10 +361,7 @@ mod tests {
             }),
             resp
         );
-        assert_eq!(
-            *clob_state.base_balances.get(&alice).unwrap(),
-            AssetBalance { free: 100, locked: 100 }
-        );
+        assert_eq!(*clob_state.base.get(&alice).unwrap(), AssetBalance { free: 100, locked: 100 });
         assert_eq!(diffs, vec![Diff::create(alice, 100, 0)]);
 
         let bob_limit1 = Request::AddOrder(AddOrderRequest {
@@ -376,7 +370,7 @@ mod tests {
             limit_price: 1,
             size: 100,
         });
-        let (resp, clob_state, diffs) = tick(bob_limit1, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_limit1, clob_state);
         assert_eq!(
             Response::AddOrder(AddOrderResponse {
                 success: true,
@@ -390,10 +384,7 @@ mod tests {
             }),
             resp
         );
-        assert_eq!(
-            *clob_state.quote_balances.get(&bob).unwrap(),
-            AssetBalance { free: 700, locked: 100 }
-        );
+        assert_eq!(*clob_state.quote.get(&bob).unwrap(), AssetBalance { free: 700, locked: 100 });
         assert_eq!(diffs, vec![Diff::create(bob, 0, 100)]);
 
         let bob_limit2 = Request::AddOrder(AddOrderRequest {
@@ -402,7 +393,7 @@ mod tests {
             limit_price: 4,
             size: 100,
         });
-        let (resp, clob_state, diffs) = tick(bob_limit2, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_limit2, clob_state);
         assert_eq!(
             Response::AddOrder(AddOrderResponse {
                 success: true,
@@ -423,34 +414,22 @@ mod tests {
             }),
             resp
         );
-        assert_eq!(
-            *clob_state.base_balances.get(&alice).unwrap(),
-            AssetBalance { free: 100, locked: 0 }
-        );
-        assert_eq!(
-            *clob_state.quote_balances.get(&alice).unwrap(),
-            AssetBalance { free: 400, locked: 0 }
-        );
-        assert_eq!(
-            *clob_state.base_balances.get(&bob).unwrap(),
-            AssetBalance { free: 100, locked: 0 }
-        );
-        assert_eq!(
-            *clob_state.quote_balances.get(&bob).unwrap(),
-            AssetBalance { free: 300, locked: 100 }
-        );
+        assert_eq!(*clob_state.base.get(&alice).unwrap(), AssetBalance { free: 100, locked: 0 });
+        assert_eq!(*clob_state.quote.get(&alice).unwrap(), AssetBalance { free: 400, locked: 0 });
+        assert_eq!(*clob_state.base.get(&bob).unwrap(), AssetBalance { free: 100, locked: 0 });
+        assert_eq!(*clob_state.quote.get(&bob).unwrap(), AssetBalance { free: 300, locked: 100 });
         assert_eq!(diffs, vec![Diff::create(bob, 0, 400), Diff::fill(bob, alice, 100, 400)]);
 
         let alice_withdraw =
             Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 });
-        let (resp, clob_state, diffs) = tick(alice_withdraw, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(alice_withdraw, clob_state);
         assert_eq!(Response::Withdraw(WithdrawResponse { success: true }), resp);
-        assert!(!clob_state.quote_balances.contains_key(&alice));
-        assert!(!clob_state.base_balances.contains_key(&alice));
+        assert!(!clob_state.quote.contains_key(&alice));
+        assert!(!clob_state.base.contains_key(&alice));
         assert_eq!(diffs, vec![Diff::withdraw(alice, 100, 400)]);
 
         let bob_cancel = Request::CancelOrder(CancelOrderRequest { oid: 1 });
-        let (resp, clob_state, diffs) = tick(bob_cancel, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_cancel, clob_state);
         assert_eq!(
             Response::CancelOrder(CancelOrderResponse {
                 success: true,
@@ -464,18 +443,15 @@ mod tests {
             }),
             resp
         );
-        assert_eq!(
-            *clob_state.quote_balances.get(&bob).unwrap(),
-            AssetBalance { free: 400, locked: 0 }
-        );
+        assert_eq!(*clob_state.quote.get(&bob).unwrap(), AssetBalance { free: 400, locked: 0 });
         assert_eq!(diffs, vec![Diff::cancel(bob, 0, 100)]);
 
         let bob_withdraw =
             Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 });
-        let (resp, clob_state, diffs) = tick(bob_withdraw, clob_state).unwrap();
+        let (resp, clob_state, diffs) = tick(bob_withdraw, clob_state);
         assert_eq!(Response::Withdraw(WithdrawResponse { success: true }), resp);
-        assert!(clob_state.quote_balances.is_empty());
-        assert!(clob_state.base_balances.is_empty());
+        assert!(clob_state.quote.is_empty());
+        assert!(clob_state.base.is_empty());
         assert_eq!(diffs, vec![Diff::withdraw(bob, 100, 400)]);
     }
 }

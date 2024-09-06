@@ -9,16 +9,9 @@ edition = "2021"
 risc0-zkvm = { workspace = true }
 clob-core = { workspace = true }
 borsh = { workspace = true }
-alloy = { workspace = true }
+alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 zkvm = { workspace = true }
 clob-test-utils = { workspace = true }
-
-# We need exact match to some types in `clob-core`. We initially
-# thought `clob-core`can't use alloy facade crate directly due 
-# to zkvm constraints, but looks like we can so this should be
-# changed soon.
-alloy-sol-types = { workspace = true }
-alloy-primitives = { workspace = true }
 
 [build-dependencies]
 risc0-build = { workspace = true }

@@ -2,6 +2,7 @@
 use alloy::{eips::BlockNumberOrTag, primitives::hex};
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
 use futures::future::FutureExt;
+use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 use std::{
     future::Future,
@@ -9,8 +10,7 @@ use std::{
     process::{self, Command, Stdio},
 };
 use test_utils::{
-    anvil_with_job_manager, anvil_with_mock_consumer, get_localhost_port, sleep_until_bound,
-    AnvilJobManager, AnvilMockConsumer, LOCALHOST,
+    anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
 };
 use tonic::transport::Channel;
 

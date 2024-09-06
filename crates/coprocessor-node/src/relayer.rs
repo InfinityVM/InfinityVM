@@ -16,22 +16,19 @@ use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
 use db::tables::{Job, RequestType};
 
-// TODO: Figure out a way to more generically represent these types without using trait objects.
-// https://github.com/Ethos-Works/InfinityVM/issues/138
+type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
+
 type RelayerProvider = alloy::providers::fillers::FillProvider<
     alloy::providers::fillers::JoinFill<
         RecommendedFiller,
         alloy::providers::fillers::WalletFiller<EthereumWallet>,
     >,
-    alloy::providers::RootProvider<alloy::transports::http::Http<reqwest::Client>>,
-    alloy::transports::http::Http<reqwest::Client>,
+    alloy::providers::RootProvider<ReqwestTransport>,
+    ReqwestTransport,
     Ethereum,
 >;
 
-type JobManagerContract = IJobManager::IJobManagerInstance<
-    alloy::transports::http::Http<reqwest::Client>,
-    RelayerProvider,
->;
+type JobManagerContract = IJobManager::IJobManagerInstance<ReqwestTransport, RelayerProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
@@ -219,78 +216,23 @@ mod test {
     use crate::{metrics::Metrics, relayer::JobRelayerBuilder};
     use alloy::{
         network::EthereumWallet,
-        primitives::{Address, U256},
         providers::{Provider, ProviderBuilder},
         rpc::types::Filter,
-        signers::{local::PrivateKeySigner, Signer},
-        sol_types::{SolEvent, SolValue},
+        signers::local::PrivateKeySigner,
+        sol_types::SolEvent,
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-    use db::tables::{get_job_id, Job, RequestType};
-    use prometheus::Registry;
-    use proto::{JobStatus, JobStatusType};
-    use test_utils::{
-        anvil_with_job_manager, anvil_with_mock_consumer, AnvilJobManager, AnvilMockConsumer,
-        MOCK_CONTRACT_MAX_CYCLES,
+    use db::tables::get_job_id;
+    use mock_consumer::{
+        anvil_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
+        AnvilMockConsumer,
     };
+    use prometheus::Registry;
+
+    use test_utils::{anvil_with_job_manager, AnvilJobManager};
     use tokio::task::JoinSet;
-    use zkvm_executor::service::abi_encode_result_with_metadata;
 
     const JOB_COUNT: usize = 30;
-
-    /// A mock address to use as input to the mock contract function calls
-    pub(crate) fn mock_contract_input_addr() -> Address {
-        Address::default()
-    }
-
-    /// Mock raw output from the zkvm program for the mock consumer contract
-    pub(crate) fn mock_raw_output() -> Vec<u8> {
-        (mock_contract_input_addr(), U256::default()).abi_encode()
-    }
-
-    /// Create a pending Job that has a signed result from the zkvm operator.
-    ///
-    /// The result here will be decodable by the `MockConsumer` contract and have
-    /// a valid signature from the zkvm operator.
-    pub(crate) async fn mock_consumer_pending_job(
-        nonce: u8,
-        operator: PrivateKeySigner,
-        mock_consumer: Address,
-    ) -> Job {
-        let bytes = vec![nonce; 32];
-        let addr = mock_contract_input_addr();
-        let raw_output = mock_raw_output();
-
-        let job_id = get_job_id(nonce.into(), mock_consumer);
-        let result_with_meta = abi_encode_result_with_metadata(
-            job_id,
-            &addr.abi_encode(),
-            MOCK_CONTRACT_MAX_CYCLES,
-            &bytes,
-            &raw_output,
-        )
-        .unwrap();
-        let operator_signature =
-            operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
-
-        Job {
-            id: job_id,
-            nonce: 1,
-            max_cycles: MOCK_CONTRACT_MAX_CYCLES,
-            program_id: bytes,
-            input: addr.abi_encode(),
-            program_state: vec![],
-            request_type: RequestType::Onchain,
-            result_with_metadata: result_with_meta,
-            status: JobStatus {
-                status: JobStatusType::Pending as i32,
-                failure_reason: None,
-                retries: 0,
-            },
-            consumer_address: mock_consumer.abi_encode(),
-            zkvm_operator_signature: operator_signature,
-        }
-    }
 
     #[tokio::test]
     async fn run_can_successfully_submit_results() {

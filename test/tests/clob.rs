@@ -3,8 +3,8 @@ use alloy::{
     primitives::U256,
     providers::ProviderBuilder,
     signers::{local::PrivateKeySigner, Signer},
+    sol_types::SolValue,
 };
-use alloy_sol_types::SolValue;
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{
     api::{
@@ -155,8 +155,8 @@ async fn state_job_submission_clob_consumer() {
                 nonce,
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **clob.clob_consumer,
-                program_input: input_abi,
-                program_id: program_id.clone(),
+                program_input: &input_abi,
+                program_id: &program_id,
             };
             let request = abi_encode_offchain_job_request(params.clone());
             let signature =

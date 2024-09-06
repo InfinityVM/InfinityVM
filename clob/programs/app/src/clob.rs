@@ -1,9 +1,9 @@
 //! ZKVM program for running the tick
 
 use alloy::primitives::utils::keccak256;
-use alloy_sol_types::SolType;
+use alloy::sol_types::SolType;
 use clob_core::{
-    api::{Request, ClobProgramInput, ClobProgramOutput},
+    api::{ClobProgramInput, ClobProgramOutput, Request},
     zkvm_stf, ClobState,
 };
 use risc0_zkvm::guest::env;
