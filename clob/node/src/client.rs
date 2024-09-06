@@ -1,6 +1,6 @@
 //! HTTP client for the CLOB node.
 
-use crate::{ClobStateResponse, ORDERS};
+use crate::app::{ClobStateResponse, CANCEL, CLOB_STATE, DEPOSIT, ORDERS, WITHDRAW};
 use clob_core::{
     api::{
         AddOrderRequest, AddOrderResponse, ApiResponse, CancelOrderRequest, CancelOrderResponse,
@@ -9,8 +9,6 @@ use clob_core::{
     ClobState,
 };
 use serde::{de::DeserializeOwned, Serialize};
-
-use crate::{CANCEL, CLOB_STATE, DEPOSIT, WITHDRAW};
 
 /// CLOB Node client.
 #[derive(Debug, Clone)]

@@ -9,6 +9,7 @@ use std::{
     panic::AssertUnwindSafe,
     process::{Command, Stdio},
 };
+use tempfile::TempDir;
 use test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, ProcKill,
     LOCALHOST,
@@ -33,6 +34,8 @@ pub struct Args {
     pub anvil: AnvilJobManager,
     /// Coprocessor Node gRPC client
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
+    /// db dir path for test
+    pub db_dir: TempDir,
 }
 
 /// E2E test environment builder and runner.
@@ -119,6 +122,7 @@ impl E2E {
             anvil,
             clob_consumer: None,
             clob_endpoint: None,
+            db_dir,
         };
 
         if self.mock_consumer {
