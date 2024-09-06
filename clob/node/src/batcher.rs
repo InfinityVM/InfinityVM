@@ -5,18 +5,17 @@ use crate::db::{
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
 use abi::{abi_encode_offchain_job_request, JobParams};
-use eyre::OptionExt;
-
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
-
 use clob_core::api::ClobProgramInput;
 use clob_programs::CLOB_ID;
+use eyre::OptionExt;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitStatefulJobRequest};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
+use tonic::transport::Channel;
 use tracing::{info, instrument};
 
 use crate::K256LocalSigner;
@@ -123,9 +122,7 @@ where
         let job_request =
             SubmitStatefulJobRequest { request, signature, program_state: program_state_borsh };
 
-        // TODO: add some retry logic
-        let _submit_stateful_job_response =
-            coprocessor_node.submit_stateful_job(job_request).await?.into_inner();
+        submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
         let next_batch_idx = end_index + 1;
         db.update(|tx| tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, next_batch_idx))??;
@@ -133,4 +130,26 @@ where
         // TODO: read highest job nonce from contract
         job_nonce += 1;
     }
+}
+
+async fn submit_job_with_backoff(
+    client: &mut CoprocessorNodeClient<Channel>,
+    request: SubmitStatefulJobRequest,
+) -> eyre::Result<()> {
+    const RETRIES: usize = 3;
+    const MULTIPLE: u64 = 8;
+
+    let mut backoff = 1;
+
+    for _ in 0..RETRIES {
+        match client.submit_stateful_job(request.clone()).await {
+            Ok(_) => return Ok(()),
+            Err(error) => tracing::warn!(backoff, ?error, "failed to submit batch to coprocessor"),
+        }
+
+        sleep(Duration::from_secs(backoff)).await;
+        backoff *= MULTIPLE;
+    }
+
+    eyre::bail!("failed to submit batch to coprocessor after {RETRIES} retries")
 }
