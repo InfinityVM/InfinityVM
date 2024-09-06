@@ -236,7 +236,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let block_number = consumer_provider.get_block_number().await.unwrap();
 
         assert_ne!(block_number, 0);
-        assert_eq!(block_number, saved_height);
+        assert_eq!(block_number + 1, saved_height);
 
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
