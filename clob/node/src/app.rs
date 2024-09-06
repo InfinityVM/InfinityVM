@@ -87,7 +87,11 @@ async fn deposit(
 ) -> Result<Json<ApiResponse>, AppError> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
-    state.engine_sender.send((Request::Deposit(req), tx)).await.expect("todo");
+    state
+        .engine_sender
+        .send((Request::Deposit(req), tx))
+        .await
+        .wrap_err("engine receive unexpectedly dropped")?;
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
@@ -101,7 +105,11 @@ async fn withdraw(
 ) -> Result<Json<ApiResponse>, AppError> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
-    state.engine_sender.send((Request::Withdraw(req), tx)).await.expect("todo");
+    state
+        .engine_sender
+        .send((Request::Withdraw(req), tx))
+        .await
+        .wrap_err("engine receive unexpectedly dropped")?;
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
@@ -115,7 +123,11 @@ async fn add_order(
 ) -> Result<Json<ApiResponse>, AppError> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
-    state.engine_sender.send((Request::AddOrder(req), tx)).await.expect("todo");
+    state
+        .engine_sender
+        .send((Request::AddOrder(req), tx))
+        .await
+        .wrap_err("engine receive unexpectedly dropped")?;
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
@@ -129,7 +141,11 @@ async fn cancel(
 ) -> Result<Json<ApiResponse>, AppError> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
-    state.engine_sender.send((Request::CancelOrder(req), tx)).await.expect("todo");
+    state
+        .engine_sender
+        .send((Request::CancelOrder(req), tx))
+        .await
+        .wrap_err("engine receive unexpectedly dropped")?;
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
