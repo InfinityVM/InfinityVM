@@ -161,6 +161,18 @@ where
         Ok(job.is_some())
     }
 
+    /// Save last block height in DB
+    pub async fn set_last_block_height(&self, height: u64) -> Result<(), Error> {
+        db::set_last_block_height(self.db.clone(), height)?;
+        Ok(())
+    }
+
+    /// Get last block height from DB
+    pub async fn get_last_block_height(&self) -> Result<u64, Error> {
+        let height = db::get_last_block_height(self.db.clone())?.unwrap_or_default();
+        Ok(height)
+    }
+
     /// Returns job with `job_id` from DB
     pub async fn get_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
         let job = get_job(self.db.clone(), job_id)?;

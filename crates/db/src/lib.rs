@@ -14,6 +14,8 @@ use tables::{ElfKey, ElfWithMeta, Job, JobID};
 
 pub mod tables;
 
+const LAST_HEIGHT_KEY: u32 = 0;
+
 /// DB module errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -78,6 +80,29 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>,
 
     let tx = db.tx()?;
     let result = tx.get::<JobTable>(JobID(job_id));
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into)
+}
+
+/// Write last block height to the database
+pub fn set_last_block_height<D: Database>(db: Arc<D>, height: u64) -> Result<(), Error> {
+    use tables::LastBlockHeight;
+
+    let tx = db.tx_mut()?;
+    tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY, height)?;
+    let _commit = tx.commit()?;
+
+    Ok(())
+}
+
+/// Read last block height from the database.
+pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Error> {
+    use tables::LastBlockHeight;
+
+    let tx = db.tx()?;
+    let result = tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -182,6 +207,15 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
 
         tx.commit().map_err(|e| DatabaseError::Commit(e.into()))?;
     }
+
+    Ok(Arc::new(db))
+}
+
+/// Open a existing db in read only mode
+pub fn open_db_read_only<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
+    let client_version = ClientVersion::default();
+    let args = DatabaseArguments::new(client_version);
+    let db = reth_db::open_db_read_only(path.as_ref(), args)?;
 
     Ok(Arc::new(db))
 }
