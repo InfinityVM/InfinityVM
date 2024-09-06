@@ -83,122 +83,128 @@ pub fn deposit(req: DepositRequest, mut state: ClobState) -> (DepositResponse, C
 }
 
 /// Withdraw non-locked funds.
-pub fn withdraw(req: WithdrawRequest, mut s: ClobState) -> (WithdrawResponse, ClobState, Diff) {
+pub fn withdraw(req: WithdrawRequest, mut state: ClobState) -> (WithdrawResponse, ClobState, Diff) {
     let a = req.address;
 
-    if let (Some(base), Some(quote)) = (s.base.get_mut(&a), s.quote.get_mut(&a)) {
+    if let (Some(base), Some(quote)) = (state.base.get_mut(&a), state.quote.get_mut(&a)) {
         if base.free < req.base_free || quote.free < req.quote_free {
-            (WithdrawResponse { success: false }, s, Diff::Noop)
+            (WithdrawResponse { success: false }, state, Diff::Noop)
         } else {
             base.free -= req.base_free;
             quote.free -= req.quote_free;
 
             if *quote == AssetBalance::default() && *base == AssetBalance::default() {
-                s.quote.remove(&a);
-                s.base.remove(&a);
+                state.quote.remove(&a);
+                state.base.remove(&a);
             }
 
             let change = Diff::withdraw(req.address, req.base_free, req.quote_free);
-            (WithdrawResponse { success: true }, s, change)
+            (WithdrawResponse { success: true }, state, change)
         }
     } else {
-        (WithdrawResponse { success: false }, s, Diff::Noop)
+        (WithdrawResponse { success: false }, state, Diff::Noop)
     }
 }
 
 /// Cancel an order.
 pub fn cancel_order(
     req: CancelOrderRequest,
-    mut s: ClobState,
+    mut state: ClobState,
 ) -> (CancelOrderResponse, ClobState, Diff) {
-    let o = match s.book.cancel(req.oid) {
+    let o = match state.book.cancel(req.oid) {
         Some(o) => o,
-        None => return (CancelOrderResponse { success: false, fill_status: None }, s, Diff::Noop),
+        None => {
+            return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop)
+        }
     };
 
     let change = if o.is_buy {
-        debug_assert!(s.quote.contains_key(&o.address));
-        if let Some(quote) = s.quote.get_mut(&o.address) {
+        debug_assert!(state.quote.contains_key(&o.address));
+        if let Some(quote) = state.quote.get_mut(&o.address) {
             let quote_size = o.quote_size();
             quote.free += quote_size;
             quote.locked -= quote_size;
+            Diff::cancel(o.address, 0, o.quote_size())
+        } else {
+            debug_assert!(false);
+            return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop);
         }
-        Diff::cancel(o.address, 0, o.quote_size())
-    } else {
-        debug_assert!(s.base.contains_key(&o.address));
-        if let Some(base) = s.base.get_mut(&o.address) {
-            base.free += o.size;
-            base.locked -= o.size;
-        }
+    } else if let Some(base) = state.base.get_mut(&o.address) {
+        base.free += o.size;
+        base.locked -= o.size;
         Diff::cancel(o.address, o.size, 0)
+    } else {
+        debug_assert!(false);
+        return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop);
     };
 
-    let fill_status = s.order_status.remove(&o.oid);
-    (CancelOrderResponse { success: true, fill_status }, s, change)
+    let fill_status = state.order_status.remove(&o.oid);
+    (CancelOrderResponse { success: true, fill_status }, state, change)
 }
 
 /// Add an order.
 pub fn add_order(
     req: AddOrderRequest,
-    mut s: ClobState,
+    mut state: ClobState,
 ) -> (AddOrderResponse, ClobState, Vec<Diff>) {
-    let (base, quote) = match (s.base.get_mut(&req.address), s.quote.get_mut(&req.address)) {
+    let (base, quote) = match (state.base.get_mut(&req.address), state.quote.get_mut(&req.address))
+    {
         (Some(base), Some(quote)) => (base, quote),
-        _ => return (AddOrderResponse { success: false, status: None }, s, vec![Diff::Noop]),
+        _ => return (AddOrderResponse { success: false, status: None }, state, vec![Diff::Noop]),
     };
 
-    let o = req.to_order(s.oid);
+    let o = req.to_order(state.oid);
     let order_id = o.oid;
-    s.oid += 1;
+    state.oid += 1;
 
     let is_invalid_buy = o.is_buy && quote.free < o.quote_size();
     let is_invalid_sell = !o.is_buy && base.free < o.size;
     if is_invalid_buy || is_invalid_sell {
-        return (AddOrderResponse { success: false, status: None }, s, vec![Diff::Noop]);
+        return (AddOrderResponse { success: false, status: None }, state, vec![Diff::Noop]);
     };
 
     let create = if req.is_buy {
-        s.quote.entry(req.address).and_modify(|b| {
+        state.quote.entry(req.address).and_modify(|b| {
             b.free -= o.quote_size();
             b.locked += o.quote_size();
         });
         Diff::create(req.address, 0, o.quote_size())
     } else {
-        s.base.entry(req.address).and_modify(|b| {
+        state.base.entry(req.address).and_modify(|b| {
             b.free -= o.size;
             b.locked += o.size;
         });
         Diff::create(req.address, o.size, 0)
     };
 
-    let (remaining_amount, fills) = s.book.limit(o);
+    let (remaining_amount, fills) = state.book.limit(o);
 
     let mut changes = Vec::<Diff>::with_capacity(fills.len() + 1);
     changes.push(create);
     for fill in fills.iter().cloned() {
         if req.is_buy {
             // Seller exchanges base for quote
-            s.base.entry(fill.seller).and_modify(|b| b.locked -= fill.size);
-            s.quote.entry(fill.seller).and_modify(|b| b.free += fill.quote_size());
+            state.base.entry(fill.seller).and_modify(|b| b.locked -= fill.size);
+            state.quote.entry(fill.seller).and_modify(|b| b.free += fill.quote_size());
 
             // Buyer exchanges quote for base
-            s.base.entry(req.address).and_modify(|b| b.free += fill.size);
-            s.quote.entry(req.address).and_modify(|b| b.locked -= fill.quote_size());
+            state.base.entry(req.address).and_modify(|b| b.free += fill.size);
+            state.quote.entry(req.address).and_modify(|b| b.locked -= fill.quote_size());
 
             changes.push(Diff::fill(req.address, fill.seller, fill.size, fill.quote_size()));
         } else {
             // Seller exchanges base for quote
-            s.base.entry(req.address).and_modify(|b| b.locked -= fill.size);
-            s.quote.entry(req.address).and_modify(|b| b.free += fill.quote_size());
+            state.base.entry(req.address).and_modify(|b| b.locked -= fill.size);
+            state.quote.entry(req.address).and_modify(|b| b.free += fill.quote_size());
 
             // Buyer exchanges quote for base
-            s.base.entry(fill.buyer).and_modify(|b| b.free += fill.size);
-            s.quote.entry(fill.buyer).and_modify(|b| b.locked -= fill.quote_size());
+            state.base.entry(fill.buyer).and_modify(|b| b.free += fill.size);
+            state.quote.entry(fill.buyer).and_modify(|b| b.locked -= fill.quote_size());
 
             changes.push(Diff::fill(fill.buyer, req.address, fill.size, fill.quote_size()));
         }
 
-        if let Some(make_order_status) = s.order_status.get_mut(&fill.maker_oid) {
+        if let Some(make_order_status) = state.order_status.get_mut(&fill.maker_oid) {
             make_order_status.filled_size += fill.size;
             make_order_status.fills.push(fill);
         };
@@ -212,11 +218,11 @@ pub fn add_order(
         fills,
         address: req.address,
     };
-    s.order_status.insert(order_id, fill_status.clone());
+    state.order_status.insert(order_id, fill_status.clone());
 
     let resp = AddOrderResponse { success: true, status: Some(fill_status) };
 
-    (resp, s, changes)
+    (resp, state, changes)
 }
 
 /// A tick will execute a single request against the CLOB state.
