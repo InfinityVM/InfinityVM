@@ -1,5 +1,5 @@
 //! E2E tests and helpers.
-use alloy::primitives::hex;
+use alloy::{eips::BlockNumberOrTag, primitives::hex};
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
 use futures::future::FutureExt;
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
@@ -114,7 +114,7 @@ impl E2E {
             .arg("--http-eth-rpc")
             .arg(&http_rpc_url)
             .arg("--ws-eth-rpc")
-            .arg(ws_rpc_url)
+            .arg(ws_rpc_url.clone())
             .arg("--job-manager-address")
             .arg(job_manager)
             .arg("--chain-id")
@@ -167,7 +167,9 @@ impl E2E {
                     batcher_duration_ms,
                     operator_signer,
                     cn_grpc_client_url.clone(),
+                    ws_rpc_url,
                     **clob_consumer_addr,
+                    BlockNumberOrTag::Earliest,
                 )
                 .await
             });
