@@ -43,7 +43,6 @@ fn fill_at_price_level(
         }
 
         if maker.size <= remaining_amount {
-            // TODO: clear make oid from
             complete_fills += 1;
             remaining_amount -= maker.size;
             fill.size = maker.size;

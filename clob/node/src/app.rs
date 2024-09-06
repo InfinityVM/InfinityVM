@@ -34,7 +34,7 @@ pub const CANCEL: &str = "/cancel";
 /// Clob state URI.
 pub const CLOB_STATE: &str = "/clob-state";
 
-///  Response to the clob state endpoint. This is just a temp hack until we have better view
+/// Response to the clob state endpoint. This is just a temp hack until we have better view
 /// endpoints.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
