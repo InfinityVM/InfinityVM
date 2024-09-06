@@ -136,7 +136,7 @@ impl E2E {
             anvil,
             clob_consumer: None,
             clob_endpoint: None,
-            db_dir
+            db_dir,
         };
 
         if self.mock_consumer {
