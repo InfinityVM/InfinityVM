@@ -36,6 +36,7 @@ pub const CLOB_JOB_SYNC_START: &str = "CLOB_JOB_SYNC_START";
 pub type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// Run the CLOB node.
+#[allow(clippy::too_many_arguments)]
 pub async fn run(
     db_dir: String,
     listen_addr: String,
