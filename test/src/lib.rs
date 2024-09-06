@@ -7,10 +7,11 @@ use proto::coprocessor_node_client::CoprocessorNodeClient;
 use std::{
     future::Future,
     panic::AssertUnwindSafe,
-    process::{self, Command, Stdio},
+    process::{Command, Stdio},
 };
 use test_utils::{
-    anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
+    anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, ProcKill,
+    LOCALHOST,
 };
 use tonic::transport::Channel;
 
@@ -18,22 +19,6 @@ use tonic::transport::Channel;
 /// within the crate
 pub const ETHOS_RETH_DEBUG_BIN: &str = "../bin/ethos-reth/target/debug/ethos-reth";
 const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
-
-/// Kill [`std::process::Child`] on `drop`
-#[derive(Debug)]
-pub struct ProcKill(process::Child);
-
-impl From<process::Child> for ProcKill {
-    fn from(child: process::Child) -> Self {
-        Self(child)
-    }
-}
-
-impl Drop for ProcKill {
-    fn drop(&mut self) {
-        drop(self.0.kill());
-    }
-}
 
 /// Arguments passed to the test function.
 #[derive(Debug)]
@@ -85,7 +70,8 @@ impl E2E {
     {
         test_utils::test_tracing();
 
-        let anvil = anvil_with_job_manager().await;
+        let anvil_port = get_localhost_port();
+        let anvil = anvil_with_job_manager(anvil_port).await;
 
         let job_manager = anvil.job_manager.to_string();
         let chain_id = anvil.anvil.chain_id().to_string();

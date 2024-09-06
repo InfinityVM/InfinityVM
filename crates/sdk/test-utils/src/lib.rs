@@ -22,6 +22,22 @@ pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
 /// Localhost IP address
 pub const LOCALHOST: &str = "127.0.0.1";
 
+/// Kill [`std::process::Child`] on `drop`
+#[derive(Debug)]
+pub struct ProcKill(std::process::Child);
+
+impl From<std::process::Child> for ProcKill {
+    fn from(child: std::process::Child) -> Self {
+        Self(child)
+    }
+}
+
+impl Drop for ProcKill {
+    fn drop(&mut self) {
+        drop(self.0.kill());
+    }
+}
+
 /// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
 /// If the tracing subscriber has already been initialized in a previous test, this
 /// function will silently fail due to `try_init()`, which does not reinitialize
@@ -74,9 +90,8 @@ pub struct AnvilJobManager {
 }
 
 /// Spin up anvil instance with job manager contracts.
-pub async fn anvil_with_job_manager() -> AnvilJobManager {
+pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
     // Ensure the anvil instance will not collide with anything already running on the OS
-    let port = get_localhost_port();
     // Set block time to 0.01 seconds - I WANNA GO FAST MOM
     let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
 

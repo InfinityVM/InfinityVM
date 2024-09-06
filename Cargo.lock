@@ -5322,11 +5322,16 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
+ "clob-node",
+ "clob-test-utils",
  "db",
  "dotenv",
  "k256",
  "proto",
+ "tempfile",
+ "test-utils",
  "tokio",
+ "tracing 0.1.40",
  "zkvm-executor",
 ]
 
