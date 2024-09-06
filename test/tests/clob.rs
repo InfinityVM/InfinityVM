@@ -98,7 +98,8 @@ async fn state_job_submission_clob_consumer() {
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
 
-        // Wait for CLOB node and coprocessor to process deposits and send batch to contracts
+        // Wait for CLOB node and coprocessor to process deposits and send batch to contracts.
+        // This is necessary because the CLOB node will automatically pick up the deposit events.
         sleep(Duration::from_secs(10)).await;
 
         let requests1 = vec![
@@ -306,7 +307,7 @@ async fn clob_node_e2e() {
         let alice_limit =
             AddOrderRequest { address: alice, is_buy: false, limit_price: 4, size: 100 };
         let (r, i) = client.order(alice_limit).await;
-        // i is 3 here because the CLOB node automatically picked up the deposit
+        // i is 3 here because the CLOB node automatically picks up the deposit
         // events from the contracts earlier (one each for Alice and Bob).
         assert_eq!(i, 3);
         assert_eq!(
