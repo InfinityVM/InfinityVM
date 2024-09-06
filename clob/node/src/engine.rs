@@ -9,6 +9,7 @@ use clob_core::{
     api::{ApiResponse, Request},
     tick, ClobState,
 };
+use eyre::{eyre, OptionExt, WrapErr};
 use reth_db::{
     transaction::{DbTx, DbTxMut},
     Database,
@@ -20,27 +21,22 @@ use tracing::instrument;
 /// The zero index only contains the default state, but no requests.
 pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
 
-pub(crate) fn read_start_up_values<D: Database + 'static>(db: Arc<D>) -> (u64, ClobState) {
-    let tx = db.tx().expect("todo");
-    let global_index = tx
-        .get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)
-        .expect("todo: db errors")
+pub(crate) fn read_start_up_values<D: Database + 'static>(
+    db: Arc<D>,
+) -> eyre::Result<(u64, ClobState)> {
+    let global_index = db
+        .view(|tx| tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY))??
         .unwrap_or(GENESIS_GLOBAL_INDEX);
 
     let clob_state = if global_index == GENESIS_GLOBAL_INDEX {
         let genesis_state = ClobState::default();
         let model = ClobStateModel(genesis_state.clone());
-        db.update(|tx| tx.put::<ClobStateTable>(global_index, model)).unwrap().unwrap();
+        db.update(|tx| tx.put::<ClobStateTable>(global_index, model))??;
         genesis_state
     } else {
-        tx.get::<ClobStateTable>(global_index)
-            .expect("todo: db errors")
-            .expect("todo: could not find state when some was expected")
-            .0
+        db.view(|tx| tx.get::<ClobStateTable>(global_index))??.ok_or_eyre("missing clob state")?.0
     };
-    tx.commit().expect("todo");
-
-    (global_index, clob_state)
+    Ok((global_index, clob_state))
 }
 
 /// Run the CLOB execution engine
@@ -48,21 +44,24 @@ pub(crate) fn read_start_up_values<D: Database + 'static>(db: Arc<D>) -> (u64, C
 pub async fn run_engine<D>(
     mut receiver: Receiver<(Request, oneshot::Sender<ApiResponse>)>,
     db: Arc<D>,
-) where
+) -> eyre::Result<()>
+where
     D: Database + 'static,
 {
-    let (mut global_index, mut state) = read_start_up_values(Arc::clone(&db));
+    let (mut global_index, mut state) = read_start_up_values(Arc::clone(&db))?;
 
     loop {
         global_index += 1;
 
-        let (request, response_sender) = receiver.recv().await.expect("todo");
+        let (request, response_sender) =
+            receiver.recv().await.ok_or_eyre("engine channel sender unexpected dropped")?;
 
         let request2 = request.clone();
-        let tx = db.tx_mut().expect("todo");
-        tx.put::<GlobalIndexTable>(SEEN_GLOBAL_INDEX_KEY, global_index).expect("todo");
-        tx.put::<RequestTable>(global_index, RequestModel(request2)).expect("todo");
-        tx.commit().expect("todo");
+        db.update(|tx| {
+            tx.put::<GlobalIndexTable>(SEEN_GLOBAL_INDEX_KEY, global_index)?;
+            tx.put::<RequestTable>(global_index, RequestModel(request2))
+        })
+        .wrap_err_with(|| format!("failed to write request {global_index}"))??;
 
         let (response, post_state, diffs) = tick(request, state);
 
@@ -71,16 +70,21 @@ pub async fn run_engine<D>(
         // diffs.
         let post_state2 = post_state.clone();
         let response2 = response.clone();
-        let tx = db.tx_mut().expect("todo");
-        tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index).expect("todo");
-        tx.put::<ResponseTable>(global_index, ResponseModel(response2)).expect("todo");
-        tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2)).expect("todo");
-        tx.put::<DiffTable>(global_index, VecDiffModel(diffs)).expect("todo");
-        tx.commit().expect("todo");
+        db.update(|tx| {
+            tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index)
+                .wrap_err("processed global index")?;
+            tx.put::<ResponseTable>(global_index, ResponseModel(response2)).wrap_err("response")?;
+            tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2))
+                .wrap_err("clob state")?;
+            tx.put::<DiffTable>(global_index, VecDiffModel(diffs)).wrap_err("vec dif")
+        })
+        .wrap_err_with(|| format!("failed to write tick results {global_index}"))??;
 
         let api_response = ApiResponse { response, global_index };
 
-        response_sender.send(api_response).expect("todo");
+        response_sender
+            .send(api_response)
+            .map_err(|_| eyre!("engine oneshot unexpectedly dropped {global_index}"))?;
 
         state = post_state;
     }

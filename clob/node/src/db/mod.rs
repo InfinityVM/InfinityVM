@@ -18,24 +18,8 @@ pub const NEXT_BATCH_GLOBAL_INDEX_KEY: u32 = 2;
 pub mod models;
 pub mod tables;
 
-/// DB module errors.
-#[derive(thiserror::Error, Debug)]
-pub enum Error {
-    /// Error from reth-mdbx lib.
-    #[error("mdbx (database): {0}")]
-    GenericRethMdbx(#[from] eyre::Report),
-
-    /// Reth mdbx database backend error.
-    #[error("mdbx (database): {0}")]
-    RethMdbx(#[from] reth_db::mdbx::Error),
-
-    /// Reth database error.
-    #[error("reth database: {0}")]
-    RethDbError(#[from] DatabaseError),
-}
-
 /// Open a DB at `path`. Creates the DB if it does not exist.
-pub fn init_db<P: AsRef<Path>>(path: P) -> Result<DatabaseEnv, Error> {
+pub fn init_db<P: AsRef<Path>>(path: P) -> eyre::Result<DatabaseEnv> {
     let client_version = ClientVersion::default();
     let args = DatabaseArguments::new(client_version.clone());
     let db = create_db(path, args)?;
