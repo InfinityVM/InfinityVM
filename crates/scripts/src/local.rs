@@ -23,21 +23,6 @@ async fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
-    let res = Command::new("cargo")
-        .arg("build")
-        .arg("-p")
-        .arg("coprocessor-node")
-        .arg("-p")
-        .arg("clob-node")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit())
-        .spawn()
-        .unwrap()
-        .wait()
-        .unwrap()
-        .success();
-    assert!(res, "failed to build binaries");
-
     info!("Starting anvil on port: {ANVIL_PORT}");
     let anvil = anvil_with_job_manager(ANVIL_PORT).await;
     sleep_until_bound(ANVIL_PORT).await;
