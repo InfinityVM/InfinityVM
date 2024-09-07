@@ -79,8 +79,7 @@ pub async fn mock_consumer_pending_job(
         MOCK_CONTRACT_MAX_CYCLES,
         &bytes,
         &raw_output,
-    )
-    .unwrap();
+    );
     let operator_signature =
         operator.sign_message(&result_with_meta).await.unwrap().as_bytes().to_vec();
 

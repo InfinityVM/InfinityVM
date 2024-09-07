@@ -41,17 +41,12 @@ where
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
 
-        let (nonce, max_cycles, consumer_address, program_id, input) =
-            OffchainJobRequest::abi_decode_params(&req.request, false)
+        let OffchainJobRequest { nonce, max_cycles, consumer, program_id, program_input } =
+            OffchainJobRequest::abi_decode(&req.request, false)
                 .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
-        validate_job_request(
-            max_cycles,
-            consumer_address,
-            program_id.clone(),
-            req.signature.clone(),
-        )?;
-        let job_id = get_job_id(nonce, consumer_address);
+        validate_job_request(max_cycles, consumer, program_id.clone(), req.signature.clone())?;
+        let job_id = get_job_id(nonce, consumer);
 
         // TODO: Make contract calls to verify nonce, signature, etc. on job request
         // [ref: https://github.com/Ethos-Works/InfinityVM/issues/168]
@@ -62,9 +57,9 @@ where
             id: job_id,
             nonce,
             max_cycles,
-            consumer_address: consumer_address.to_vec(),
+            consumer_address: consumer.to_vec(),
             program_id: program_id.to_vec(),
-            input: input.to_vec(),
+            input: program_input.to_vec(),
             program_state: vec![],
             request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],
@@ -91,17 +86,12 @@ where
     ) -> Result<Response<SubmitStatefulJobResponse>, Status> {
         let req = request.into_inner();
 
-        let (nonce, max_cycles, consumer_address, program_id, input) =
-            OffchainJobRequest::abi_decode_params(&req.request, false)
+        let OffchainJobRequest { nonce, max_cycles, consumer, program_id, program_input } =
+            OffchainJobRequest::abi_decode(&req.request, false)
                 .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
-        validate_job_request(
-            max_cycles,
-            consumer_address,
-            program_id.clone(),
-            req.signature.clone(),
-        )?;
-        let job_id = get_job_id(nonce, consumer_address);
+        validate_job_request(max_cycles, consumer, program_id.clone(), req.signature.clone())?;
+        let job_id = get_job_id(nonce, consumer);
 
         // TODO: Make contract calls to verify nonce, signature, etc. on job request
         // [ref: https://github.com/Ethos-Works/InfinityVM/issues/168]
@@ -112,9 +102,9 @@ where
             id: job_id,
             nonce,
             max_cycles,
-            consumer_address: consumer_address.to_vec(),
+            consumer_address: consumer.to_vec(),
             program_id: program_id.to_vec(),
-            input: input.to_vec(),
+            input: program_input.to_vec(),
             program_state: req.program_state,
             request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],
