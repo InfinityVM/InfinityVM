@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {JobManager} from "../src/coprocessor/JobManager.sol";
 import {Consumer} from "../src/coprocessor/Consumer.sol";
+import {StatefulConsumer} from "../src/coprocessor/StatefulConsumer.sol";
 import {ClobConsumer} from "../src/clob/ClobConsumer.sol";
 import {ClobDeployer} from "../script/ClobDeployer.s.sol";
 
@@ -79,9 +80,9 @@ contract ClobConsumerTest is Test, ClobDeployer {
             withdrawDeltas: withdrawDeltas
         });
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
+        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
             nextStateRootHash: 0x0,
-            deltas: abi.encode(deltas)
+            result: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);
@@ -124,9 +125,9 @@ contract ClobConsumerTest is Test, ClobDeployer {
             withdrawDeltas: withdrawDeltas
         });
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
+        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
             nextStateRootHash: 0x0,
-            deltas: abi.encode(deltas)
+            result: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);
@@ -164,9 +165,9 @@ contract ClobConsumerTest is Test, ClobDeployer {
             withdrawDeltas: withdrawDeltas
         });
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
+        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
             nextStateRootHash: 0x0,
-            deltas: abi.encode(deltas)
+            result: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);

@@ -52,7 +52,7 @@ abstract contract Consumer {
         _jobManager.cancelJob(jobID);
     }
 
-    function receiveResult(bytes32 jobID, bytes calldata result) external onlyJobManager() {
+    function receiveResult(bytes32 jobID, bytes calldata result) external virtual onlyJobManager() {
         _receiveResult(jobID, result);
     }
 

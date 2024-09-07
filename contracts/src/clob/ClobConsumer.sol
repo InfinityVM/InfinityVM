@@ -2,12 +2,13 @@
 pragma solidity ^0.8.13;
 import {JobManager} from "../coprocessor/JobManager.sol";
 import {Consumer} from "../coprocessor/Consumer.sol";
+import {StatefulConsumer} from "../coprocessor/StatefulConsumer.sol";
 import {OffchainRequester} from "../coprocessor/OffchainRequester.sol";
 import {console} from "forge-std/Script.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract ClobConsumer is Consumer, OffchainRequester {
+contract ClobConsumer is StatefulConsumer, OffchainRequester {
     // DepositDelta always subtracts from deposit balance, so we use uint256
     struct DepositDelta {
         address user;
@@ -28,20 +29,6 @@ contract ClobConsumer is Consumer, OffchainRequester {
         address user;
         uint256 baseDelta;
         uint256 quoteDelta;
-    }
-
-    // Struct passed into zkVM program as input
-    struct ClobProgramInput {
-        bytes32 previousStateHash;
-        // Borsh-encoded orders
-        bytes orders;
-    }
-
-    // Struct returned by zkVM program as the result
-    struct ClobProgramOutput {
-        bytes32 nextStateRootHash;
-        // ABI-encoded ClobResultDeltas
-        bytes deltas;
     }
 
     struct ClobResultDeltas {
@@ -67,16 +54,12 @@ contract ClobConsumer is Consumer, OffchainRequester {
     mapping(address => uint256) public lockedBalanceBase;
     mapping(address => uint256) public lockedBalanceQuote;
 
-    bytes32 public latestStateRootHash;  
-
-    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 _latestStateRootHash) Consumer(jobManager, initialMaxNonce) OffchainRequester() {
+    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 latestStateRootHash) StatefulConsumer(jobManager, initialMaxNonce, latestStateRootHash) OffchainRequester() {
         // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
         offchainSigner = _offchainSigner;
 
         baseToken = _baseToken;
         quoteToken = _quoteToken;
-
-        latestStateRootHash = _latestStateRootHash;
     }
 
     // Getter functions for balances
@@ -108,10 +91,6 @@ contract ClobConsumer is Consumer, OffchainRequester {
         return offchainSigner;
     }
 
-    function getLatestStateRootHash() public view returns (bytes32) {
-        return latestStateRootHash;
-    }    
-
     function deposit(uint256 base_amount, uint256 quote_amount) external {
         require(baseToken.transferFrom(msg.sender, address(this), base_amount), "Transfer failed");
         require(quoteToken.transferFrom(msg.sender, address(this), quote_amount), "Transfer failed");
@@ -123,18 +102,7 @@ contract ClobConsumer is Consumer, OffchainRequester {
     }
 
     function _receiveResult(bytes32 jobID, bytes memory result) internal override  {
-        ClobProgramOutput memory clobResult = abi.decode(result, (ClobProgramOutput));
-
-        // TODO (Maanav): Figure out how to generalize this state root check etc.
-        // [ref]: https://github.com/Ethos-Works/InfinityVM/issues/178
-        bytes memory encodedBatchInput = getProgramInputsForJob(jobID);
-        ClobProgramInput memory batchInput = abi.decode(encodedBatchInput, (ClobProgramInput));
-        require(batchInput.previousStateHash == latestStateRootHash, "Invalid state hash passed as input");
-
-        // Update the state root hash
-        latestStateRootHash = clobResult.nextStateRootHash;
-
-        ClobResultDeltas memory deltas = abi.decode(clobResult.deltas, (ClobResultDeltas));
+        ClobResultDeltas memory deltas = abi.decode(result, (ClobResultDeltas));
 
         // Apply the deposit deltas
         for (uint256 i = 0; i < deltas.depositDeltas.length; i++) {
