@@ -73,11 +73,15 @@ contract ClobConsumerTest is Test, ClobDeployer {
         ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](0);
         ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
-            nextStateRootHash: 0x0,
+        ClobConsumer.ResultDeltas memory deltas = ClobConsumer.ResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas
+        });
+
+        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
+            nextStateRootHash: 0x0,
+            deltas: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);
@@ -114,11 +118,15 @@ contract ClobConsumerTest is Test, ClobDeployer {
 
         ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
-            nextStateRootHash: 0x0,
+        ClobConsumer.ResultDeltas memory deltas = ClobConsumer.ResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas
+        });
+
+        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
+            nextStateRootHash: 0x0,
+            deltas: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);
@@ -150,11 +158,15 @@ contract ClobConsumerTest is Test, ClobDeployer {
             quoteDelta: 100
         });
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
-            nextStateRootHash: 0x0,
+        ClobConsumer.ResultDeltas memory deltas = ClobConsumer.ResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas
+        });
+
+        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
+            nextStateRootHash: 0x0,
+            deltas: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);

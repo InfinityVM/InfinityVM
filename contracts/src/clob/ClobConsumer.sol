@@ -40,6 +40,11 @@ contract ClobConsumer is Consumer, OffchainRequester {
     // Struct returned by zkVM program as the result
     struct ClobProgramOutput {
         bytes32 nextStateRootHash;
+        // ABI-encoded ResultDeltas
+        bytes deltas;
+    }
+
+    struct ResultDeltas {
         DepositDelta[] depositDeltas;
         OrderDelta[] orderDeltas;
         WithdrawDelta[] withdrawDeltas;
@@ -129,33 +134,35 @@ contract ClobConsumer is Consumer, OffchainRequester {
         // Update the state root hash
         latestStateRootHash = clobResult.nextStateRootHash;
 
-        // Apply the deposit deltas
-        for (uint256 i = 0; i < clobResult.depositDeltas.length; i++) {
-           address user = clobResult.depositDeltas[i].user;
-           depositedBalanceBase[user] -= clobResult.depositDeltas[i].baseDelta;
-           depositedBalanceQuote[user] -= clobResult.depositDeltas[i].quoteDelta;
+        ResultDeltas memory deltas = abi.decode(clobResult.deltas, (ResultDeltas));
 
-           freeBalanceBase[user] += clobResult.depositDeltas[i].baseDelta;
-           freeBalanceQuote[user] += clobResult.depositDeltas[i].quoteDelta;
+        // Apply the deposit deltas
+        for (uint256 i = 0; i < deltas.depositDeltas.length; i++) {
+           address user = deltas.depositDeltas[i].user;
+           depositedBalanceBase[user] -= deltas.depositDeltas[i].baseDelta;
+           depositedBalanceQuote[user] -= deltas.depositDeltas[i].quoteDelta;
+
+           freeBalanceBase[user] += deltas.depositDeltas[i].baseDelta;
+           freeBalanceQuote[user] += deltas.depositDeltas[i].quoteDelta;
         }
 
         // Apply the order deltas
-        for (uint256 i = 0; i < clobResult.orderDeltas.length; i++) {
-           address user = clobResult.orderDeltas[i].user;
-           freeBalanceBase[user] = applyDelta(freeBalanceBase[user], clobResult.orderDeltas[i].freeBaseDelta);
-           lockedBalanceBase[user] = applyDelta(lockedBalanceBase[user], clobResult.orderDeltas[i].lockedBaseDelta);
-           freeBalanceQuote[user] = applyDelta(freeBalanceQuote[user], clobResult.orderDeltas[i].freeQuoteDelta);
-           lockedBalanceQuote[user] = applyDelta(lockedBalanceQuote[user], clobResult.orderDeltas[i].lockedQuoteDelta);
+        for (uint256 i = 0; i < deltas.orderDeltas.length; i++) {
+           address user = deltas.orderDeltas[i].user;
+           freeBalanceBase[user] = applyDelta(freeBalanceBase[user], deltas.orderDeltas[i].freeBaseDelta);
+           lockedBalanceBase[user] = applyDelta(lockedBalanceBase[user], deltas.orderDeltas[i].lockedBaseDelta);
+           freeBalanceQuote[user] = applyDelta(freeBalanceQuote[user], deltas.orderDeltas[i].freeQuoteDelta);
+           lockedBalanceQuote[user] = applyDelta(lockedBalanceQuote[user], deltas.orderDeltas[i].lockedQuoteDelta);
         }
 
         // Apply the withdraw deltas
-        for (uint256 i = 0; i < clobResult.withdrawDeltas.length; i++) {
-           address user = clobResult.withdrawDeltas[i].user;
-           freeBalanceBase[user] -= clobResult.withdrawDeltas[i].baseDelta;
-           freeBalanceQuote[user] -= clobResult.withdrawDeltas[i].quoteDelta;
+        for (uint256 i = 0; i < deltas.withdrawDeltas.length; i++) {
+           address user = deltas.withdrawDeltas[i].user;
+           freeBalanceBase[user] -= deltas.withdrawDeltas[i].baseDelta;
+           freeBalanceQuote[user] -= deltas.withdrawDeltas[i].quoteDelta;
 
-           require(baseToken.transfer(user, clobResult.withdrawDeltas[i].baseDelta), "Transfer failed");
-           require(quoteToken.transfer(user, clobResult.withdrawDeltas[i].quoteDelta), "Transfer failed");
+           require(baseToken.transfer(user, deltas.withdrawDeltas[i].baseDelta), "Transfer failed");
+           require(quoteToken.transfer(user, deltas.withdrawDeltas[i].quoteDelta), "Transfer failed");
        }
     }
 
