@@ -5,11 +5,15 @@
 use std::collections::HashMap;
 
 use crate::api::AssetBalance;
-use alloy::primitives::{utils::keccak256, FixedBytes};
+use alloy::{
+    primitives::{utils::keccak256, FixedBytes},
+    sol_types::SolType,
+};
+
 use api::{
     AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobProgramOutput,
-    DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,
-    WithdrawDelta, WithdrawRequest, WithdrawResponse,
+    ClobResultDeltas, DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request,
+    Response, WithdrawDelta, WithdrawRequest, WithdrawResponse,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
@@ -271,11 +275,11 @@ pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> ClobProgramOutp
     let mut deposit_deltas: Vec<_> = deposits.into_values().collect();
     deposit_deltas.sort();
 
+    let clob_result_deltas = ClobResultDeltas { order_deltas, withdraw_deltas, deposit_deltas };
+
     ClobProgramOutput {
-        order_deltas,
-        withdraw_deltas,
-        deposit_deltas,
         next_state_hash: state.borsh_keccak256(),
+        deltas: ClobResultDeltas::abi_encode(&clob_result_deltas).into(),
     }
 }
 

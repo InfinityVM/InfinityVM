@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 mod program;
 
 pub use program::{
-    ClobProgramInput, ClobProgramOutput, DepositDelta, Diff, OrderDelta, WithdrawDelta,
+    ClobProgramInput, ClobProgramOutput, ClobResultDeltas, DepositDelta, Diff, OrderDelta,
+    WithdrawDelta,
 };
 
 /// All possible requests that can go into the clob engine.

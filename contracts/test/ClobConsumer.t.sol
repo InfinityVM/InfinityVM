@@ -73,7 +73,7 @@ contract ClobConsumerTest is Test, ClobDeployer {
         ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](0);
         ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
-        ClobConsumer.ResultDeltas memory deltas = ClobConsumer.ResultDeltas({
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas
@@ -118,7 +118,7 @@ contract ClobConsumerTest is Test, ClobDeployer {
 
         ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
-        ClobConsumer.ResultDeltas memory deltas = ClobConsumer.ResultDeltas({
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas
@@ -158,7 +158,7 @@ contract ClobConsumerTest is Test, ClobDeployer {
             quoteDelta: 100
         });
 
-        ClobConsumer.ResultDeltas memory deltas = ClobConsumer.ResultDeltas({
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas

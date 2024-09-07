@@ -60,6 +60,14 @@ alloy::sol! {
     struct ClobProgramOutput {
         /// Hash of state output of zkvm (hash of borsh-encoded state).
         bytes32 next_state_hash;
+        /// ABI-encoded ClobResultDeltas
+        bytes deltas;
+    }
+
+    /// Result deltas for clob. The ABI-encoded form of this is
+    /// included in ClobProgramOutput.
+    #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
+    struct ClobResultDeltas {
         /// Deposit balance deltas.
         DepositDelta[] deposit_deltas;
         /// Order balance deltas.

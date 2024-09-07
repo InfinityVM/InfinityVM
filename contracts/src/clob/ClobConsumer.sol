@@ -40,11 +40,11 @@ contract ClobConsumer is Consumer, OffchainRequester {
     // Struct returned by zkVM program as the result
     struct ClobProgramOutput {
         bytes32 nextStateRootHash;
-        // ABI-encoded ResultDeltas
+        // ABI-encoded ClobResultDeltas
         bytes deltas;
     }
 
-    struct ResultDeltas {
+    struct ClobResultDeltas {
         DepositDelta[] depositDeltas;
         OrderDelta[] orderDeltas;
         WithdrawDelta[] withdrawDeltas;
@@ -134,7 +134,7 @@ contract ClobConsumer is Consumer, OffchainRequester {
         // Update the state root hash
         latestStateRootHash = clobResult.nextStateRootHash;
 
-        ResultDeltas memory deltas = abi.decode(clobResult.deltas, (ResultDeltas));
+        ClobResultDeltas memory deltas = abi.decode(clobResult.deltas, (ClobResultDeltas));
 
         // Apply the deposit deltas
         for (uint256 i = 0; i < deltas.depositDeltas.length; i++) {

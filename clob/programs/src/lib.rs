@@ -10,8 +10,9 @@ mod tests {
     };
     use clob_core::{
         api::{
-            AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput, DepositDelta,
-            DepositRequest, OrderDelta, Request, WithdrawDelta, WithdrawRequest,
+            AddOrderRequest, CancelOrderRequest, ClobProgramInput, ClobProgramOutput,
+            ClobResultDeltas, DepositDelta, DepositRequest, OrderDelta, Request, WithdrawDelta,
+            WithdrawRequest,
         },
         BorshKeccak256, ClobState,
     };
@@ -32,10 +33,12 @@ mod tests {
         let clob_state1 = next_state(requests1.clone(), clob_state0.clone());
         let clob_out = execute(requests1.clone(), clob_state0.clone());
         assert_eq!(clob_out.next_state_hash, clob_state1.borsh_keccak256());
-        assert!(clob_out.withdraw_deltas.is_empty());
-        assert!(clob_out.order_deltas.is_empty());
+        let clob_result_deltas =
+            ClobResultDeltas::abi_decode(clob_out.deltas.as_ref(), false).unwrap();
+        assert!(clob_result_deltas.withdraw_deltas.is_empty());
+        assert!(clob_result_deltas.order_deltas.is_empty());
         assert_eq!(
-            clob_out.deposit_deltas,
+            clob_result_deltas.deposit_deltas,
             vec![
                 DepositDelta { account: alice.into(), base: U256::from(200), quote: U256::from(0) },
                 DepositDelta { account: bob.into(), base: U256::from(0), quote: U256::from(800) },
@@ -68,8 +71,10 @@ mod tests {
         let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
         let clob_out = execute(requests2.clone(), clob_state1.clone());
         assert_eq!(clob_out.next_state_hash, clob_state2.borsh_keccak256());
-        assert!(clob_out.withdraw_deltas.is_empty());
-        assert!(clob_out.deposit_deltas.is_empty());
+        let clob_result_deltas =
+            ClobResultDeltas::abi_decode(clob_out.deltas.as_ref(), false).unwrap();
+        assert!(clob_result_deltas.withdraw_deltas.is_empty());
+        assert!(clob_result_deltas.deposit_deltas.is_empty());
         let a = OrderDelta {
             account: alice.into(),
             free_base: I256::try_from(-100i64).unwrap(),
@@ -84,7 +89,7 @@ mod tests {
             free_quote: I256::try_from(-500i64).unwrap(),
             locked_quote: I256::try_from(100).unwrap(),
         };
-        assert_eq!(clob_out.order_deltas, vec![a, b]);
+        assert_eq!(clob_result_deltas.order_deltas, vec![a, b]);
 
         let requests3 = vec![
             Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 }),
@@ -94,7 +99,9 @@ mod tests {
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
         let clob_out = execute(requests3.clone(), clob_state2.clone());
         assert_eq!(clob_out.next_state_hash, clob_state3.borsh_keccak256());
-        assert!(clob_out.deposit_deltas.is_empty());
+        let clob_result_deltas =
+            ClobResultDeltas::abi_decode(clob_out.deltas.as_ref(), false).unwrap();
+        assert!(clob_result_deltas.deposit_deltas.is_empty());
         let a = OrderDelta {
             account: bob.into(),
             free_base: I256::try_from(0).unwrap(),
@@ -102,12 +109,12 @@ mod tests {
             free_quote: I256::try_from(100).unwrap(),
             locked_quote: I256::try_from(-100i64).unwrap(),
         };
-        assert_eq!(clob_out.order_deltas, vec![a]);
+        assert_eq!(clob_result_deltas.order_deltas, vec![a]);
         let a =
             WithdrawDelta { account: alice.into(), base: U256::from(100), quote: U256::from(400) };
         let b =
             WithdrawDelta { account: bob.into(), base: U256::from(100), quote: U256::from(400) };
-        assert_eq!(clob_out.withdraw_deltas, vec![a, b]);
+        assert_eq!(clob_result_deltas.withdraw_deltas, vec![a, b]);
     }
 
     fn execute(txns: Vec<Request>, init_state: ClobState) -> ClobProgramOutput {
