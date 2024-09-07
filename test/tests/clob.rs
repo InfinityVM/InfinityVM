@@ -185,8 +185,7 @@ async fn state_job_submission_clob_consumer() {
 
             let raw_output = {
                 let abi_decoded_output =
-                    <ResultWithMetadata as SolValue>::abi_decode(&result_with_metadata, false)
-                        .unwrap();
+                    ResultWithMetadata::abi_decode(&result_with_metadata, false).unwrap();
                 abi_decoded_output.raw_output
             };
 

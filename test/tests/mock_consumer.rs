@@ -115,8 +115,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
-            <ResultWithMetadata as SolValue>::abi_decode(&job_result.result_with_metadata, false)
-                .unwrap();
+            ResultWithMetadata::abi_decode(&job_result.result_with_metadata, false).unwrap();
 
         let raw_output = abi_decoded_output.raw_output;
         let signing_payload = abi_encode_result_with_metadata(
@@ -241,8 +240,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
-            <ResultWithMetadata as SolValue>::abi_decode(&job_result.result_with_metadata, false)
-                .unwrap();
+            ResultWithMetadata::abi_decode(&job_result.result_with_metadata, false).unwrap();
         let raw_output = abi_decoded_output.raw_output;
         let signing_payload = abi_encode_result_with_metadata(
             job_id.into(),

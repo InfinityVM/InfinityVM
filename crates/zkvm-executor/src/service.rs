@@ -177,13 +177,12 @@ pub fn abi_encode_result_with_metadata(
 ) -> Vec<u8> {
     let program_input_hash = keccak256(input);
 
-    let result_with_metadata = ResultWithMetadata {
+    ResultWithMetadata {
         job_id: job_id.into(),
         program_input_hash,
         max_cycles,
         program_id: program_id.to_vec().into(),
         raw_output: raw_output.to_vec().into(),
-    };
-
-    result_with_metadata.abi_encode()
+    }
+    .abi_encode()
 }
