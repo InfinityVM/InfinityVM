@@ -3,13 +3,14 @@
 use alloy::{
     primitives::{keccak256, Address, Signature},
     signers::Signer,
+    sol,
+    sol_types::SolValue,
 };
 use base64::prelude::*;
 use proto::VmType;
 use std::marker::Send;
 use zkvm::Zkvm;
 
-use alloy::{sol, sol_types::SolType};
 use tracing::{error, info};
 
 /// Zkvm executor errors
@@ -33,9 +34,6 @@ pub enum Error {
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] zkvm::Error),
-    /// Error converting job ID
-    #[error("job id conversion error")]
-    JobIdConversion,
 }
 
 /// The implementation of the `ZkvmExecutor` trait
@@ -119,7 +117,7 @@ where
         };
 
         let result_with_metadata =
-            abi_encode_result_with_metadata(job_id, &input, max_cycles, &program_id, &raw_output)?;
+            abi_encode_result_with_metadata(job_id, &input, max_cycles, &program_id, &raw_output);
         let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
@@ -150,13 +148,23 @@ where
     }
 }
 
-/// The payload that gets signed to signify that the zkvm executor has faithfully
-/// executed the job. Also the result payload the job manager contract expects.
-///
-/// tuple(JobID,ProgramInputHash,MaxCycles,ProgramID,RawOutput)
-pub type ResultWithMetadata = sol! {
-    tuple(bytes32,bytes32,uint64,bytes,bytes)
-};
+sol! {
+    /// The payload that gets signed to signify that the zkvm executor has faithfully
+    /// executed the job. Also the result payload the job manager contract expects.
+    #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
+    struct ResultWithMetadata {
+        /// Job ID.
+        bytes32 job_id;
+        /// Hash of input passed to zkVM program for this job.
+        bytes32 program_input_hash;
+        /// Max cycles for the job.
+        uint64 max_cycles;
+        /// Program ID of program being executed.
+        bytes program_id;
+        /// Raw output (result) from zkVM program.
+        bytes raw_output;
+    }
+}
 
 /// Returns an ABI-encoded result with metadata. This ABI-encoded response will be
 /// signed by the operator.
@@ -166,14 +174,16 @@ pub fn abi_encode_result_with_metadata(
     max_cycles: u64,
     program_id: &[u8],
     raw_output: &[u8],
-) -> Result<Vec<u8>, Error> {
+) -> Vec<u8> {
     let program_input_hash = keccak256(input);
 
-    Ok(ResultWithMetadata::abi_encode_params(&(
-        job_id,
+    let result_with_metadata = ResultWithMetadata {
+        job_id: job_id.into(),
         program_input_hash,
         max_cycles,
-        program_id,
-        raw_output,
-    )))
+        program_id: program_id.to_vec().into(),
+        raw_output: raw_output.to_vec().into(),
+    };
+
+    result_with_metadata.abi_encode()
 }

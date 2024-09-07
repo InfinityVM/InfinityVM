@@ -8,7 +8,7 @@ use alloy::{
     rpc::types::Filter,
     signers::{local::PrivateKeySigner, Signer},
     sol,
-    sol_types::{SolEvent, SolType, SolValue},
+    sol_types::{SolEvent, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use db::tables::{get_job_id, Job, RequestType};
@@ -115,17 +115,17 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
-            ResultWithMetadata::abi_decode_params(&job_result.result_with_metadata, false).unwrap();
+            <ResultWithMetadata as SolValue>::abi_decode(&job_result.result_with_metadata, false)
+                .unwrap();
 
-        let raw_output = abi_decoded_output.4;
+        let raw_output = abi_decoded_output.raw_output;
         let signing_payload = abi_encode_result_with_metadata(
             job_id,
             &job_result.input,
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
-        )
-        .unwrap();
+        );
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
         assert_eq!(recovered1, anvil.coprocessor_operator.address());
@@ -241,16 +241,16 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
-            ResultWithMetadata::abi_decode_params(&job_result.result_with_metadata, false).unwrap();
-        let raw_output = abi_decoded_output.4;
+            <ResultWithMetadata as SolValue>::abi_decode(&job_result.result_with_metadata, false)
+                .unwrap();
+        let raw_output = abi_decoded_output.raw_output;
         let signing_payload = abi_encode_result_with_metadata(
             job_id.into(),
             &job_result.input,
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
-        )
-        .unwrap();
+        );
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
         assert_eq!(recovered1, anvil.coprocessor_operator.address());
