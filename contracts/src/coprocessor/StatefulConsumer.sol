@@ -12,21 +12,21 @@ abstract contract StatefulConsumer is Consumer {
 
     // Struct returned by zkVM program as the result
     struct StatefulProgramResult {
-        bytes32 nextStateRootHash;
+        bytes32 nextStateHash;
         bytes result;
     }
 
-    bytes32 public latestStateRootHash;
+    bytes32 public latestStateHash;
 
-    constructor(address __jobManager, uint64 _initialMaxNonce, bytes32 _latestStateRootHash)
+    constructor(address __jobManager, uint64 _initialMaxNonce, bytes32 _latestStateHash)
         Consumer(__jobManager, _initialMaxNonce)
     {
-        latestStateRootHash = _latestStateRootHash;
+        latestStateHash = _latestStateHash;
     }
 
-    function getLatestStateRootHash() public view returns (bytes32) {
-        return latestStateRootHash;
-    }    
+    function getLatestStateHash() public view returns (bytes32) {
+        return latestStateHash;
+    }
 
     // Override receiveResult to check state root provided in input
     function receiveResult(bytes32 jobID, bytes calldata result) external override onlyJobManager {
@@ -34,12 +34,12 @@ abstract contract StatefulConsumer is Consumer {
 
         bytes memory encodedInput = getProgramInputsForJob(jobID);
         StatefulProgramInput memory statefulInput = abi.decode(encodedInput, (StatefulProgramInput));
-        require(statefulInput.previousStateHash == latestStateRootHash, "Invalid state hash passed as input");
+        require(statefulInput.previousStateHash == latestStateHash, "Invalid state hash passed as input");
 
         // Update the state root hash
-        latestStateRootHash = statefulResult.nextStateRootHash;
+        latestStateHash = statefulResult.nextStateHash;
 
-        // Only pass in the actual result (not including nextStateRootHash) to _receiveResult()
+        // Only pass in the actual result (not including nextStateHash) to _receiveResult()
         _receiveResult(jobID, statefulResult.result);
     }
 }

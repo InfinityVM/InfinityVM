@@ -81,7 +81,7 @@ contract ClobConsumerTest is Test, ClobDeployer {
         });
 
         StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
-            nextStateRootHash: 0x0,
+            nextStateHash: 0x0,
             result: abi.encode(deltas)
         });
 
@@ -126,7 +126,7 @@ contract ClobConsumerTest is Test, ClobDeployer {
         });
 
         StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
-            nextStateRootHash: 0x0,
+            nextStateHash: 0x0,
             result: abi.encode(deltas)
         });
 
@@ -166,7 +166,7 @@ contract ClobConsumerTest is Test, ClobDeployer {
         });
 
         StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
-            nextStateRootHash: 0x0,
+            nextStateHash: 0x0,
             result: abi.encode(deltas)
         });
 

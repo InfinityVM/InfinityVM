@@ -53,6 +53,18 @@ sol! {
         /// Program input.
         bytes program_input;
     }
+
+    /// Passed into zkVM program as input for stateful jobs
+    struct StatefulProgramInput {
+        bytes32 previous_state_hash;
+        bytes input;
+    }
+
+    /// Returned by zkVM program as the result for stateful jobs
+    struct StatefulProgramResult {
+        bytes32 next_state_hash;
+        bytes result;
+    }
 }
 
 /// Returns an ABI-encoded offchain job request. This ABI-encoded response will be

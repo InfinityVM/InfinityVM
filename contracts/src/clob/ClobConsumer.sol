@@ -54,7 +54,7 @@ contract ClobConsumer is StatefulConsumer, OffchainRequester {
     mapping(address => uint256) public lockedBalanceBase;
     mapping(address => uint256) public lockedBalanceQuote;
 
-    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 latestStateRootHash) StatefulConsumer(jobManager, initialMaxNonce, latestStateRootHash) OffchainRequester() {
+    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 latestStateHash) StatefulConsumer(jobManager, initialMaxNonce, latestStateHash) OffchainRequester() {
         // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
         offchainSigner = _offchainSigner;
 
