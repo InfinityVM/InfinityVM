@@ -39,8 +39,8 @@ contract ClobConsumer is StatefulConsumer, OffchainRequester {
 
     event Deposit(address indexed user, uint256 baseAmount, uint256 quoteAmount);
 
+    // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
     address private offchainSigner;
-    uint64 public constant DEFAULT_MAX_CYCLES = 32 * 1000 * 1000;
 
     // Define the two tokens
     IERC20 public baseToken;
@@ -55,7 +55,6 @@ contract ClobConsumer is StatefulConsumer, OffchainRequester {
     mapping(address => uint256) public lockedBalanceQuote;
 
     constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 latestStateHash) StatefulConsumer(jobManager, initialMaxNonce, latestStateHash) OffchainRequester() {
-        // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
         offchainSigner = _offchainSigner;
 
         baseToken = _baseToken;
