@@ -46,7 +46,7 @@ alloy::sol! {
     }
 
     /// Result deltas for clob. The ABI-encoded form of this is
-    /// included in ClobProgramOutput.
+    /// included in StatefulProgramResult.
     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct ClobResultDeltas {
         /// Deposit balance deltas.

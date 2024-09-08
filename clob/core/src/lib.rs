@@ -10,10 +10,11 @@ use alloy::{
     sol_types::SolType,
 };
 
+use abi::StatefulProgramResult;
 use api::{
-    AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobProgramOutput,
-    ClobResultDeltas, DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request,
-    Response, WithdrawDelta, WithdrawRequest, WithdrawResponse,
+    AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobResultDeltas,
+    DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,
+    WithdrawDelta, WithdrawRequest, WithdrawResponse,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
@@ -253,7 +254,7 @@ pub fn tick(request: Request, state: ClobState) -> (Response, ClobState, Vec<Dif
 
 /// State transition function used in the ZKVM. It only outputs balance changes, which are abi
 /// encoded for contract consumption.
-pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> ClobProgramOutput {
+pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> StatefulProgramResult {
     // At most 2 deltas for a request (fills have delta for buyer and seller)
     let mut orders = HashMap::<[u8; 20], OrderDelta>::with_capacity(requests.len() * 2);
     let mut deposits = HashMap::<[u8; 20], DepositDelta>::with_capacity(requests.len());
@@ -277,9 +278,9 @@ pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> ClobProgramOutp
 
     let clob_result_deltas = ClobResultDeltas { order_deltas, withdraw_deltas, deposit_deltas };
 
-    ClobProgramOutput {
+    StatefulProgramResult {
         next_state_hash: state.borsh_keccak256(),
-        deltas: ClobResultDeltas::abi_encode(&clob_result_deltas).into(),
+        result: ClobResultDeltas::abi_encode(&clob_result_deltas).into(),
     }
 }
 

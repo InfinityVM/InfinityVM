@@ -7,6 +7,8 @@ use alloy::{
     sol_types::SolType,
 };
 
+use crate::Error;
+use abi::JobParams;
 use borsh::{BorshDeserialize, BorshSerialize};
 use proto::JobStatus;
 use reth_db::{
@@ -74,6 +76,23 @@ pub struct Job {
 }
 
 impl_compress_decompress! { Job }
+
+impl<'a> TryFrom<&'a Job> for JobParams<'a> {
+    type Error = Error;
+
+    fn try_from(job: &'a Job) -> Result<Self, Error> {
+        let consumer_address =
+            job.consumer_address.clone().try_into().map_err(|_| Error::InvalidAddressLength)?;
+
+        Ok(JobParams {
+            nonce: job.nonce,
+            max_cycles: job.max_cycles,
+            consumer_address,
+            program_input: &job.input,
+            program_id: &job.program_id,
+        })
+    }
+}
 
 /// Returns the job ID hash for a given nonce and consumer address.
 pub fn get_job_id(nonce: u64, consumer: Address) -> [u8; 32] {

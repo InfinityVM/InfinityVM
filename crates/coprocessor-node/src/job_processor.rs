@@ -46,9 +46,6 @@ pub enum Error {
     /// exec queue channel unexpected closed
     #[error("exec queue channel unexpected closed")]
     ExecQueueChannelClosed,
-    /// invalid address length
-    #[error("invalid address length")]
-    InvalidAddressLength(#[from] abi::Error),
 }
 
 /// `JobStatus` Failure Reasons

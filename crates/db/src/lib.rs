@@ -30,6 +30,10 @@ pub enum Error {
     /// Reth database error
     #[error("reth database: {0}")]
     RethDbError(#[from] DatabaseError),
+
+    /// invalid address length
+    #[error("invalid address length")]
+    InvalidAddressLength,
 }
 
 /// Write an ELF file to the database

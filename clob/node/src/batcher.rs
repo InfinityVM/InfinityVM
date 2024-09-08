@@ -4,9 +4,8 @@ use crate::db::{
     tables::{ClobStateTable, GlobalIndexTable, RequestTable},
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
-use abi::{abi_encode_offchain_job_request, JobParams};
+use abi::{abi_encode_offchain_job_request, JobParams, StatefulProgramInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
-use clob_core::api::ClobProgramInput;
 use clob_programs::CLOB_ID;
 use eyre::OptionExt;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitStatefulJobRequest};
@@ -105,10 +104,11 @@ where
 
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
         let program_state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
-        let prev_state_hash = keccak256(&program_state_borsh);
+        let previous_state_hash = keccak256(&program_state_borsh);
 
-        let program_input = ClobProgramInput { prev_state_hash, orders: requests_borsh.into() };
-        let program_input_encoded = ClobProgramInput::abi_encode(&program_input);
+        let program_input =
+            StatefulProgramInput { previous_state_hash, input: requests_borsh.into() };
+        let program_input_encoded = StatefulProgramInput::abi_encode(&program_input);
 
         let job_params = JobParams {
             nonce: job_nonce,

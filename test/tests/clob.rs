@@ -8,8 +8,8 @@ use alloy::{
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{
     api::{
-        AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest, ClobProgramInput,
-        ClobProgramOutput, DepositRequest, FillStatus, Request, WithdrawRequest,
+        AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest, DepositRequest,
+        FillStatus, Request, WithdrawRequest,
     },
     BorshKeccak256, ClobState,
 };
@@ -21,7 +21,9 @@ use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
 use zkvm_executor::service::ResultWithMetadata;
 
-use abi::{abi_encode_offchain_job_request, JobParams};
+use abi::{
+    abi_encode_offchain_job_request, JobParams, StatefulProgramInput, StatefulProgramResult,
+};
 use clob_core::api::OrderFill;
 
 fn program_id() -> Vec<u8> {
@@ -146,9 +148,9 @@ async fn state_job_submission_clob_consumer() {
         for (requests, init_state, next_state) in
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
         {
-            let input = ClobProgramInput {
-                prev_state_hash: init_state.borsh_keccak256(),
-                orders: borsh::to_vec(&requests).unwrap().into(),
+            let input = StatefulProgramInput {
+                previous_state_hash: init_state.borsh_keccak256(),
+                input: borsh::to_vec(&requests).unwrap().into(),
             };
 
             let state_borsh = borsh::to_vec(&init_state).unwrap();
@@ -190,7 +192,7 @@ async fn state_job_submission_clob_consumer() {
             };
 
             {
-                let clob_output = ClobProgramOutput::abi_decode(&raw_output, true).unwrap();
+                let clob_output = StatefulProgramResult::abi_decode(&raw_output, true).unwrap();
                 assert_eq!(clob_output.next_state_hash, next_state.borsh_keccak256());
             }
 
