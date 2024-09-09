@@ -1,6 +1,6 @@
 //! Executor database
 
-use proto::{Job, VmType};
+use proto::VmType;
 use reth_db::{
     create_db,
     mdbx::{DatabaseArguments, DatabaseFlags},
@@ -10,9 +10,11 @@ use reth_db::{
 };
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta};
+use tables::{ElfKey, ElfWithMeta, Job, JobID};
 
 pub mod tables;
+
+const LAST_HEIGHT_KEY: u32 = 0;
 
 /// DB module errors
 #[derive(thiserror::Error, Debug)]
@@ -28,18 +30,22 @@ pub enum Error {
     /// Reth database error
     #[error("reth database: {0}")]
     RethDbError(#[from] DatabaseError),
+
+    /// invalid address length
+    #[error("invalid address length")]
+    InvalidAddressLength,
 }
 
 /// Write an ELF file to the database
 pub fn put_elf<D: Database>(
     db: Arc<D>,
     vm_type: VmType,
-    verifying_key: &[u8],
+    program_id: &[u8],
     elf: Vec<u8>,
 ) -> Result<(), Error> {
     use tables::ElfTable;
     let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
-    let key = ElfKey::new(verifying_key);
+    let key = ElfKey::new(program_id);
 
     let tx = db.tx_mut()?;
     tx.put::<ElfTable>(key, elf_with_meta)?;
@@ -49,12 +55,9 @@ pub fn put_elf<D: Database>(
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist
-pub fn get_elf<D: Database>(
-    db: Arc<D>,
-    verifying_key: &[u8],
-) -> Result<Option<ElfWithMeta>, Error> {
+pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfWithMeta>, Error> {
     use tables::ElfTable;
-    let key = ElfKey::new(verifying_key);
+    let key = ElfKey::new(program_id);
 
     let tx = db.tx()?;
     let result = tx.get::<ElfTable>(key);
@@ -69,18 +72,41 @@ pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    tx.put::<JobTable>(job.id, job)?;
+    tx.put::<JobTable>(JobID(job.id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
 }
 
 /// Read in an Job from the database. [None] if it does not exist
-pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
+pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     use tables::JobTable;
 
     let tx = db.tx()?;
-    let result = tx.get::<JobTable>(job_id);
+    let result = tx.get::<JobTable>(JobID(job_id));
+    // Free mem pages for read only tx
+    let _commit = tx.commit()?;
+
+    result.map_err(Into::into)
+}
+
+/// Write last block height to the database
+pub fn set_last_block_height<D: Database>(db: Arc<D>, height: u64) -> Result<(), Error> {
+    use tables::LastBlockHeight;
+
+    let tx = db.tx_mut()?;
+    tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY, height)?;
+    let _commit = tx.commit()?;
+
+    Ok(())
+}
+
+/// Read last block height from the database.
+pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Error> {
+    use tables::LastBlockHeight;
+
+    let tx = db.tx()?;
+    let result = tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -97,11 +123,11 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Erro
 /// data item will be deleted. Otherwise, if data parameter is [None], any/all value(s)
 /// for specified key will be deleted.
 /// We pass in [None] here since each `job_id` only maps to a single Job.
-pub fn delete_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
+pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
     use tables::JobTable;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<JobTable>(job_id, None);
+    let result = tx.delete::<JobTable>(JobID(job_id), None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -113,18 +139,18 @@ pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error
     use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    tx.put::<RelayFailureJobs>(job.id, job)?;
+    tx.put::<RelayFailureJobs>(JobID(job.id), job)?;
     let _commit = tx.commit()?;
 
     Ok(())
 }
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist
-pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<Option<Job>, Error> {
+pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx()?;
-    let result = tx.get::<RelayFailureJobs>(job_id);
+    let result = tx.get::<RelayFailureJobs>(JobID(job_id));
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -149,11 +175,11 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
 }
 
 /// Delete a failed relayed Job from the database. [None] if it does not exist.
-pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: u32) -> Result<bool, Error> {
+pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
     use tables::RelayFailureJobs;
 
     let tx = db.tx_mut()?;
-    let result = tx.delete::<RelayFailureJobs>(job_id, None);
+    let result = tx.delete::<RelayFailureJobs>(JobID(job_id), None);
     // Free mem pages for read only tx
     let _commit = tx.commit()?;
 
@@ -185,6 +211,15 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
 
         tx.commit().map_err(|e| DatabaseError::Commit(e.into()))?;
     }
+
+    Ok(Arc::new(db))
+}
+
+/// Open a existing db in read only mode
+pub fn open_db_read_only<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
+    let client_version = ClientVersion::default();
+    let args = DatabaseArguments::new(client_version);
+    let db = reth_db::open_db_read_only(path.as_ref(), args)?;
 
     Ok(Arc::new(db))
 }

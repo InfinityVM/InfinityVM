@@ -13,17 +13,18 @@ use alloy::{
     signers::local::LocalSigner,
 };
 use async_channel::{bounded, Receiver, Sender};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
+use db::tables::Job;
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
-use proto::{coprocessor_node_server::CoprocessorNodeServer, Job};
+use proto::coprocessor_node_server::CoprocessorNodeServer;
 use std::{
     net::{SocketAddr, SocketAddrV4},
     path::PathBuf,
     sync::Arc,
 };
 use tokio::{task::JoinHandle, try_join};
-use tracing::info;
+use tracing::{info, instrument};
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
@@ -82,12 +83,6 @@ pub enum Error {
     ErrorPrometheus(#[from] std::io::Error),
 }
 
-#[derive(ValueEnum, Debug, Clone)]
-enum LoggingFormat {
-    Json,
-    Text,
-}
-
 type K256LocalSigner = LocalSigner<SigningKey>;
 
 #[derive(Debug, Clone, Subcommand)]
@@ -131,14 +126,6 @@ fn db_dir() -> String {
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Opts {
-    /// Logging level
-    #[arg(long, default_value = "info")]
-    log_level: String,
-
-    /// Logging format
-    #[arg(long, default_value = "text")]
-    log_format: LoggingFormat,
-
     /// gRPC server address
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
@@ -186,6 +173,10 @@ struct Opts {
     // TODO: https://github.com/Ethos-Works/InfinityVM/issues/142
     #[arg(long, default_value_t = BlockNumberOrTag::Earliest)]
     job_sync_start: BlockNumberOrTag,
+
+    /// Required confirmations for tx
+    #[arg(long, default_value_t = 1)]
+    confirmations: u64,
 }
 
 impl Opts {
@@ -231,6 +222,7 @@ pub struct Cli;
 
 impl Cli {
     /// Run the CLI
+    #[instrument]
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
@@ -265,11 +257,12 @@ impl Cli {
         let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
             bounded(opts.exec_queue_bound);
 
-        let executor = ZkvmExecutorService::new(zkvm_operator, opts.chain_id);
+        let executor = ZkvmExecutorService::new(zkvm_operator);
 
         let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
             opts.http_eth_rpc.clone(),
             opts.job_manager_address,
+            opts.confirmations,
             metrics.clone(),
         )?;
         let job_relayer = Arc::new(job_relayer);
@@ -297,7 +290,7 @@ impl Cli {
 
         let reflector = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
-            .build()
+            .build_v1()
             .expect("failed to build gRPC reflection service");
 
         let coprocessor_node_server =

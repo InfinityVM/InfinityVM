@@ -3,7 +3,6 @@ package coprocessor_node.v1;
 
 import "google/api/annotations.proto";
 import "coprocessor_node/v1/job.proto";
-import "coprocessor_node/v1/zkvm_executor.proto";
 
 option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
 
@@ -13,6 +12,14 @@ service CoprocessorNode {
   rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {
     option (google.api.http) = {
       post: "/v1/coprocessor_node/submit_job"
+      body: "*"
+    };
+  }
+
+  // SubmitStatefulJob defines the gRPC method for submitting a stateful coprocessing job.
+  rpc SubmitStatefulJob(SubmitStatefulJobRequest) returns (SubmitStatefulJobResponse) {
+    option (google.api.http) = {
+      post: "/v1/coprocessor_node/submit_stateful_job"
       body: "*"
     };
   }
@@ -33,29 +40,54 @@ service CoprocessorNode {
   }
 }
 
+// Type of ZKVM to execute
+enum VmType {
+  Risc0 = 0;
+  Sp1 = 1;
+}
+
 // SubmitJobRequest defines the request structure to submit a job to the
 // coprocessing coprocessor_node.
 message SubmitJobRequest {
-  // The zkvm job to run.
-  Job job = 1;
+  // ABI-encoded offchain job request
+  bytes request = 1;
+  // Signature on ABI-encoded offchain job request
+  bytes signature = 2;
 }
 
 // SubmitJobResponse defines the response structure to submit a job to the
 // coprocessing coprocessor_node.
 message SubmitJobResponse {
-  uint32 job_id = 1;
+  bytes job_id = 1;
+}
+
+// SubmitStatefulJobRequest defines the request structure to submit a stateful
+// job to the coprocessing coprocessor_node.
+message SubmitStatefulJobRequest {
+  // ABI-encoded offchain job request
+  bytes request = 1;
+  // Signature on ABI-encoded offchain job request
+  bytes signature = 2;
+  // Value of program state (this isn't signed over)
+  bytes program_state = 3;
+}
+
+// SubmitStatefulJobResponse defines the response structure to submit a
+// stateful job to the coprocessing coprocessor_node.
+message SubmitStatefulJobResponse {
+  bytes job_id = 1;
 }
 
 // GetResultRequest defines the request structure to get the result of a
 // coprocessing job.
 message GetResultRequest {
-  uint32 job_id = 1;
+  bytes job_id = 1;
 }
 
 // GetResultResponse defines the response structure to get the result of a
 // coprocessing job.
 message GetResultResponse {
-  Job job = 1;
+  JobResult job_result = 1;
 }
 
 // SubmitProgramRequest defines the request structure to submit a new program,
@@ -71,5 +103,5 @@ message SubmitProgramRequest {
 // program verification key.
 message SubmitProgramResponse {
   // The ZK program verification key
-  bytes program_verifying_key = 1;
+  bytes program_id = 1;
 }

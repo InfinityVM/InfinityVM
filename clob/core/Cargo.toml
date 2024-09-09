@@ -1,0 +1,14 @@
+[package]
+name = "clob-core"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+alloy = { workspace = true }
+borsh = { workspace = true }
+sha2 = { workspace = true }
+serde = { workspace = true }
+abi = { workspace = true }

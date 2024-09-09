@@ -7,7 +7,7 @@ runs:
         with:
           version: '3.x'
 
-      - uses: dtolnay/rust-toolchain@1.79.0
+      - uses: dtolnay/rust-toolchain@1.80.1
         with:
           components: clippy
 
@@ -33,13 +33,11 @@ runs:
       #     cargo prove --version
 
       - name: Install Foundry
-        if: env.GIT_DIFF
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
 
       - name: Build contracts
         shell: bash
-        if: env.GIT_DIFF
         run: |
           cd contracts && forge build

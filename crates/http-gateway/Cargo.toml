@@ -9,14 +9,12 @@ workspace = true
 
 [dependencies]
 axum = { workspace = true }
-prost = { workspace = true }
 tokio = { workspace = true }
 tonic = { workspace = true }
 clap = { workspace = true }
 thiserror = { workspace = true }
 serde = { workspace = true }
-serde_json = { workspace = true }
 tracing = { workspace = true }
 
-proto = { path = "../proto" }
-zkvm = { path = "../zkvm" }
+proto = { workspace = true }
+zkvm-tracing = { workspace = true }

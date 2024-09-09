@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import {Utils} from "./utils/Utils.sol";
-import {JobManager} from "../src/JobManager.sol";
+import {JobManager} from "../src/coprocessor/JobManager.sol";
 import {MockConsumer} from "../test/mocks/MockConsumer.sol";
 import "forge-std/StdJson.sol";
 
@@ -24,11 +24,12 @@ contract RequestJob is Script, Utils {
         );
 
         vm.startBroadcast();
-        uint32 jobID = consumer.requestBalance(programID, balanceAddr);
+        bytes32 jobID = consumer.requestBalance(programID, balanceAddr);
         vm.stopBroadcast();
 
         console.log("Requested balance for address: ", balanceAddr);
-        console.log("Job ID: ", jobID);
+        console.log("Job ID: ");
+        console.logBytes32(jobID);
     }
 
 }

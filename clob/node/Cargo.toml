@@ -1,0 +1,43 @@
+[package]
+name = "clob-node"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+axum = { workspace = true }
+alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+tokio = { workspace = true }
+eyre = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde_json = { workspace = true }
+reqwest = { workspace = true }
+futures-util = { workspace = true }
+tonic = { workspace = true }
+
+# DB deps
+bytes = { workspace = true }
+borsh = { workspace = true }
+serde = { workspace = true }
+paste = { workspace = true }
+reth-db-api = { workspace = true }
+reth-db = { workspace = true }
+
+# local deps
+abi = { workspace = true }
+clob-core = { workspace = true }
+clob-programs = { workspace = true }
+proto = { workspace = true }
+clob-contracts = { workspace = true }
+
+# zkvm deps
+risc0-zkvm = { workspace = true }
+
+[dev-dependencies]
+tower = { version = "0.4", features = ["util"] }
+http-body-util = "0"
+tempfile = "3"
+mime = "0"

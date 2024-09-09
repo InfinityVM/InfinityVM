@@ -8,31 +8,28 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["reqwest"] }
+alloy = { workspace = true, features = ["reqwest", "full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
-prost = { workspace = true }
 tokio = { workspace = true }
 clap = { workspace = true }
 thiserror = { workspace = true }
 home = { workspace = true }
-serde = { workspace = true }
-serde_json = { workspace = true }
 tracing = { workspace = true }
 k256 = { workspace = true }
 reth-db = { workspace = true }
-tracing-subscriber = { workspace = true}
 base64 = { workspace = true }
 async-channel = { workspace = true }
-futures-util = { workspace = true }
 
 prometheus = { workspace = true }
 axum = { workspace = true }
-contracts = { path = "../contracts" }
-db = { path = "../db" }
-proto = { path = "../proto" }
-zkvm = { path = "../zkvm" }
-zkvm-executor = { path = "../zkvm-executor" }
+contracts = { workspace = true }
+abi = { workspace = true }
+db = { workspace = true }
+proto = { workspace = true }
+zkvm-executor = { workspace = true }
+zkvm-tracing = { workspace = true }
 
 [dev-dependencies]
-test-utils = { path = "../test-utils" }
+test-utils = { workspace = true }
+mock-consumer = { workspace = true }

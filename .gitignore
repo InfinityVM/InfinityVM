@@ -11,14 +11,16 @@ contracts/broadcast/**
 
 # Dotenv file
 contracts/.env
-rust/crates/scripts/.env
+crates/scripts/.env
 
 
 programs/**/methods/Cargo.lock
 programs/**/program/target
 programs/**/program/elf
-/target/
+**/target/
 /debug/
+tmp-data-dir/
+logs/
 
 # ide
 .idea

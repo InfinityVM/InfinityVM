@@ -2,9 +2,9 @@
 pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
-import {JobManager} from "../src/JobManager.sol";
-import {IJobManager} from "../src/IJobManager.sol";
-import {Consumer} from "../src/Consumer.sol";
+import {JobManager} from "../src/coprocessor/JobManager.sol";
+import {IJobManager} from "../src/coprocessor/IJobManager.sol";
+import {Consumer} from "../src/coprocessor/Consumer.sol";
 import {MockConsumer} from "../test/mocks/MockConsumer.sol";
 import {Utils} from "./utils/Utils.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
@@ -20,7 +20,7 @@ contract CoprocessorDeployer is Script, Utils {
     IJobManager public jobManagerImplementation;
     MockConsumer public consumer;
 
-    function deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, bool writeJson) public {
+    function deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, uint64 initialMaxNonce, bool writeJson) public {
         vm.startBroadcast();
         // deploy proxy admin for ability to upgrade proxy contracts
         coprocessorProxyAdmin = new ProxyAdmin();
@@ -41,7 +41,7 @@ contract CoprocessorDeployer is Script, Utils {
             )
         );
 
-        consumer = new MockConsumer(address(jobManager), offchainSigner);
+        consumer = new MockConsumer(address(jobManager), offchainSigner, initialMaxNonce);
 
         if (writeJson) {
             // WRITE JSON DATA

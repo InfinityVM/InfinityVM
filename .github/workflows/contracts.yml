@@ -1,0 +1,48 @@
+name: contracts
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  test:
+    strategy:
+      fail-fast: true
+    runs-on: ubicloud-standard-2
+    defaults:
+      run:
+        working-directory: ./contracts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - uses: technote-space/get-diff-action@v6.1.2
+        id: git_diff
+        with:
+          PATTERNS: |
+            .github/workflows/contracts.yml
+            **/*.sol
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+        if: env.GIT_DIFF
+
+      - name: Run Forge build
+        run: |
+          forge --version
+          forge build --sizes
+        if: env.GIT_DIFF
+
+      - name: Run Forge tests
+        run: |
+          forge test -vvv
+        if: env.GIT_DIFF

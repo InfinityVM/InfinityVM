@@ -19,23 +19,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute(".coprocessor_node", SERDE_AS)
         .type_attribute(".coprocessor_node", SERDE_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node", SERDE_RENAME_CAMELCASE)
-        .type_attribute(".coprocessor_node.v1.Job", BORSH_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node.v1.JobStatus", BORSH_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_USE_DISCRIMINANT_TRUE)
         .field_attribute(".coprocessor_node.v1.JobStatus.failure_reason", SERDE_DEFAULT)
         .field_attribute(".coprocessor_node.v1.JobStatus.retries", SERDE_DEFAULT)
+        .field_attribute("id", SERDE_BYTES_BASE64)
         .field_attribute("program_elf", SERDE_BYTES_BASE64)
-        .field_attribute("program_verifying_key", SERDE_BYTES_BASE64)
+        .field_attribute("program_id", SERDE_BYTES_BASE64)
         .field_attribute("input", SERDE_BYTES_BASE64)
-        .field_attribute("result", SERDE_BYTES_BASE64)
+        .field_attribute("program_state", SERDE_BYTES_BASE64)
+        .field_attribute("request_signature", SERDE_BYTES_BASE64)
+        .field_attribute("result_with_metadata", SERDE_BYTES_BASE64)
         .field_attribute("zkvm_operator_signature", SERDE_BYTES_BASE64)
-        .field_attribute("zkvm_operator_address", SERDE_BYTES_HEX)
-        .field_attribute("contract_address", SERDE_BYTES_HEX)
+        .field_attribute("consumer_address", SERDE_BYTES_HEX)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .compile(
             &[
-                "../../proto/coprocessor_node/v1/zkvm_executor.proto",
                 "../../proto/coprocessor_node/v1/coprocessor_node.proto",
                 "../../proto/coprocessor_node/v1/job.proto",
             ],

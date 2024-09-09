@@ -2,7 +2,7 @@
 
 Infinite possibilities.
 
-The workspace configuration is defined by `rust/Cargo.toml`.
+The workspace configuration is defined by `Cargo.toml`.
 
 ## Develop
 
@@ -12,13 +12,14 @@ Rust
 
 ```sh
 # set rust version
-rustup use 1.79
+rustup default 1.80.1
 rustup toolchain install nightly
 ```
 
 Proto
 
 - MacOS
+
 ```sh
 # install protobuf compilation tools
 brew update
@@ -26,11 +27,13 @@ brew install protobuf
 ```
 
 - Debian/Ubuntu
+
 ```sh
 # install protobuf compilation tools
 apt-get update
 apt-get install install protobuf-compiler
 ```
+
 Risc0
 
 ```sh
@@ -46,6 +49,14 @@ Sp1
 curl -L https://sp1.succinct.xyz | bash
 sp1up
 cargo prove --version
+```
+
+Foundry
+
+```
+curl -L https://foundry.paradigm.xyz | bash
+foundryup
+cd contracts && forge build
 ```
 
 **Iterating**
@@ -84,7 +95,6 @@ Unit tests
 cargo test
 ```
 
-
 Integration tests
 
 ```sh
@@ -96,6 +106,20 @@ To change Rust log level when running a binary
 ```sh
 export RUST_LOG="<log-level>"
 ```
+
+To change the Rust log format between text or json:
+
+```sh
+export RUST_LOG_FORMAT="text"  # Use "json" for JSON
+```
+
+To export logs to a file:
+
+```sh
+export RUST_LOG_FILE="zkvm.log" 
+export RUST_LOG_DIR="/path/to/log" # Optional
+```
+If RUST_LOG_DIR is not specified, logs will be written to the current directory "."
 
 To run any binary that is a non default member you need to specify the package:
 
@@ -116,6 +140,12 @@ If you are working in VSCode, try installing the rust-analyzer extension. We rec
     "editor.defaultFormatter": "rust-lang.rust-analyzer"
 }
 ```
+
+## Coprocessor Architecture Diagram
+
+[Coprocessor Architecture Diagram](coprocessor_architecture.png)
+
+<!-- https://app.excalidraw.com/s/8oh7cYrMkAR/5fsQ8hJAP0k -->
 
 ## Acknowledgements
 

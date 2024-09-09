@@ -8,7 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true }
+alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 thiserror = { workspace = true }
 sha2 = { workspace = true }
 reth-db = { workspace = true }
@@ -16,6 +16,6 @@ reth-db-api = { workspace = true }
 eyre = { workspace = true }
 serde = { workspace = true }
 borsh = { workspace = true }
+abi = { workspace = true }
 
-proto = { path = "../proto" }
-zkvm = { path = "../zkvm" }
+proto = { workspace = true }
