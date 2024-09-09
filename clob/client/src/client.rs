@@ -1,6 +1,5 @@
 //! HTTP client for the CLOB node.
 
-use clob_node::app::{ClobStateResponse, CANCEL, CLOB_STATE, ORDERS, WITHDRAW};
 use clob_core::{
     api::{
         AddOrderRequest, AddOrderResponse, ApiResponse, CancelOrderRequest, CancelOrderResponse,
@@ -8,8 +7,9 @@ use clob_core::{
     },
     ClobState,
 };
-use serde::{de::DeserializeOwned, Serialize};
+use clob_node::app::{ClobStateResponse, CANCEL, CLOB_STATE, ORDERS, WITHDRAW};
 use eyre::bail;
+use serde::{de::DeserializeOwned, Serialize};
 
 /// CLOB Node client.
 #[derive(Debug, Clone)]
@@ -24,7 +24,10 @@ impl Client {
     }
 
     /// Post a cancel order request.
-    pub async fn cancel(&self, req: CancelOrderRequest) -> eyre::Result<(CancelOrderResponse, u64)> {
+    pub async fn cancel(
+        &self,
+        req: CancelOrderRequest,
+    ) -> eyre::Result<(CancelOrderResponse, u64)> {
         let url = self.path(CANCEL);
         let api_resp: ApiResponse = post(&url, req).await;
         let resp = match api_resp.response {
@@ -77,8 +80,7 @@ async fn post<Req: Serialize, Resp: DeserializeOwned>(url: &str, req: Req) -> Re
 
 /// Get the `ClobState`.
 async fn get_state(url: &str) -> eyre::Result<ClobState> {
-    let response: ClobStateResponse =
-        reqwest::Client::new().get(url).send().await?.json().await?;
+    let response: ClobStateResponse = reqwest::Client::new().get(url).send().await?.json().await?;
 
     let borsh = alloy::hex::decode(&response.borsh_hex_clob_state)?;
 

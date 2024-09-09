@@ -1580,6 +1580,7 @@ dependencies = [
  "alloy",
  "axum",
  "borsh",
+ "clap",
  "clob-core",
  "clob-node",
  "eyre",
