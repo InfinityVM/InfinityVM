@@ -28,7 +28,8 @@ sol! {
         bytes program_input;
     }
 
-    /// Passed into zkVM program as input for stateful jobs
+    /// Passed into zkVM program as input for stateful jobs. This is just the
+    /// input posted onchain. There is additional offchain input (program state).
     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct StatefulProgramInput {
         bytes32 previous_state_hash;

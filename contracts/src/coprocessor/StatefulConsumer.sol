@@ -4,7 +4,9 @@ pragma solidity ^0.8.13;
 import {Consumer} from "./Consumer.sol";
 
 abstract contract StatefulConsumer is Consumer {
-    // Struct passed into zkVM program as input
+    // Struct passed into zkVM program as input. This is
+    // just the input posted onchain. There is additional
+    // offchain input (program state).
     struct StatefulProgramInput {
         bytes32 previousStateHash;
         bytes input;
