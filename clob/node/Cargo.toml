@@ -15,6 +15,7 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }
 reqwest = { workspace = true }
+futures-util = { workspace = true }
 tonic = { workspace = true }
 
 # DB deps
@@ -30,6 +31,7 @@ abi = { workspace = true }
 clob-core = { workspace = true }
 clob-programs = { workspace = true }
 proto = { workspace = true }
+clob-contracts = { workspace = true }
 
 # zkvm deps
 risc0-zkvm = { workspace = true }

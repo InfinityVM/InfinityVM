@@ -1,10 +1,10 @@
 //! HTTP client for the CLOB node.
 
-use crate::app::{ClobStateResponse, CANCEL, CLOB_STATE, DEPOSIT, ORDERS, WITHDRAW};
+use crate::app::{ClobStateResponse, CANCEL, CLOB_STATE, ORDERS, WITHDRAW};
 use clob_core::{
     api::{
         AddOrderRequest, AddOrderResponse, ApiResponse, CancelOrderRequest, CancelOrderResponse,
-        DepositRequest, DepositResponse, Response, WithdrawRequest, WithdrawResponse,
+        Response, WithdrawRequest, WithdrawResponse,
     },
     ClobState,
 };
@@ -38,18 +38,6 @@ impl Client {
     pub async fn clob_state(&self) -> ClobState {
         let url = self.path(CLOB_STATE);
         get_state(&url).await
-    }
-
-    /// Post a deposit request.
-    pub async fn deposit(&self, req: DepositRequest) -> (DepositResponse, u64) {
-        let url = self.path(DEPOSIT);
-        let api_resp: ApiResponse = post(&url, req).await;
-        let resp = match api_resp.response {
-            Response::Deposit(resp) => resp,
-            _ => panic!("unexpected response"),
-        };
-
-        (resp, api_resp.global_index)
     }
 
     /// Post an add order request.

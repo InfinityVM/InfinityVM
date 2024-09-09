@@ -1,6 +1,6 @@
 //! Common crate for ABI-encoded types.
 
-use alloy::sol_types::SolType;
+use alloy::{sol, sol_types::SolValue};
 use db::tables::Job;
 
 /// Errors from ABI encoding
@@ -10,13 +10,6 @@ pub enum Error {
     #[error("invalid address length")]
     InvalidAddressLength,
 }
-
-/// The payload that gets signed by the user/app for an offchain job request.
-///
-/// tuple(Nonce,MaxCycles,Consumer,ProgramID,ProgramInput)
-pub type OffchainJobRequest = alloy::sol! {
-    tuple(uint64,uint64,address,bytes,bytes)
-};
 
 /// Params for ABI encoded job input.
 #[derive(Clone)]
@@ -45,14 +38,32 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
     }
 }
 
+sol! {
+    /// The payload that gets signed by the user/app for an offchain job request.
+     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
+    struct OffchainJobRequest {
+        /// Nonce of the job request for this consumer.
+        uint64 nonce;
+        /// Max cycles for the job execution.
+        uint64 max_cycles;
+        /// Consumer to send result to.
+        address consumer;
+        /// Program ID to execute.
+        bytes program_id;
+        /// Program input.
+        bytes program_input;
+    }
+}
+
 /// Returns an ABI-encoded offchain job request. This ABI-encoded response will be
 /// signed by the entity sending the job request (user, app, authorized third-party, etc.).
 pub fn abi_encode_offchain_job_request(job: JobParams) -> Vec<u8> {
-    OffchainJobRequest::abi_encode_params(&(
-        job.nonce,
-        job.max_cycles,
-        job.consumer_address,
-        job.program_id,
-        job.program_input,
-    ))
+    OffchainJobRequest {
+        nonce: job.nonce,
+        max_cycles: job.max_cycles,
+        consumer: job.consumer_address.into(),
+        program_id: job.program_id.to_vec().into(),
+        program_input: job.program_input.to_vec().into(),
+    }
+    .abi_encode()
 }

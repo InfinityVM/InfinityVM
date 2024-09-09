@@ -18,6 +18,7 @@ use clob_test_utils::{mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
 use proto::{GetResultRequest, SubmitProgramRequest, SubmitStatefulJobRequest, VmType};
 use risc0_binfmt::compute_image_id;
+use tokio::time::{sleep, Duration};
 use zkvm_executor::service::ResultWithMetadata;
 
 use abi::{abi_encode_offchain_job_request, JobParams};
@@ -97,6 +98,10 @@ async fn state_job_submission_clob_consumer() {
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
 
+        // Wait for CLOB node and coprocessor to process deposits and send batch to contracts.
+        // This is necessary because the CLOB node will automatically pick up the deposit events.
+        sleep(Duration::from_secs(10)).await;
+
         let requests1 = vec![
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),
             Request::Deposit(DepositRequest { address: bob, base_free: 0, quote_free: 800 }),
@@ -138,11 +143,9 @@ async fn state_job_submission_clob_consumer() {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
         interval.tick().await; // First tick processes immediately
         let mut nonce = 2;
-        for (requests, init_state, next_state) in [
-            (requests1, &clob_state0, &clob_state1),
-            (requests2, &clob_state1, &clob_state2),
-            (requests3, &clob_state2, &clob_state3),
-        ] {
+        for (requests, init_state, next_state) in
+            [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
+        {
             let input = ClobProgramInput {
                 prev_state_hash: init_state.borsh_keccak256(),
                 orders: borsh::to_vec(&requests).unwrap().into(),
@@ -181,10 +184,9 @@ async fn state_job_submission_clob_consumer() {
                 .result_with_metadata;
 
             let raw_output = {
-                use alloy::sol_types::SolType;
                 let abi_decoded_output =
-                    ResultWithMetadata::abi_decode_params(&result_with_metadata, false).unwrap();
-                abi_decoded_output.4
+                    ResultWithMetadata::abi_decode(&result_with_metadata, false).unwrap();
+                abi_decoded_output.raw_output
             };
 
             {
@@ -291,10 +293,6 @@ async fn clob_node_e2e() {
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
 
-        let alice_dep = DepositRequest { address: alice, base_free: 200, quote_free: 0 };
-        let bob_dep = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
-        assert_eq!(client.deposit(alice_dep).await.1, 1);
-        assert_eq!(client.deposit(bob_dep).await.1, 2);
         let state = client.clob_state().await;
         assert_eq!(
             *state.base_balances().get(&alice).unwrap(),
@@ -308,6 +306,8 @@ async fn clob_node_e2e() {
         let alice_limit =
             AddOrderRequest { address: alice, is_buy: false, limit_price: 4, size: 100 };
         let (r, i) = client.order(alice_limit).await;
+        // i is 3 here because the CLOB node automatically picks up the deposit
+        // events from the contracts earlier (one each for Alice and Bob).
         assert_eq!(i, 3);
         assert_eq!(
             r,
