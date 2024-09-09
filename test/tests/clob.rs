@@ -184,10 +184,9 @@ async fn state_job_submission_clob_consumer() {
                 .result_with_metadata;
 
             let raw_output = {
-                use alloy::sol_types::SolType;
                 let abi_decoded_output =
-                    ResultWithMetadata::abi_decode_params(&result_with_metadata, false).unwrap();
-                abi_decoded_output.4
+                    ResultWithMetadata::abi_decode(&result_with_metadata, false).unwrap();
+                abi_decoded_output.raw_output
             };
 
             {

@@ -98,7 +98,7 @@ contract JobManager is
         require(ECDSA.tryRecover(messageHash, signature) == coprocessorOperator, "JobManager.submitResult: Invalid signature");
 
         // Decode the resultWithMetadata using abi.decode
-        ResultWithMetadata memory result = decodeResultWithMetadata(resultWithMetadata);
+        ResultWithMetadata memory result = abi.decode(resultWithMetadata, (ResultWithMetadata));
         _submitResult(result.jobID, result.maxCycles, result.programInputHash, result.programID, result.result);
     }
 
@@ -109,7 +109,7 @@ contract JobManager is
         bytes calldata signatureOnRequest
     ) public override {
         // Decode the job request using abi.decode
-        OffchainJobRequest memory request = decodeJobRequest(jobRequest);
+        OffchainJobRequest memory request = abi.decode(jobRequest, (OffchainJobRequest));
         bytes32 jobID = keccak256(abi.encodePacked(request.nonce, request.consumer));
 
         // Verify signature on job request
@@ -125,7 +125,7 @@ contract JobManager is
         Consumer(request.consumer).setProgramInputsForJob(jobID, request.programInput);
 
         // Decode the result using abi.decode
-        ResultWithMetadata memory result = decodeResultWithMetadata(resultWithMetadata);
+        ResultWithMetadata memory result = abi.decode(resultWithMetadata, (ResultWithMetadata));
         require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
         _submitResult(jobID, result.maxCycles, result.programInputHash, result.programID, result.result);
     }
@@ -157,15 +157,5 @@ contract JobManager is
 
         // Forward result to consumer
         Consumer(job.consumer).receiveResult(jobID, result);
-    }
-
-    function decodeResultWithMetadata(bytes memory resultWithMetadata) public pure returns (ResultWithMetadata memory) {
-        (bytes32 jobID, bytes32 programInputHash, uint64 maxCycles, bytes memory programID, bytes memory result) = abi.decode(resultWithMetadata, (bytes32, bytes32, uint64, bytes, bytes));
-        return ResultWithMetadata(jobID, programInputHash, maxCycles, programID, result);
-    }
-
-    function decodeJobRequest(bytes memory jobRequest) public pure returns (OffchainJobRequest memory) {
-        (uint64 nonce, uint64 maxCycles, address consumer, bytes memory programID, bytes memory programInput) = abi.decode(jobRequest, (uint64, uint64, address, bytes, bytes));
-        return OffchainJobRequest(nonce, maxCycles, consumer, programID, programInput);
     }
 }

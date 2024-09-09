@@ -38,8 +38,7 @@ impl RequestAndResultSigner {
             MAX_CYCLES,
             PROGRAM_ID,
             &raw_output,
-        )
-        .unwrap();
+        );
 
         // Sign the message
         let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY")
