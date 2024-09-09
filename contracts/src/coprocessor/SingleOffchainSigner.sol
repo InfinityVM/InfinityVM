@@ -4,8 +4,8 @@ pragma solidity ^0.8.13;
 import {OffchainRequester} from "./OffchainRequester.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
 
+// SingleOffchainSigner allows a single offchainSigner address to sign all offchain job requests
 abstract contract SingleOffchainSigner is OffchainRequester {
-    // SingleOffchainSigner allows a single offchainSigner address to sign all offchain job requests
     address private offchainSigner;
 
     constructor(address _offchainSigner) OffchainRequester() {
@@ -20,7 +20,7 @@ abstract contract SingleOffchainSigner is OffchainRequester {
     // an offchain job request.
     function isValidSignature(bytes32 messageHash, bytes memory signature) public view override returns (bytes4) {
         address recoveredSigner = ECDSA.tryRecover(messageHash, signature);
-        // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
+        // Checks that the job request was signed by the offchainSigner
         if (recoveredSigner == offchainSigner) {
             return EIP1271_MAGIC_VALUE;
         } else {
