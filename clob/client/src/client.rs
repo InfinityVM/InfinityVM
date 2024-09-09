@@ -9,6 +9,7 @@ use clob_core::{
     ClobState,
 };
 use serde::{de::DeserializeOwned, Serialize};
+use eyre::bail;
 
 /// CLOB Node client.
 #[derive(Debug, Clone)]
@@ -23,45 +24,45 @@ impl Client {
     }
 
     /// Post a cancel order request.
-    pub async fn cancel(&self, req: CancelOrderRequest) -> (CancelOrderResponse, u64) {
+    pub async fn cancel(&self, req: CancelOrderRequest) -> eyre::Result<(CancelOrderResponse, u64)> {
         let url = self.path(CANCEL);
         let api_resp: ApiResponse = post(&url, req).await;
         let resp = match api_resp.response {
             Response::CancelOrder(resp) => resp,
-            _ => panic!("unexpected response"),
+            _ => bail!("unexpected api response"),
         };
 
-        (resp, api_resp.global_index)
+        Ok((resp, api_resp.global_index))
     }
 
     /// Get the full CLOB state.
-    pub async fn clob_state(&self) -> ClobState {
+    pub async fn clob_state(&self) -> eyre::Result<ClobState> {
         let url = self.path(CLOB_STATE);
         get_state(&url).await
     }
 
     /// Post an add order request.
-    pub async fn order(&self, req: AddOrderRequest) -> (AddOrderResponse, u64) {
+    pub async fn order(&self, req: AddOrderRequest) -> eyre::Result<(AddOrderResponse, u64)> {
         let url = self.path(ORDERS);
         let api_resp: ApiResponse = post(&url, req).await;
         let resp = match api_resp.response {
             Response::AddOrder(resp) => resp,
-            _ => panic!("unexpected response"),
+            _ => bail!("unexpected api response"),
         };
 
-        (resp, api_resp.global_index)
+        Ok((resp, api_resp.global_index))
     }
 
     /// Post withdraw request.
-    pub async fn withdraw(&self, req: WithdrawRequest) -> (WithdrawResponse, u64) {
+    pub async fn withdraw(&self, req: WithdrawRequest) -> eyre::Result<(WithdrawResponse, u64)> {
         let url = self.path(WITHDRAW);
         let api_resp: ApiResponse = post(&url, req).await;
         let resp = match api_resp.response {
             Response::Withdraw(resp) => resp,
-            _ => panic!("unexpected response"),
+            _ => bail!("unexpected api response"),
         };
 
-        (resp, api_resp.global_index)
+        Ok((resp, api_resp.global_index))
     }
 
     fn path(&self, route: &str) -> String {
@@ -75,11 +76,11 @@ async fn post<Req: Serialize, Resp: DeserializeOwned>(url: &str, req: Req) -> Re
 }
 
 /// Get the `ClobState`.
-async fn get_state(url: &str) -> ClobState {
+async fn get_state(url: &str) -> eyre::Result<ClobState> {
     let response: ClobStateResponse =
-        reqwest::Client::new().get(url).send().await.unwrap().json().await.unwrap();
+        reqwest::Client::new().get(url).send().await?.json().await?;
 
-    let borsh = alloy::hex::decode(&response.borsh_hex_clob_state).unwrap();
+    let borsh = alloy::hex::decode(&response.borsh_hex_clob_state)?;
 
-    borsh::from_slice(&borsh).unwrap()
+    borsh::from_slice(&borsh).map_err(Into::into)
 }
