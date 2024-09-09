@@ -4,8 +4,8 @@ use std::{fs::File, process::Command};
 
 use alloy::primitives::hex;
 use clob_node::{
-    CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR,
-    CLOB_ETH_HTTP_ADDR, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
+    CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR, CLOB_ETH_WS_ADDR,
+    CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
 use clob_test_utils::anvil_with_clob_consumer;
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
@@ -60,7 +60,7 @@ async fn main() {
         .arg("--http-eth-rpc")
         .arg(&http_rpc_url)
         .arg("--ws-eth-rpc")
-        .arg(ws_rpc_url)
+        .arg(&ws_rpc_url)
         .arg("--job-manager-address")
         .arg(job_manager)
         .arg("--chain-id")
@@ -94,7 +94,7 @@ async fn main() {
         .env(CLOB_LISTEN_ADDR, clob_http)
         .env(CLOB_DB_DIR, clob_db_dir.path())
         .env(CLOB_CN_GRPC_ADDR, coproc_grpc)
-        .env(CLOB_ETH_HTTP_ADDR, http_rpc_url)
+        .env(CLOB_ETH_WS_ADDR, ws_rpc_url)
         .env(CLOB_CONSUMER_ADDR, clob_consumer_addr)
         .env(CLOB_BATCHER_DURATION_MS, batcher_duration_ms.to_string())
         .env(CLOB_OPERATOR_KEY, clob_operator)
