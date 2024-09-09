@@ -12,6 +12,7 @@ borsh = { workspace = true }
 alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 zkvm = { workspace = true }
 clob-test-utils = { workspace = true }
+abi = { workspace = true }
 
 [build-dependencies]
 risc0-build = { workspace = true }

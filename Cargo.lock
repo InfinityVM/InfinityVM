@@ -7,8 +7,6 @@ name = "abi"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "db",
- "thiserror",
 ]
 
 [[package]]
@@ -1586,6 +1584,7 @@ dependencies = [
 name = "clob-core"
 version = "0.1.0"
 dependencies = [
+ "abi",
  "alloy",
  "borsh",
  "serde",
@@ -1628,6 +1627,7 @@ dependencies = [
 name = "clob-programs"
 version = "0.1.0"
 dependencies = [
+ "abi",
  "alloy",
  "borsh",
  "clob-core",
@@ -1968,6 +1968,7 @@ checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 name = "db"
 version = "0.0.1"
 dependencies = [
+ "abi",
  "alloy",
  "borsh",
  "eyre",

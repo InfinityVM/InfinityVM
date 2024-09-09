@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {JobManager} from "../src/coprocessor/JobManager.sol";
 import {Consumer} from "../src/coprocessor/Consumer.sol";
+import {StatefulConsumer} from "../src/coprocessor/StatefulConsumer.sol";
 import {ClobConsumer} from "../src/clob/ClobConsumer.sol";
 import {ClobDeployer} from "../script/ClobDeployer.s.sol";
 
@@ -73,11 +74,15 @@ contract ClobConsumerTest is Test, ClobDeployer {
         ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](0);
         ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
-            nextStateRootHash: 0x0,
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas
+        });
+
+        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
+            nextStateHash: 0x0,
+            result: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);
@@ -114,11 +119,15 @@ contract ClobConsumerTest is Test, ClobDeployer {
 
         ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
-            nextStateRootHash: 0x0,
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas
+        });
+
+        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
+            nextStateHash: 0x0,
+            result: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);
@@ -150,11 +159,15 @@ contract ClobConsumerTest is Test, ClobDeployer {
             quoteDelta: 100
         });
 
-        ClobConsumer.ClobProgramOutput memory clobResult = ClobConsumer.ClobProgramOutput({
-            nextStateRootHash: 0x0,
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
             depositDeltas: depositDeltas,
             orderDeltas: orderDeltas,
             withdrawDeltas: withdrawDeltas
+        });
+
+        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
+            nextStateHash: 0x0,
+            result: abi.encode(deltas)
         });
 
         bytes memory encodedResult = abi.encode(clobResult);
