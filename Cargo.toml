@@ -19,6 +19,7 @@ members = [
 	"test",
 	"programs/risc0/mock-consumer/methods",
 	"programs/risc0/vapenation/methods",
+	"clob/client",
 	"clob/core",
 	"clob/contracts",
 	"clob/programs",
@@ -203,6 +204,7 @@ reqwest = { version = "0", features = ["json"] }
 
 # local
 abi = { path = "crates/sdk/abi" }
+clob-client ={ path = "clob/client" }
 clob-contracts ={ path = "clob/contracts" }
 clob-core = { path = "clob/core" }
 clob-node = { path = "clob/node" }

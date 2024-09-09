@@ -225,7 +225,7 @@ async fn clob_node_e2e() {
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_endpoint = args.clob_endpoint.unwrap();
 
-        let client = clob_node::client::Client::new(clob_endpoint);
+        let client = clob_client::Client::new(clob_endpoint);
 
         // Setup ready to use on chain accounts for Alice & Bob
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();

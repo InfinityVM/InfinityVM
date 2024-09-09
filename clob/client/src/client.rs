@@ -1,6 +1,6 @@
 //! HTTP client for the CLOB node.
 
-use crate::app::{ClobStateResponse, CANCEL, CLOB_STATE, ORDERS, WITHDRAW};
+use clob_node::app::{ClobStateResponse, CANCEL, CLOB_STATE, ORDERS, WITHDRAW};
 use clob_core::{
     api::{
         AddOrderRequest, AddOrderResponse, ApiResponse, CancelOrderRequest, CancelOrderResponse,
