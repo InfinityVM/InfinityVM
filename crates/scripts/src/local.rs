@@ -8,7 +8,6 @@ use clob_node::{
     CLOB_ETH_HTTP_ADDR, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
 use clob_test_utils::anvil_with_clob_consumer;
-use std::process::Stdio;
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
