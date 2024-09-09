@@ -8,18 +8,26 @@ rust-version.workspace = true
 name = "signer"
 path = "src/main.rs"
 
+[[bin]]
+name = "local"
+path = "src/local.rs"
+
 [lints]
 workspace = true
 
 [dependencies]
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["signal"] }
 alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 k256 = { workspace = true }
 dotenv = { workspace = true }
+tempfile = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
 
 proto = { workspace = true }
 zkvm-executor = { workspace = true }
 db = { workspace = true }
 abi = { workspace = true }
-
-
+test-utils = { workspace = true }
+clob-test-utils = { workspace = true }
+clob-node = { workspace = true }
