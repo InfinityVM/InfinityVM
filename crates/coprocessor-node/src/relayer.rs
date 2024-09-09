@@ -229,7 +229,7 @@ mod test {
     };
     use prometheus::Registry;
 
-    use test_utils::{anvil_with_job_manager, AnvilJobManager};
+    use test_utils::{anvil_with_job_manager, get_localhost_port, AnvilJobManager};
     use tokio::task::JoinSet;
 
     const JOB_COUNT: usize = 30;
@@ -238,7 +238,8 @@ mod test {
     async fn run_can_successfully_submit_results() {
         test_utils::test_tracing();
 
-        let anvil = anvil_with_job_manager().await;
+        let anvil_port = get_localhost_port();
+        let anvil = anvil_with_job_manager(anvil_port).await;
         let AnvilMockConsumer { mock_consumer } = anvil_with_mock_consumer(&anvil).await;
 
         let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } = anvil;
