@@ -88,7 +88,7 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
             nonce: job.nonce,
             max_cycles: job.max_cycles,
             consumer_address,
-            program_input: &job.input,
+            onchain_input: &job.input,
             program_id: &job.program_id,
         })
     }

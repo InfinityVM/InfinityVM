@@ -68,8 +68,10 @@ message SubmitStatefulJobRequest {
   bytes request = 1;
   // Signature on ABI-encoded offchain job request
   bytes signature = 2;
-  // Value of program state (this isn't signed over)
+  // Program state (this isn't signed over)
   bytes program_state = 3;
+  // Offchain input for program (this isn't signed over)
+  bytes offchain_input = 4;
 }
 
 // SubmitStatefulJobResponse defines the response structure to submit a

@@ -8,7 +8,7 @@ pub struct JobParams<'a> {
     pub nonce: u64,
     pub max_cycles: u64,
     pub consumer_address: [u8; 20],
-    pub program_input: &'a [u8],
+    pub onchain_input: &'a [u8],
     pub program_id: &'a [u8],
 }
 
@@ -24,8 +24,8 @@ sol! {
         address consumer;
         /// Program ID to execute.
         bytes program_id;
-        /// Program input.
-        bytes program_input;
+        /// Program input posted onchain.
+        bytes onchain_input;
     }
 
     /// Passed into zkVM program as input for stateful jobs. This is just the
@@ -52,7 +52,7 @@ pub fn abi_encode_offchain_job_request(job: JobParams) -> Vec<u8> {
         max_cycles: job.max_cycles,
         consumer: job.consumer_address.into(),
         program_id: job.program_id.to_vec().into(),
-        program_input: job.program_input.to_vec().into(),
+        onchain_input: job.onchain_input.to_vec().into(),
     }
     .abi_encode()
 }
