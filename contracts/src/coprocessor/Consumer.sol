@@ -6,6 +6,7 @@ abstract contract Consumer {
     JobManager internal _jobManager;
     uint64 public maxNonce;
     mapping(bytes32 => bytes) internal jobIDToProgramInput;
+    mapping(bytes32 => bytes32) internal jobIDToProgramStateHash;
 
     constructor(address __jobManager, uint64 _initialMaxNonce) {
         _jobManager = JobManager(__jobManager);
@@ -24,12 +25,20 @@ abstract contract Consumer {
         return jobIDToProgramInput[jobID];
     }
 
+    function getProgramStateHashForJob(bytes32 jobID) public view virtual returns (bytes32) {
+        return jobIDToProgramStateHash[jobID];
+    }
+
     function getNextNonce() public view virtual returns (uint64) {
         return maxNonce + 1;
     }
 
     function setProgramInputsForJob(bytes32 jobID, bytes memory programInput) public virtual onlyJobManager() {
         jobIDToProgramInput[jobID] = programInput;
+    }
+
+    function setProgramStateHashForJob(bytes32 jobID, bytes32 programStateHash) public virtual onlyJobManager() {
+        jobIDToProgramStateHash[jobID] = programStateHash;
     }
 
     function updateLatestNonce(uint64 nonce) public virtual onlyJobManager() {

@@ -17,7 +17,7 @@ mod tests {
     };
     use clob_test_utils::next_state;
 
-    use abi::{StatefulProgramInput, StatefulProgramResult};
+    use abi::StatefulProgramResult;
     use zkvm::Zkvm;
 
     #[test]
@@ -118,15 +118,10 @@ mod tests {
     }
 
     fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulProgramResult {
-        let input = StatefulProgramInput {
-            previous_state_hash: init_state.borsh_keccak256(),
-            input: borsh::to_vec(&txns).unwrap().into(),
-        };
-
         let state_borsh = borsh::to_vec(&init_state).unwrap();
         let abi_input = input.abi_encode();
         let out_bytes = zkvm::Risc0 {}
-            .execute_stateful(super::CLOB_ELF, &abi_input, &state_borsh, 32 * 1000 * 1000)
+            .execute_stateful(super::CLOB_ELF, &borsh::to_vec(&txns).unwrap(), &state_borsh, 32 * 1000 * 1000)
             .unwrap();
 
         StatefulProgramResult::abi_decode(&out_bytes, true).unwrap()

@@ -3,9 +3,7 @@ use std::sync::Arc;
 use crate::job_processor::JobProcessorService;
 use abi::OffchainJobRequest;
 use alloy::{
-    primitives::{Address, Bytes, Signature},
-    signers::Signer,
-    sol_types::SolType,
+    primitives::{keccak256, Address, Bytes, Signature}, signers::Signer, sol_types::SolType
 };
 use base64::{prelude::BASE64_STANDARD, Engine};
 use db::tables::{get_job_id, Job, RequestType};
@@ -98,9 +96,14 @@ where
             consumer,
             program_id,
             program_input,
-            program_state_hash: _,
+            program_state_hash,
         } = OffchainJobRequest::abi_decode(&req.request, false)
             .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
+
+        let state_hash = keccak256(req.program_state.clone());
+        if state_hash != program_state_hash {
+            return Err(Status::invalid_argument("program state hash does not match"));
+        }
 
         validate_job_request(max_cycles, consumer, program_id.clone(), req.signature.clone())?;
         let job_id = get_job_id(nonce, consumer);

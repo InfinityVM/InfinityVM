@@ -31,14 +31,6 @@ sol! {
         bytes32 program_state_hash;
     }
 
-    /// Passed into zkVM program as input for stateful jobs. This is just the
-    /// input posted onchain. There is additional offchain input (program state).
-    #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
-    struct StatefulProgramInput {
-        bytes32 previous_state_hash;
-        bytes input;
-    }
-
     /// Returned by zkVM program as the result for stateful jobs
     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct StatefulProgramResult {

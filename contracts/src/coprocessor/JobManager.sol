@@ -123,6 +123,7 @@ contract JobManager is
         // Create a job without emitting an event and set program inputs on consumer
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
         Consumer(request.consumer).setProgramInputsForJob(jobID, request.programInput);
+        Consumer(request.consumer).setProgramStateHashForJob(jobID, request.programStateHash);
 
         // Decode the result using abi.decode
         ResultWithMetadata memory result = abi.decode(resultWithMetadata, (ResultWithMetadata));

@@ -22,7 +22,7 @@ use tokio::time::{sleep, Duration};
 use zkvm_executor::service::ResultWithMetadata;
 
 use abi::{
-    abi_encode_offchain_job_request, JobParams, StatefulProgramInput, StatefulProgramResult,
+    abi_encode_offchain_job_request, JobParams, StatefulProgramResult,
 };
 use clob_core::api::OrderFill;
 
@@ -149,19 +149,13 @@ async fn state_job_submission_clob_consumer() {
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
         {
             let previous_state_hash = init_state.borsh_keccak256();
-            let input = StatefulProgramInput {
-                previous_state_hash,
-                input: borsh::to_vec(&requests).unwrap().into(),
-            };
-
             let state_borsh = borsh::to_vec(&init_state).unwrap();
-            let input_abi = input.abi_encode();
 
             let params = JobParams {
                 nonce,
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **clob.clob_consumer,
-                program_input: &input_abi,
+                program_input: &borsh::to_vec(&requests).unwrap(),
                 program_state_hash: previous_state_hash,
                 program_id: &program_id,
             };
