@@ -117,8 +117,14 @@ where
             .expect("spawn blocking join handle is infallible. qed.")?,
         };
 
-        let result_with_metadata =
-            abi_encode_result_with_metadata(job_id, &input, &program_state, max_cycles, &program_id, &raw_output);
+        let result_with_metadata = abi_encode_result_with_metadata(
+            job_id,
+            &input,
+            &program_state,
+            max_cycles,
+            &program_id,
+            &raw_output,
+        );
         let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(

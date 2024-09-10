@@ -41,9 +41,15 @@ where
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
 
-        let OffchainJobRequest { nonce, max_cycles, consumer, program_id, program_input } =
-            OffchainJobRequest::abi_decode(&req.request, false)
-                .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
+        let OffchainJobRequest {
+            nonce,
+            max_cycles,
+            consumer,
+            program_id,
+            program_input,
+            program_state_hash: _,
+        } = OffchainJobRequest::abi_decode(&req.request, false)
+            .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
         validate_job_request(max_cycles, consumer, program_id.clone(), req.signature.clone())?;
         let job_id = get_job_id(nonce, consumer);
@@ -86,9 +92,15 @@ where
     ) -> Result<Response<SubmitStatefulJobResponse>, Status> {
         let req = request.into_inner();
 
-        let OffchainJobRequest { nonce, max_cycles, consumer, program_id, program_input } =
-            OffchainJobRequest::abi_decode(&req.request, false)
-                .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
+        let OffchainJobRequest {
+            nonce,
+            max_cycles,
+            consumer,
+            program_id,
+            program_input,
+            program_state_hash: _,
+        } = OffchainJobRequest::abi_decode(&req.request, false)
+            .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
         validate_job_request(max_cycles, consumer, program_id.clone(), req.signature.clone())?;
         let job_id = get_job_id(nonce, consumer);

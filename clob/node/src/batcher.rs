@@ -114,6 +114,7 @@ where
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
             program_input: &program_input_encoded,
+            program_state_hash: previous_state_hash.into(),
             program_id: &program_id,
             consumer_address: clob_consumer_addr,
         };

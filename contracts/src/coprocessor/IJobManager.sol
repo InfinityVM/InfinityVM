@@ -35,6 +35,7 @@ interface IJobManager {
         address consumer;
         bytes programID;
         bytes programInput;
+        bytes32 programStateHash;
     }
 
     // FUNCTIONS

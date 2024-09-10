@@ -148,8 +148,9 @@ async fn state_job_submission_clob_consumer() {
         for (requests, init_state, next_state) in
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
         {
+            let previous_state_hash = init_state.borsh_keccak256();
             let input = StatefulProgramInput {
-                previous_state_hash: init_state.borsh_keccak256(),
+                previous_state_hash,
                 input: borsh::to_vec(&requests).unwrap().into(),
             };
 
@@ -161,6 +162,7 @@ async fn state_job_submission_clob_consumer() {
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **clob.clob_consumer,
                 program_input: &input_abi,
+                program_state_hash: previous_state_hash,
                 program_id: &program_id,
             };
             let request = abi_encode_offchain_job_request(params.clone());
