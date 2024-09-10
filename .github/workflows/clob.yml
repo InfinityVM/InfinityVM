@@ -1,6 +1,10 @@
-name: Ethos Reth Docker Publish
+name: CLOB Docker Publish
 
 on:
+  push:
+    branches:
+      - main
+  pull_request:
   workflow_dispatch:
 
 env:
@@ -38,10 +42,8 @@ jobs:
         id: diff
         with:
           PATTERNS: |
-            .github/workflows/docker-reth.yml
-            bin/ethos-reth/Cargo.*
-            bin/ethos-reth/src/**/*.rs
-            bin/ethos-reth/src/*.rs
+            .github/workflows/clob.yml
+            clob/*
 
       - name: Docker Metadata Pull
         id: meta
@@ -49,7 +51,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            us-docker.pkg.dev/ethos-artifacts/docker/ethos-reth
+            us-docker.pkg.dev/ethos-artifacts/docker/clob-node
           tags: |
             type=semver,pattern={{version}}
             type=sha,enable=true,priority=100,prefix=,suffix=,format=long
@@ -63,7 +65,7 @@ jobs:
         if: env.GIT_DIFF
         with:
           context: .
-          file: Dockerfile.ethos-reth
+          file: Dockerfile.clob
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
