@@ -120,7 +120,7 @@ contract JobManager is
         bytes32 resultHash = ECDSA.toEthSignedMessageHash(resultWithMetadata);
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
-        // Create a job without emitting an event and set program inputs on consumer
+        // Create a job without emitting an event and set program inputs and state hash on consumer
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
         Consumer(request.consumer).setProgramInputsForJob(jobID, request.programInput);
         Consumer(request.consumer).setProgramStateHashForJob(jobID, request.programStateHash);

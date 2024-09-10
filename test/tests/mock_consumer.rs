@@ -121,6 +121,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_result_with_metadata(
             job_id,
             &job_result.input,
+            &vec![],
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
@@ -245,6 +246,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_result_with_metadata(
             job_id.into(),
             &job_result.input,
+            &vec![],
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
