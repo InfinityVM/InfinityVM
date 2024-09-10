@@ -4,6 +4,11 @@ use crate::Client;
 use alloy::primitives::{hex::FromHex, Address};
 use clap::{Args, Parser, Subcommand};
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
+use clob_node::K256LocalSigner;
+use alloy::hex;
+use std::env;
+
+const CLOB_PRIVATE_KEY: &str = "CLOB_PRIVATE_KEY";
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -53,10 +58,26 @@ impl Cli {
                 let result = client.withdraw(withdraw).await?;
                 println!("{result:?}");
             }
+            Commands::Deposit(a) => {
+                let private_key = private_key()?;
+                let wallet = EthereumWallet::from(private_key);
+
+                let provider = ProviderBuilder::new()
+                    .with_recommended_fillers()
+                    .wallet(wallet)
+                    .on_http(a.http_endpoint.parse().unwrap());
+            }
         };
 
         Ok(())
     }
+}
+
+fn private_key() -> eyre::Result<K256LocalSigner> {
+    let private_key = env::var(CLOB_PRIVATE_KEY)?;
+    let decoded = hex::decode(private_key)?;
+
+    K256LocalSigner::from_slice(&decoded).map_err(Into::into)
 }
 
 #[derive(Subcommand, Debug)]
@@ -67,8 +88,10 @@ enum Commands {
     ClobState,
     /// Place an order request.
     Order(OrderArgs),
-    // / Withdraw funds.
+    /// Withdraw funds.
     Withdraw(WithdrawArgs),
+    /// Deposit funds into the CLOB contract.
+    Deposit(DepositArgs),
 }
 
 #[derive(Args, Debug)]
@@ -105,4 +128,18 @@ struct WithdrawArgs {
     /// Size of the quote asset to withdraw.
     #[arg(short, long)]
     quote_free: u64,
+}
+
+#[derive(Args, Debug)]
+struct DepositArgs {
+    /// Anvil account number to use for the key
+    anvil_account: u32,
+    /// Address of the clob contract.
+    clob_contract: String,
+    /// Quote asset balance.
+    #[arg(short, long)]
+    quote: u64,
+    /// Base asset balance.
+    #[arg(short, long)]
+    base: u64, 
 }
