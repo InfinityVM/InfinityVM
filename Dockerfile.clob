@@ -1,0 +1,30 @@
+FROM us-docker.pkg.dev/ethos-artifacts/docker/risc0-builder:latest AS chef
+WORKDIR /app
+RUN apt-get update && apt-get -y upgrade && apt-get install -y libclang-dev pkg-config
+
+FROM chef AS copier
+WORKDIR /app
+COPY . .
+
+FROM chef AS builder
+WORKDIR /app
+COPY --from=copier /app/. .
+RUN cargo build --release --bin clob-node --locked
+
+FROM debian:bookworm-slim
+WORKDIR /app
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
+COPY --from=builder /app/target/release/clob-node /usr/local/bin/clob-node
+
+ENV CLOB_LISTEN_ADDR="0.0.0.0:40420"
+ENV CLOB_DB_DIR="/clob-db"
+ENV CLOB_CN_GRPC_ADDR="0.0.0.0:50420"
+ENV CLOB_ETH_WS_ADDR="ws://0.0.0.0:60420"
+# TODO: this is just anvil address 9
+ENV CLOB_CONSUMER_ADDR="0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
+ENV CLOB_BATCHER_DURATION_MS="1000"
+# TODO: this is just anvil private key 0
+ENV CLOB_OPERATOR_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+CMD ["clob-node"]

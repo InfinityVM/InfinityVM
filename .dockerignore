@@ -1,1 +1,10 @@
-target
+# exclude everything
+*
+
+# include source files
+!/crates
+!/programs
+!/test
+!/clob
+!Cargo.lock
+!Cargo.toml
