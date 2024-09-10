@@ -26,6 +26,7 @@ db = { workspace = true }
 clob-contracts = { workspace = true }
 clob-programs = { workspace = true }
 clob-core = { workspace = true }
+clob-client = { workspace = true }
 clob-node = { workspace = true }
 clob-test-utils = { workspace = true }
 mock-consumer = { workspace = true }
