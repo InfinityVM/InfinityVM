@@ -1,4 +1,4 @@
-name: CLOB Docker Publish
+name: clob
 
 on:
   push:
