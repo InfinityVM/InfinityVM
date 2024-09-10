@@ -100,7 +100,7 @@ where
         } = OffchainJobRequest::abi_decode(&req.request, false)
             .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
-        let state_hash = keccak256(req.program_state.clone());
+        let state_hash = keccak256(&req.program_state);
         if state_hash != program_state_hash {
             return Err(Status::invalid_argument("program state hash does not match"));
         }

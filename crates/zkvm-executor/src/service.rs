@@ -101,16 +101,16 @@ where
             )));
         }
 
-        let input2 = input.clone();
-        let program_state2 = program_state.clone();
+        let program_input_hash = keccak256(&input);
+        let program_state_hash = keccak256(&program_state);
         let raw_output = match program_state.is_empty() {
             true => tokio::task::spawn_blocking(move || {
-                vm.execute(&elf, &input2, max_cycles).map_err(Error::ZkvmExecuteFailed)
+                vm.execute(&elf, &input, max_cycles).map_err(Error::ZkvmExecuteFailed)
             })
             .await
             .expect("spawn blocking join handle is infallible. qed.")?,
             false => tokio::task::spawn_blocking(move || {
-                vm.execute_stateful(&elf, &input2, &program_state2, max_cycles)
+                vm.execute_stateful(&elf, &input, &program_state, max_cycles)
                     .map_err(Error::ZkvmExecuteFailed)
             })
             .await
@@ -119,8 +119,8 @@ where
 
         let result_with_metadata = abi_encode_result_with_metadata(
             job_id,
-            keccak256(&input),
-            keccak256(&program_state),
+            program_input_hash,
+            program_state_hash,
             max_cycles,
             &program_id,
             &raw_output,

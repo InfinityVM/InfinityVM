@@ -83,7 +83,7 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
     fn try_from(job: &'a Job) -> Result<Self, Error> {
         let consumer_address =
             job.consumer_address.clone().try_into().map_err(|_| Error::InvalidAddressLength)?;
-        let program_state_hash = keccak256(job.program_state.clone());
+        let program_state_hash = keccak256(&job.program_state);
 
         Ok(JobParams {
             nonce: job.nonce,
