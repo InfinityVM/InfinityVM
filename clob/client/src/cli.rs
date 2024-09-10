@@ -1,16 +1,65 @@
 //! CLI for making HTTP request to clob node.
 
-use clap::{Args, Parser};
-use clap::Subcommand;
+use crate::Client;
+use alloy::primitives::{hex::FromHex, Address};
+use clap::{Args, Parser, Subcommand};
+use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 
-#[derive(Parser)]
+/// CLI for interacting with the CLOB
+#[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
-struct Cli {
-  #[clap(subcommand)]
-  commands: Commands
+pub struct Cli {
+    /// HTTP endpoint.
+    #[arg(short, long)]
+    endpoint: String,
+    #[clap(subcommand)]
+    commands: Commands,
 }
 
-#[derive(Subcommand)]
+impl Cli {
+    /// Run the CLI
+    pub async fn run() -> eyre::Result<()> {
+        let args = Self::parse();
+
+        let client = Client::new(args.endpoint);
+
+        match args.commands {
+            Commands::Cancel(a) => {
+                let result = client.cancel(CancelOrderRequest { oid: a.oid }).await?;
+                println!("{result:?}");
+            }
+            Commands::ClobState => {
+                let result = client.clob_state().await?;
+                println!("{result:?}");
+            }
+            Commands::Order(a) => {
+                let address = Address::from_hex(a.address).unwrap();
+                let order = AddOrderRequest {
+                    address: address.into(),
+                    is_buy: a.is_buy,
+                    limit_price: a.limit_price,
+                    size: a.size,
+                };
+                let result = client.order(order).await?;
+                println!("{result:?}");
+            }
+            Commands::Withdraw(a) => {
+                let address = Address::from_hex(a.address).unwrap();
+                let withdraw = WithdrawRequest {
+                    address: address.into(),
+                    base_free: a.base_free,
+                    quote_free: a.quote_free,
+                };
+                let result = client.withdraw(withdraw).await?;
+                println!("{result:?}");
+            }
+        };
+
+        Ok(())
+    }
+}
+
+#[derive(Subcommand, Debug)]
 enum Commands {
     /// Cancel an order.
     Cancel(CancelArgs),
@@ -22,14 +71,14 @@ enum Commands {
     Withdraw(WithdrawArgs),
 }
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 struct CancelArgs {
     /// ID of the order to cancel
     #[arg(short, long)]
     oid: u64,
 }
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 struct OrderArgs {
     /// Address of the user placing the order.
     #[arg(short, long)]
@@ -45,7 +94,7 @@ struct OrderArgs {
     size: u64,
 }
 
-#[derive(Args)]
+#[derive(Args, Debug)]
 struct WithdrawArgs {
     /// Address of the user to withdraw from.
     #[arg(short, long)]

@@ -1,6 +1,6 @@
 //! CLOB client and CLI.
 
-mod cli;
+pub mod cli;
 mod client;
 
 pub use client::*;
