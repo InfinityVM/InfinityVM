@@ -7,21 +7,14 @@ edition = "2021"
 workspace = true
 
 [dependencies]
-axum = { workspace = true }
 alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 borsh = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 eyre = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
 reqwest = { workspace = true }
-
 serde = { workspace = true }
 
 # local deps
 clob-core = { workspace = true }
 clob-node = { workspace = true }
-
-# zkvm deps
-risc0-zkvm = { workspace = true }

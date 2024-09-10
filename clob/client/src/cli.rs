@@ -11,7 +11,7 @@ use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 pub struct Cli {
     /// HTTP endpoint.
     #[arg(short, long)]
-    endpoint: String,
+    http_endpoint: String,
     #[clap(subcommand)]
     commands: Commands,
 }
@@ -21,7 +21,7 @@ impl Cli {
     pub async fn run() -> eyre::Result<()> {
         let args = Self::parse();
 
-        let client = Client::new(args.endpoint);
+        let client = Client::new(args.http_endpoint);
 
         match args.commands {
             Commands::Cancel(a) => {
