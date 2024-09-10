@@ -76,6 +76,7 @@ pub async fn mock_consumer_pending_job(
     let result_with_meta = abi_encode_result_with_metadata(
         job_id,
         &addr.abi_encode(),
+        &vec![],
         MOCK_CONTRACT_MAX_CYCLES,
         &bytes,
         &raw_output,

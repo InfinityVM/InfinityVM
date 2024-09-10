@@ -102,6 +102,7 @@ where
         }
 
         let input2 = input.clone();
+        let program_state2 = program_state.clone();
         let raw_output = match program_state.is_empty() {
             true => tokio::task::spawn_blocking(move || {
                 vm.execute(&elf, &input2, max_cycles).map_err(Error::ZkvmExecuteFailed)
@@ -109,7 +110,7 @@ where
             .await
             .expect("spawn blocking join handle is infallible. qed.")?,
             false => tokio::task::spawn_blocking(move || {
-                vm.execute_stateful(&elf, &input2, &program_state, max_cycles)
+                vm.execute_stateful(&elf, &input2, &program_state2, max_cycles)
                     .map_err(Error::ZkvmExecuteFailed)
             })
             .await
@@ -117,7 +118,7 @@ where
         };
 
         let result_with_metadata =
-            abi_encode_result_with_metadata(job_id, &input, max_cycles, &program_id, &raw_output);
+            abi_encode_result_with_metadata(job_id, &input, &program_state, max_cycles, &program_id, &raw_output);
         let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
         info!(
@@ -157,6 +158,8 @@ sol! {
         bytes32 job_id;
         /// Hash of input passed to zkVM program for this job.
         bytes32 program_input_hash;
+        /// Hash of state passed to zkVM program for this job.
+        bytes32 program_state_hash;
         /// Max cycles for the job.
         uint64 max_cycles;
         /// Program ID of program being executed.
@@ -171,15 +174,18 @@ sol! {
 pub fn abi_encode_result_with_metadata(
     job_id: [u8; 32],
     input: &[u8],
+    program_state: &[u8],
     max_cycles: u64,
     program_id: &[u8],
     raw_output: &[u8],
 ) -> Vec<u8> {
     let program_input_hash = keccak256(input);
+    let program_state_hash = keccak256(program_state);
 
     ResultWithMetadata {
         job_id: job_id.into(),
         program_input_hash,
+        program_state_hash,
         max_cycles,
         program_id: program_id.to_vec().into(),
         raw_output: raw_output.to_vec().into(),

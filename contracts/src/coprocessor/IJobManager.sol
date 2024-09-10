@@ -23,6 +23,7 @@ interface IJobManager {
     struct ResultWithMetadata {
         bytes32 jobID;
         bytes32 programInputHash;
+        bytes32 programStateHash;
         uint64 maxCycles;
         bytes programID;
         bytes result;
@@ -41,7 +42,7 @@ interface IJobManager {
     function getJobMetadata(bytes32 jobID) external view returns (JobMetadata memory);
     function cancelJob(bytes32 jobID) external;
     function submitResult(bytes calldata resultWithMetadata, bytes calldata signature) external;
-    function submitResultForOffchainJob(bytes calldata resultWithoutJobID, bytes calldata signatureOnResult, bytes calldata jobRequest, bytes calldata signatureOnRequest) external;
+    function submitResultForOffchainJob(bytes calldata resultWithMetadata, bytes calldata signatureOnResult, bytes calldata jobRequest, bytes calldata signatureOnRequest) external;
     function setRelayer(address _relayer) external;
     function getRelayer() external view returns (address);
     function setCoprocessorOperator(address _coprocessorOperator) external;
