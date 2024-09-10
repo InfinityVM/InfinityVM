@@ -1,6 +1,6 @@
 use abi::abi_encode_offchain_job_request;
 use alloy::{
-    primitives::{hex, Address, Uint, U256},
+    primitives::{hex, Address, Uint, U256, keccak256},
     signers::{local::LocalSigner, Signer},
     sol,
     sol_types::{SolType, SolValue},
@@ -34,8 +34,8 @@ impl RequestAndResultSigner {
         let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
         let encoded_result = abi_encode_result_with_metadata(
             get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap()),
-            &Address::abi_encode(&zero_addr),
-            &vec![],
+            keccak256(Address::abi_encode(&zero_addr)),
+            keccak256(vec![]),
             MAX_CYCLES,
             PROGRAM_ID,
             &raw_output,

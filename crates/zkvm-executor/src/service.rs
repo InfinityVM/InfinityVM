@@ -1,7 +1,7 @@
 //! gRPC service implementation.
 
 use alloy::{
-    primitives::{keccak256, Address, Signature},
+    primitives::{keccak256, Address, FixedBytes, Signature},
     signers::Signer,
     sol,
     sol_types::SolValue,
@@ -119,8 +119,8 @@ where
 
         let result_with_metadata = abi_encode_result_with_metadata(
             job_id,
-            &input,
-            &program_state,
+            keccak256(&input),
+            keccak256(&program_state),
             max_cycles,
             &program_id,
             &raw_output,
@@ -179,15 +179,12 @@ sol! {
 /// signed by the operator.
 pub fn abi_encode_result_with_metadata(
     job_id: [u8; 32],
-    input: &[u8],
-    program_state: &[u8],
+    program_input_hash: FixedBytes<32>,
+    program_state_hash: FixedBytes<32>,
     max_cycles: u64,
     program_id: &[u8],
     raw_output: &[u8],
 ) -> Vec<u8> {
-    let program_input_hash = keccak256(input);
-    let program_state_hash = keccak256(program_state);
-
     ResultWithMetadata {
         job_id: job_id.into(),
         program_input_hash,

@@ -2,7 +2,7 @@
 
 use alloy::{
     network::EthereumWallet,
-    primitives::{Address, U256},
+    primitives::{keccak256, Address, U256},
     providers::ProviderBuilder,
     signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
@@ -75,8 +75,8 @@ pub async fn mock_consumer_pending_job(
     let job_id = get_job_id(nonce.into(), mock_consumer);
     let result_with_meta = abi_encode_result_with_metadata(
         job_id,
-        &addr.abi_encode(),
-        &vec![],
+        keccak256(addr.abi_encode()),
+        keccak256(&vec![]),
         MOCK_CONTRACT_MAX_CYCLES,
         &bytes,
         &raw_output,

@@ -2,7 +2,7 @@ use abi::abi_encode_offchain_job_request;
 use alloy::{
     network::EthereumWallet,
     primitives::{
-        aliases::U256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
+        aliases::U256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature, keccak256,
     },
     providers::{Provider, ProviderBuilder},
     rpc::types::Filter,
@@ -120,8 +120,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let raw_output = abi_decoded_output.raw_output;
         let signing_payload = abi_encode_result_with_metadata(
             job_id,
-            &job_result.input,
-            &vec![],
+            keccak256(&job_result.input),
+            keccak256(vec![]),
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
@@ -245,8 +245,8 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let raw_output = abi_decoded_output.raw_output;
         let signing_payload = abi_encode_result_with_metadata(
             job_id.into(),
-            &job_result.input,
-            &vec![],
+            keccak256(&job_result.input),
+            keccak256(vec![]),
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
