@@ -1,15 +1,24 @@
-FROM us-docker.pkg.dev/ethos-artifacts/docker/risc0-builder:latest AS chef
+FROM us-docker.pkg.dev/ethos-artifacts/docker/risc0-builder:1.80.1 AS chef
 WORKDIR /app
 RUN apt-get update && apt-get -y upgrade && apt-get install -y libclang-dev pkg-config
 
-FROM chef AS copier
+FROM chef AS planner
 WORKDIR /app
 COPY . .
+RUN cargo chef prepare --recipe-path recipe.json
 
-FROM chef AS builder
+FROM chef AS cacher
 WORKDIR /app
-COPY --from=copier /app/. .
-RUN cargo build --release --bin clob-node --locked
+COPY --from=planner /app/. .
+RUN cargo chef cook --profile release --recipe-path recipe.json
+
+FROM chef as builder
+WORKDIR /app
+COPY --from=cacher /app/. .
+
+ARG FEATURES=""
+ENV FEATURES $FEATURES
+RUN cargo build --profile release --features "$FEATURES" --locked --bin clob-node
 
 FROM debian:bookworm-slim
 WORKDIR /app
