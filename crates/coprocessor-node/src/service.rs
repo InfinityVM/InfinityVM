@@ -172,31 +172,3 @@ where
         Ok(Response::new(SubmitProgramResponse { program_id }))
     }
 }
-
-/// Verify fields in a submitted job request. Used for both stateful
-/// and stateless job requests.
-pub fn validate_job_request(
-    max_cycles: u64,
-    consumer_address: Address,
-    program_id: Bytes,
-    signature: Vec<u8>,
-) -> Result<(), Status> {
-    // verify fields
-    if max_cycles == 0 {
-        return Err(Status::invalid_argument("job max cycles must be positive"));
-    }
-
-    if signature.is_empty() {
-        return Err(Status::invalid_argument("job request signature must not be empty"));
-    }
-
-    if consumer_address.len() != 20 {
-        return Err(Status::invalid_argument("contract address must be 20 bytes in length"));
-    }
-
-    if program_id.is_empty() {
-        return Err(Status::invalid_argument("job program verification key must not be empty"));
-    }
-
-    Ok(())
-}
