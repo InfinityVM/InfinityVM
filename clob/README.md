@@ -64,32 +64,28 @@ The user can perform these actions:
 
 The InfinityVM coprocessor allows apps to submit "stateful jobs". In a traditional coprocessing job, all the inputs passed into the job are posted onchain by the coprocessor. In a stateful job, the coprocessor continues to post inputs onchain but apps can now pass in additional state which isn't posted onchain (instead, this can be posted to some DA layer to make this cheaper).
 
-The API for submitting a stateful job to the coprocessor is:
+The API for submitting a job to the coprocessor is:
 ```rust=
-struct StatefulJobRequest {
+struct JobRequest {
     nonce: u64,
     consumer_address: [u8; 20],
     program_id: Vec<u8>,
-    program_state: Vec<u8>,
     program_input: Vec<u8>,
-    ...
+    program_state: Vec<u8>,
+    program_state_hash: Vec<u8>,
 }
 ```
 
 For the CLOB, `program_state` contains all user balances in the CLOB along with the order book. This will be borsh-encoded before submitting to the coprocessor.
 
 `program_input` contains:
-- the hash of the `program_state`
 - the new batch of orders/cancels/deposits/withdraws
 - user signature for each order in the batch
-
-These three components of `program_input` will be ABI-encoded together before submitting to the coprocessor. We ABI-encode this because we would like to decode this in the CLOB contract (we discuss why we need to do this later in this spec).
 
 ### zkVM program
 
 The zkVM program takes in `program_state` and `program_input` as inputs. It does these things:
 - Decodes `program_state` and `program_input`
-- Checks that `program_state` actually hashes to the same value as the state hash provided in `program_input`
 - Verifies that the signature on every order in the batch is valid
 - Runs the CLOB matching function, which takes in the batch and the existing order book as inputs. We won't explain this function in detail here, but the code for this is in `zkvm_stf` in `clob/core/src/lib.rs` in the `InfinityVM` monorepo.
 - Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of state updates which will be processed by the CLOB contract.
@@ -129,7 +125,7 @@ The CLOB contract receives this list of state updates and processes it to update
 
 ### Ensuring correctness of the state passed as input
 
-The zkVM program verifies that the `program_state` hashes to the same value as the state hash in `program_input`. But, this is still not fully secure since the CLOB server can provide any arbitrary value for `program_state` and just include the corresponding hash for this arbitrary state in `program_input`.
+The coprocessor verifies that the `program_state` hashes to the same value as `program_state_hash`. But, this is still not fully secure since the CLOB server can provide any arbitrary value for `program_state` and just include the corresponding hash for this arbitrary state in `program_state_hash`.
 
 To solve this, we add logic in the CLOB contract to keep track of the state hash for each batch:
 ```solidity=
@@ -137,18 +133,18 @@ contract ClobConsumer {
     bytes32 latestStateHash;
     
     function receiveResult(bytes32 jobID, bytes result) {
-        StatefulProgramInput memory input = getInputsForJobID(jobID);
+        bytes32 programStateHash = getProgramStateHashForJob(jobID);
         
-        // Check that the state hash in input matches the most recent state hash
-        require(input.previousStateHash == latestStateHash);
+        // Check that program_state_hash passed by CLOB 
+        // server matches the most recent state hash
+        require(programStateHash == latestStateHash);
         
         // Update the most recent state hash with the new state
         latestStateHash = abi.decode(result).nextStateHash;
     }
 }
 ```
-By verifying that the state hash in the input matches the state from the most recent batch, this logic ensures that the CLOB server can only submit valid state to the InfinityVM coprocessor.
-
+By verifying that `program_state_hash` matches the state from the most recent batch, this logic ensures that the CLOB server can only submit valid state to the InfinityVM coprocessor.
 
 ### Future improvements
 
