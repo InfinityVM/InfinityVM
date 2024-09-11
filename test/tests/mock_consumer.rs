@@ -76,7 +76,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             max_cycles: MOCK_CONTRACT_MAX_CYCLES,
             consumer_address: mock.mock_consumer.abi_encode_packed(),
             program_id: program_id.clone(),
-            input: mock_user_address.abi_encode(),
+            onchain_input: mock_user_address.abi_encode(),
             state: vec![],
             // signature added to this job below
             request_type: RequestType::Offchain(vec![]),
@@ -123,7 +123,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let raw_output = abi_decoded_output.raw_output;
         let signing_payload = abi_encode_result_with_metadata(
             job_id,
-            keccak256(&job_result.input),
+            keccak256(&job_result.onchain_input),
             keccak256(vec![]),
             job_result.max_cycles,
             &job_result.program_id,
@@ -139,7 +139,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(recovered2, anvil.coprocessor_operator.address());
 
         // Verify input
-        assert_eq!(Address::abi_encode(&mock_user_address), job_result.input);
+        assert_eq!(Address::abi_encode(&mock_user_address), job_result.onchain_input);
 
         // Verify output from gRPC get_job endpoint
         let (out_address, out_balance) = MockConsumerOut::abi_decode(&raw_output, true).unwrap();
@@ -248,7 +248,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let raw_output = abi_decoded_output.raw_output;
         let signing_payload = abi_encode_result_with_metadata(
             job_id.into(),
-            keccak256(&job_result.input),
+            keccak256(&job_result.onchain_input),
             keccak256(vec![]),
             job_result.max_cycles,
             &job_result.program_id,
@@ -264,7 +264,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(recovered2, anvil.coprocessor_operator.address());
 
         // Verify input
-        assert_eq!(Address::abi_encode(&mock_user_address), job_result.input);
+        assert_eq!(Address::abi_encode(&mock_user_address), job_result.onchain_input);
 
         // Verify output from gRPC get_job endpoint
         let (out_address, out_balance) = MockConsumerOut::abi_decode(&raw_output, true).unwrap();

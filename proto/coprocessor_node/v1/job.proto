@@ -35,7 +35,7 @@ message JobResult {
   // The ZK program verification key
   bytes program_id = 5;
   // Program execution input
-  bytes input = 6;
+  bytes onchain_input = 6;
   // Signature on the offchain job request
   bytes request_signature = 7;
   // ABI-encoded result of job execution with metadata

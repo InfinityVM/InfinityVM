@@ -8,7 +8,7 @@ pub struct JobParams<'a> {
     pub nonce: u64,
     pub max_cycles: u64,
     pub consumer_address: [u8; 20],
-    pub program_input: &'a [u8],
+    pub onchain_input: &'a [u8],
     pub program_id: &'a [u8],
     pub state_hash: [u8; 32],
 }
@@ -25,8 +25,8 @@ sol! {
         address consumer;
         /// Program ID to execute.
         bytes program_id;
-        /// Program input.
-        bytes program_input;
+        /// Onchain input for program.
+        bytes onchain_input;
         /// Hash of state.
         bytes32 state_hash;
     }
@@ -47,7 +47,7 @@ pub fn abi_encode_offchain_job_request(job: JobParams) -> Vec<u8> {
         max_cycles: job.max_cycles,
         consumer: job.consumer_address.into(),
         program_id: job.program_id.to_vec().into(),
-        program_input: job.program_input.to_vec().into(),
+        onchain_input: job.onchain_input.to_vec().into(),
         state_hash: job.state_hash.into(),
     }
     .abi_encode()

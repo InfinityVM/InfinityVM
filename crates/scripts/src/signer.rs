@@ -67,7 +67,7 @@ impl RequestAndResultSigner {
             // should not be zero-padded
             consumer_address: Address::abi_encode_packed(&consumer_addr),
             program_id: PROGRAM_ID.to_vec(),
-            input: Address::abi_encode(&zero_addr),
+            onchain_input: Address::abi_encode(&zero_addr),
             state: vec![],
             request_type: RequestType::Offchain(vec![]),
             result_with_metadata: vec![],

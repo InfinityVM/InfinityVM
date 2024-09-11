@@ -60,8 +60,8 @@ pub struct Job {
     pub consumer_address: Vec<u8>,
     /// The ZK program verification key
     pub program_id: Vec<u8>,
-    /// Program execution input
-    pub input: Vec<u8>,
+    /// Program execution input to be posted onchain
+    pub onchain_input: Vec<u8>,
     /// State
     pub state: Vec<u8>,
     /// Signature on the offchain job request
@@ -89,7 +89,7 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
             nonce: job.nonce,
             max_cycles: job.max_cycles,
             consumer_address,
-            program_input: &job.input,
+            onchain_input: &job.onchain_input,
             state_hash: state_hash.into(),
             program_id: &job.program_id,
         })

@@ -109,7 +109,7 @@ where
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
-            program_input: &requests_borsh,
+            onchain_input: &requests_borsh,
             state_hash: previous_state_hash.into(),
             program_id: &program_id,
             consumer_address: clob_consumer_addr,

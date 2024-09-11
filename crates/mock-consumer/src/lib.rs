@@ -89,7 +89,7 @@ pub async fn mock_consumer_pending_job(
         nonce: 1,
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
         program_id: bytes,
-        input: addr.abi_encode(),
+        onchain_input: addr.abi_encode(),
         state: vec![],
         request_type: RequestType::Onchain,
         result_with_metadata: result_with_meta,

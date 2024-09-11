@@ -101,7 +101,7 @@ where
             )));
         }
 
-        let program_input_hash = keccak256(&input);
+        let onchain_input_hash = keccak256(&input);
         let state_hash = keccak256(&state);
         let raw_output = match state.is_empty() {
             true => tokio::task::spawn_blocking(move || {
@@ -119,7 +119,7 @@ where
 
         let result_with_metadata = abi_encode_result_with_metadata(
             job_id,
-            program_input_hash,
+            onchain_input_hash,
             state_hash,
             max_cycles,
             &program_id,
@@ -162,8 +162,8 @@ sol! {
     struct ResultWithMetadata {
         /// Job ID.
         bytes32 job_id;
-        /// Hash of input passed to zkVM program for this job.
-        bytes32 program_input_hash;
+        /// Hash of onchain input passed to zkVM program for this job.
+        bytes32 onchain_input_hash;
         /// Hash of state passed to zkVM program for this job.
         bytes32 state_hash;
         /// Max cycles for the job.
@@ -179,7 +179,7 @@ sol! {
 /// signed by the operator.
 pub fn abi_encode_result_with_metadata(
     job_id: [u8; 32],
-    program_input_hash: FixedBytes<32>,
+    onchain_input_hash: FixedBytes<32>,
     state_hash: FixedBytes<32>,
     max_cycles: u64,
     program_id: &[u8],
@@ -187,7 +187,7 @@ pub fn abi_encode_result_with_metadata(
 ) -> Vec<u8> {
     ResultWithMetadata {
         job_id: job_id.into(),
-        program_input_hash,
+        onchain_input_hash,
         state_hash,
         max_cycles,
         program_id: program_id.to_vec().into(),
