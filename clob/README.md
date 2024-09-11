@@ -125,7 +125,7 @@ The CLOB contract receives this list of state updates and processes it to update
 
 ### Ensuring correctness of the state passed as input
 
-The coprocessor verifies that the `program_state` hashes to the same value as `program_state_hash`. But, this is still not fully secure since the CLOB server can provide any arbitrary value for `program_state` and just include the corresponding hash for this arbitrary state in `program_state_hash`.
+The coprocessor verifies that the `program_state` hashes to the same value as `program_state_hash` signed by the CLOB server in the job request. But, this is still not fully secure since the CLOB server can provide any arbitrary value for `program_state` and just include the corresponding hash for this arbitrary state in `program_state_hash`.
 
 To solve this, we add logic in the CLOB contract to keep track of the state hash for each batch:
 ```solidity=
