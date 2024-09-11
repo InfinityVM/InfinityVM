@@ -10,7 +10,6 @@ use tokio::task::JoinHandle;
 
 pub mod app;
 pub mod batcher;
-pub mod client;
 pub mod db;
 pub mod engine;
 pub mod event;

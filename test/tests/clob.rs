@@ -218,7 +218,7 @@ async fn clob_node_e2e() {
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_endpoint = args.clob_endpoint.unwrap();
 
-        let client = clob_node::client::Client::new(clob_endpoint);
+        let client = clob_client::Client::new(clob_endpoint);
 
         // Setup ready to use on chain accounts for Alice & Bob
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
@@ -288,7 +288,7 @@ async fn clob_node_e2e() {
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
 
-        let state = client.clob_state().await;
+        let state = client.clob_state().await.unwrap();
         assert_eq!(
             *state.base_balances().get(&alice).unwrap(),
             AssetBalance { free: 200, locked: 0 }
@@ -300,7 +300,7 @@ async fn clob_node_e2e() {
 
         let alice_limit =
             AddOrderRequest { address: alice, is_buy: false, limit_price: 4, size: 100 };
-        let (r, i) = client.order(alice_limit).await;
+        let (r, i) = client.order(alice_limit).await.unwrap();
         // i is 3 here because the CLOB node automatically picks up the deposit
         // events from the contracts earlier (one each for Alice and Bob).
         assert_eq!(i, 3);
@@ -319,7 +319,7 @@ async fn clob_node_e2e() {
         );
 
         let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100 };
-        let (r, i) = client.order(bob_limit1).await;
+        let (r, i) = client.order(bob_limit1).await.unwrap();
         assert_eq!(i, 4);
         assert_eq!(
             r,
@@ -336,7 +336,7 @@ async fn clob_node_e2e() {
         );
 
         let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100 };
-        let (r, i) = client.order(bob_limit2).await;
+        let (r, i) = client.order(bob_limit2).await.unwrap();
         assert_eq!(i, 5);
         assert_eq!(
             r,
@@ -358,7 +358,7 @@ async fn clob_node_e2e() {
                 })
             }
         );
-        let state = client.clob_state().await;
+        let state = client.clob_state().await.unwrap();
         assert_eq!(
             *state.base_balances().get(&alice).unwrap(),
             AssetBalance { free: 100, locked: 0 }
@@ -387,25 +387,25 @@ async fn clob_node_e2e() {
         assert_eq!(bob_free_quote, U256::from(300));
 
         let alice_withdraw = WithdrawRequest { address: alice, base_free: 100, quote_free: 400 };
-        let (_, i) = client.withdraw(alice_withdraw).await;
+        let (_, i) = client.withdraw(alice_withdraw).await.unwrap();
         assert_eq!(i, 6);
-        let state = client.clob_state().await;
+        let state = client.clob_state().await.unwrap();
         assert!(!state.quote_balances().contains_key(&alice));
         assert!(!state.base_balances().contains_key(&alice));
 
         let bob_cancel = CancelOrderRequest { oid: 1 };
-        let (_, i) = client.cancel(bob_cancel).await;
+        let (_, i) = client.cancel(bob_cancel).await.unwrap();
         assert_eq!(i, 7);
-        let state = client.clob_state().await;
+        let state = client.clob_state().await.unwrap();
         assert_eq!(
             *state.quote_balances().get(&bob).unwrap(),
             AssetBalance { free: 400, locked: 0 }
         );
 
         let bob_withdraw = WithdrawRequest { address: bob, base_free: 100, quote_free: 400 };
-        let (_, i) = client.withdraw(bob_withdraw).await;
+        let (_, i) = client.withdraw(bob_withdraw).await.unwrap();
         assert_eq!(i, 8);
-        let state = client.clob_state().await;
+        let state = client.clob_state().await.unwrap();
         assert!(state.quote_balances().is_empty());
         assert!(state.base_balances().is_empty());
 
