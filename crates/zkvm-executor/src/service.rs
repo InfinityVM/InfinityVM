@@ -81,7 +81,7 @@ where
         max_cycles: u64,
         program_id: Vec<u8>,
         input: Vec<u8>,
-        program_state: Vec<u8>,
+        state: Vec<u8>,
         elf: Vec<u8>,
         vm_type: VmType,
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
@@ -102,15 +102,15 @@ where
         }
 
         let program_input_hash = keccak256(&input);
-        let program_state_hash = keccak256(&program_state);
-        let raw_output = match program_state.is_empty() {
+        let state_hash = keccak256(&state);
+        let raw_output = match state.is_empty() {
             true => tokio::task::spawn_blocking(move || {
                 vm.execute(&elf, &input, max_cycles).map_err(Error::ZkvmExecuteFailed)
             })
             .await
             .expect("spawn blocking join handle is infallible. qed.")?,
             false => tokio::task::spawn_blocking(move || {
-                vm.execute_stateful(&elf, &input, &program_state, max_cycles)
+                vm.execute_stateful(&elf, &input, &state, max_cycles)
                     .map_err(Error::ZkvmExecuteFailed)
             })
             .await
@@ -120,7 +120,7 @@ where
         let result_with_metadata = abi_encode_result_with_metadata(
             job_id,
             program_input_hash,
-            program_state_hash,
+            state_hash,
             max_cycles,
             &program_id,
             &raw_output,
@@ -165,7 +165,7 @@ sol! {
         /// Hash of input passed to zkVM program for this job.
         bytes32 program_input_hash;
         /// Hash of state passed to zkVM program for this job.
-        bytes32 program_state_hash;
+        bytes32 state_hash;
         /// Max cycles for the job.
         uint64 max_cycles;
         /// Program ID of program being executed.
@@ -180,7 +180,7 @@ sol! {
 pub fn abi_encode_result_with_metadata(
     job_id: [u8; 32],
     program_input_hash: FixedBytes<32>,
-    program_state_hash: FixedBytes<32>,
+    state_hash: FixedBytes<32>,
     max_cycles: u64,
     program_id: &[u8],
     raw_output: &[u8],
@@ -188,7 +188,7 @@ pub fn abi_encode_result_with_metadata(
     ResultWithMetadata {
         job_id: job_id.into(),
         program_input_hash,
-        program_state_hash,
+        state_hash,
         max_cycles,
         program_id: program_id.to_vec().into(),
         raw_output: raw_output.to_vec().into(),

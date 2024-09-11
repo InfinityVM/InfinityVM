@@ -47,7 +47,7 @@ pub trait Zkvm {
         &self,
         program_elf: &[u8],
         raw_input: &[u8],
-        program_state: &[u8],
+        state: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
@@ -109,17 +109,17 @@ impl Zkvm for Risc0 {
         &self,
         program_elf: &[u8],
         raw_input: &[u8],
-        program_state: &[u8],
+        state: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
-        let state_len = program_state.len() as u32;
+        let state_len = state.len() as u32;
         let input_len = raw_input.len() as u32;
 
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
             .write(&state_len)
             .map_err(|source| Error::Risc0 { source })?
-            .write_slice(program_state)
+            .write_slice(state)
             .write(&input_len)
             .map_err(|source| Error::Risc0 { source })?
             .write_slice(raw_input)

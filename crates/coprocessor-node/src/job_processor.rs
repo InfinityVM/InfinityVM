@@ -307,7 +307,7 @@ where
                     job.max_cycles,
                     job.program_id.clone(),
                     job.input.clone(),
-                    job.program_state.clone(),
+                    job.state.clone(),
                     elf_with_meta.elf,
                     VmType::Risc0,
                 )

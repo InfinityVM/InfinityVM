@@ -46,7 +46,7 @@ where
             consumer,
             program_id,
             program_input,
-            program_state_hash,
+            state_hash: state_hash_in_request,
         } = OffchainJobRequest::abi_decode(&req.request, false)
             .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
@@ -67,9 +67,9 @@ where
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
 
-        let state_hash = keccak256(&req.program_state);
-        if state_hash != program_state_hash {
-            return Err(Status::invalid_argument("program state hash does not match"));
+        let state_hash = keccak256(&req.state);
+        if state_hash_in_request != state_hash {
+            return Err(Status::invalid_argument("state hash does not match"));
         }
 
         let job_id = get_job_id(nonce, consumer);
@@ -86,7 +86,7 @@ where
             consumer_address: consumer.to_vec(),
             program_id: program_id.to_vec(),
             input: program_input.to_vec(),
-            program_state: req.program_state,
+            state: req.state,
             request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],
             zkvm_operator_signature: vec![],

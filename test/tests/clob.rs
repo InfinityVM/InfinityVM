@@ -154,13 +154,13 @@ async fn state_job_submission_clob_consumer() {
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **clob.clob_consumer,
                 program_input: &borsh::to_vec(&requests).unwrap(),
-                program_state_hash: *previous_state_hash,
+                state_hash: *previous_state_hash,
                 program_id: &program_id,
             };
             let request = abi_encode_offchain_job_request(params.clone());
             let signature =
                 clob.clob_signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
-            let job_request = SubmitJobRequest { request, signature, program_state: state_borsh };
+            let job_request = SubmitJobRequest { request, signature, state: state_borsh };
             let submit_job_response =
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 

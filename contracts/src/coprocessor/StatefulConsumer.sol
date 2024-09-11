@@ -26,7 +26,7 @@ abstract contract StatefulConsumer is Consumer {
     function receiveResult(bytes32 jobID, bytes calldata result) external override onlyJobManager {
         StatefulProgramResult memory statefulResult = abi.decode(result, (StatefulProgramResult));
 
-        bytes32 inputPreviousStateHash = getProgramStateHashForJob(jobID);
+        bytes32 inputPreviousStateHash = getStateHashForJob(jobID);
         require(inputPreviousStateHash == latestStateHash, "Invalid state hash passed as input");
 
         // Update the state root hash

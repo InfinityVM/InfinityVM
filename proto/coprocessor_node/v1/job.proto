@@ -39,7 +39,7 @@ message JobResult {
   // Signature on the offchain job request
   bytes request_signature = 7;
   // ABI-encoded result of job execution with metadata
-  // tuple(JobID,ProgramInputHash,ProgramStateHash,MaxCycles,ProgramID,RawOutput)
+  // tuple(JobID,ProgramInputHash,StateHash,MaxCycles,ProgramID,RawOutput)
   bytes result_with_metadata = 8;
   // The signature of the operator that executed the job
   bytes zkvm_operator_signature = 9;

@@ -62,12 +62,12 @@ pub struct Job {
     pub program_id: Vec<u8>,
     /// Program execution input
     pub input: Vec<u8>,
-    /// Program state
-    pub program_state: Vec<u8>,
+    /// State
+    pub state: Vec<u8>,
     /// Signature on the offchain job request
     pub request_type: RequestType,
     /// ABI-encoded result of job execution with metadata
-    /// tuple(JobID,ProgramInputHash,ProgramStateHash,MaxCycles,ProgramID,RawOutput)
+    /// tuple(JobID,ProgramInputHash,StateHash,MaxCycles,ProgramID,RawOutput)
     pub result_with_metadata: Vec<u8>,
     /// The signature of the operator that executed the job
     pub zkvm_operator_signature: Vec<u8>,
@@ -83,14 +83,14 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
     fn try_from(job: &'a Job) -> Result<Self, Error> {
         let consumer_address =
             job.consumer_address.clone().try_into().map_err(|_| Error::InvalidAddressLength)?;
-        let program_state_hash = keccak256(&job.program_state);
+        let state_hash = keccak256(&job.state);
 
         Ok(JobParams {
             nonce: job.nonce,
             max_cycles: job.max_cycles,
             consumer_address,
             program_input: &job.input,
-            program_state_hash: program_state_hash.into(),
+            state_hash: state_hash.into(),
             program_id: &job.program_id,
         })
     }

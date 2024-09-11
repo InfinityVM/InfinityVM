@@ -123,12 +123,12 @@ contract JobManager is
         // Create a job without emitting an event and set program inputs and state hash on consumer
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
         Consumer(request.consumer).setProgramInputsForJob(jobID, request.programInput);
-        Consumer(request.consumer).setProgramStateHashForJob(jobID, request.programStateHash);
+        Consumer(request.consumer).setStateHashForJob(jobID, request.stateHash);
 
         // Decode the result using abi.decode
         ResultWithMetadata memory result = abi.decode(resultWithMetadata, (ResultWithMetadata));
         require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
-        require(request.programStateHash == result.programStateHash, "JobManager.submitResultForOffchainJob: program input hash signed by coprocessor doesn't match program input hash of job request");
+        require(request.stateHash == result.stateHash, "JobManager.submitResultForOffchainJob: state hash signed by coprocessor doesn't match state hash of job request");
         _submitResult(jobID, result.maxCycles, result.programInputHash, result.programID, result.result);
     }
 
