@@ -16,14 +16,12 @@ use clob_core::{
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
-use proto::{GetResultRequest, SubmitProgramRequest, SubmitStatefulJobRequest, VmType};
+use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
 use zkvm_executor::service::ResultWithMetadata;
 
-use abi::{
-    abi_encode_offchain_job_request, JobParams, StatefulProgramResult,
-};
+use abi::{abi_encode_offchain_job_request, JobParams, StatefulProgramResult};
 use clob_core::api::OrderFill;
 
 fn program_id() -> Vec<u8> {
@@ -162,15 +160,14 @@ async fn state_job_submission_clob_consumer() {
             let request = abi_encode_offchain_job_request(params.clone());
             let signature =
                 clob.clob_signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
-            let job_request =
-                SubmitStatefulJobRequest { request, signature, program_state: state_borsh };
-            let submit_stateful_job_response =
-                args.coprocessor_node.submit_stateful_job(job_request).await.unwrap().into_inner();
+            let job_request = SubmitJobRequest { request, signature, program_state: state_borsh };
+            let submit_job_response =
+                args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
             interval.tick().await;
 
-            let job_id = submit_stateful_job_response.job_id;
+            let job_id = submit_job_response.job_id;
             let result_with_metadata = args
                 .coprocessor_node
                 .get_result(GetResultRequest { job_id })

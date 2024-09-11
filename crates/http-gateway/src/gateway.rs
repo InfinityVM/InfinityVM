@@ -5,7 +5,6 @@ use std::net::SocketAddr;
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest, SubmitProgramResponse,
-    SubmitStatefulJobRequest, SubmitStatefulJobResponse,
 };
 use tonic::transport::Channel;
 
@@ -19,7 +18,6 @@ use axum::{
 use crate::Error;
 
 const SUBMIT_JOB: &str = "submit_job";
-const SUBMIT_STATEFUL_JOB: &str = "submit_stateful_job";
 const GET_RESULT: &str = "get_result";
 const SUBMIT_PROGRAM: &str = "submit_program";
 
@@ -84,7 +82,6 @@ impl HttpGrpcGateway {
 
         let app = Router::new()
             .route(&self.path(SUBMIT_JOB), post(Self::submit_job))
-            .route(&self.path(SUBMIT_STATEFUL_JOB), post(Self::submit_stateful_job))
             .route(&self.path(GET_RESULT), post(Self::get_result))
             .route(&self.path(SUBMIT_PROGRAM), post(Self::submit_program))
             // make sure we can accept request bodies larger then 2mb
@@ -110,16 +107,6 @@ impl HttpGrpcGateway {
     ) -> Result<Json<SubmitJobResponse>, ErrorResponse> {
         let tonic_request = tonic::Request::new(body);
         let response = client.submit_job(tonic_request).await?.into_inner();
-
-        Ok(Json(response))
-    }
-
-    async fn submit_stateful_job(
-        State(mut client): State<Client>,
-        Json(body): Json<SubmitStatefulJobRequest>,
-    ) -> Result<Json<SubmitStatefulJobResponse>, ErrorResponse> {
-        let tonic_request = tonic::Request::new(body);
-        let response = client.submit_stateful_job(tonic_request).await?.into_inner();
 
         Ok(Json(response))
     }

@@ -2,7 +2,7 @@ use abi::abi_encode_offchain_job_request;
 use alloy::{
     network::EthereumWallet,
     primitives::{
-        aliases::U256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature, keccak256,
+        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
     },
     providers::{Provider, ProviderBuilder},
     rpc::types::Filter,
@@ -94,11 +94,14 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
         job.request_type = RequestType::Offchain(request_signature.as_bytes().to_vec());
 
-        let job_request =
-            SubmitJobRequest { request: job_request_payload, signature: request_signature.into() };
-        let submit_stateful_job_response =
+        let job_request = SubmitJobRequest {
+            request: job_request_payload,
+            signature: request_signature.into(),
+            program_state: vec![],
+        };
+        let submit_job_response =
             args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
-        assert_eq!(submit_stateful_job_response.job_id, job_id);
+        assert_eq!(submit_job_response.job_id, job_id);
 
         // wait for the job to be processed
         tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;

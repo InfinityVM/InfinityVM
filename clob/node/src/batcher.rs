@@ -8,7 +8,7 @@ use abi::{abi_encode_offchain_job_request, JobParams};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
 use clob_programs::CLOB_ID;
 use eyre::OptionExt;
-use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitStatefulJobRequest};
+use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;
@@ -117,7 +117,7 @@ where
         let request = abi_encode_offchain_job_request(job_params);
         let signature = signer.sign_message(&request).await?.as_bytes().to_vec();
         let job_request =
-            SubmitStatefulJobRequest { request, signature, program_state: program_state_borsh };
+            SubmitJobRequest { request, signature, program_state: program_state_borsh };
 
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
@@ -131,7 +131,7 @@ where
 
 async fn submit_job_with_backoff(
     client: &mut CoprocessorNodeClient<Channel>,
-    request: SubmitStatefulJobRequest,
+    request: SubmitJobRequest,
 ) -> eyre::Result<()> {
     const RETRIES: usize = 3;
     const MULTIPLE: u64 = 8;
@@ -139,7 +139,7 @@ async fn submit_job_with_backoff(
     let mut backoff = 1;
 
     for _ in 0..RETRIES {
-        match client.submit_stateful_job(request.clone()).await {
+        match client.submit_job(request.clone()).await {
             Ok(_) => return Ok(()),
             Err(error) => tracing::warn!(backoff, ?error, "failed to submit batch to coprocessor"),
         }

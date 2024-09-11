@@ -120,7 +120,12 @@ mod tests {
     fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulProgramResult {
         let state_borsh = borsh::to_vec(&init_state).unwrap();
         let out_bytes = zkvm::Risc0 {}
-            .execute_stateful(super::CLOB_ELF, &borsh::to_vec(&txns).unwrap(), &state_borsh, 32 * 1000 * 1000)
+            .execute_stateful(
+                super::CLOB_ELF,
+                &borsh::to_vec(&txns).unwrap(),
+                &state_borsh,
+                32 * 1000 * 1000,
+            )
             .unwrap();
 
         StatefulProgramResult::abi_decode(&out_bytes, true).unwrap()

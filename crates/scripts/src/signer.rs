@@ -1,6 +1,6 @@
 use abi::abi_encode_offchain_job_request;
 use alloy::{
-    primitives::{hex, Address, Uint, U256, keccak256},
+    primitives::{hex, keccak256, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
     sol,
     sol_types::{SolType, SolValue},
