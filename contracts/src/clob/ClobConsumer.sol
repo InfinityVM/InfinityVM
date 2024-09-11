@@ -4,11 +4,11 @@ import {JobManager} from "../coprocessor/JobManager.sol";
 import {Consumer} from "../coprocessor/Consumer.sol";
 import {StatefulConsumer} from "../coprocessor/StatefulConsumer.sol";
 import {OffchainRequester} from "../coprocessor/OffchainRequester.sol";
+import {SingleOffchainSigner} from "../coprocessor/SingleOffchainSigner.sol";
 import {console} from "forge-std/Script.sol";
-import {ECDSA} from "solady/utils/ECDSA.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract ClobConsumer is StatefulConsumer, OffchainRequester {
+contract ClobConsumer is StatefulConsumer, SingleOffchainSigner {
     // DepositDelta always subtracts from deposit balance, so we use uint256
     struct DepositDelta {
         address user;
@@ -39,9 +39,6 @@ contract ClobConsumer is StatefulConsumer, OffchainRequester {
 
     event Deposit(address indexed user, uint256 baseAmount, uint256 quoteAmount);
 
-    // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
-    address private offchainSigner;
-
     // Define the two tokens
     IERC20 public baseToken;
     IERC20 public quoteToken;
@@ -54,9 +51,7 @@ contract ClobConsumer is StatefulConsumer, OffchainRequester {
     mapping(address => uint256) public lockedBalanceBase;
     mapping(address => uint256) public lockedBalanceQuote;
 
-    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 latestStateHash) StatefulConsumer(jobManager, initialMaxNonce, latestStateHash) OffchainRequester() {
-        offchainSigner = _offchainSigner;
-
+    constructor(address jobManager, address offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 latestStateHash) StatefulConsumer(jobManager, initialMaxNonce, latestStateHash) SingleOffchainSigner(offchainSigner) {
         baseToken = _baseToken;
         quoteToken = _quoteToken;
     }
@@ -84,10 +79,6 @@ contract ClobConsumer is StatefulConsumer, OffchainRequester {
 
     function getLockedBalanceQuote(address user) external view returns (uint256) {
         return lockedBalanceQuote[user];
-    }
-
-    function getOffchainSigner() external view returns (address) {
-        return offchainSigner;
     }
 
     function deposit(uint256 base_amount, uint256 quote_amount) external {
@@ -144,17 +135,5 @@ contract ClobConsumer is StatefulConsumer, OffchainRequester {
             // If the int256 is negative, subtract its absolute value
             return u - uint256(-i);
         }
-    }
-    
-    // Included for EIP-1271. The JobManager calls this function to verify the signature on
-    // an offchain job request.
-    function isValidSignature(bytes32 messageHash, bytes memory signature) public view override returns (bytes4) {
-        address recoveredSigner = ECDSA.tryRecover(messageHash, signature);
-        // ClobConsumer allows a single offchainSigner address to sign all offchain job requests
-        if (recoveredSigner == offchainSigner) {
-            return EIP1271_MAGIC_VALUE;
-        } else {
-            return INVALID_SIGNATURE;
-        }
-    }
+    }    
 }
