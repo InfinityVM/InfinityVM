@@ -1,4 +1,4 @@
-[package]
+	[package]
 name = "clob-client"
 version = "0.1.0"
 edition = "2021"
@@ -18,3 +18,4 @@ serde = { workspace = true }
 # local deps
 clob-core = { workspace = true }
 clob-node = { workspace = true }
+test-utils = { workspace = true }

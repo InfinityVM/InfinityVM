@@ -7,6 +7,7 @@ use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 use clob_node::K256LocalSigner;
 use alloy::hex;
 use std::env;
+use test_utils::wallet::Wallet;
 
 const CLOB_PRIVATE_KEY: &str = "CLOB_PRIVATE_KEY";
 
@@ -59,8 +60,9 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Deposit(a) => {
-                let private_key = private_key()?;
-                let wallet = EthereumWallet::from(private_key);
+                let wallet = 
+                // let private_key = private_key()?;
+                // let wallet = EthereumWallet::from(private_key);
 
                 let provider = ProviderBuilder::new()
                     .with_recommended_fillers()

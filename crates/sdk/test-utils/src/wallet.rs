@@ -2,8 +2,7 @@
 //! 
 //! This code is taken directly from https://github.com/paradigmxyz/reth/blob/main/crates/e2e-test-utils/src/wallet.rs
 
-use alloy::signer::Signer;
-use alloy::signer_local::{coins_bip39::English, MnemonicBuilder, PrivateKeySigner};
+use alloy_signer_local::{coins_bip39::English, MnemonicBuilder, PrivateKeySigner};
 
 /// One of the accounts of the genesis allocations.
 #[derive(Debug)]
@@ -37,6 +36,8 @@ impl Wallet {
 
     /// Generates a list of wallets
     pub fn gen(&self) -> Vec<PrivateKeySigner> {
+        use alloy_signer::Signer;
+
         let builder = MnemonicBuilder::<English>::default().phrase(TEST_MNEMONIC);
 
         // use the derivation path

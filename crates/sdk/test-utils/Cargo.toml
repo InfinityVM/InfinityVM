@@ -8,10 +8,12 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["provider-anvil-node", "full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+alloy = { workspace = true, features = ["provider-anvil-node", "full", "signer-local", "signers", "signer-keystore"] }
 tracing-subscriber = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }
+alloy-signer-local = { version = "0.3.3", features = ["mnemonic"]}
+alloy-signer = { version = "0.3.3" }
 
 contracts = { workspace = true }
 
