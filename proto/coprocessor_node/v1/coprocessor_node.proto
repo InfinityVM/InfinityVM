@@ -1,7 +1,6 @@
 syntax = "proto3";
 package coprocessor_node.v1;
 
-import "google/api/annotations.proto";
 import "coprocessor_node/v1/job.proto";
 
 option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
@@ -9,27 +8,15 @@ option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/type
 // Service defines the gRPC service for the coprocessing node.
 service CoprocessorNode {
   // SubmitJob defines the gRPC method for submitting a coprocessing job.
-  rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {
-    option (google.api.http) = {
-      post: "/v1/coprocessor_node/submit_job"
-      body: "*"
-    };
-  }
+  rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {}
 
   // GetResult defines the gRPC method for getting the result of a coprocessing
   // job.
-  rpc GetResult(GetResultRequest) returns (GetResultResponse) {
-    option (google.api.http).get = "/v1/coprocessor_node/result/{job_id}";
-  }
+  rpc GetResult(GetResultRequest) returns (GetResultResponse) {}
 
   // SubmitProgram defines the gRPC method for submitting a new program to
   // generate a unique program verification key.
-  rpc SubmitProgram(SubmitProgramRequest) returns (SubmitProgramResponse) {
-    option (google.api.http) = {
-      post: "/v1/coprocessor_node/submit_program"
-      body: "*"
-    };
-  }
+  rpc SubmitProgram(SubmitProgramRequest) returns (SubmitProgramResponse) {}
 }
 
 // Type of ZKVM to execute
