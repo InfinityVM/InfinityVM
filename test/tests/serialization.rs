@@ -24,15 +24,15 @@ fn serde_json_test() {
     let serialized = serde_json::to_string(&job_result).expect("serialization failed");
     let expected_json = r#"
         {
-            "id": "AAAB",
+            "id": "000001",
             "nonce": 1,
             "maxCycles": 100,
             "consumerAddress": "000001",
-            "programId": "AAAB",
-            "onchainInput": "AAAB",
-            "requestSignature": "AAAB",
-            "resultWithMetadata": "AAAB",
-            "zkvmOperatorSignature": "AAAB",
+            "programId": "000001",
+            "onchainInput": "000001",
+            "requestSignature": "000001",
+            "resultWithMetadata": "000001",
+            "zkvmOperatorSignature": "000001",
             "status": {
                 "status": 1,
                 "failureReason": null,
