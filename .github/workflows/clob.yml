@@ -43,6 +43,7 @@ jobs:
           PATTERNS: |
             .github/workflows/clob.yml
             clob/*
+            Dockerfile.clob
 
       - name: Docker Metadata Pull
         id: meta
