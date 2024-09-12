@@ -6,5 +6,7 @@
 !/programs
 !/test
 !/clob
+!/proto
+!/contracts
 !Cargo.lock
 !Cargo.toml

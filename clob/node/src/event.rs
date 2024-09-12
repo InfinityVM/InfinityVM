@@ -25,8 +25,16 @@ pub async fn start_deposit_event_listener(
 ) -> eyre::Result<()> {
     let mut last_seen_block = from_block;
     let mut retry = 1;
-    let ws = WsConnect::new(ws_rpc_url.clone());
-    let provider = ProviderBuilder::new().on_ws(ws).await?;
+
+    let provider = loop {
+        let ws = WsConnect::new(ws_rpc_url.clone());
+        let p = ProviderBuilder::new().on_ws(ws.clone()).await;
+        match p {
+            Ok(p) => break p,
+            Err(_) => continue,
+        }
+    };
+
     let contract = ClobConsumer::new(clob_consumer, &provider);
     loop {
         // We have this loop so we can recreate a subscription stream in case any issue is
