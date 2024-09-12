@@ -1,6 +1,6 @@
 //! Development wallet for reth based nodes (including anvil).
-//! 
-//! This code is taken directly from https://github.com/paradigmxyz/reth/blob/main/crates/e2e-test-utils/src/wallet.rs
+//!
+//! This code is taken directly from <https://github.com/paradigmxyz/reth/blob/main/crates/e2e-test-utils/src/wallet.rs>
 
 use alloy_signer_local::{coins_bip39::English, MnemonicBuilder, PrivateKeySigner};
 
@@ -58,6 +58,6 @@ const TEST_MNEMONIC: &str = "test test test test test test test test test test t
 
 impl Default for Wallet {
     fn default() -> Self {
-        Self::new(1)
+        Self::new(10)
     }
 }

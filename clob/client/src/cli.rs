@@ -1,15 +1,15 @@
 //! CLI for making HTTP request to clob node.
 
 use crate::Client;
-use alloy::primitives::{hex::FromHex, Address};
+use alloy::{
+    network::EthereumWallet,
+    primitives::{hex::FromHex, Address},
+    providers::ProviderBuilder,
+};
 use clap::{Args, Parser, Subcommand};
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 use clob_node::K256LocalSigner;
-use alloy::hex;
-use std::env;
 use test_utils::wallet::Wallet;
-
-const CLOB_PRIVATE_KEY: &str = "CLOB_PRIVATE_KEY";
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -27,7 +27,7 @@ impl Cli {
     pub async fn run() -> eyre::Result<()> {
         let args = Self::parse();
 
-        let client = Client::new(args.http_endpoint);
+        let client = Client::new(args.http_endpoint.to_owned());
 
         match args.commands {
             Commands::Cancel(a) => {
@@ -60,26 +60,23 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Deposit(a) => {
-                let wallet = 
-                // let private_key = private_key()?;
-                // let wallet = EthereumWallet::from(private_key);
+                let all_wallets = Wallet::new((a.anvil_account + 1) as usize).gen();
+                let bytes = all_wallets[a.anvil_account as usize].to_bytes().0;
+
+
+                let local_signer = K256LocalSigner::from_slice(&bytes).unwrap()
+                ;
+                let eth_wallet = EthereumWallet::from(local_signer);
 
                 let provider = ProviderBuilder::new()
                     .with_recommended_fillers()
-                    .wallet(wallet)
-                    .on_http(a.http_endpoint.parse().unwrap());
+                    .wallet(eth_wallet)
+                    .on_http(args.http_endpoint.parse().unwrap());
             }
         };
 
         Ok(())
     }
-}
-
-fn private_key() -> eyre::Result<K256LocalSigner> {
-    let private_key = env::var(CLOB_PRIVATE_KEY)?;
-    let decoded = hex::decode(private_key)?;
-
-    K256LocalSigner::from_slice(&decoded).map_err(Into::into)
 }
 
 #[derive(Subcommand, Debug)]
@@ -143,5 +140,5 @@ struct DepositArgs {
     quote: u64,
     /// Base asset balance.
     #[arg(short, long)]
-    base: u64, 
+    base: u64,
 }
