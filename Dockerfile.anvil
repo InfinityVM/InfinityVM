@@ -1,0 +1,5 @@
+FROM ghcr.io/foundry-rs/foundry AS base
+
+EXPOSE 8545
+
+CMD ["anvil", "--host", "0.0.0.0"]
