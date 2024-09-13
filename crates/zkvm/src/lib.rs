@@ -42,8 +42,8 @@ pub trait Zkvm {
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
-    /// Execute the program for a stateful job and return the raw output;
-    fn execute_stateful(
+    /// Execute the program for an offchain job and return the raw output.
+    fn execute_offchain(
         &self,
         program_elf: &[u8],
         onchain_input: &[u8],
@@ -106,7 +106,7 @@ impl Zkvm for Risc0 {
         Ok(prove_info.journal.bytes)
     }
 
-    fn execute_stateful(
+    fn execute_offchain(
         &self,
         program_elf: &[u8],
         onchain_input: &[u8],
@@ -114,21 +114,21 @@ impl Zkvm for Risc0 {
         state: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
-        let state_len = state.len() as u32;
         let onchain_input_len = onchain_input.len() as u32;
         let offchain_input_len = offchain_input.len() as u32;
+        let state_len = state.len() as u32;
 
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
-            .write(&state_len)
-            .map_err(|source| Error::Risc0 { source })?
-            .write_slice(state)
             .write(&onchain_input_len)
             .map_err(|source| Error::Risc0 { source })?
             .write_slice(onchain_input)
             .write(&offchain_input_len)
             .map_err(|source| Error::Risc0 { source })?
             .write_slice(offchain_input)
+            .write(&state_len)
+            .map_err(|source| Error::Risc0 { source })?
+            .write_slice(state)
             .build()
             .map_err(|source| Error::Risc0 { source })?;
 

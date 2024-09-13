@@ -120,7 +120,7 @@ mod tests {
     fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulProgramResult {
         let state_borsh = borsh::to_vec(&init_state).unwrap();
         let out_bytes = zkvm::Risc0 {}
-            .execute_stateful(
+            .execute_offchain(
                 super::CLOB_ELF,
                 &vec![],
                 &borsh::to_vec(&txns).unwrap(),

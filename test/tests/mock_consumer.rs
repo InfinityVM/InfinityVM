@@ -77,6 +77,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             consumer_address: mock.mock_consumer.abi_encode_packed(),
             program_id: program_id.clone(),
             onchain_input: mock_user_address.abi_encode(),
+            offchain_input: vec![],
             state: vec![],
             // signature added to this job below
             request_type: RequestType::Offchain(vec![]),
@@ -97,6 +98,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let job_request = SubmitJobRequest {
             request: job_request_payload,
             signature: request_signature.into(),
+            offchain_input: vec![],
             state: vec![],
         };
         let submit_job_response =
@@ -124,7 +126,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_result_with_metadata(
             job_id,
             keccak256(&job_result.onchain_input),
-            keccak256(vec![]),
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
@@ -163,7 +164,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 
         // Verify inputs onchain
         let get_inputs_call = consumer_contract.getOnchainInputForJob(FixedBytes(job_id));
-        let MockConsumer::getOnchainInputsForJobReturn { _0: inputs } =
+        let MockConsumer::getOnchainInputForJobReturn { _0: inputs } =
             get_inputs_call.call().await.unwrap();
         assert_eq!(Address::abi_encode(&mock_user_address), inputs);
 
@@ -249,7 +250,6 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_result_with_metadata(
             job_id.into(),
             keccak256(&job_result.onchain_input),
-            keccak256(vec![]),
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,

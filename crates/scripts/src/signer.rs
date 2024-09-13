@@ -35,7 +35,6 @@ impl RequestAndResultSigner {
         let encoded_result = abi_encode_result_with_metadata(
             get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap()),
             keccak256(Address::abi_encode(&zero_addr)),
-            keccak256(vec![]),
             MAX_CYCLES,
             PROGRAM_ID,
             &raw_output,

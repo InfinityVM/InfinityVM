@@ -45,10 +45,10 @@ message SubmitJobRequest {
   bytes request = 1;
   // Signature on ABI-encoded offchain job request
   bytes signature = 2;
-  // Value of state passed into program (this isn't signed over)
-  bytes state = 3;
   // Value of offchain input passed into program (this isn't signed over)
-  bytes offchain_input = 4;
+  bytes offchain_input = 3;
+  // Value of state passed into program (this isn't signed over)
+  bytes state = 4;
 }
 
 // SubmitJobResponse defines the response structure to submit a job to the

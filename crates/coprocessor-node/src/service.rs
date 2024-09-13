@@ -68,15 +68,15 @@ where
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
 
+        let offchain_input_hash = keccak256(&req.offchain_input);
+        if offchain_input_hash_in_request != offchain_input_hash {
+            return Err(Status::invalid_argument("offchain input hash does not match"));
+        }
+
         let state_hash = keccak256(&req.state);
         if state_hash_in_request != state_hash {
             return Err(Status::invalid_argument("state hash does not match"));
         }
-
-        let offchain_input_hash = keccak256(&req.offchain_input);
-        if offchain_input_hash_in_request != offchain_input_hash {
-            return Err(Status::invalid_argument("offchain input hash does not match"));
-        }   
 
         let job_id = get_job_id(nonce, consumer);
 

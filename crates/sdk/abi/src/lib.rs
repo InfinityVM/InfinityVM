@@ -10,8 +10,8 @@ pub struct JobParams<'a> {
     pub consumer_address: [u8; 20],
     pub onchain_input: &'a [u8],
     pub program_id: &'a [u8],
-    pub state_hash: [u8; 32],
     pub offchain_input_hash: [u8; 32],
+    pub state_hash: [u8; 32],
 }
 
 sol! {
@@ -28,10 +28,10 @@ sol! {
         bytes program_id;
         /// Onchain input for program.
         bytes onchain_input;
-        /// Hash of state.
-        bytes32 state_hash;
         /// Hash of offchain input for program (not posted onchain).
         bytes32 offchain_input_hash;
+        /// Hash of state.
+        bytes32 state_hash;
     }
 
     /// Returned by zkVM program as the result for stateful jobs
@@ -51,8 +51,8 @@ pub fn abi_encode_offchain_job_request(job: JobParams) -> Vec<u8> {
         consumer: job.consumer_address.into(),
         program_id: job.program_id.to_vec().into(),
         onchain_input: job.onchain_input.to_vec().into(),
-        state_hash: job.state_hash.into(),
         offchain_input_hash: job.offchain_input_hash.into(),
+        state_hash: job.state_hash.into(),
     }
     .abi_encode()
 }

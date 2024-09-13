@@ -88,7 +88,7 @@ contract JobManager is
     }
 
     function submitResult(
-        bytes memory resultWithMetadata, // Includes job ID + onchain input hash + max cycles + program ID + result value
+        bytes memory resultWithMetadata,
         bytes memory signature
     ) public override nonReentrant {
         require(msg.sender == relayer, "JobManager.submitResult: caller is not the relayer");
@@ -103,7 +103,7 @@ contract JobManager is
     }
 
     function submitResultForOffchainJob(
-        bytes calldata resultWithMetadata,
+        bytes calldata offchainResultWithMetadata,
         bytes calldata signatureOnResult,
         bytes calldata jobRequest,
         bytes calldata signatureOnRequest
@@ -117,17 +117,17 @@ contract JobManager is
         require(OffchainRequester(request.consumer).isValidSignature(requestHash, signatureOnRequest) == EIP1271_MAGIC_VALUE, "JobManager.submitResultForOffchainJob: Invalid signature on job request");
 
         // Verify signature on result with metadata
-        bytes32 resultHash = ECDSA.toEthSignedMessageHash(resultWithMetadata);
+        bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
-        // Create a job without emitting an event and set onchain input and state hash on consumer
+        // Create a job without emitting an event and set onchain input, offchain input hash, and state hash on consumer
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
         Consumer(request.consumer).setOnchainInputForJob(jobID, request.onchainInput);
         Consumer(request.consumer).setOffchainInputHashForJob(jobID, request.offchainInputHash);
         Consumer(request.consumer).setStateHashForJob(jobID, request.stateHash);
 
         // Decode the result using abi.decode
-        ResultWithMetadata memory result = abi.decode(resultWithMetadata, (ResultWithMetadata));
+        OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
         require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
         require(request.offchainInputHash == result.offchainInputHash, "JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
         require(request.stateHash == result.stateHash, "JobManager.submitResultForOffchainJob: state hash signed by coprocessor doesn't match state hash of job request");

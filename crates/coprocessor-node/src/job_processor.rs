@@ -301,18 +301,36 @@ where
                 }
             };
 
-            let job = match zk_executor
-                .execute(
-                    id,
-                    job.max_cycles,
-                    job.program_id.clone(),
-                    job.onchain_input.clone(),
-                    job.state.clone(),
-                    elf_with_meta.elf,
-                    VmType::Risc0,
-                )
-                .await
-            {
+            let result = match job.request_type {
+                RequestType::Onchain => {
+                    zk_executor
+                        .execute(
+                            id,
+                            job.max_cycles,
+                            job.program_id.clone(),
+                            job.onchain_input.clone(),
+                            elf_with_meta.elf,
+                            VmType::Risc0,
+                        )
+                        .await
+                }
+                RequestType::Offchain(_) => {
+                    zk_executor
+                        .execute_offchain(
+                            id,
+                            job.max_cycles,
+                            job.program_id.clone(),
+                            job.onchain_input.clone(),
+                            job.offchain_input.clone(),
+                            job.state.clone(),
+                            elf_with_meta.elf,
+                            VmType::Risc0,
+                        )
+                        .await
+                }
+            };
+
+            let job = match result {
                 Ok((result_with_metadata, zkvm_operator_signature)) => {
                     tracing::debug!("job {:?} executed successfully", id.clone());
 
