@@ -6,6 +6,7 @@ abstract contract Consumer {
     JobManager internal _jobManager;
     uint64 public maxNonce;
     mapping(bytes32 => bytes) internal jobIDToOnchainInput;
+    mapping(bytes32 => bytes32) internal jobIDToOffchainInputHash;
     mapping(bytes32 => bytes32) internal jobIDToStateHash;
 
     constructor(address __jobManager, uint64 _initialMaxNonce) {
@@ -25,6 +26,10 @@ abstract contract Consumer {
         return jobIDToOnchainInput[jobID];
     }
 
+    function getOffchainInputHashForJob(bytes32 jobID) public view virtual returns (bytes32) {
+        return jobIDToOffchainInputHash[jobID];
+    }
+
     function getStateHashForJob(bytes32 jobID) public view virtual returns (bytes32) {
         return jobIDToStateHash[jobID];
     }
@@ -35,6 +40,10 @@ abstract contract Consumer {
 
     function setOnchainInputForJob(bytes32 jobID, bytes memory onchainInput) public virtual onlyJobManager() {
         jobIDToOnchainInput[jobID] = onchainInput;
+    }
+
+    function setOffchainInputHashForJob(bytes32 jobID, bytes32 offchainInputHash) public virtual onlyJobManager() {
+        jobIDToOffchainInputHash[jobID] = offchainInputHash;
     }
 
     function setStateHashForJob(bytes32 jobID, bytes32 stateHash) public virtual onlyJobManager() {
