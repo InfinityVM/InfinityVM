@@ -88,7 +88,7 @@ pub async fn sleep_until_bound(port: u16) {
 #[derive(Debug)]
 pub struct AnvilJobManager {
     /// Anvil instance
-    pub rpc_url: AnvilInstance,
+    pub anvil: AnvilInstance,
     /// Address of the job manager contract
     pub job_manager: Address,
     /// Relayer private key

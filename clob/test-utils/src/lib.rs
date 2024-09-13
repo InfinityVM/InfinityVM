@@ -42,54 +42,11 @@ pub struct AnvilClob {
 
 /// Deploy `ClobConsumer` to anvil instance.
 pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
-
-
     let AnvilJobManager { anvil, job_manager, .. } = anvil;
-
-    let consumer_owner: PrivateKeySigner = signers[4].clone().into();
-    let clob_signer: PrivateKeySigner = signers[5].clone().into();
-
-    let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
-
-    let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
-        .wallet(consumer_owner_wallet)
-        .on_http(anvil.endpoint.parse().unwrap());
-
-    // Deploy base & quote erc20s
-    let base_name = "base".to_string();
-    let base_symbol = "BASE".to_string();
-    let base_erc20 =
-        *mock_erc20::MockErc20::deploy(&provider, base_name, base_symbol).await.unwrap().address();
-
-    let quote_name = "quote".to_string();
-    let quote_symbol = "QUOTE".to_string();
-    let quote_erc20 = *mock_erc20::MockErc20::deploy(&provider, quote_name, quote_symbol)
-        .await
-        .unwrap()
-        .address();
-
-    let clob_state0 = ClobState::default();
-    let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
-
-    // Deploy the clob consumer
-    let clob_consumer = *ClobConsumer::deploy(
-        provider,
-        *job_manager,
-        clob_signer.address(),
-        0,
-        base_erc20,
-        quote_erc20,
-        init_state_hash.into(),
-    )
-    .await
-    .unwrap()
-    .address();
-
-    AnvilClob { clob_signer, clob_consumer, quote_erc20, base_erc20 }
+    clob_manager_deploy(anvil.endpoint(), &job_manager).await
 }
 
-pub async fn clob_manager_deploy(rpc_url: String) -> AnvilClob {
+pub async fn clob_manager_deploy(rpc_url: String, job_manager: &Address) -> AnvilClob {
     let signers = get_signers(6);
 
     let consumer_owner: PrivateKeySigner = signers[4].clone().into();

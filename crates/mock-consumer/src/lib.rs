@@ -12,6 +12,7 @@ use db::tables::{get_job_id, Job, RequestType};
 use proto::{JobStatus, JobStatusType};
 use test_utils::{AnvilJobManager, MOCK_CONTRACT_MAX_CYCLES};
 use zkvm_executor::service::abi_encode_result_with_metadata;
+use test_utils::get_signers;
 
 /// Output from [`anvil_with_mock_consumer`]
 #[derive(Debug)]
