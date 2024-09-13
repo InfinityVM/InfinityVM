@@ -10,9 +10,8 @@ use alloy::{
 use contracts::mock_consumer::MockConsumer;
 use db::tables::{get_job_id, Job, RequestType};
 use proto::{JobStatus, JobStatusType};
-use test_utils::{AnvilJobManager, MOCK_CONTRACT_MAX_CYCLES};
+use test_utils::{get_signers, AnvilJobManager, MOCK_CONTRACT_MAX_CYCLES};
 use zkvm_executor::service::abi_encode_result_with_metadata;
-use test_utils::get_signers;
 
 /// Output from [`anvil_with_mock_consumer`]
 #[derive(Debug)]
@@ -26,8 +25,8 @@ pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> An
     let signers = get_signers(6);
     let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manager;
 
-    let consumer_owner: PrivateKeySigner = signers[4].clone().into();
-    let offchain_signer: PrivateKeySigner = signers[5].clone().into();
+    let consumer_owner: PrivateKeySigner = signers[4].clone();
+    let offchain_signer: PrivateKeySigner = signers[5].clone();
 
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 

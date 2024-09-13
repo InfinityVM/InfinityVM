@@ -2,12 +2,16 @@
 
 use std::net::TcpListener;
 
+use crate::wallet::Wallet;
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
     primitives::Address,
     providers::{ext::AnvilApi, ProviderBuilder},
-    signers::local::PrivateKeySigner,
+    signers::{
+        k256::ecdsa::SigningKey,
+        local::{LocalSigner, PrivateKeySigner},
+    },
 };
 use contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
@@ -15,10 +19,6 @@ use contracts::{
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
-use crate::wallet::Wallet;
-use alloy::{
-    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
-};
 
 pub mod wallet;
 
@@ -103,11 +103,17 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
     // Set block time to 0.01 seconds - I WANNA GO FAST MOM
     let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
 
-    let job_manager_deploy = job_manager(anvil.endpoint()).await;
+    let job_manager_deploy = job_manager_deploy(anvil.endpoint()).await;
 
-    AnvilJobManager { anvil, job_manager: job_manager_deploy.job_manager, relayer: job_manager_deploy.relayer, coprocessor_operator: job_manager_deploy.coprocessor_operator }
+    AnvilJobManager {
+        anvil,
+        job_manager: job_manager_deploy.job_manager,
+        relayer: job_manager_deploy.relayer,
+        coprocessor_operator: job_manager_deploy.coprocessor_operator,
+    }
 }
 
+/// Get the first `count` of the signers based on the reth dev seed.
 pub fn get_signers(count: usize) -> Vec<K256LocalSigner> {
     Wallet::new(count)
         .gen()
@@ -117,6 +123,7 @@ pub fn get_signers(count: usize) -> Vec<K256LocalSigner> {
         .collect()
 }
 
+/// Job Manager deployment info
 #[derive(Debug)]
 pub struct JobManagerDeploy {
     /// Anvil instance
@@ -129,7 +136,8 @@ pub struct JobManagerDeploy {
     pub coprocessor_operator: PrivateKeySigner,
 }
 
-pub async fn job_manager(rpc_url: String) -> JobManagerDeploy {
+/// Deploy `JobManager` contract.
+pub async fn job_manager_deploy(rpc_url: String) -> JobManagerDeploy {
     let signers = get_signers(5);
 
     let initial_owner = signers[0].clone();
@@ -169,5 +177,5 @@ pub async fn job_manager(rpc_url: String) -> JobManagerDeploy {
 
     let job_manager = *proxy.address();
 
-    JobManagerDeploy { rpc_url,  job_manager, relayer, coprocessor_operator }
+    JobManagerDeploy { rpc_url, job_manager, relayer, coprocessor_operator }
 }

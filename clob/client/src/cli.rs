@@ -9,8 +9,8 @@ use alloy::{
 use clap::{Args, Parser, Subcommand};
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 use clob_node::K256LocalSigner;
-use test_utils::wallet::Wallet;
 use clob_test_utils::mock_erc20::MockErc20;
+use test_utils::wallet::Wallet;
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -77,9 +77,7 @@ impl Cli {
                     let erc20 = MockErc20::new(address, &provider);
                 }
             }
-            Commands::Deploy => {
-                
-            }
+            Commands::Deploy => {}
         };
 
         Ok(())

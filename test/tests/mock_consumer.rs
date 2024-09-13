@@ -21,7 +21,6 @@ use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
 use test_utils::MOCK_CONTRACT_MAX_CYCLES;
 use zkvm_executor::service::{abi_encode_result_with_metadata, ResultWithMetadata};
-use test_utils::get_signers;
 
 type MockConsumerOut = sol!((Address, U256));
 
