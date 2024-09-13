@@ -10,7 +10,7 @@ use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use proto::{JobStatus, JobStatusType};
 use std::env;
-use zkvm_executor::service::abi_encode_result_with_metadata;
+use zkvm_executor::service::{abi_encode_result_with_metadata, abi_encode_offchain_result_with_metadata};
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -49,6 +49,34 @@ impl RequestAndResultSigner {
 
         println!("Encoded onchain result: {}", hex::encode(&encoded_result));
         println!("Signature for encoded onchain result: {}", hex::encode(signature.as_bytes()));
+    }
+
+    pub async fn sign_offchain_result() {
+        dotenv().ok();
+
+        let zero_addr: Address = Address::ZERO;
+
+        // Encode the result with metadata
+        let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
+        let encoded_result = abi_encode_offchain_result_with_metadata(
+            get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap()),
+            keccak256(Address::abi_encode(&zero_addr)),
+            keccak256(vec![]),
+            keccak256(vec![]),
+            MAX_CYCLES,
+            PROGRAM_ID,
+            &raw_output,
+        );
+
+        // Sign the message
+        let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY")
+            .expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
+        let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
+        let signer = K256LocalSigner::from_slice(&decoded).unwrap();
+        let signature = signer.sign_message(&encoded_result).await.unwrap();
+
+        println!("Encoded offchain result: {}", hex::encode(&encoded_result));
+        println!("Signature for encoded offchain result: {}", hex::encode(signature.as_bytes()));
     }
 
     /// Sign an offchain job request
