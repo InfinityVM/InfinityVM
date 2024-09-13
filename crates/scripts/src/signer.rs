@@ -59,7 +59,7 @@ impl RequestAndResultSigner {
 
         let zero_addr: Address = Address::ZERO;
 
-        // Encode the result with metadata
+        // Encode the offchain result with metadata
         let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
         let encoded_result = abi_encode_offchain_result_with_metadata(
             get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap()),

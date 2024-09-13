@@ -140,6 +140,8 @@ where
                             nonce: job.nonce,
                             program_id: job.program_id,
                             onchain_input: job.onchain_input,
+                            offchain_input_hash: keccak256(&job.offchain_input).as_slice().to_vec(),
+                            state_hash: keccak256(&job.state).as_slice().to_vec(),
                             consumer_address: job.consumer_address,
                             max_cycles: job.max_cycles,
                             request_signature,

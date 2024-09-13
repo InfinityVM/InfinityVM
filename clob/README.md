@@ -62,7 +62,7 @@ The user can perform these actions:
 
 ### Sending batches to the InfinityVM coprocessor
 
-The InfinityVM coprocessor allows apps to submit jobs directly to the coprocessor. Apps can choose which inputs they want to post onchain vs. to some DA layer. Some apps are also "stateful" and can pass in state (posted to DA). For example, the CLOB state contains all user balances in the CLOB along with the order book.
+The InfinityVM coprocessor allows apps to submit jobs directly to the coprocessor. Apps can choose which inputs they want to post onchain vs. to some DA layer. Some apps are also "stateful" and can pass in state. For example, the CLOB state contains all user balances in the CLOB along with the order book.
 
 The API for submitting a job to the coprocessor is:
 ```rust=
