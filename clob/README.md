@@ -62,7 +62,7 @@ The user can perform these actions:
 
 ### Sending batches to the InfinityVM coprocessor
 
-The InfinityVM coprocessor allows apps to submit "stateful jobs". In a traditional coprocessing job, all the inputs passed into the job are posted onchain by the coprocessor. In a stateful job, the coprocessor continues to post inputs onchain but apps can now pass in additional state which isn't posted onchain (instead, this can be posted to some DA layer to make this cheaper).
+The InfinityVM coprocessor allows apps to submit jobs directly to the coprocessor. Apps can choose which inputs they want to post onchain vs. to some DA layer. Some apps are also "stateful" and can pass in state (posted to DA). For example, the CLOB state contains all user balances in the CLOB along with the order book.
 
 The API for submitting a job to the coprocessor is:
 ```rust=
@@ -71,21 +71,23 @@ struct JobRequest {
     consumer_address: [u8; 20],
     program_id: Vec<u8>,
     onchain_input: Vec<u8>,
+    offchain_input: Vec<u8>,
+    offchain_input_hash: Vec<u8>,
     state: Vec<u8>,
     state_hash: Vec<u8>,
 }
 ```
 
-For the CLOB, `state` contains all user balances in the CLOB along with the order book. This will be borsh-encoded before submitting to the coprocessor.
-
-`onchain_input` contains:
+`offchain_input` contains:
 - the new batch of orders/cancels/deposits/withdraws
 - user signature for each order in the batch
 
+The `offchain_input` and `state` will be borsh-encoded before submitting to the coprocessor.
+
 ### zkVM program
 
-The zkVM program takes in `state` and `onchain_input` as inputs. It does these things:
-- Decodes `state` and `onchain_input`
+The zkVM program takes in `state` and `offchain_input` as inputs. It does these things:
+- Decodes `state` and `offchain_input`
 - Verifies that the signature on every order in the batch is valid
 - Runs the CLOB matching function, which takes in the batch and the existing order book as inputs. We won't explain this function in detail here, but the code for this is in `zkvm_stf` in `clob/core/src/lib.rs` in the `InfinityVM` monorepo.
 - Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of state updates which will be processed by the CLOB contract.
@@ -151,5 +153,4 @@ By verifying that `state_hash` matches the state from the most recent batch, thi
 This CLOB is a PoC and so there are many components that would be interesting to research further. A few things:
 
 1. The CLOB server could potentially give commitments to users when users place orders. If this is combined with some kind of slashing mechanism, this could be used to guarantee price-time priority for all users of the CLOB.
-2. Currently, the CLOB posts the entire batch of orders + user signatures on these orders onchain. This could be made cheaper if the batch of orders + signatures is posted to some DA layer instead, and only a hash commitment to the batch is posted onchain. Need to research how to implement this without sacrificing security.
-3. The current system of requiring users to deposit funds into the CLOB contract sacrifices some composability since these funds are "locked" in the CLOB contract until the user withdraws. It would be valuable to look into how to improve composability.
+2. The current system of requiring users to deposit funds into the CLOB contract sacrifices some composability since these funds are "locked" in the CLOB contract until the user withdraws. It would be valuable to look into how to improve composability.
