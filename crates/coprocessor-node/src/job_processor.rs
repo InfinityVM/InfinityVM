@@ -304,7 +304,7 @@ where
             let result = match job.request_type {
                 RequestType::Onchain => {
                     zk_executor
-                        .execute(
+                        .execute_onchain_job(
                             id,
                             job.max_cycles,
                             job.program_id.clone(),
@@ -316,7 +316,7 @@ where
                 }
                 RequestType::Offchain(_) => {
                     zk_executor
-                        .execute_offchain(
+                        .execute_offchain_job(
                             id,
                             job.max_cycles,
                             job.program_id.clone(),

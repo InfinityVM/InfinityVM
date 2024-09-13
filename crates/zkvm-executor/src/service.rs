@@ -75,7 +75,7 @@ where
     /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
     /// Returns (`result_with_metadata`, `zkvm_operator_signature`)
     #[allow(clippy::too_many_arguments)]
-    pub async fn execute(
+    pub async fn execute_onchain_job(
         &self,
         job_id: [u8; 32],
         max_cycles: u64,
@@ -102,7 +102,8 @@ where
 
         let onchain_input_hash = keccak256(&onchain_input);
         let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute(&elf, &onchain_input, max_cycles).map_err(Error::ZkvmExecuteFailed)
+            vm.execute_onchain_job(&elf, &onchain_input, max_cycles)
+                .map_err(Error::ZkvmExecuteFailed)
         })
         .await
         .expect("spawn blocking join handle is infallible. qed.")?;
@@ -130,7 +131,7 @@ where
     /// Checks the verifying key, executes an offchain job on the given inputs, and returns signed
     /// output. Returns (`offchain_result_with_metadata`, `zkvm_operator_signature`)
     #[allow(clippy::too_many_arguments)]
-    pub async fn execute_offchain(
+    pub async fn execute_offchain_job(
         &self,
         job_id: [u8; 32],
         max_cycles: u64,
@@ -161,7 +162,7 @@ where
         let offchain_input_hash = keccak256(&offchain_input);
         let state_hash = keccak256(&state);
         let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute_offchain(&elf, &onchain_input, &offchain_input, &state, max_cycles)
+            vm.execute_offchain_job(&elf, &onchain_input, &offchain_input, &state, max_cycles)
                 .map_err(Error::ZkvmExecuteFailed)
         })
         .await
