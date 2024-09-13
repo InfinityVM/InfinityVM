@@ -123,7 +123,7 @@ mod tests {
             .execute_offchain_job(
                 super::CLOB_ELF,
                 &[],
-                &borsh::to_vec(&txns).unwrap(),
+                &borsh::to_vec(&txns).expect("type is borsh serializable. qed."),
                 &state_borsh,
                 32 * 1000 * 1000,
             )
