@@ -15,7 +15,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     uint64 DEFAULT_NONCE = 1;
     bytes32 DEFAULT_JOB_ID;
 
-    event JobCreated(bytes32 indexed jobID, uint64 indexed nonce, address indexed consumer, uint64 maxCycles, bytes programID, bytes programInput);
+    event JobCreated(bytes32 indexed jobID, uint64 indexed nonce, address indexed consumer, uint64 maxCycles, bytes programID, bytes onchainInput);
     event JobCancelled(bytes32 indexed jobID);
     event JobCompleted(bytes32 indexed jobID, bytes result);
 
@@ -28,9 +28,9 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
     function test_JobManager_CreateJob() public {
         assertEq(consumer.getNextNonce(), DEFAULT_NONCE);
         vm.expectEmit(true, true, true, true);
-        emit JobCreated(DEFAULT_JOB_ID, DEFAULT_NONCE, address(consumer), DEFAULT_MAX_CYCLES, "programID", "programInput");
+        emit JobCreated(DEFAULT_JOB_ID, DEFAULT_NONCE, address(consumer), DEFAULT_MAX_CYCLES, "programID", "onchainInput");
         vm.prank(address(consumer));
-        bytes32 jobID = jobManager.createJob(DEFAULT_NONCE, "programID", "programInput", DEFAULT_MAX_CYCLES);
+        bytes32 jobID = jobManager.createJob(DEFAULT_NONCE, "programID", "onchainInput", DEFAULT_MAX_CYCLES);
         assertEq(jobID, DEFAULT_JOB_ID);
         assertEq(consumer.getNextNonce(), DEFAULT_NONCE + 1);
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
@@ -46,7 +46,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         emit JobCreated(DEFAULT_JOB_ID, DEFAULT_NONCE, address(consumer), DEFAULT_MAX_CYCLES, "programID", abi.encode(address(0)));
         bytes32 jobID = consumer.requestBalance("programID", address(0));
         assertEq(jobID, DEFAULT_JOB_ID);
-        assertEq(consumer.getProgramInputsForJob(jobID), abi.encode(address(0)));
+        assertEq(consumer.getOnchainInputForJob(jobID), abi.encode(address(0)));
         assertEq(consumer.getNextNonce(), DEFAULT_NONCE + 1);
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);
         assertEq(jobMetadata.programID, "programID");
@@ -182,13 +182,13 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         jobManager.submitResult(resultWithMetadata, signature);
     }
 
-    function testRevertWhen_JobManager_SubmitResultWrongProgramInputHash() public {
+    function testRevertWhen_JobManager_SubmitResultWrongOnchainInputHash() public {
         test_Consumer_RequestJob();
 
         bytes memory resultWithMetadata = hex"00000000000000000000000000000000000000000000000000000000000000201d890864b9237983eecb34e67a48454a8fc1950f4f16bf79bad84e0d61e4c0b28c273dc8bd09a0b6f2a1e4d557d16b0026a0c70a998f9557c159fa082683a81500000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
         bytes memory signature = hex"b922f77061ac770c3298b83c1d6d59952c8acde812ce2396f50591c354bed82048be83a7fb07ae4b6be5af41cd21a37152fec13c8f6c0492793e0f964e963f731b";
 
-        vm.expectRevert("JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
+        vm.expectRevert("JobManager.submitResult: onchain input signed by coprocessor doesn't match onchain input submitted with job");
         vm.prank(RELAYER);
         jobManager.submitResult(resultWithMetadata, signature);
     }
@@ -231,7 +231,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         jobManager.submitResultForOffchainJob(resultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
 
         // Check that inputs are stored correctly in Consumer contract
-        assertEq(consumer.getProgramInputsForJob(DEFAULT_JOB_ID), abi.encode(address(0)));
+        assertEq(consumer.getOnchainInputForJob(DEFAULT_JOB_ID), abi.encode(address(0)));
         assertEq(consumer.getNextNonce(), DEFAULT_NONCE + 1);
 
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(DEFAULT_JOB_ID);
@@ -296,7 +296,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         jobManager.submitResultForOffchainJob(resultWithMetadata, invalidSignatureOnResult, jobRequest, signatureOnRequest);
     }
 
-    function testRevertWhen_JobManager_SubmitResultForOffchainJobWrongProgramInputHash() public {
+    function testRevertWhen_JobManager_SubmitResultForOffchainJobWrongOnchainInputHash() public {
         // Generated using crates/scripts/signer.rs
         bytes memory jobRequest = hex"0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000f4240000000000000000000000000db8cff278adccf9e9b5da745b44e754fc4ee3c7600000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d494400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000020000000000000000000000000db8cff278adccf9e9b5da745b44e754fc4ee3c76";
         bytes memory signatureOnRequest = hex"8020ee73550372e5508c7abff5598949c3640c337425d9008b16f279b7d84f92477d030bda673c31a88960e91548c6b6732ac121ccb23321a9d3bc67c961dbe81b";
@@ -304,7 +304,7 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
         bytes memory resultWithMetadata = hex"00000000000000000000000000000000000000000000000000000000000000201d890864b9237983eecb34e67a48454a8fc1950f4f16bf79bad84e0d61e4c0b2290decd9548b62a8d60345a988386fc84ba6bc95484008f6362f93160ef3e56300000000000000000000000000000000000000000000000000000000000f424000000000000000000000000000000000000000000000000000000000000000a000000000000000000000000000000000000000000000000000000000000000e0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000a";
         bytes memory signatureOnResult = hex"3e6bbc4fa7b727191be2e24303d901f0dea5dbbda344a99fd39b19189dd584ab5b44e2e0d42f201fed4f1bccd3ff9691373d843001443f265bbde70f4ca3d7ef1b";
 
-        vm.expectRevert("JobManager.submitResult: program input signed by coprocessor doesn't match program input submitted with job");
+        vm.expectRevert("JobManager.submitResult: onchain input signed by coprocessor doesn't match onchain input submitted with job");
         vm.prank(RELAYER);
         jobManager.submitResultForOffchainJob(resultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }

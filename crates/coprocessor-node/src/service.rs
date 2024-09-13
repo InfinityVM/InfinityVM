@@ -47,6 +47,7 @@ where
             program_id,
             onchain_input,
             state_hash: state_hash_in_request,
+            offchain_input_hash: offchain_input_hash_in_request,
         } = OffchainJobRequest::abi_decode(&req.request, false)
             .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
@@ -72,6 +73,11 @@ where
             return Err(Status::invalid_argument("state hash does not match"));
         }
 
+        let offchain_input_hash = keccak256(&req.offchain_input);
+        if offchain_input_hash_in_request != offchain_input_hash {
+            return Err(Status::invalid_argument("offchain input hash does not match"));
+        }   
+
         let job_id = get_job_id(nonce, consumer);
 
         // TODO: Make contract calls to verify nonce, signature, etc. on job request
@@ -86,6 +92,7 @@ where
             consumer_address: consumer.to_vec(),
             program_id: program_id.to_vec(),
             onchain_input: onchain_input.to_vec(),
+            offchain_input: req.offchain_input,
             state: req.state,
             request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],

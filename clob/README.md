@@ -70,7 +70,7 @@ struct JobRequest {
     nonce: u64,
     consumer_address: [u8; 20],
     program_id: Vec<u8>,
-    program_input: Vec<u8>,
+    onchain_input: Vec<u8>,
     state: Vec<u8>,
     state_hash: Vec<u8>,
 }
@@ -78,14 +78,14 @@ struct JobRequest {
 
 For the CLOB, `state` contains all user balances in the CLOB along with the order book. This will be borsh-encoded before submitting to the coprocessor.
 
-`program_input` contains:
+`onchain_input` contains:
 - the new batch of orders/cancels/deposits/withdraws
 - user signature for each order in the batch
 
 ### zkVM program
 
-The zkVM program takes in `state` and `program_input` as inputs. It does these things:
-- Decodes `state` and `program_input`
+The zkVM program takes in `state` and `onchain_input` as inputs. It does these things:
+- Decodes `state` and `onchain_input`
 - Verifies that the signature on every order in the batch is valid
 - Runs the CLOB matching function, which takes in the batch and the existing order book as inputs. We won't explain this function in detail here, but the code for this is in `zkvm_stf` in `clob/core/src/lib.rs` in the `InfinityVM` monorepo.
 - Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of state updates which will be processed by the CLOB contract.

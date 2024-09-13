@@ -8,7 +8,7 @@ uint8 constant JOB_STATE_COMPLETED = 3;
 
 interface IJobManager {
     // EVENTS
-    event JobCreated(bytes32 indexed jobID, uint64 indexed nonce, address indexed consumer, uint64 maxCycles, bytes programID, bytes programInput);
+    event JobCreated(bytes32 indexed jobID, uint64 indexed nonce, address indexed consumer, uint64 maxCycles, bytes programID, bytes onchainInput);
     event JobCancelled(bytes32 indexed jobID);
     event JobCompleted(bytes32 indexed jobID, bytes result);
 
@@ -22,7 +22,7 @@ interface IJobManager {
 
     struct ResultWithMetadata {
         bytes32 jobID;
-        bytes32 programInputHash;
+        bytes32 onchainInputHash;
         bytes32 stateHash;
         uint64 maxCycles;
         bytes programID;
@@ -34,12 +34,12 @@ interface IJobManager {
         uint64 maxCycles;
         address consumer;
         bytes programID;
-        bytes programInput;
+        bytes onchainInput;
         bytes32 stateHash;
     }
 
     // FUNCTIONS
-    function createJob(uint64 nonce, bytes calldata programID, bytes calldata programInput, uint64 maxCycles) external returns (bytes32 jobID);
+    function createJob(uint64 nonce, bytes calldata programID, bytes calldata onchainInput, uint64 maxCycles) external returns (bytes32 jobID);
     function getJobMetadata(bytes32 jobID) external view returns (JobMetadata memory);
     function cancelJob(bytes32 jobID) external;
     function submitResult(bytes calldata resultWithMetadata, bytes calldata signature) external;

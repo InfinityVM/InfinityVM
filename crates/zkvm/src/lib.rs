@@ -46,7 +46,8 @@ pub trait Zkvm {
     fn execute_stateful(
         &self,
         program_elf: &[u8],
-        raw_input: &[u8],
+        onchain_input: &[u8],
+        offchain_input: &[u8],
         state: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
@@ -108,21 +109,26 @@ impl Zkvm for Risc0 {
     fn execute_stateful(
         &self,
         program_elf: &[u8],
-        raw_input: &[u8],
+        onchain_input: &[u8],
+        offchain_input: &[u8],
         state: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
         let state_len = state.len() as u32;
-        let input_len = raw_input.len() as u32;
+        let onchain_input_len = onchain_input.len() as u32;
+        let offchain_input_len = offchain_input.len() as u32;
 
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
             .write(&state_len)
             .map_err(|source| Error::Risc0 { source })?
             .write_slice(state)
-            .write(&input_len)
+            .write(&onchain_input_len)
             .map_err(|source| Error::Risc0 { source })?
-            .write_slice(raw_input)
+            .write_slice(onchain_input)
+            .write(&offchain_input_len)
+            .map_err(|source| Error::Risc0 { source })?
+            .write_slice(offchain_input)
             .build()
             .map_err(|source| Error::Risc0 { source })?;
 

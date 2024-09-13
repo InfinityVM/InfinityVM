@@ -162,8 +162,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(balance, expected_balance);
 
         // Verify inputs onchain
-        let get_inputs_call = consumer_contract.getProgramInputsForJob(FixedBytes(job_id));
-        let MockConsumer::getProgramInputsForJobReturn { _0: inputs } =
+        let get_inputs_call = consumer_contract.getOnchainInputForJob(FixedBytes(job_id));
+        let MockConsumer::getOnchainInputsForJobReturn { _0: inputs } =
             get_inputs_call.call().await.unwrap();
         assert_eq!(Address::abi_encode(&mock_user_address), inputs);
 
