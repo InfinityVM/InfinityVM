@@ -38,7 +38,7 @@ pub trait Zkvm {
     fn execute(
         &self,
         program_elf: &[u8],
-        raw_input: &[u8],
+        onchain_input: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
@@ -85,12 +85,16 @@ impl Zkvm for Risc0 {
     fn execute(
         &self,
         program_elf: &[u8],
-        raw_input: &[u8],
+        onchain_input: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
+        let onchain_input_len = onchain_input.len() as u32;
+
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
-            .write_slice(raw_input)
+            .write(&onchain_input_len)
+            .map_err(|source| Error::Risc0 { source })?
+            .write_slice(onchain_input)
             .build()
             .map_err(|source| Error::Risc0 { source })?;
 

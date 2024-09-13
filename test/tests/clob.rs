@@ -19,7 +19,7 @@ use e2e::{Args, E2E};
 use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
-use zkvm_executor::service::ResultWithMetadata;
+use zkvm_executor::service::{OffchainResultWithMetadata, ResultWithMetadata};
 
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulProgramResult};
 use clob_core::api::OrderFill;
@@ -177,7 +177,7 @@ async fn state_job_submission_clob_consumer() {
             interval.tick().await;
 
             let job_id = submit_job_response.job_id;
-            let result_with_metadata = args
+            let offchain_result_with_metadata = args
                 .coprocessor_node
                 .get_result(GetResultRequest { job_id })
                 .await
@@ -189,7 +189,8 @@ async fn state_job_submission_clob_consumer() {
 
             let raw_output = {
                 let abi_decoded_output =
-                    ResultWithMetadata::abi_decode(&result_with_metadata, false).unwrap();
+                    OffchainResultWithMetadata::abi_decode(&offchain_result_with_metadata, false)
+                        .unwrap();
                 abi_decoded_output.raw_output
             };
 

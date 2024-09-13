@@ -16,12 +16,12 @@ use std::io::Read;
 use vapenation_core::{compute_nation_id, VapeNationArg, VapeNationMetadata};
 
 fn main() {
-    // read in data as bytes
-    let mut raw_input = vec![];
-    env::stdin().read_to_end(&mut raw_input).unwrap();
+    let onchain_input_len: u32 = env::read();
+    let mut onchain_input_buf = vec![0; onchain_input_len as usize];
+    env::read_slice(&mut onchain_input_buf);
 
     // deserialize the bytes to a u64 using rlp encoding
-    let input = VapeNationArg::abi_decode(&raw_input, false).unwrap();
+    let input = VapeNationArg::abi_decode(&onchain_input_buf, false).unwrap();
 
     // Note that alternatively we could have done, but this would mean
     // serializing/deserializing implicitly with the risc0 serialization.

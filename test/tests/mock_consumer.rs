@@ -20,7 +20,10 @@ use proto::{
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
 use test_utils::MOCK_CONTRACT_MAX_CYCLES;
-use zkvm_executor::service::{abi_encode_result_with_metadata, ResultWithMetadata};
+use zkvm_executor::service::{
+    abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
+    OffchainResultWithMetadata, ResultWithMetadata,
+};
 
 type MockConsumerOut = sol!((Address, U256));
 
@@ -120,12 +123,15 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
-            ResultWithMetadata::abi_decode(&job_result.result_with_metadata, false).unwrap();
+            OffchainResultWithMetadata::abi_decode(&job_result.result_with_metadata, false)
+                .unwrap();
 
         let raw_output = abi_decoded_output.raw_output;
-        let signing_payload = abi_encode_result_with_metadata(
+        let signing_payload = abi_encode_offchain_result_with_metadata(
             job_id,
             keccak256(&job_result.onchain_input),
+            keccak256(vec![]),
+            keccak256(vec![]),
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
