@@ -6,8 +6,15 @@ use alloy::{
 };
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{api::Request, tick, BorshKeccak256, ClobState};
+use test_utils::{AnvilJobManager, get_signers};
+use alloy::{
+    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
+};
+use alloy::providers::WalletProvider;
+use alloy::primitives::U256;
 
-use test_utils::AnvilJobManager;
+/// Local Signer
+pub type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// `E2EMockERC20.sol` bindings
 pub mod mock_erc20 {
@@ -35,14 +42,61 @@ pub struct AnvilClob {
 
 /// Deploy `ClobConsumer` to anvil instance.
 pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
+
+
     let AnvilJobManager { anvil, job_manager, .. } = anvil;
 
-    let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
-    let clob_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
+    let consumer_owner: PrivateKeySigner = signers[4].clone().into();
+    let clob_signer: PrivateKeySigner = signers[5].clone().into();
 
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
-    let rpc_url = anvil.endpoint();
+    let provider = ProviderBuilder::new()
+        .with_recommended_fillers()
+        .wallet(consumer_owner_wallet)
+        .on_http(anvil.endpoint.parse().unwrap());
+
+    // Deploy base & quote erc20s
+    let base_name = "base".to_string();
+    let base_symbol = "BASE".to_string();
+    let base_erc20 =
+        *mock_erc20::MockErc20::deploy(&provider, base_name, base_symbol).await.unwrap().address();
+
+    let quote_name = "quote".to_string();
+    let quote_symbol = "QUOTE".to_string();
+    let quote_erc20 = *mock_erc20::MockErc20::deploy(&provider, quote_name, quote_symbol)
+        .await
+        .unwrap()
+        .address();
+
+    let clob_state0 = ClobState::default();
+    let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
+
+    // Deploy the clob consumer
+    let clob_consumer = *ClobConsumer::deploy(
+        provider,
+        *job_manager,
+        clob_signer.address(),
+        0,
+        base_erc20,
+        quote_erc20,
+        init_state_hash.into(),
+    )
+    .await
+    .unwrap()
+    .address();
+
+    AnvilClob { clob_signer, clob_consumer, quote_erc20, base_erc20 }
+}
+
+pub async fn clob_manager_deploy(rpc_url: String) -> AnvilClob {
+    let signers = get_signers(6);
+
+    let consumer_owner: PrivateKeySigner = signers[4].clone().into();
+    let clob_signer: PrivateKeySigner = signers[5].clone().into();
+
+    let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
+
     let provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(consumer_owner_wallet)
@@ -79,6 +133,42 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
     .address();
 
     AnvilClob { clob_signer, clob_consumer, quote_erc20, base_erc20 }
+}
+
+async fn approve_and_mint(clob: &AnvilClob, http_endpoint: String) {
+    use test_utils::wallet::Wallet;
+    use alloy::hex::FromHex;
+    use crate::mock_erc20::MockErc20;
+
+    let signers: Vec<_> = get_signers(100)
+        .into_iter()
+        .map(|s| EthereumWallet::from(s))
+        .collect();
+
+    for signer in signers {
+        let provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(signer.clone())
+            .on_http(http_endpoint.parse().unwrap());
+
+        let quote_contract_address = Address::from_hex(clob.quote_erc20).unwrap();
+        let quote_erc20 = MockErc20::new(quote_contract_address, &provider);
+
+        let amount = U256::try_from(u64::MAX).unwrap();
+        let call_builder = quote_erc20.mint(provider.default_signer_address(), amount.clone());
+        let _ = call_builder.send().await.unwrap().tx_hash();
+
+        let call_builder = quote_erc20.approve(clob.clob_consumer, amount);
+        call_builder.send().await.unwrap().tx_hash();
+
+        let base_contract_address = Address::from_hex(clob.quote_erc20).unwrap();
+        let base_erc20 = MockErc20::new(base_contract_address, &provider);
+        let call_builder = base_erc20.mint(provider.default_signer_address(), amount.clone());
+        call_builder.send().await.unwrap().tx_hash();
+
+        let call_builder = base_erc20.approve(clob.clob_consumer, amount);
+        call_builder.send().await.unwrap().tx_hash();
+    }
 }
 
 /// Returns the next state given a list of transactions.

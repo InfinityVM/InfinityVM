@@ -10,6 +10,7 @@ use clap::{Args, Parser, Subcommand};
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 use clob_node::K256LocalSigner;
 use test_utils::wallet::Wallet;
+use clob_test_utils::mock_erc20::MockErc20;
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -62,16 +63,22 @@ impl Cli {
             Commands::Deposit(a) => {
                 let all_wallets = Wallet::new((a.anvil_account + 1) as usize).gen();
                 let bytes = all_wallets[a.anvil_account as usize].to_bytes().0;
+                let local_signer = K256LocalSigner::from_slice(&bytes).unwrap();
+                println!("wallet={}", local_signer.address());
 
-
-                let local_signer = K256LocalSigner::from_slice(&bytes).unwrap()
-                ;
                 let eth_wallet = EthereumWallet::from(local_signer);
-
                 let provider = ProviderBuilder::new()
                     .with_recommended_fillers()
                     .wallet(eth_wallet)
                     .on_http(args.http_endpoint.parse().unwrap());
+
+                if a.quote != 0 {
+                    let address = Address::from_hex(a.quote_contract).unwrap();
+                    let erc20 = MockErc20::new(address, &provider);
+                }
+            }
+            Commands::Deploy => {
+                
             }
         };
 
@@ -91,6 +98,7 @@ enum Commands {
     Withdraw(WithdrawArgs),
     /// Deposit funds into the CLOB contract.
     Deposit(DepositArgs),
+    Deploy,
 }
 
 #[derive(Args, Debug)]
@@ -134,7 +142,14 @@ struct DepositArgs {
     /// Anvil account number to use for the key
     anvil_account: u32,
     /// Address of the clob contract.
+    #[arg(short, long)]
     clob_contract: String,
+    /// Address of quote token ERC20 contract.
+    #[arg(short, long)]
+    quote_contract: String,
+    /// Address of base token ERC20 contract.
+    #[arg(short, long)]
+    base_contract: String,
     /// Quote asset balance.
     #[arg(short, long)]
     quote: u64,

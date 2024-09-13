@@ -19,3 +19,4 @@ serde = { workspace = true }
 clob-core = { workspace = true }
 clob-node = { workspace = true }
 test-utils = { workspace = true }
+clob-test-utils = { workspace = true }

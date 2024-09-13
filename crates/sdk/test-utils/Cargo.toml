@@ -12,6 +12,7 @@ alloy = { workspace = true, features = ["provider-anvil-node", "full", "signer-l
 tracing-subscriber = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }
+k256 = { workspace = true }
 alloy-signer-local = { version = "0.3.3", features = ["mnemonic"]}
 alloy-signer = { version = "0.3.3" }
 

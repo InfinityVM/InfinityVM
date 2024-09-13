@@ -22,18 +22,18 @@ pub struct AnvilMockConsumer {
 
 /// Deploy `MockConsumer` contracts to anvil instance
 pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> AnvilMockConsumer {
+    let signers = get_signers(6);
     let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manager;
 
-    let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
-    let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
+    let consumer_owner: PrivateKeySigner = signers[4].clone().into();
+    let offchain_signer: PrivateKeySigner = signers[5].clone().into();
 
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
-    let rpc_url = anvil.endpoint();
     let consumer_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(consumer_owner_wallet)
-        .on_http(rpc_url.parse().unwrap());
+        .on_http(anvil.endpoint().parse().unwrap());
 
     let initial_max_nonce = 0;
     let mock_consumer = MockConsumer::deploy(
