@@ -1,6 +1,5 @@
 //! ZKVM program for running the tick
 
-use alloy::primitives::utils::keccak256;
 use alloy::sol_types::SolType;
 use clob_core::{
     api::Request,

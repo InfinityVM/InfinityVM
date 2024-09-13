@@ -10,7 +10,9 @@ use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use proto::{JobStatus, JobStatusType};
 use std::env;
-use zkvm_executor::service::{abi_encode_result_with_metadata, abi_encode_offchain_result_with_metadata};
+use zkvm_executor::service::{
+    abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
+};
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -51,6 +53,7 @@ impl RequestAndResultSigner {
         println!("Signature for encoded onchain result: {}", hex::encode(signature.as_bytes()));
     }
 
+    /// Sign a result for a job requested offchain
     pub async fn sign_offchain_result() {
         dotenv().ok();
 

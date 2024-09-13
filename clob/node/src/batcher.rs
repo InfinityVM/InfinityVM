@@ -5,7 +5,7 @@ use crate::db::{
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
 use abi::{abi_encode_offchain_job_request, JobParams};
-use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
+use alloy::{primitives::utils::keccak256, signers::Signer};
 use clob_programs::CLOB_ID;
 use eyre::OptionExt;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
@@ -110,7 +110,7 @@ where
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
-            onchain_input: &vec![],
+            onchain_input: &[],
             offchain_input_hash: offchain_input_hash.into(),
             state_hash: previous_state_hash.into(),
             program_id: &program_id,

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::job_processor::JobProcessorService;
 use abi::OffchainJobRequest;
 use alloy::{
-    primitives::{keccak256, Address, Bytes, Signature},
+    primitives::{keccak256, Signature},
     signers::Signer,
     sol_types::SolType,
 };

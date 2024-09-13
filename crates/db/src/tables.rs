@@ -68,8 +68,8 @@ pub struct Job {
     pub state: Vec<u8>,
     /// Contains signature on the offchain job request
     pub request_type: RequestType,
-    /// ABI-encoded result of job execution with metadata (can be ResultWithMetadata or
-    /// OffchainResultWithMetadata)
+    /// ABI-encoded result of job execution with metadata (can be `ResultWithMetadata` or
+    /// `OffchainResultWithMetadata`)
     pub result_with_metadata: Vec<u8>,
     /// The signature of the operator that executed the job
     pub zkvm_operator_signature: Vec<u8>,

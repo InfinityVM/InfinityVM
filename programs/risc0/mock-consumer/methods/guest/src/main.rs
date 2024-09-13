@@ -2,7 +2,6 @@ use alloy::primitives::aliases::U256;
 use alloy::primitives::Address;
 use alloy::sol_types::SolValue;
 use risc0_zkvm::guest::env;
-use std::io::Read;
 
 fn main() {
     let onchain_input_len: u32 = env::read();

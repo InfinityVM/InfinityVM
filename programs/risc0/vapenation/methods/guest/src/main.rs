@@ -12,7 +12,6 @@
 //! For this example, we are putting shared resources in a `core` crate.
 use alloy_sol_types::SolType;
 use risc0_zkvm::guest::env;
-use std::io::Read;
 use vapenation_core::{compute_nation_id, VapeNationArg, VapeNationMetadata};
 
 fn main() {
