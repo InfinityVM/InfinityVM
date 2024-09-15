@@ -5,7 +5,7 @@ use crate::db::{
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
 use abi::{abi_encode_offchain_job_request, JobParams};
-use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
+use alloy::{primitives::utils::keccak256, signers::Signer};
 use clob_programs::CLOB_ID;
 use eyre::OptionExt;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
@@ -103,20 +103,27 @@ where
         }
 
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
+        let offchain_input_hash = keccak256(&requests_borsh);
         let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
         let previous_state_hash = keccak256(&state_borsh);
 
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
-            program_input: &requests_borsh,
+            onchain_input: &[],
+            offchain_input_hash: offchain_input_hash.into(),
             state_hash: previous_state_hash.into(),
             program_id: &program_id,
             consumer_address: clob_consumer_addr,
         };
         let request = abi_encode_offchain_job_request(job_params);
         let signature = signer.sign_message(&request).await?.as_bytes().to_vec();
-        let job_request = SubmitJobRequest { request, signature, state: state_borsh };
+        let job_request = SubmitJobRequest {
+            request,
+            signature,
+            offchain_input: requests_borsh,
+            state: state_borsh,
+        };
 
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 

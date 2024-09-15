@@ -34,15 +34,19 @@ message JobResult {
   bytes consumer_address = 4;
   // The ZK program verification key
   bytes program_id = 5;
-  // Program execution input
-  bytes input = 6;
+  // Program execution input posted onchain
+  bytes onchain_input = 6;
+  // Hash of execution input posted offchain (DA)
+  bytes offchain_input_hash = 7;
+  // Hash of program state
+  bytes state_hash = 8;
   // Signature on the offchain job request
-  bytes request_signature = 7;
+  bytes request_signature = 9;
   // ABI-encoded result of job execution with metadata
-  // tuple(JobID,ProgramInputHash,StateHash,MaxCycles,ProgramID,RawOutput)
-  bytes result_with_metadata = 8;
+  // tuple(JobID,OnchainInputHash,StateHash,MaxCycles,ProgramID,RawOutput)
+  bytes result_with_metadata = 10;
   // The signature of the operator that executed the job
-  bytes zkvm_operator_signature = 9;
+  bytes zkvm_operator_signature = 11;
   // The status of the job.
-  JobStatus status = 10;
+  JobStatus status = 12;
 }

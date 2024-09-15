@@ -76,7 +76,6 @@ pub async fn mock_consumer_pending_job(
     let result_with_meta = abi_encode_result_with_metadata(
         job_id,
         keccak256(addr.abi_encode()),
-        keccak256(&vec![]),
         MOCK_CONTRACT_MAX_CYCLES,
         &bytes,
         &raw_output,
@@ -89,7 +88,8 @@ pub async fn mock_consumer_pending_job(
         nonce: 1,
         max_cycles: MOCK_CONTRACT_MAX_CYCLES,
         program_id: bytes,
-        input: addr.abi_encode(),
+        onchain_input: addr.abi_encode(),
+        offchain_input: vec![],
         state: vec![],
         request_type: RequestType::Onchain,
         result_with_metadata: result_with_meta,

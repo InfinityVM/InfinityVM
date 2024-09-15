@@ -6,6 +6,9 @@ async fn main() {
     println!("===== ONCHAIN RESULT =====");
     RequestAndResultSigner::sign_onchain_result().await;
 
+    println!("===== OFFCHAIN RESULT =====");
+    RequestAndResultSigner::sign_offchain_result().await;
+
     println!("===== JOB REQUEST =====");
     RequestAndResultSigner::sign_job_request().await;
 }

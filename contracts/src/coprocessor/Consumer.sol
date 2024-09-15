@@ -5,7 +5,8 @@ import {JobManager} from "./JobManager.sol";
 abstract contract Consumer {
     JobManager internal _jobManager;
     uint64 public maxNonce;
-    mapping(bytes32 => bytes) internal jobIDToProgramInput;
+    mapping(bytes32 => bytes) internal jobIDToOnchainInput;
+    mapping(bytes32 => bytes32) internal jobIDToOffchainInputHash;
     mapping(bytes32 => bytes32) internal jobIDToStateHash;
 
     constructor(address __jobManager, uint64 _initialMaxNonce) {
@@ -21,8 +22,12 @@ abstract contract Consumer {
         _;
     }
 
-    function getProgramInputsForJob(bytes32 jobID) public view virtual returns (bytes memory) {
-        return jobIDToProgramInput[jobID];
+    function getOnchainInputForJob(bytes32 jobID) public view virtual returns (bytes memory) {
+        return jobIDToOnchainInput[jobID];
+    }
+
+    function getOffchainInputHashForJob(bytes32 jobID) public view virtual returns (bytes32) {
+        return jobIDToOffchainInputHash[jobID];
     }
 
     function getStateHashForJob(bytes32 jobID) public view virtual returns (bytes32) {
@@ -33,8 +38,12 @@ abstract contract Consumer {
         return maxNonce + 1;
     }
 
-    function setProgramInputsForJob(bytes32 jobID, bytes memory programInput) public virtual onlyJobManager() {
-        jobIDToProgramInput[jobID] = programInput;
+    function setOnchainInputForJob(bytes32 jobID, bytes memory onchainInput) public virtual onlyJobManager() {
+        jobIDToOnchainInput[jobID] = onchainInput;
+    }
+
+    function setOffchainInputHashForJob(bytes32 jobID, bytes32 offchainInputHash) public virtual onlyJobManager() {
+        jobIDToOffchainInputHash[jobID] = offchainInputHash;
     }
 
     function setStateHashForJob(bytes32 jobID, bytes32 stateHash) public virtual onlyJobManager() {
@@ -49,11 +58,11 @@ abstract contract Consumer {
 
     function requestJob(
         bytes memory programID,
-        bytes memory programInput,
+        bytes memory onchainInput,
         uint64 maxCycles
     ) internal virtual returns (bytes32) {
-        bytes32 jobID = _jobManager.createJob(getNextNonce(), programID, programInput, maxCycles);
-        jobIDToProgramInput[jobID] = programInput;
+        bytes32 jobID = _jobManager.createJob(getNextNonce(), programID, onchainInput, maxCycles);
+        jobIDToOnchainInput[jobID] = onchainInput;
         return jobID;
     }
 

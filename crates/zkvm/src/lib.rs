@@ -1,6 +1,5 @@
 //! ZKVM trait and implementations. The trait should abstract over any complexities to specific VMs.
 
-use alloy::primitives::keccak256;
 use risc0_binfmt::compute_image_id;
 use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
 use thiserror::Error;
@@ -32,21 +31,22 @@ pub trait Zkvm {
     /// Derive the verifying key from an elf
     fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
 
-    /// Execute the program and return the raw output.
+    /// Execute the program for an onchain job and return the raw output.
     ///
     /// This does _not_ check that the verifying key is correct.
-    fn execute(
+    fn execute_onchain_job(
         &self,
         program_elf: &[u8],
-        raw_input: &[u8],
+        onchain_input: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
-    /// Execute the program for a stateful job and return the raw output;
-    fn execute_stateful(
+    /// Execute the program for an offchain job and return the raw output.
+    fn execute_offchain_job(
         &self,
         program_elf: &[u8],
-        raw_input: &[u8],
+        onchain_input: &[u8],
+        offchain_input: &[u8],
         state: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
@@ -81,15 +81,19 @@ impl Zkvm for Risc0 {
         Ok(image_id)
     }
 
-    fn execute(
+    fn execute_onchain_job(
         &self,
         program_elf: &[u8],
-        raw_input: &[u8],
+        onchain_input: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
+        let onchain_input_len = onchain_input.len() as u32;
+
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
-            .write_slice(raw_input)
+            .write(&onchain_input_len)
+            .map_err(|source| Error::Risc0 { source })?
+            .write_slice(onchain_input)
             .build()
             .map_err(|source| Error::Risc0 { source })?;
 
@@ -105,24 +109,29 @@ impl Zkvm for Risc0 {
         Ok(prove_info.journal.bytes)
     }
 
-    fn execute_stateful(
+    fn execute_offchain_job(
         &self,
         program_elf: &[u8],
-        raw_input: &[u8],
+        onchain_input: &[u8],
+        offchain_input: &[u8],
         state: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
+        let onchain_input_len = onchain_input.len() as u32;
+        let offchain_input_len = offchain_input.len() as u32;
         let state_len = state.len() as u32;
-        let input_len = raw_input.len() as u32;
 
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
+            .write(&onchain_input_len)
+            .map_err(|source| Error::Risc0 { source })?
+            .write_slice(onchain_input)
+            .write(&offchain_input_len)
+            .map_err(|source| Error::Risc0 { source })?
+            .write_slice(offchain_input)
             .write(&state_len)
             .map_err(|source| Error::Risc0 { source })?
             .write_slice(state)
-            .write(&input_len)
-            .map_err(|source| Error::Risc0 { source })?
-            .write_slice(raw_input)
             .build()
             .map_err(|source| Error::Risc0 { source })?;
 
@@ -145,7 +154,7 @@ impl Zkvm for Risc0 {
 //         Ok(vk.hash_bytes().to_vec())
 //     }
 
-//     fn execute(
+//     fn execute_onchain_job(
 //         &self,
 //         program_elf: &[u8],
 //         raw_input: &[u8],
@@ -186,7 +195,8 @@ mod test {
         let raw_input = VapeNationArg::abi_encode(&input);
 
         let max_cycles = 32 * 1024 * 1024;
-        let raw_result = &Risc0.execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
+        let raw_result =
+            &Risc0.execute_onchain_job(&vapenation_elf, &raw_input, max_cycles).unwrap();
 
         let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
         let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");

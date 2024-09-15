@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::job_processor::JobProcessorService;
 use abi::OffchainJobRequest;
 use alloy::{
-    primitives::{keccak256, Address, Bytes, Signature},
+    primitives::{keccak256, Signature},
     signers::Signer,
     sol_types::SolType,
 };
@@ -45,8 +45,9 @@ where
             max_cycles,
             consumer,
             program_id,
-            program_input,
+            onchain_input,
             state_hash: state_hash_in_request,
+            offchain_input_hash: offchain_input_hash_in_request,
         } = OffchainJobRequest::abi_decode(&req.request, false)
             .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
@@ -67,6 +68,11 @@ where
             return Err(Status::invalid_argument("job program verification key must not be empty"));
         }
 
+        let offchain_input_hash = keccak256(&req.offchain_input);
+        if offchain_input_hash_in_request != offchain_input_hash {
+            return Err(Status::invalid_argument("offchain input hash does not match"));
+        }
+
         let state_hash = keccak256(&req.state);
         if state_hash_in_request != state_hash {
             return Err(Status::invalid_argument("state hash does not match"));
@@ -85,7 +91,8 @@ where
             max_cycles,
             consumer_address: consumer.to_vec(),
             program_id: program_id.to_vec(),
-            input: program_input.to_vec(),
+            onchain_input: onchain_input.to_vec(),
+            offchain_input: req.offchain_input,
             state: req.state,
             request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],
@@ -132,7 +139,9 @@ where
                             id: job.id.to_vec(),
                             nonce: job.nonce,
                             program_id: job.program_id,
-                            input: job.input,
+                            onchain_input: job.onchain_input,
+                            offchain_input_hash: keccak256(&job.offchain_input).as_slice().to_vec(),
+                            state_hash: keccak256(&job.state).as_slice().to_vec(),
                             consumer_address: job.consumer_address,
                             max_cycles: job.max_cycles,
                             request_signature,

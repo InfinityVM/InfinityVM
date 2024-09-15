@@ -10,7 +10,9 @@ use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use proto::{JobStatus, JobStatusType};
 use std::env;
-use zkvm_executor::service::abi_encode_result_with_metadata;
+use zkvm_executor::service::{
+    abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
+};
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -35,7 +37,6 @@ impl RequestAndResultSigner {
         let encoded_result = abi_encode_result_with_metadata(
             get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap()),
             keccak256(Address::abi_encode(&zero_addr)),
-            keccak256(vec![]),
             MAX_CYCLES,
             PROGRAM_ID,
             &raw_output,
@@ -50,6 +51,35 @@ impl RequestAndResultSigner {
 
         println!("Encoded onchain result: {}", hex::encode(&encoded_result));
         println!("Signature for encoded onchain result: {}", hex::encode(signature.as_bytes()));
+    }
+
+    /// Sign a result for a job requested offchain
+    pub async fn sign_offchain_result() {
+        dotenv().ok();
+
+        let zero_addr: Address = Address::ZERO;
+
+        // Encode the offchain result with metadata
+        let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
+        let encoded_result = abi_encode_offchain_result_with_metadata(
+            get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap()),
+            keccak256(Address::abi_encode(&zero_addr)),
+            keccak256(vec![]),
+            keccak256(vec![]),
+            MAX_CYCLES,
+            PROGRAM_ID,
+            &raw_output,
+        );
+
+        // Sign the message
+        let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY")
+            .expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
+        let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
+        let signer = K256LocalSigner::from_slice(&decoded).unwrap();
+        let signature = signer.sign_message(&encoded_result).await.unwrap();
+
+        println!("Encoded offchain result: {}", hex::encode(&encoded_result));
+        println!("Signature for encoded offchain result: {}", hex::encode(signature.as_bytes()));
     }
 
     /// Sign an offchain job request
@@ -67,7 +97,8 @@ impl RequestAndResultSigner {
             // should not be zero-padded
             consumer_address: Address::abi_encode_packed(&consumer_addr),
             program_id: PROGRAM_ID.to_vec(),
-            input: Address::abi_encode(&zero_addr),
+            onchain_input: Address::abi_encode(&zero_addr),
+            offchain_input: vec![],
             state: vec![],
             request_type: RequestType::Offchain(vec![]),
             result_with_metadata: vec![],
