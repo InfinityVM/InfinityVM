@@ -46,12 +46,12 @@ if [[ -z "$INITIAL_OWNER_KEY" || -z "$RELAY_KEY" || -z "$COPROCESSOR_OPERATOR_KE
   exit 1
 fi
 
-# Deploy contracts using Forge script
 RELAYER_ADDRESS=$(cast wallet address $RELAY_KEY)
 COPROCESSOR_OPERATOR_ADDRESS=$(cast wallet address $COPROCESSOR_OPERATOR_KEY)
 OFFCHAIN_SIGNER_ADDRESS=$(cast wallet address $OFFCHAIN_SIGNER_KEY)
 INITIAL_MAX_NONCE=0
 WRITE_JSON=true
+# Deploy contracts using Forge script
 forge script script/CoprocessorDeployer.s.sol:CoprocessorDeployer --sig "deployCoprocessorContracts(address relayer, address coprocessorOperator, bool writeJson)" $RELAYER_ADDRESS $COPROCESSOR_OPERATOR_ADDRESS $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
 forge script script/ClobDeployer.s.sol:ClobDeployer --sig "deployClobContracts(address offchainRequestSigner, uint64 initialMaxNonce, bool writeJson)" $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
 forge script script/MockConsumerDeployer.s.sol:MockConsumerDeployer --sig "deployMockConsumerContracts(address offchainSigner, uint64 initialMaxNonce, bool writeJson)" $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast

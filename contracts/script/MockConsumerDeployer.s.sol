@@ -4,12 +4,7 @@ pragma solidity ^0.8.13;
 import {Script, console} from "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 import {MockConsumer} from "../test/mocks/MockConsumer.sol";
-import {JobManager} from "../src/coprocessor/JobManager.sol";
-import {IJobManager} from "../src/coprocessor/IJobManager.sol";
 import {Utils} from "./utils/Utils.sol";
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "./utils/EmptyContract.sol";
 
 // To deploy and verify:
 // forge script MockConsumerDeployer.s.sol:MockConsumerDeployer --sig "deployMockConsumerContracts(address jobManager, address offchainSigner, uint64 initialMaxNonce, bool writeJson)" $JOB_MANAGER $OFFCHAIN_SIGNER $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v

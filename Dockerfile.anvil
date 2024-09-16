@@ -1,7 +1,8 @@
-# Use a stable Ubuntu base image
+# Dockerfile
+
 FROM ubuntu:22.04
 
-# Install necessary dependencies including jq
+# Install necessary dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
@@ -29,11 +30,10 @@ COPY contracts /root/contracts
 # Set the working directory
 WORKDIR /root/contracts
 
-# Ensure the startup script has the correct line endings and is executable
+# Ensure the startup script is executable
 RUN chmod +x /root/contracts/script/anvil-devnet-startup.sh
 
 # Expose the Anvil port
 EXPOSE 8545
 
-# Set the entrypoint to the startup script using bash explicitly
 ENTRYPOINT ["/bin/bash", "/root/contracts/script/anvil-devnet-startup.sh"]
