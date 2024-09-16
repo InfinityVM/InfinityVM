@@ -156,6 +156,7 @@ async fn cancel(
 async fn clob_state(
     ExtractState(state): ExtractState<AppState>,
 ) -> Result<Json<ClobStateResponse>, AppError> {
+    info!("clob state request");
     let model = state.db.view(|tx| {
         let i =
             tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)?.unwrap_or(GENESIS_GLOBAL_INDEX);
@@ -166,6 +167,8 @@ async fn clob_state(
 
     let borsh = borsh::to_vec(&clob_state).expect("borsh serialization works. qed.");
     let response = ClobStateResponse { borsh_hex_clob_state: alloy::hex::encode(&borsh) };
+
+    info!(?response);
 
     Ok(Json(response))
 }

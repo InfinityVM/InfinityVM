@@ -95,8 +95,8 @@ pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> Anv
 }
 
 /// Mint erc20s and approve transfers to the first `100` anvil auto seeded accounts.
-pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String) {
-    let signers: Vec<_> = get_signers(100).into_iter().map(EthereumWallet::from).collect();
+pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String, count: usize) {
+    let signers: Vec<_> = get_signers(count).into_iter().map(EthereumWallet::from).collect();
 
     for signer in signers {
         let provider = ProviderBuilder::new()

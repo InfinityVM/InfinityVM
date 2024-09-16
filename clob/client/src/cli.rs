@@ -1,26 +1,25 @@
 //! CLI for making HTTP request to clob node.
 
 use crate::Client;
-use alloy::primitives::U256;
 use alloy::{
     network::EthereumWallet,
-    primitives::{hex::FromHex, Address},
+    primitives::{hex::FromHex, Address, U256},
     providers::ProviderBuilder,
 };
 use clap::{Args, Parser, Subcommand};
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
+use clob_node::K256LocalSigner;
 use clob_test_utils::{clob_consumer_deploy, mint_and_approve};
-use test_utils::get_signers;
-use test_utils::job_manager_deploy;
+use test_utils::{get_signers, job_manager_deploy};
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
-    /// HTTP endpoint.
-    #[arg(long, short = 'H', default_value = "http://127.0.0.1:60420")]
-    http_endpoint: String,
+    /// CLOB HTTP endpoint.
+    #[arg(long, short = 'H', default_value = "http://127.0.0.1:40420")]
+    clob_endpoint: String,
     #[clap(subcommand)]
     commands: Commands,
 }
@@ -30,7 +29,7 @@ impl Cli {
     pub async fn run() -> eyre::Result<()> {
         let args = Self::parse();
 
-        let client = Client::new(args.http_endpoint.to_owned());
+        let client = Client::new(args.clob_endpoint.to_owned());
 
         match args.commands {
             Commands::Cancel(a) => {
@@ -42,7 +41,10 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Order(a) => {
-                let address = Address::from_hex(a.address).unwrap();
+                let local_signer = get_account(a.anvil_account as usize);
+                let address = local_signer.address();
+                println!("account={}", address);
+
                 let order = AddOrderRequest {
                     address: address.into(),
                     is_buy: a.is_buy,
@@ -63,15 +65,14 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Deposit(a) => {
-                let all_wallets = get_signers((a.anvil_account + 1) as usize);
-                let local_signer = all_wallets[a.anvil_account as usize].clone();
+                let local_signer = get_account(a.anvil_account as usize);
                 println!("account={}", local_signer.address());
 
                 let eth_wallet = EthereumWallet::from(local_signer);
                 let provider = ProviderBuilder::new()
                     .with_recommended_fillers()
                     .wallet(eth_wallet)
-                    .on_http(args.http_endpoint.parse().unwrap());
+                    .on_http(a.eth_rpc.parse().unwrap());
 
                 let clob_contract = Address::from_hex(a.clob_contract).unwrap();
                 let clob_consumer = ClobConsumer::new(clob_contract, &provider);
@@ -79,17 +80,15 @@ impl Cli {
                 let quote_amount = U256::try_from(a.quote).unwrap();
 
                 let call = clob_consumer.deposit(base_amount, quote_amount);
-                let tx_hash = call.send().await.unwrap().get_receipt().await.unwrap();
-                println!("tx_hash={}", tx_hash.transaction_hash);
+                let receipt = call.send().await.unwrap().get_receipt().await.unwrap();
+
+                println!("tx_hash={}, status={}", receipt.transaction_hash, receipt.status());
             }
-            Commands::Deploy => {
-                let job_manager_deploy = job_manager_deploy(args.http_endpoint.clone()).await;
-                let clob_deploy = clob_consumer_deploy(
-                    args.http_endpoint.clone(),
-                    &job_manager_deploy.job_manager,
-                )
-                .await;
-                mint_and_approve(&clob_deploy, args.http_endpoint.clone()).await;
+            Commands::Deploy(a) => {
+                let job_manager_deploy = job_manager_deploy(a.eth_rpc.clone()).await;
+                let clob_deploy =
+                    clob_consumer_deploy(a.eth_rpc.clone(), &job_manager_deploy.job_manager).await;
+                mint_and_approve(&clob_deploy, a.eth_rpc.clone(), 100).await;
 
                 println!("job_manager: {}", job_manager_deploy.job_manager);
                 println!("quote_erc20: {}", clob_deploy.quote_erc20);
@@ -100,6 +99,11 @@ impl Cli {
 
         Ok(())
     }
+}
+
+fn get_account(num: usize) -> K256LocalSigner {
+    let all_wallets = get_signers(num + 1);
+    all_wallets[num].clone()
 }
 
 #[derive(Subcommand, Debug)]
@@ -114,7 +118,8 @@ enum Commands {
     Withdraw(WithdrawArgs),
     /// Deposit funds into the CLOB contract.
     Deposit(DepositArgs),
-    Deploy,
+    /// Deploy job manager and clob consumer contracts. Also mint erc20 tokens to users
+    Deploy(DeployArgs),
 }
 
 #[derive(Args, Debug)]
@@ -126,9 +131,9 @@ struct CancelArgs {
 
 #[derive(Args, Debug)]
 struct OrderArgs {
-    /// Address of the user placing the order.
-    #[arg(short, long)]
-    address: String,
+    /// Anvil account number to use for the key
+    #[arg(short = 'A', long)]
+    anvil_account: u32,
     /// If this is a buy or sell order.
     #[arg(short, long)]
     is_buy: bool,
@@ -173,4 +178,14 @@ struct DepositArgs {
     /// Base asset balance.
     #[arg(short = 'B', long)]
     base: u64,
+    /// EVM node RPC address.
+    #[arg(long, short, default_value = "http://127.0.0.1:60420")]
+    eth_rpc: String,
+}
+
+#[derive(Args, Debug)]
+struct DeployArgs {
+    /// EVM node RPC address.
+    #[arg(long, short, default_value = "http://127.0.0.1:60420")]
+    eth_rpc: String,
 }

@@ -83,6 +83,7 @@ async fn main() {
     let clob_logs2 = clob_logs.try_clone().unwrap();
     let clob_consumer_addr = clob_consumer.clob_consumer.to_string();
     let clob_operator = hex::encode(clob_consumer.clob_signer.to_bytes());
+    let client_coproc_grpc = format!("http://{LOCALHOST}:{COPROCESSOR_GRPC_PORT}");
 
     tracing::info!("Starting CLOB");
     tracing::info!(?clob_http, "CLOB listening on");
@@ -93,7 +94,7 @@ async fn main() {
         .arg("clob-node")
         .env(CLOB_LISTEN_ADDR, clob_http)
         .env(CLOB_DB_DIR, clob_db_dir.path())
-        .env(CLOB_CN_GRPC_ADDR, coproc_grpc)
+        .env(CLOB_CN_GRPC_ADDR, client_coproc_grpc)
         .env(CLOB_ETH_WS_ADDR, ws_rpc_url)
         .env(CLOB_CONSUMER_ADDR, clob_consumer_addr)
         .env(CLOB_BATCHER_DURATION_MS, batcher_duration_ms.to_string())

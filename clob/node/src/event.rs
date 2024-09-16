@@ -13,7 +13,7 @@ use tokio::{
     sync::{mpsc::Sender, oneshot},
     time::{sleep, Duration},
 };
-use tracing::{error, warn};
+use tracing::{error, warn, info};
 
 /// Listen for deposit events and push a corresponding
 /// `Deposit` request
@@ -27,7 +27,7 @@ pub async fn start_deposit_event_listener(
     let mut retry = 1;
     let ws = WsConnect::new(ws_rpc_url.clone());
     let provider = ProviderBuilder::new().on_ws(ws).await?;
-    let contract = ClobConsumer::new(clob_consumer, &provider);
+    let mut contract = ClobConsumer::new(clob_consumer, &provider);
     loop {
         // We have this loop so we can recreate a subscription stream in case any issue is
         // encountered
@@ -47,6 +47,8 @@ pub async fn start_deposit_event_listener(
                     continue;
                 }
             };
+
+            info!("deposit event detected");
 
             let req = DepositRequest {
                 address: **event.user,
