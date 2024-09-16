@@ -10,8 +10,11 @@ use alloy::{
 use contracts::mock_consumer::MockConsumer;
 use db::tables::{get_job_id, Job, RequestType};
 use proto::{JobStatus, JobStatusType};
-use test_utils::{get_signers, AnvilJobManager, MOCK_CONTRACT_MAX_CYCLES};
+use test_utils::{get_signers, AnvilJobManager};
 use zkvm_executor::service::abi_encode_result_with_metadata;
+
+/// Max cycles that the `MockContract` calls create job with.
+pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
 
 /// Output from [`anvil_with_mock_consumer`]
 #[derive(Debug)]

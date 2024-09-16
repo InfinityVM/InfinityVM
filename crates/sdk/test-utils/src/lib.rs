@@ -24,9 +24,6 @@ pub mod wallet;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
-/// Max cycles that the `MockContract` calls create job with.
-pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
-
 /// Localhost IP address
 pub const LOCALHOST: &str = "127.0.0.1";
 
@@ -101,7 +98,13 @@ pub struct AnvilJobManager {
 pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
     // Ensure the anvil instance will not collide with anything already running on the OS
     // Set block time to 0.01 seconds - I WANNA GO FAST MOM
-    let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
+    let anvil = Anvil::new()
+        .block_time_f64(0.01)
+        .port(port)
+        // 1000 dev accounts generated and configured
+        .args(["-a", "1000"])
+        .try_spawn()
+        .unwrap();
 
     let job_manager_deploy = job_manager_deploy(anvil.endpoint()).await;
 

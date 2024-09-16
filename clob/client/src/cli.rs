@@ -9,15 +9,15 @@ use alloy::{
 use clap::{Args, Parser, Subcommand};
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 use clob_node::K256LocalSigner;
-use clob_test_utils::mock_erc20::MockErc20;
-use test_utils::wallet::Wallet;
+use clob_test_utils::{clob_consumer_deploy, mint_and_approve, mock_erc20::MockErc20};
+use test_utils::{job_manager_deploy, wallet::Wallet};
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
     /// HTTP endpoint.
-    #[arg(short, long)]
+    #[arg(long, short = 'H', default_value = "http://127.0.0.1:60420")]
     http_endpoint: String,
     #[clap(subcommand)]
     commands: Commands,
@@ -77,7 +77,20 @@ impl Cli {
                     let erc20 = MockErc20::new(address, &provider);
                 }
             }
-            Commands::Deploy => {}
+            Commands::Deploy => {
+                let job_manager_deploy = job_manager_deploy(args.http_endpoint.clone()).await;
+                let clob_deploy = clob_consumer_deploy(
+                    args.http_endpoint.clone(),
+                    &job_manager_deploy.job_manager,
+                )
+                .await;
+                mint_and_approve(&clob_deploy, args.http_endpoint.clone()).await;
+
+                println!("job_manager: {}", job_manager_deploy.job_manager);
+                println!("quote_erc20: {}", clob_deploy.quote_erc20);
+                println!("base_erc20: {}", clob_deploy.base_erc20);
+                println!("clob_consumer: {}", clob_deploy.clob_consumer);
+            }
         };
 
         Ok(())
@@ -138,20 +151,21 @@ struct WithdrawArgs {
 #[derive(Args, Debug)]
 struct DepositArgs {
     /// Anvil account number to use for the key
+    #[arg(short = 'A', long)]
     anvil_account: u32,
     /// Address of the clob contract.
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "0x78e6B135B2A7f63b281C80e2ff639Eed32E2a81b")]
     clob_contract: String,
     /// Address of quote token ERC20 contract.
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "0x71a9d115E322467147391c4a71D85F8e1cA623EF")]
     quote_contract: String,
     /// Address of base token ERC20 contract.
-    #[arg(short, long)]
+    #[arg(short, long, default_value = "0x93C7a6D00849c44Ef3E92E95DCEFfccd447909Ae")]
     base_contract: String,
     /// Quote asset balance.
-    #[arg(short, long)]
+    #[arg(short = 'Q', long)]
     quote: u64,
     /// Base asset balance.
-    #[arg(short, long)]
+    #[arg(short = 'B', long)]
     base: u64,
 }

@@ -1,5 +1,6 @@
 //! High level test utilities specifically for the CLOB.
 
+use crate::mock_erc20::MockErc20;
 use alloy::{
     network::EthereumWallet,
     primitives::{Address, U256},
@@ -12,8 +13,6 @@ use alloy::{
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{api::Request, tick, BorshKeccak256, ClobState};
 use test_utils::{get_signers, AnvilJobManager};
-use crate::mock_erc20::MockErc20;
-use alloy::hex::FromHex;
 
 /// Local Signer
 pub type K256LocalSigner = LocalSigner<SigningKey>;
@@ -105,8 +104,8 @@ pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String) {
             .wallet(signer.clone())
             .on_http(http_endpoint.parse().unwrap());
 
-        let quote_contract_address = Address::from_hex(clob.quote_erc20).unwrap();
-        let quote_erc20 = MockErc20::new(quote_contract_address, &provider);
+        // let quote_contract_address = Address::from_hex(clob.quote_erc20).unwrap();
+        let quote_erc20 = MockErc20::new(clob.quote_erc20, &provider);
 
         let amount = U256::try_from(u64::MAX).unwrap();
         let call_builder = quote_erc20.mint(provider.default_signer_address(), amount);
@@ -115,8 +114,8 @@ pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String) {
         let call_builder = quote_erc20.approve(clob.clob_consumer, amount);
         call_builder.send().await.unwrap().tx_hash();
 
-        let base_contract_address = Address::from_hex(clob.quote_erc20).unwrap();
-        let base_erc20 = MockErc20::new(base_contract_address, &provider);
+        // let base_contract_address = Address::from_hex(clob.quote_erc20).unwrap();
+        let base_erc20 = MockErc20::new(clob.base_erc20, &provider);
         let call_builder = base_erc20.mint(provider.default_signer_address(), amount);
         call_builder.send().await.unwrap().tx_hash();
 

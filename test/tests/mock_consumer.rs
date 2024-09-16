@@ -13,13 +13,13 @@ use alloy::{
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use db::tables::{get_job_id, Job, RequestType};
 use e2e::{Args, E2E};
+use mock_consumer::MOCK_CONTRACT_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
-use test_utils::MOCK_CONTRACT_MAX_CYCLES;
 use zkvm_executor::service::{abi_encode_result_with_metadata, ResultWithMetadata};
 
 type MockConsumerOut = sol!((Address, U256));
