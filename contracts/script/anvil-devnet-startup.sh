@@ -25,7 +25,7 @@ create_or_update_secret() {
   fi
 }
 
-anvil > anvil_output.log 2>&1 &
+anvil --block-time $BLOCK_TIME --port $PORT > anvil_output.log 2>&1 &
 
 # Wait a few seconds for Anvil to start
 sleep 3
@@ -47,11 +47,21 @@ if [[ -z "$INITIAL_OWNER_KEY" || -z "$RELAY_KEY" || -z "$COPROCESSOR_OPERATOR_KE
 fi
 
 # Deploy contracts using Forge script
-# RELAYER_ADDRESS=$(cast wallet address $RELAY_KEY)
-# COPROCESSOR_OPERATOR_ADDRESS=$(cast wallet address $COPROCESSOR_OPERATOR_KEY)
-# OFFCHAIN_SIGNER_ADDRESS=$(cast wallet address $PROXY_ADMIN_KEY)
-# echo "Deploying contracts..."
-# forge script script/ClobDeployer.s.sol:ClobDeployer --sig "deployClobContracts(address relayer, address coprocessorOperator, address offchainRequestSigner, uint64 initialMaxNonce)" $RELAYER_ADDRESS $COPROCESSOR_OPERATOR_ADDRESS $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
+RELAYER_ADDRESS=$(cast wallet address $RELAY_KEY)
+COPROCESSOR_OPERATOR_ADDRESS=$(cast wallet address $COPROCESSOR_OPERATOR_KEY)
+OFFCHAIN_SIGNER_ADDRESS=$(cast wallet address $OFFCHAIN_SIGNER_KEY)
+INITIAL_MAX_NONCE=0
+WRITE_JSON=true
+echo "Deploying contracts..."
+forge script script/CoprocessorDeployer.s.sol:CoprocessorDeployer --sig "deployCoprocessorContracts(address relayer, address coprocessorOperator, bool writeJson)" $RELAYER_ADDRESS $COPROCESSOR_OPERATOR_ADDRESS $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
+forge script script/ClobDeployer.s.sol:ClobDeployer --sig "deployClobContracts(address offchainRequestSigner, uint64 initialMaxNonce, bool writeJson)" $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
+forge script script/MockConsumerDeployer.s.sol:MockConsumerDeployer --sig "deployMockConsumerContracts(address offchainSigner, uint64 initialMaxNonce, bool writeJson)" $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
+
+# Set environment variables for contract addresses
+export COPROCESSOR_PROXY_ADMIN=$(jq -r '.addresses.coprocessorProxyAdmin' script/output/31337/coprocessor_deployment_output.json)
+export JOB_MANAGER=$(jq -r '.addresses.jobManager' script/output/31337/coprocessor_deployment_output.json)
+export CLOB_CONSUMER=$(jq -r '.addresses.consumer' script/output/31337/clob_deployment_output.json)
+export MOCK_CONSUMER=$(jq -r '.addresses.consumer' script/output/31337/mock_consumer_deployment_output.json)
 
 # Prepare the output JSON string
 output_json=$(cat <<EOF
@@ -59,7 +69,11 @@ output_json=$(cat <<EOF
   "initial_owner_key": "$INITIAL_OWNER_KEY",
   "relayer_key": "$RELAY_KEY",
   "coprocessor_operator_key": "$COPROCESSOR_OPERATOR_KEY",
-  "offchain_signer_key": "$OFFCHAIN_SIGNER_KEY"
+  "offchain_signer_key": "$OFFCHAIN_SIGNER_KEY",
+  "coprocessor_proxy_admin": "$COPROCESSOR_PROXY_ADMIN",
+  "job_manager": "$JOB_MANAGER",
+  "clob_consumer": "$CLOB_CONSUMER",
+  "mock_consumer": "$MOCK_CONSUMER"
 }
 EOF
 )

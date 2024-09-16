@@ -1,12 +1,22 @@
 # Use a stable Ubuntu base image
 FROM ubuntu:22.04
 
-# Install necessary dependencies
+# Install necessary dependencies including jq
 RUN apt-get update && apt-get install -y \
     curl \
     build-essential \
     git \
+    jq \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Google Cloud SDK
+RUN echo "deb [signed-by=/usr/share/keyrings/cloud.google.gpg] https://packages.cloud.google.com/apt cloud-sdk main" | tee -a /etc/apt/sources.list.d/google-cloud-sdk.list && \
+    curl https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key --keyring /usr/share/keyrings/cloud.google.gpg add - && \
+    apt-get update && apt-get install -y google-cloud-sdk && \
+    rm -rf /var/lib/apt/lists/*
 
 # Install Foundry
 RUN curl -L https://foundry.paradigm.xyz | bash
@@ -19,11 +29,11 @@ COPY contracts /root/contracts
 # Set the working directory
 WORKDIR /root/contracts
 
-# Make the startup script executable
+# Ensure the startup script has the correct line endings and is executable
 RUN chmod +x /root/contracts/script/anvil-devnet-startup.sh
 
 # Expose the Anvil port
 EXPOSE 8545
 
-# Set the entrypoint to the startup script
+# Set the entrypoint to the startup script using bash explicitly
 ENTRYPOINT ["/bin/bash", "/root/contracts/script/anvil-devnet-startup.sh"]
