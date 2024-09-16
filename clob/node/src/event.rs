@@ -43,7 +43,8 @@ pub async fn start_deposit_event_listener(
             let sub = match contract.Deposit_filter().from_block(last_seen_block).subscribe().await
             {
                 Ok(sub) => sub,
-                Err(_error) => {
+                Err(error) => {
+                    warn!(?error, "deposit event listener error");
                     break;
                 }
             };

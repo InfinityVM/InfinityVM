@@ -2,6 +2,7 @@
 
 use crate::Client;
 use alloy::{
+    consensus::TxReceipt,
     network::EthereumWallet,
     primitives::{hex::FromHex, Address, U256},
     providers::ProviderBuilder,
@@ -11,7 +12,10 @@ use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 use clob_node::K256LocalSigner;
 use clob_test_utils::{clob_consumer_deploy, mint_and_approve};
+use serde::{Deserialize, Serialize};
 use test_utils::{get_signers, job_manager_deploy};
+
+const DEFAULT_DEPLOY_INFO: &str = "./logs/deploy_info.json";
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -65,35 +69,64 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Deposit(a) => {
+                let deploy_info: DeployInfo = {
+                    let filename = DEFAULT_DEPLOY_INFO.to_string();
+                    let raw_json = std::fs::read(filename).unwrap();
+                    serde_json::from_slice(&raw_json).unwrap()
+                };
+
                 let local_signer = get_account(a.anvil_account as usize);
                 println!("account={}", local_signer.address());
 
-                let eth_wallet = EthereumWallet::from(local_signer);
+                let eth_wallet = EthereumWallet::from(local_signer.clone());
                 let provider = ProviderBuilder::new()
                     .with_recommended_fillers()
                     .wallet(eth_wallet)
                     .on_http(a.eth_rpc.parse().unwrap());
 
-                let clob_contract = Address::from_hex(a.clob_contract).unwrap();
-                let clob_consumer = ClobConsumer::new(clob_contract, &provider);
+                let clob_consumer = ClobConsumer::new(deploy_info.clob_consumer, &provider);
                 let base_amount = U256::try_from(a.base).unwrap();
                 let quote_amount = U256::try_from(a.quote).unwrap();
 
                 let call = clob_consumer.deposit(base_amount, quote_amount);
                 let receipt = call.send().await.unwrap().get_receipt().await.unwrap();
 
-                println!("tx_hash={}, status={}", receipt.transaction_hash, receipt.status());
+                query_balances(local_signer.address(), a.eth_rpc, deploy_info.clob_consumer).await;
+
+                for log in receipt.inner.logs() {
+                    let l = match log.log_decode::<ClobConsumer::Deposit>() {
+                        Ok(e) => e,
+                        Err(_) => continue,
+                    };
+                    let event = l.data();
+                    // deposit.
+                    println!("deposit.user={:?}", event.user);
+                }
+
+                println!("receipt.status={:?}", receipt.status());
             }
             Commands::Deploy(a) => {
                 let job_manager_deploy = job_manager_deploy(a.eth_rpc.clone()).await;
                 let clob_deploy =
                     clob_consumer_deploy(a.eth_rpc.clone(), &job_manager_deploy.job_manager).await;
-                mint_and_approve(&clob_deploy, a.eth_rpc.clone(), 100).await;
+                let accounts = 100;
+                mint_and_approve(&clob_deploy, a.eth_rpc.clone(), accounts).await;
 
-                println!("job_manager: {}", job_manager_deploy.job_manager);
-                println!("quote_erc20: {}", clob_deploy.quote_erc20);
-                println!("base_erc20: {}", clob_deploy.base_erc20);
-                println!("clob_consumer: {}", clob_deploy.clob_consumer);
+                println!("Minted {} accounts", accounts);
+
+                let deploy_info = DeployInfo {
+                    job_manager: job_manager_deploy.job_manager,
+                    quote_erc20: clob_deploy.quote_erc20,
+                    base_erc20: clob_deploy.base_erc20,
+                    clob_consumer: clob_deploy.clob_consumer,
+                };
+
+                let filename = DEFAULT_DEPLOY_INFO.to_string();
+                let json = serde_json::to_string_pretty(&deploy_info).unwrap();
+
+                println!("DeployInfo: {}", json);
+                println!("Writing deploy info to: {}", filename);
+                std::fs::write(filename, json).unwrap();
             }
         };
 
@@ -104,6 +137,14 @@ impl Cli {
 fn get_account(num: usize) -> K256LocalSigner {
     let all_wallets = get_signers(num + 1);
     all_wallets[num].clone()
+}
+
+#[derive(Serialize, Deserialize)]
+struct DeployInfo {
+    job_manager: Address,
+    quote_erc20: Address,
+    base_erc20: Address,
+    clob_consumer: Address,
 }
 
 #[derive(Subcommand, Debug)]
@@ -163,15 +204,6 @@ struct DepositArgs {
     /// Anvil account number to use for the key
     #[arg(short = 'A', long)]
     anvil_account: u32,
-    /// Address of the clob contract.
-    #[arg(short, long, default_value = "0xB737dD8FC9B304A3520B3bb609CC7532F1425Ad0")]
-    clob_contract: String,
-    /// Address of quote token ERC20 contract.
-    #[arg(short, long, default_value = "0x78e6B135B2A7f63b281C80e2ff639Eed32E2a81b")]
-    quote_contract: String,
-    /// Address of base token ERC20 contract.
-    #[arg(short, long, default_value = "0x71a9d115E322467147391c4a71D85F8e1cA623EF")]
-    base_contract: String,
     /// Quote asset balance.
     #[arg(short = 'Q', long)]
     quote: u64,
@@ -188,4 +220,22 @@ struct DeployArgs {
     /// EVM node RPC address.
     #[arg(long, short, default_value = "http://127.0.0.1:60420")]
     eth_rpc: String,
+}
+
+async fn query_balances(account: Address, eth_rpc: String, clob_consumer: Address) {
+    let provider =
+        ProviderBuilder::new().with_recommended_fillers().on_http(eth_rpc.parse().unwrap());
+
+    let clob_consumer = ClobConsumer::new(clob_consumer, &provider);
+
+    let deposited_base =
+        clob_consumer.depositedBalanceBase(account).call().await.unwrap()._0;
+    println!("deposited_base={}", deposited_base);
+
+    let deposited_quote =
+        clob_consumer.depositedBalanceQuote(account).call().await.unwrap()._0;
+    println!("deposited_quote={}", deposited_quote);
+
+    let free_base = clob_consumer.freeBalanceBase(account).call().await.unwrap()._0;
+    println!("free_base={}", free_base);
 }

@@ -12,6 +12,11 @@ We solve (1) because the matching logic is now run offchain in the InfinityVM co
 
 We solve (2) because all orders/cancellations are sent to the CLOB server and not to the chain, and so we can make these actions free. Also, we gain additional efficiencies because if a market maker creates 100 orders and cancels 95 of them in the same batch, only the 5 non-cancelled orders need to be included in the batch sent by the CLOB server to the InfinityVM coprocessor.
 
+## PoC Components
+
+- [clob-node](./node): the CLOB service. 
+- [clob-client](./client): client for seeding accounts, depositing, placing orders, withdrawing, and viewing state.
+
 ## Spec
 
 ### High-level user flow

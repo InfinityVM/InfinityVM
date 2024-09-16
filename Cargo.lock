@@ -1846,6 +1846,7 @@ dependencies = [
  "eyre",
  "reqwest 0.12.7",
  "serde",
+ "serde_json",
  "test-utils",
  "tokio",
 ]
