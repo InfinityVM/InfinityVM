@@ -31,3 +31,4 @@ abi = { workspace = true }
 test-utils = { workspace = true }
 clob-test-utils = { workspace = true }
 clob-node = { workspace = true }
+mock-consumer = { workspace = true }
