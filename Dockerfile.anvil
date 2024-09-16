@@ -1,9 +1,29 @@
-# Dockerfile
-   
-FROM ghcr.io/foundry-rs/foundry:latest
+# Use a stable Ubuntu base image
+FROM ubuntu:22.04
 
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Foundry
+RUN curl -L https://foundry.paradigm.xyz | bash
+ENV PATH="/root/.foundry/bin:${PATH}"
+RUN foundryup
+
+# Copy the contracts directory
 COPY contracts /root/contracts
+
+# Set the working directory
+WORKDIR /root/contracts
+
+# Make the startup script executable
 RUN chmod +x /root/contracts/script/anvil-devnet-startup.sh
+
+# Expose the Anvil port
 EXPOSE 8545
 
-CMD ["./root/contracts/script/anvil-devnet-startup.sh"]
+# Set the entrypoint to the startup script
+ENTRYPOINT ["/bin/bash", "/root/contracts/script/anvil-devnet-startup.sh"]
