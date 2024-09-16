@@ -52,7 +52,6 @@ COPROCESSOR_OPERATOR_ADDRESS=$(cast wallet address $COPROCESSOR_OPERATOR_KEY)
 OFFCHAIN_SIGNER_ADDRESS=$(cast wallet address $OFFCHAIN_SIGNER_KEY)
 INITIAL_MAX_NONCE=0
 WRITE_JSON=true
-echo "Deploying contracts..."
 forge script script/CoprocessorDeployer.s.sol:CoprocessorDeployer --sig "deployCoprocessorContracts(address relayer, address coprocessorOperator, bool writeJson)" $RELAYER_ADDRESS $COPROCESSOR_OPERATOR_ADDRESS $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
 forge script script/ClobDeployer.s.sol:ClobDeployer --sig "deployClobContracts(address offchainRequestSigner, uint64 initialMaxNonce, bool writeJson)" $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
 forge script script/MockConsumerDeployer.s.sol:MockConsumerDeployer --sig "deployMockConsumerContracts(address offchainSigner, uint64 initialMaxNonce, bool writeJson)" $OFFCHAIN_SIGNER_ADDRESS $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url http://localhost:$PORT --private-key $INITIAL_OWNER_KEY --broadcast
@@ -62,6 +61,11 @@ export COPROCESSOR_PROXY_ADMIN=$(jq -r '.addresses.coprocessorProxyAdmin' script
 export JOB_MANAGER=$(jq -r '.addresses.jobManager' script/output/31337/coprocessor_deployment_output.json)
 export CLOB_CONSUMER=$(jq -r '.addresses.consumer' script/output/31337/clob_deployment_output.json)
 export MOCK_CONSUMER=$(jq -r '.addresses.consumer' script/output/31337/mock_consumer_deployment_output.json)
+
+if [[ -z "$COPROCESSOR_PROXY_ADMIN" || -z "$JOB_MANAGER" || -z "$CLOB_CONSUMER" || -z "$MOCK_CONSUMER" ]]; then
+  echo "Failed to retrieve contract addresses from deployment output."
+  exit 1
+fi
 
 # Prepare the output JSON string
 output_json=$(cat <<EOF
@@ -77,8 +81,6 @@ output_json=$(cat <<EOF
 }
 EOF
 )
-
-echo $output_json
 
 # Push output JSON to Google Cloud Secret Manager
 create_or_update_secret $INSTANCE_NAME "$output_json"
