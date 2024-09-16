@@ -1839,6 +1839,7 @@ dependencies = [
  "alloy",
  "borsh",
  "clap",
+ "clob-contracts",
  "clob-core",
  "clob-node",
  "clob-test-utils",

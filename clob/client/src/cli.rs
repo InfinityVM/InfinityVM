@@ -1,16 +1,18 @@
 //! CLI for making HTTP request to clob node.
 
 use crate::Client;
+use alloy::primitives::U256;
 use alloy::{
     network::EthereumWallet,
     primitives::{hex::FromHex, Address},
     providers::ProviderBuilder,
 };
 use clap::{Args, Parser, Subcommand};
+use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
-use clob_node::K256LocalSigner;
-use clob_test_utils::{clob_consumer_deploy, mint_and_approve, mock_erc20::MockErc20};
-use test_utils::{job_manager_deploy, wallet::Wallet};
+use clob_test_utils::{clob_consumer_deploy, mint_and_approve};
+use test_utils::get_signers;
+use test_utils::job_manager_deploy;
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -61,10 +63,9 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Deposit(a) => {
-                let all_wallets = Wallet::new((a.anvil_account + 1) as usize).gen();
-                let bytes = all_wallets[a.anvil_account as usize].to_bytes().0;
-                let local_signer = K256LocalSigner::from_slice(&bytes).unwrap();
-                println!("wallet={}", local_signer.address());
+                let all_wallets = get_signers((a.anvil_account + 1) as usize);
+                let local_signer = all_wallets[a.anvil_account as usize].clone();
+                println!("account={}", local_signer.address());
 
                 let eth_wallet = EthereumWallet::from(local_signer);
                 let provider = ProviderBuilder::new()
@@ -72,10 +73,14 @@ impl Cli {
                     .wallet(eth_wallet)
                     .on_http(args.http_endpoint.parse().unwrap());
 
-                if a.quote != 0 {
-                    let address = Address::from_hex(a.quote_contract).unwrap();
-                    let erc20 = MockErc20::new(address, &provider);
-                }
+                let clob_contract = Address::from_hex(a.clob_contract).unwrap();
+                let clob_consumer = ClobConsumer::new(clob_contract, &provider);
+                let base_amount = U256::try_from(a.base).unwrap();
+                let quote_amount = U256::try_from(a.quote).unwrap();
+
+                let call = clob_consumer.deposit(base_amount, quote_amount);
+                let tx_hash = call.send().await.unwrap().get_receipt().await.unwrap();
+                println!("tx_hash={}", tx_hash.transaction_hash);
             }
             Commands::Deploy => {
                 let job_manager_deploy = job_manager_deploy(args.http_endpoint.clone()).await;
