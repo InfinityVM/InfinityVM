@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 PROJECT_ID=${PROJECT_ID}
