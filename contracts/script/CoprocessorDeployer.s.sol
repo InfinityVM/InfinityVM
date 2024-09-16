@@ -4,23 +4,19 @@ pragma solidity ^0.8.13;
 import {Script, console} from "forge-std/Script.sol";
 import {JobManager} from "../src/coprocessor/JobManager.sol";
 import {IJobManager} from "../src/coprocessor/IJobManager.sol";
-import {Consumer} from "../src/coprocessor/Consumer.sol";
-import {MockConsumer} from "../test/mocks/MockConsumer.sol";
 import {Utils} from "./utils/Utils.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import "./utils/EmptyContract.sol";
 
 // To deploy and verify:
-// forge script CoprocessorDeployer.s.sol:CoprocessorDeployer --sig "deployCoprocessorContracts(address relayer, address coprocessorOperator)" $RELAYER $COPROCESSOR_OPERATOR --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
+// forge script CoprocessorDeployer.s.sol:CoprocessorDeployer --sig "deployCoprocessorContracts(address relayer, address coprocessorOperator, bool writeJson)" $RELAYER $COPROCESSOR_OPERATOR $WRITE_JSON --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
 contract CoprocessorDeployer is Script, Utils {
-
     ProxyAdmin public coprocessorProxyAdmin;
     JobManager public jobManager;
     IJobManager public jobManagerImplementation;
-    MockConsumer public consumer;
 
-    function deployCoprocessorContracts(address relayer, address coprocessorOperator, address offchainSigner, uint64 initialMaxNonce, bool writeJson) public {
+    function deployCoprocessorContracts(address relayer, address coprocessorOperator, bool writeJson) public {
         vm.startBroadcast();
         // deploy proxy admin for ability to upgrade proxy contracts
         coprocessorProxyAdmin = new ProxyAdmin();
@@ -41,8 +37,6 @@ contract CoprocessorDeployer is Script, Utils {
             )
         );
 
-        consumer = new MockConsumer(address(jobManager), offchainSigner, initialMaxNonce);
-
         if (writeJson) {
             // WRITE JSON DATA
             string memory parent_object = "parent object";
@@ -60,16 +54,10 @@ contract CoprocessorDeployer is Script, Utils {
                 address(jobManagerImplementation)
             );
 
-            vm.serializeAddress(
+            string memory deployed_addresses_output = vm.serializeAddress(
                 deployed_addresses,
                 "coprocessorProxyAdmin",
                 address(coprocessorProxyAdmin)
-            );
-
-            string memory deployed_addresses_output = vm.serializeAddress(
-                deployed_addresses,
-                "consumer",
-                address(consumer)
             );
 
             // serialize all the data
