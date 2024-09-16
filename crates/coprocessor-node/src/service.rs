@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::job_processor::JobProcessorService;
 use abi::OffchainJobRequest;
 use alloy::{
-    primitives::{Address, Bytes, Signature},
+    primitives::{keccak256, Signature},
     signers::Signer,
     sol_types::SolType,
 };
@@ -12,8 +12,7 @@ use db::tables::{get_job_id, Job, RequestType};
 use proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
     GetResultResponse, JobResult, JobStatus, JobStatusType, SubmitJobRequest, SubmitJobResponse,
-    SubmitProgramRequest, SubmitProgramResponse, SubmitStatefulJobRequest,
-    SubmitStatefulJobResponse,
+    SubmitProgramRequest, SubmitProgramResponse,
 };
 use reth_db::Database;
 use tonic::{Request, Response, Status};
@@ -41,11 +40,44 @@ where
     ) -> Result<Response<SubmitJobResponse>, Status> {
         let req = request.into_inner();
 
-        let OffchainJobRequest { nonce, max_cycles, consumer, program_id, program_input } =
-            OffchainJobRequest::abi_decode(&req.request, false)
-                .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
+        let OffchainJobRequest {
+            nonce,
+            max_cycles,
+            consumer,
+            program_id,
+            onchain_input,
+            state_hash: state_hash_in_request,
+            offchain_input_hash: offchain_input_hash_in_request,
+        } = OffchainJobRequest::abi_decode(&req.request, false)
+            .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
 
-        validate_job_request(max_cycles, consumer, program_id.clone(), req.signature.clone())?;
+        // verify fields
+        if max_cycles == 0 {
+            return Err(Status::invalid_argument("job max cycles must be positive"));
+        }
+
+        if req.signature.is_empty() {
+            return Err(Status::invalid_argument("job request signature must not be empty"));
+        }
+
+        if consumer.len() != 20 {
+            return Err(Status::invalid_argument("contract address must be 20 bytes in length"));
+        }
+
+        if program_id.is_empty() {
+            return Err(Status::invalid_argument("job program verification key must not be empty"));
+        }
+
+        let offchain_input_hash = keccak256(&req.offchain_input);
+        if offchain_input_hash_in_request != offchain_input_hash {
+            return Err(Status::invalid_argument("offchain input hash does not match"));
+        }
+
+        let state_hash = keccak256(&req.state);
+        if state_hash_in_request != state_hash {
+            return Err(Status::invalid_argument("state hash does not match"));
+        }
+
         let job_id = get_job_id(nonce, consumer);
 
         // TODO: Make contract calls to verify nonce, signature, etc. on job request
@@ -59,8 +91,9 @@ where
             max_cycles,
             consumer_address: consumer.to_vec(),
             program_id: program_id.to_vec(),
-            input: program_input.to_vec(),
-            program_state: vec![],
+            onchain_input: onchain_input.to_vec(),
+            offchain_input: req.offchain_input,
+            state: req.state,
             request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],
             zkvm_operator_signature: vec![],
@@ -77,51 +110,6 @@ where
             .map_err(|e| Status::internal(format!("failed to submit job: {e}")))?;
 
         Ok(Response::new(SubmitJobResponse { job_id: job_id.to_vec() }))
-    }
-    /// SubmitStatefulJob defines the gRPC method for submitting a stateful coprocessing job.
-    #[instrument(name = "coprocessor_submit_stateful_job", skip(self, request), err(Debug))]
-    async fn submit_stateful_job(
-        &self,
-        request: Request<SubmitStatefulJobRequest>,
-    ) -> Result<Response<SubmitStatefulJobResponse>, Status> {
-        let req = request.into_inner();
-
-        let OffchainJobRequest { nonce, max_cycles, consumer, program_id, program_input } =
-            OffchainJobRequest::abi_decode(&req.request, false)
-                .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
-
-        validate_job_request(max_cycles, consumer, program_id.clone(), req.signature.clone())?;
-        let job_id = get_job_id(nonce, consumer);
-
-        // TODO: Make contract calls to verify nonce, signature, etc. on job request
-        // [ref: https://github.com/Ethos-Works/InfinityVM/issues/168]
-
-        info!(job_id = ?job_id, "new job request");
-
-        let job = Job {
-            id: job_id,
-            nonce,
-            max_cycles,
-            consumer_address: consumer.to_vec(),
-            program_id: program_id.to_vec(),
-            input: program_input.to_vec(),
-            program_state: req.program_state,
-            request_type: RequestType::Offchain(req.signature),
-            result_with_metadata: vec![],
-            zkvm_operator_signature: vec![],
-            status: JobStatus {
-                status: JobStatusType::Pending as i32,
-                failure_reason: None,
-                retries: 0,
-            },
-        };
-
-        self.job_processor
-            .submit_job(job)
-            .await
-            .map_err(|e| Status::internal(format!("failed to submit job: {e}")))?;
-
-        Ok(Response::new(SubmitStatefulJobResponse { job_id: job_id.to_vec() }))
     }
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.
@@ -151,7 +139,9 @@ where
                             id: job.id.to_vec(),
                             nonce: job.nonce,
                             program_id: job.program_id,
-                            input: job.input,
+                            onchain_input: job.onchain_input,
+                            offchain_input_hash: keccak256(&job.offchain_input).as_slice().to_vec(),
+                            state_hash: keccak256(&job.state).as_slice().to_vec(),
                             consumer_address: job.consumer_address,
                             max_cycles: job.max_cycles,
                             request_signature,
@@ -190,32 +180,4 @@ where
 
         Ok(Response::new(SubmitProgramResponse { program_id }))
     }
-}
-
-/// Verify fields in a submitted job request. Used for both stateful
-/// and stateless job requests.
-pub fn validate_job_request(
-    max_cycles: u64,
-    consumer_address: Address,
-    program_id: Bytes,
-    signature: Vec<u8>,
-) -> Result<(), Status> {
-    // verify fields
-    if max_cycles == 0 {
-        return Err(Status::invalid_argument("job max cycles must be positive"));
-    }
-
-    if signature.is_empty() {
-        return Err(Status::invalid_argument("job request signature must not be empty"));
-    }
-
-    if consumer_address.len() != 20 {
-        return Err(Status::invalid_argument("contract address must be 20 bytes in length"));
-    }
-
-    if program_id.is_empty() {
-        return Err(Status::invalid_argument("job program verification key must not be empty"));
-    }
-
-    Ok(())
 }

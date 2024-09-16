@@ -4,11 +4,11 @@ use crate::db::{
     tables::{ClobStateTable, GlobalIndexTable, RequestTable},
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulProgramInput};
-use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolType};
+use abi::{abi_encode_offchain_job_request, JobParams};
+use alloy::{primitives::utils::keccak256, signers::Signer};
 use clob_programs::CLOB_ID;
 use eyre::OptionExt;
-use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitStatefulJobRequest};
+use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;
@@ -103,24 +103,27 @@ where
         }
 
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
-        let program_state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
-        let previous_state_hash = keccak256(&program_state_borsh);
-
-        let program_input =
-            StatefulProgramInput { previous_state_hash, input: requests_borsh.into() };
-        let program_input_encoded = StatefulProgramInput::abi_encode(&program_input);
+        let offchain_input_hash = keccak256(&requests_borsh);
+        let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
+        let previous_state_hash = keccak256(&state_borsh);
 
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
-            program_input: &program_input_encoded,
+            onchain_input: &[],
+            offchain_input_hash: offchain_input_hash.into(),
+            state_hash: previous_state_hash.into(),
             program_id: &program_id,
             consumer_address: clob_consumer_addr,
         };
         let request = abi_encode_offchain_job_request(job_params);
         let signature = signer.sign_message(&request).await?.as_bytes().to_vec();
-        let job_request =
-            SubmitStatefulJobRequest { request, signature, program_state: program_state_borsh };
+        let job_request = SubmitJobRequest {
+            request,
+            signature,
+            offchain_input: requests_borsh,
+            state: state_borsh,
+        };
 
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
@@ -134,7 +137,7 @@ where
 
 async fn submit_job_with_backoff(
     client: &mut CoprocessorNodeClient<Channel>,
-    request: SubmitStatefulJobRequest,
+    request: SubmitJobRequest,
 ) -> eyre::Result<()> {
     const RETRIES: usize = 3;
     const MULTIPLE: u64 = 8;
@@ -142,7 +145,7 @@ async fn submit_job_with_backoff(
     let mut backoff = 1;
 
     for _ in 0..RETRIES {
-        match client.submit_stateful_job(request.clone()).await {
+        match client.submit_job(request.clone()).await {
             Ok(_) => return Ok(()),
             Err(error) => tracing::warn!(backoff, ?error, "failed to submit batch to coprocessor"),
         }
