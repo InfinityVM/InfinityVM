@@ -2,7 +2,8 @@
    
 FROM ghcr.io/foundry-rs/foundry:latest
 
-COPY crates/scripts/src/anvil-devnet-startup.sh /root/scripts/startup.sh
+COPY contracts/script/anvil-devnet-startup.sh /root/scripts/startup.sh
+COPY contracts/script/ClobDeployer.s.sol /root/scripts/ClobDeployer.s.sol
 RUN chmod +x /root/scripts/startup.sh
 EXPOSE 8545
 
