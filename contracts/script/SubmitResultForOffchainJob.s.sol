@@ -10,7 +10,7 @@ contract SubmitResultForOffchainJob is Script, Utils {
 
     JobManager public jobManager;
 
-    function submitResultForOffchainJob(bytes calldata resultWithMetadata, bytes calldata signatureOnResult, bytes calldata jobRequest, bytes calldata signatureOnRequest) public {
+    function submitResultForOffchainJob(bytes calldata offchainResultWithMetadata, bytes calldata signatureOnResult, bytes calldata jobRequest, bytes calldata signatureOnRequest) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -23,7 +23,7 @@ contract SubmitResultForOffchainJob is Script, Utils {
         );
 
         vm.startBroadcast();
-        jobManager.submitResultForOffchainJob(resultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
         vm.stopBroadcast();
         console.log("Result for offchain job submitted!");
     }
