@@ -27,11 +27,8 @@ create_or_update_secret() {
 
 anvil --block-time $BLOCK_TIME --port $PORT > anvil_output.log 2>&1 &
 
-# Capture the Anvil process ID so we can stop it later
-ANVIL_PID=$!
-
 # Wait a few seconds for Anvil to start
-sleep 5
+sleep 3
 
 if ! grep -q "Listening on" anvil_output.log; then
   echo "Failed to start Anvil. Check the logs."
