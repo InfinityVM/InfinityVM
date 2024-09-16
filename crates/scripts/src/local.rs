@@ -8,6 +8,7 @@ use clob_node::{
     CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
 use clob_test_utils::anvil_with_clob_consumer;
+use mock_consumer::anvil_with_mock_consumer;
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
@@ -73,6 +74,11 @@ async fn main() {
         .unwrap()
         .into();
     sleep_until_bound(COPROCESSOR_GRPC_PORT).await;
+
+    tracing::info!("Deploying MockConsumer contract");
+    let mock_consumer = anvil_with_mock_consumer(&anvil).await;
+    let mock_consumer_addr = mock_consumer.mock_consumer.to_string();
+    tracing::info!(?mock_consumer_addr, "MockConsumer deployed at");
 
     let clob_consumer = anvil_with_clob_consumer(&anvil).await;
     let clob_db_dir = tempfile::Builder::new().prefix("clob-node-local-db").tempdir().unwrap();

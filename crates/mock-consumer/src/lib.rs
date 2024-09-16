@@ -18,6 +18,8 @@ use zkvm_executor::service::abi_encode_result_with_metadata;
 pub struct AnvilMockConsumer {
     /// Address of the mock consumer contract
     pub mock_consumer: Address,
+    /// Offchain signer for mock consumer.
+    pub mock_consumer_signer: PrivateKeySigner,
 }
 
 /// Deploy `MockConsumer` contracts to anvil instance
@@ -46,7 +48,7 @@ pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> An
     .unwrap();
     let mock_consumer = *mock_consumer.address();
 
-    AnvilMockConsumer { mock_consumer }
+    AnvilMockConsumer { mock_consumer, mock_consumer_signer: offchain_signer }
 }
 
 /// A mock address to use as input to the mock contract function calls

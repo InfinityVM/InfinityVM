@@ -240,7 +240,8 @@ mod test {
 
         let anvil_port = get_localhost_port();
         let anvil = anvil_with_job_manager(anvil_port).await;
-        let AnvilMockConsumer { mock_consumer } = anvil_with_mock_consumer(&anvil).await;
+        let AnvilMockConsumer { mock_consumer, mock_consumer_signer: _ } =
+            anvil_with_mock_consumer(&anvil).await;
 
         let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } = anvil;
 
