@@ -8,6 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
+alloy = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 risc0-zkvm = { workspace = true }

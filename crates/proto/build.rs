@@ -8,7 +8,6 @@ const SERDE_SER_DER_DERIVE: &str = "#[derive(serde::Serialize, serde::Deserializ
 const SERDE_AS: &str = "#[serde_as]";
 const BORSH_SER_DER_DERIVE: &str = "#[derive(borsh::BorshSerialize, borsh::BorshDeserialize,)]";
 const SERDE_RENAME_CAMELCASE: &str = "#[serde(rename_all = \"camelCase\")]";
-const SERDE_BYTES_BASE64: &str = "#[serde_as(as = \"Base64\")]";
 const SERDE_BYTES_HEX: &str = "#[serde_as(as = \"Hex\")]";
 const BORSH_USE_DISCRIMINANT_TRUE: &str = "#[borsh(use_discriminant=true)]";
 const SERDE_DEFAULT: &str = "#[serde(default)]"; // New constant for serde default
@@ -24,14 +23,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_USE_DISCRIMINANT_TRUE)
         .field_attribute(".coprocessor_node.v1.JobStatus.failure_reason", SERDE_DEFAULT)
         .field_attribute(".coprocessor_node.v1.JobStatus.retries", SERDE_DEFAULT)
-        .field_attribute("id", SERDE_BYTES_BASE64)
-        .field_attribute("program_elf", SERDE_BYTES_BASE64)
-        .field_attribute("program_id", SERDE_BYTES_BASE64)
-        .field_attribute("input", SERDE_BYTES_BASE64)
-        .field_attribute("program_state", SERDE_BYTES_BASE64)
-        .field_attribute("request_signature", SERDE_BYTES_BASE64)
-        .field_attribute("result_with_metadata", SERDE_BYTES_BASE64)
-        .field_attribute("zkvm_operator_signature", SERDE_BYTES_BASE64)
+        .field_attribute("id", SERDE_BYTES_HEX)
+        .field_attribute("program_elf", SERDE_BYTES_HEX)
+        .field_attribute("program_id", SERDE_BYTES_HEX)
+        .field_attribute("onchain_input", SERDE_BYTES_HEX)
+        .field_attribute("offchain_input_hash", SERDE_BYTES_HEX)
+        .field_attribute("state_hash", SERDE_BYTES_HEX)
+        .field_attribute("request_signature", SERDE_BYTES_HEX)
+        .field_attribute("result_with_metadata", SERDE_BYTES_HEX)
+        .field_attribute("zkvm_operator_signature", SERDE_BYTES_HEX)
         .field_attribute("consumer_address", SERDE_BYTES_HEX)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .compile(

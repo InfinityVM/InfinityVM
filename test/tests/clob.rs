@@ -16,14 +16,12 @@ use clob_core::{
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
-use proto::{GetResultRequest, SubmitProgramRequest, SubmitStatefulJobRequest, VmType};
+use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
-use zkvm_executor::service::ResultWithMetadata;
+use zkvm_executor::service::OffchainResultWithMetadata;
 
-use abi::{
-    abi_encode_offchain_job_request, JobParams, StatefulProgramInput, StatefulProgramResult,
-};
+use abi::{abi_encode_offchain_job_request, JobParams, StatefulProgramResult};
 use clob_core::api::OrderFill;
 
 fn program_id() -> Vec<u8> {
@@ -148,34 +146,38 @@ async fn state_job_submission_clob_consumer() {
         for (requests, init_state, next_state) in
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
         {
-            let input = StatefulProgramInput {
-                previous_state_hash: init_state.borsh_keccak256(),
-                input: borsh::to_vec(&requests).unwrap().into(),
-            };
+            let offchain_input_hash = requests.borsh_keccak256();
+            let offchain_input_borsh = borsh::to_vec(&requests).unwrap();
 
+            let previous_state_hash = init_state.borsh_keccak256();
             let state_borsh = borsh::to_vec(&init_state).unwrap();
-            let input_abi = input.abi_encode();
 
             let params = JobParams {
                 nonce,
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **clob.clob_consumer,
-                program_input: &input_abi,
+                onchain_input: &[],
+                offchain_input_hash: offchain_input_hash.into(),
+                state_hash: *previous_state_hash,
                 program_id: &program_id,
             };
             let request = abi_encode_offchain_job_request(params.clone());
             let signature =
                 clob.clob_signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
-            let job_request =
-                SubmitStatefulJobRequest { request, signature, program_state: state_borsh };
-            let submit_stateful_job_response =
-                args.coprocessor_node.submit_stateful_job(job_request).await.unwrap().into_inner();
+            let job_request = SubmitJobRequest {
+                request,
+                signature,
+                offchain_input: offchain_input_borsh,
+                state: state_borsh,
+            };
+            let submit_job_response =
+                args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
             interval.tick().await;
 
-            let job_id = submit_stateful_job_response.job_id;
-            let result_with_metadata = args
+            let job_id = submit_job_response.job_id;
+            let offchain_result_with_metadata = args
                 .coprocessor_node
                 .get_result(GetResultRequest { job_id })
                 .await
@@ -187,7 +189,8 @@ async fn state_job_submission_clob_consumer() {
 
             let raw_output = {
                 let abi_decoded_output =
-                    ResultWithMetadata::abi_decode(&result_with_metadata, false).unwrap();
+                    OffchainResultWithMetadata::abi_decode(&offchain_result_with_metadata, false)
+                        .unwrap();
                 abi_decoded_output.raw_output
             };
 

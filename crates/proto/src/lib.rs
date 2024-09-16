@@ -6,7 +6,7 @@
 // lints it complains about
 #![allow(clippy::all, clippy::missing_const_for_fn, unreachable_pub)]
 
-use serde_with::{base64::Base64, hex::Hex, serde_as};
+use serde_with::{hex::Hex, serde_as};
 
 tonic::include_proto!("coprocessor_node.v1");
 

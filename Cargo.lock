@@ -5720,6 +5720,7 @@ dependencies = [
  "db",
  "dotenv",
  "k256",
+ "mock-consumer",
  "proto",
  "tempfile",
  "test-utils",

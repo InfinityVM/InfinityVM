@@ -57,7 +57,7 @@ contract ClobConsumerTest is Test, ClobDeployer {
         test_ClobConsumer_DepositInitiated();
 
         vm.prank(address(jobManager));
-        consumer.setProgramInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""));
+        consumer.setOnchainInputForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""));
     
         ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](2);
         depositDeltas[0] = ClobConsumer.DepositDelta({

@@ -164,13 +164,13 @@ struct DepositArgs {
     #[arg(short = 'A', long)]
     anvil_account: u32,
     /// Address of the clob contract.
-    #[arg(short, long, default_value = "0x78e6B135B2A7f63b281C80e2ff639Eed32E2a81b")]
+    #[arg(short, long, default_value = "0xB737dD8FC9B304A3520B3bb609CC7532F1425Ad0")]
     clob_contract: String,
     /// Address of quote token ERC20 contract.
-    #[arg(short, long, default_value = "0x71a9d115E322467147391c4a71D85F8e1cA623EF")]
+    #[arg(short, long, default_value = "0x78e6B135B2A7f63b281C80e2ff639Eed32E2a81b")]
     quote_contract: String,
     /// Address of base token ERC20 contract.
-    #[arg(short, long, default_value = "0x93C7a6D00849c44Ef3E92E95DCEFfccd447909Ae")]
+    #[arg(short, long, default_value = "0x71a9d115E322467147391c4a71D85F8e1cA623EF")]
     base_contract: String,
     /// Quote asset balance.
     #[arg(short = 'Q', long)]

@@ -2,16 +2,14 @@ use alloy::primitives::aliases::U256;
 use alloy::primitives::Address;
 use alloy::sol_types::SolValue;
 use risc0_zkvm::guest::env;
-use std::io::Read;
 
 fn main() {
-    // read in data as bytes
-    let mut raw_input = vec![];
-    // N.B. reads in one "word" (32 bytes) at a time
-    env::stdin().read_to_end(&mut raw_input).unwrap();
+    let onchain_input_len: u32 = env::read();
+    let mut onchain_input_buf = vec![0; onchain_input_len as usize];
+    env::read_slice(&mut onchain_input_buf);
 
     let start_idx = 32 - 20;
-    let address = Address::from_slice(&raw_input[start_idx..]);
+    let address = Address::from_slice(&onchain_input_buf[start_idx..]);
 
     // Do some very complicated aura points based math to derive
     // a meaningful balance from the address
