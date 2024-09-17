@@ -7,7 +7,7 @@ use async_channel::{Receiver, Sender};
 use db::{
     delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
     put_fail_relay_job, put_job,
-    tables::{Job, RequestType},
+    tables::{ElfWithMeta, Job, RequestType},
 };
 use proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
@@ -250,9 +250,8 @@ where
         let metrics = Arc::clone(&self.metrics);
         let max_retries = self.config.max_retries;
 
-        self.task_handles.spawn(async move {
-            Self::retry_jobs(db, job_relayer, metrics, max_retries).await
-        });
+        self.task_handles
+            .spawn(async move { Self::retry_jobs(db, job_relayer, metrics, max_retries).await });
     }
 
     /// Start a single worker thread.
@@ -269,149 +268,179 @@ where
             let id = job.id;
             info!("executing job {:?}", id);
 
-            let elf_with_meta = match db::get_elf(db.clone(), &job.program_id) {
-                Ok(Some(elf)) => elf,
-                Ok(None) => {
-                    error!(
-                        ?job.consumer_address,
-                        "no ELF found for job {:?} with verifying key {:?}",
-                        id,
-                        job.program_id,
-                    );
-                    metrics.incr_job_err(&FailureReason::MissingElf.to_string());
-
-                    job.status = JobStatus {
-                        status: JobStatusType::Failed as i32,
-                        failure_reason: Some(FailureReason::MissingElf.to_string()),
-                        retries: 0,
-                    };
-
-                    if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {:?}: {:?}", id, e);
-                        metrics.incr_job_err(&FailureReason::DbErrMissingElf.to_string());
-                    }
-                    continue;
-                }
-                Err(error) => {
-                    error!(
-                        ?error,
-                        "could not find elf for job {:?} with verifying key {:?}",
-                        id,
-                        job.program_id
-                    );
-
-                    metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
-
-                    job.status = JobStatus {
-                        status: JobStatusType::Failed as i32,
-                        failure_reason: Some(FailureReason::ErrGetElf.to_string()),
-                        retries: 0,
-                    };
-
-                    if let Err(e) = Self::save_job(db.clone(), job).await {
-                        error!("report this error: failed to save job {:?}: {:?}", id, e);
-                        metrics.incr_job_err("db_error_status_failed");
-                    }
-                    continue;
-                }
+            let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics).await {
+                Ok(elf) => elf,
+                Err(_) => continue,
             };
 
-            let result = match job.request_type {
-                RequestType::Onchain => {
-                    zk_executor
-                        .execute_onchain_job(
-                            id,
-                            job.max_cycles,
-                            job.program_id.clone(),
-                            job.onchain_input.clone(),
-                            elf_with_meta.elf,
-                            VmType::Risc0,
-                        )
-                        .await
-                }
-                RequestType::Offchain(_) => {
-                    zk_executor
-                        .execute_offchain_job(
-                            id,
-                            job.max_cycles,
-                            job.program_id.clone(),
-                            job.onchain_input.clone(),
-                            job.offchain_input.clone(),
-                            job.state.clone(),
-                            elf_with_meta.elf,
-                            VmType::Risc0,
-                        )
-                        .await
-                }
+            job = match Self::execute_job(job, &zk_executor, elf_with_meta, &db, &metrics).await {
+                Ok(updated_job) => updated_job,
+                Err(_) => continue,
             };
 
-            let job = match result {
-                Ok((result_with_metadata, zkvm_operator_signature)) => {
-                    tracing::debug!("job {:?} executed successfully", id.clone());
-
-                    job.status = JobStatus {
-                        status: JobStatusType::Done as i32,
-                        failure_reason: None,
-                        retries: 0,
-                    };
-
-                    job.result_with_metadata = result_with_metadata;
-                    job.zkvm_operator_signature = zkvm_operator_signature;
-
-                    if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                        error!("report this error: failed to save job {:?}: {:?}", id, e);
-                        metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
-                        continue;
-                    }
-                    job
-                }
-                Err(e) => {
-                    error!("failed to execute job {:?}: {:?}", id, e);
-                    metrics.incr_job_err(&FailureReason::ExecErr.to_string());
-
-                    job.status = JobStatus {
-                        status: JobStatusType::Failed as i32,
-                        failure_reason: Some(FailureReason::ExecErr.to_string()),
-                        retries: 0,
-                    };
-
-                    if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                        error!("report this error: failed to save job {:?}: {:?}", id, e);
-                        metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
-                    }
-                    continue;
-                }
-            };
-
-            let relay_receipt_result = match job.request_type {
-                RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
-                RequestType::Offchain(_) => {
-                    let job_params = (&job).try_into()?;
-                    let job_request_payload = abi_encode_offchain_job_request(job_params);
-                    job_relayer
-                        .relay_result_for_offchain_job(job.clone(), job_request_payload)
-                        .await
-                }
-            };
-
-            let _relay_receipt = match relay_receipt_result {
-                Ok(receipt) => receipt,
-                Err(e) => {
-                    error!("report this error: failed to relay job {:?}: {:?}", id, e);
-                    metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
-                    if let Err(e) = Self::save_relay_error_job(db.clone(), job).await {
-                        error!("report this error: failed to save relay err {:?}: {:?}", id, e);
-                        metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
-                    }
-
-                    continue;
-                }
-            };
-
-            // TODO: Save tx hash of job receipt to DB
-            // [ref: https://github.com/Ethos-Works/InfinityVM/issues/46]
+            if let Err(_) = Self::relay_job_result(job, &job_relayer, &db, &metrics).await {
+                continue;
+            }
         }
     }
+
+    async fn get_elf(
+        db: &Arc<D>,
+        job: &mut Job,
+        metrics: &Arc<Metrics>,
+    ) -> Result<ElfWithMeta, FailureReason> {
+        match db::get_elf(db.clone(), &job.program_id) {
+            Ok(Some(elf)) => Ok(elf),
+            Ok(None) => {
+                error!(
+                    ?job.consumer_address,
+                    "no ELF found for job {:?} with verifying key {:?}",
+                    job.id,
+                    job.program_id,
+                );
+                metrics.incr_job_err(&FailureReason::MissingElf.to_string());
+                job.status = JobStatus {
+                    status: JobStatusType::Failed as i32,
+                    failure_reason: Some(FailureReason::MissingElf.to_string()),
+                    retries: 0,
+                };
+
+                if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                    error!("report this error: failed to save job {:?}: {:?}", job.id, e);
+                    metrics.incr_job_err(&FailureReason::DbErrMissingElf.to_string());
+                }
+                Err(FailureReason::DbErrMissingElf)
+            }
+            Err(error) => {
+                error!(
+                    ?error,
+                    "could not find elf for job {:?} with verifying key {:?}",
+                    job.id,
+                    job.program_id
+                );
+                metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
+                job.status = JobStatus {
+                    status: JobStatusType::Failed as i32,
+                    failure_reason: Some(FailureReason::ErrGetElf.to_string()),
+                    retries: 0,
+                };
+
+                if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                    error!("report this error: failed to save job {:?}: {:?}", job.id, e);
+                    metrics.incr_job_err("db_error_status_failed");
+                }
+                Err(FailureReason::ErrGetElf)
+            }
+        }
+    }
+
+    async fn execute_job(
+        mut job: Job,
+        zk_executor: &ZkvmExecutorService<S>,
+        elf_with_meta: ElfWithMeta,
+        db: &Arc<D>,
+        metrics: &Arc<Metrics>,
+    ) -> Result<Job, FailureReason> {
+        let result = match job.request_type {
+            RequestType::Onchain => {
+                zk_executor
+                    .execute_onchain_job(
+                        job.id,
+                        job.max_cycles,
+                        job.program_id.clone(),
+                        job.onchain_input.clone(),
+                        elf_with_meta.elf,
+                        VmType::Risc0,
+                    )
+                    .await
+            }
+            RequestType::Offchain(_) => {
+                zk_executor
+                    .execute_offchain_job(
+                        job.id,
+                        job.max_cycles,
+                        job.program_id.clone(),
+                        job.onchain_input.clone(),
+                        job.offchain_input.clone(),
+                        job.state.clone(),
+                        elf_with_meta.elf,
+                        VmType::Risc0,
+                    )
+                    .await
+            }
+        };
+
+        match result {
+            Ok((result_with_metadata, zkvm_operator_signature)) => {
+                tracing::debug!("job {:?} executed successfully", job.id);
+                job.status = JobStatus {
+                    status: JobStatusType::Done as i32,
+                    failure_reason: None,
+                    retries: 0,
+                };
+                job.result_with_metadata = result_with_metadata;
+                job.zkvm_operator_signature = zkvm_operator_signature;
+                if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                    error!("report this error: failed to save job {:?}: {:?}", job.id, e);
+                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
+                    // We return an error here so we continue to the next
+                    // job in the start_worker loop
+                    return Err(FailureReason::DbErrStatusFailed);
+                }
+                Ok(job)
+            }
+            Err(e) => {
+                error!("failed to execute job {:?}: {:?}", job.id, e);
+                metrics.incr_job_err(&FailureReason::ExecErr.to_string());
+
+                job.status = JobStatus {
+                    status: JobStatusType::Failed as i32,
+                    failure_reason: Some(FailureReason::ExecErr.to_string()),
+                    retries: 0,
+                };
+
+                if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                    error!("report this error: failed to save job {:?}: {:?}", job.id, e);
+                    metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
+                }
+                Err(FailureReason::ExecErr)
+            }
+        }
+    }
+
+    async fn relay_job_result(
+        job: Job,
+        job_relayer: &Arc<JobRelayer>,
+        db: &Arc<D>,
+        metrics: &Arc<Metrics>,
+    ) -> Result<(), FailureReason> {
+        let id = job.id;
+        let relay_receipt_result = match job.request_type {
+            RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
+            RequestType::Offchain(_) => {
+                let job_params = (&job).try_into().map_err(|_| FailureReason::RelayErr)?;
+                let job_request_payload = abi_encode_offchain_job_request(job_params);
+                job_relayer.relay_result_for_offchain_job(job.clone(), job_request_payload).await
+            }
+        };
+
+        match relay_receipt_result {
+            Ok(_receipt) => Ok(()),
+            Err(e) => {
+                error!("report this error: failed to relay job {:?}: {:?}", id, e);
+                metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
+                if let Err(e) = Self::save_relay_error_job(db.clone(), job).await {
+                    error!("report this error: failed to save relay err {:?}: {:?}", id, e);
+                    metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
+                }
+                Err(FailureReason::RelayErr)
+            }
+        }
+
+        // TODO: Save tx hash of job receipt to DB
+        // [ref: https://github.com/Ethos-Works/InfinityVM/issues/46]
+    }
+
     /// Retry jobs that failed to relay
     async fn retry_jobs(
         db: Arc<D>,

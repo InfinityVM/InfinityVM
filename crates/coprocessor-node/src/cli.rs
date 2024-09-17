@@ -276,10 +276,7 @@ impl Cli {
             job_relayer,
             executor,
             metrics,
-            JobProcessorConfig {
-                num_workers: opts.worker_count,
-                max_retries: 3,
-            },
+            JobProcessorConfig { num_workers: opts.worker_count, max_retries: 3 },
         );
         job_processor.start().await;
         let job_processor = Arc::new(job_processor);
