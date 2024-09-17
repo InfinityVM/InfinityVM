@@ -1842,16 +1842,12 @@ dependencies = [
  "clob-contracts",
  "clob-core",
  "clob-node",
- "clob-programs",
- "clob-test-utils",
  "eyre",
- "proto",
  "reqwest 0.12.7",
  "serde",
  "serde_json",
  "test-utils",
  "tokio",
- "tonic",
 ]
 
 [[package]]

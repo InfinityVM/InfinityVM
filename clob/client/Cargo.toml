@@ -15,13 +15,9 @@ eyre = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-tonic = { workspace = true }
 
 # local deps
-proto = { workspace = true }
 clob-core = { workspace = true }
 clob-node = { workspace = true }
 test-utils = { workspace = true }
-clob-test-utils = { workspace = true }
 clob-contracts = { workspace = true }
-clob-programs = { workspace = true }
