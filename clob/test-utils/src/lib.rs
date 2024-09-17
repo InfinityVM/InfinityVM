@@ -94,7 +94,7 @@ pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> Anv
     AnvilClob { clob_signer, clob_consumer, quote_erc20, base_erc20 }
 }
 
-/// Mint erc20s and approve transfers to the first `100` anvil auto seeded accounts.
+/// Mint erc20s and approve transfers to the first `count` anvil auto seeded accounts.
 pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String, count: usize) {
     let signers: Vec<_> = get_signers(count).into_iter().map(EthereumWallet::from).collect();
 
@@ -104,7 +104,6 @@ pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String, count: us
             .wallet(signer.clone())
             .on_http(http_endpoint.parse().unwrap());
 
-        // let quote_contract_address = Address::from_hex(clob.quote_erc20).unwrap();
         let quote_erc20 = MockErc20::new(clob.quote_erc20, &provider);
 
         let amount = U256::try_from(u64::MAX).unwrap();
@@ -114,7 +113,6 @@ pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String, count: us
         let call_builder = quote_erc20.approve(clob.clob_consumer, amount);
         call_builder.send().await.unwrap().tx_hash();
 
-        // let base_contract_address = Address::from_hex(clob.quote_erc20).unwrap();
         let base_erc20 = MockErc20::new(clob.base_erc20, &provider);
         let call_builder = base_erc20.mint(provider.default_signer_address(), amount);
         call_builder.send().await.unwrap().tx_hash();
