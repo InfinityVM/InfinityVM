@@ -21,4 +21,6 @@ reth_db::tables! {
 
     /// Diff table, keyed by global index.
     table DiffTable<Key = u64, Value = VecDiffModel>;
+
+    table BlockHeightTable<Key = u32, Value = u64>;
 }
