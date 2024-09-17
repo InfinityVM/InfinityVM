@@ -3,7 +3,7 @@
 use std::{fs::File, process::Command};
 
 use alloy::primitives::hex;
-use clob_client::cli::{DeployInfo, DEFAULT_DEPLOY_INFO};
+use clob_client::cli::{ClobDeployInfo, DEFAULT_DEPLOY_INFO};
 use clob_node::{
     CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR, CLOB_ETH_WS_ADDR,
     CLOB_JOB_SYNC_START, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
@@ -100,18 +100,17 @@ async fn main() {
     mint_and_approve(&clob_deploy, http_rpc_url.clone(), accounts_num).await;
 
     {
-        let deploy_info = DeployInfo {
+        let deploy_info = ClobDeployInfo {
             job_manager: job_manager_deploy.job_manager,
             quote_erc20: clob_deploy.quote_erc20,
             base_erc20: clob_deploy.base_erc20,
-
             clob_consumer: clob_deploy.clob_consumer,
         };
 
         let filename = DEFAULT_DEPLOY_INFO.to_string();
         let json = serde_json::to_string_pretty(&deploy_info).unwrap();
 
-        tracing::info!("DeployInfo: {}", json);
+        tracing::info!("ClobDeployInfo: {}", json);
         tracing::info!("Writing deploy info to: {}", filename);
         std::fs::write(filename, json).unwrap();
     }

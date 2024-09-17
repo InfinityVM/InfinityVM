@@ -13,11 +13,11 @@ use serde::{Deserialize, Serialize};
 use test_utils::get_account;
 
 /// Path to write deploy info to
-pub const DEFAULT_DEPLOY_INFO: &str = "./logs/deploy_info.json";
+pub const DEFAULT_DEPLOY_INFO: &str = "./logs/clob_deploy_info.json";
 
 /// Contract deployment info for the clob.
 #[derive(Serialize, Deserialize, Debug)]
-pub struct DeployInfo {
+pub struct ClobDeployInfo {
     /// Job Manager contract address.
     pub job_manager: Address,
     /// Quote ERC20 contract address.
@@ -82,7 +82,7 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Deposit(a) => {
-                let deploy_info: DeployInfo = {
+                let deploy_info: ClobDeployInfo = {
                     let filename = DEFAULT_DEPLOY_INFO.to_string();
                     let raw_json = std::fs::read(filename).unwrap();
                     serde_json::from_slice(&raw_json).unwrap()
@@ -104,7 +104,7 @@ impl Cli {
                 let call = clob_consumer.deposit(base_amount, quote_amount);
                 let receipt = call.send().await.unwrap().get_receipt().await.unwrap();
 
-                query_balances(local_signer.address(), a.eth_rpc, deploy_info.clob_consumer).await;
+                print_balances(local_signer.address(), a.eth_rpc, deploy_info.clob_consumer).await;
 
                 for log in receipt.inner.logs() {
                     let l = match log.log_decode::<ClobConsumer::Deposit>() {
@@ -206,7 +206,7 @@ struct DeployArgs {
     coproc_grpc: String,
 }
 
-async fn query_balances(account: Address, eth_rpc: String, clob_consumer: Address) {
+async fn print_balances(account: Address, eth_rpc: String, clob_consumer: Address) {
     let provider =
         ProviderBuilder::new().with_recommended_fillers().on_http(eth_rpc.parse().unwrap());
 
@@ -220,4 +220,13 @@ async fn query_balances(account: Address, eth_rpc: String, clob_consumer: Addres
 
     let free_base = clob_consumer.freeBalanceBase(account).call().await.unwrap()._0;
     println!("free_base={}", free_base);
+
+    let locked_base = clob_consumer.lockedBalanceBase(account).call().await.unwrap()._0;
+    println!("locked_base={}", locked_base);
+
+    let free_quote = clob_consumer.freeBalanceQuote(account).call().await.unwrap()._0;
+    println!("free_quote={}", free_quote);
+
+    let locked_quote = clob_consumer.lockedBalanceQuote(account).call().await.unwrap()._0;
+    println!("locked_quote={}", locked_quote);
 }
