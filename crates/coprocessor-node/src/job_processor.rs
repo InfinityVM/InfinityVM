@@ -493,9 +493,7 @@ where
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.retries += 1;
-                            if let Err(e) =
-                                Self::save_relay_error_job(db.clone(), job).await
-                            {
+                            if let Err(e) = Self::save_relay_error_job(db.clone(), job).await {
                                 error!(
                                     "report this error: failed to save retried job {:?}: {:?}",
                                     id, e

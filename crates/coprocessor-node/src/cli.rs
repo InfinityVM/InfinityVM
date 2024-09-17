@@ -165,6 +165,10 @@ struct Opts {
     #[arg(long, default_value_t = 4)]
     worker_count: usize,
 
+    /// Max number of retries for relaying a job
+    #[arg(long, default_value_t = 3)]
+    max_retries: usize,
+
     /// Max size for the exec queue
     #[arg(long, default_value_t = 256)]
     exec_queue_bound: usize,
@@ -276,7 +280,10 @@ impl Cli {
             job_relayer,
             executor,
             metrics,
-            JobProcessorConfig { num_workers: opts.worker_count, max_retries: 3 },
+            JobProcessorConfig {
+                num_workers: opts.worker_count,
+                max_retries: opts.max_retries as u32,
+            },
         );
         job_processor.start().await;
         let job_processor = Arc::new(job_processor);
