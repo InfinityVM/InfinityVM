@@ -3,21 +3,16 @@
 use std::{fs::File, process::Command};
 
 use alloy::primitives::hex;
-use clob_client::cli::DeployInfo;
-use clob_client::cli::DEFAULT_DEPLOY_INFO;
-use clob_node::CLOB_JOB_SYNC_START;
+use clob_client::cli::{DeployInfo, DEFAULT_DEPLOY_INFO};
 use clob_node::{
     CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR, CLOB_ETH_WS_ADDR,
-    CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
+    CLOB_JOB_SYNC_START, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
 use clob_programs::CLOB_ELF;
-use clob_test_utils::anvil_with_clob_consumer;
-use clob_test_utils::mint_and_approve;
+use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
 
 use mock_consumer::anvil_with_mock_consumer;
-use proto::coprocessor_node_client::CoprocessorNodeClient;
-use proto::SubmitProgramRequest;
-use proto::VmType;
+use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;

@@ -177,8 +177,7 @@ struct WithdrawArgs {
     #[arg(short = 'B', long)]
     base_free: u64,
     /// Size of the quote asset to withdraw.
-    #[arg(short = 'Q'
-    , long)]
+    #[arg(short = 'Q', long)]
     quote_free: u64,
 }
 

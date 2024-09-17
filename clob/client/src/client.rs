@@ -80,13 +80,7 @@ async fn post<Req: Serialize, Resp: DeserializeOwned>(url: &str, req: Req) -> Re
 
 /// Get the `ClobState`.
 async fn get_state(url: &str) -> eyre::Result<ClobState> {
-    let response: ClobStateResponse = reqwest::Client::new()
-        .get(url)
-        .header("Content-Type", "application/json")
-        .send()
-        .await?
-        .json()
-        .await?;
+    let response: ClobStateResponse = reqwest::Client::new().get(url).send().await?.json().await?;
 
     let borsh = alloy::hex::decode(&response.borsh_hex_clob_state)?;
 
