@@ -11,8 +11,11 @@ use clob_node::{
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
 
+use alloy::node_bindings::{Anvil, AnvilInstance};
 use mock_consumer::anvil_with_mock_consumer;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
+use std::path::PathBuf;
+use test_utils::job_manager_deploy;
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
@@ -22,13 +25,33 @@ const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_PROM_PORT: u16 = 50069;
 const CLOB_PORT: u16 = 40420;
 
+const ANVIL_STATE_LOCAL: &str = "./tmp-data-dir/anvil-state.json";
+const COPROC_DB_DIR_LOCAL: &str = "./tmp-data-dir/coproc-node";
+const CLOB_DB_DIR_LOCAL: &str = "./tmp-data-dir/clob-node";
+
 #[tokio::main]
 async fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber).unwrap();
+    let persist_db = std::env::var("PERSIST_DB").is_ok();
 
     info!("Starting anvil on port: {ANVIL_PORT}");
-    let job_manager_deploy = anvil_with_job_manager(ANVIL_PORT).await;
+    let mut anvil_builder = Anvil::new()
+        .block_time_f64(0.01)
+        .port(ANVIL_PORT)
+        // 1000 dev accounts generated and configured
+        .arg("-a")
+        .arg("1000");
+
+    let anvil_builder = if persist_db {
+        anvil_builder.arg("--state").arg(ANVIL_STATE_LOCAL)
+    } else {
+        anvil_builder
+    };
+    let anvil = anvil_builder.try_spawn().unwrap();
+    let job_manager_deploy = job_manager_deploy(anvil.endpoint()).await;
+    let job_manager_deploy = job_manager_deploy.into_anvil_job_manager(anvil);
+
     sleep_until_bound(ANVIL_PORT).await;
 
     let job_manager = job_manager_deploy.job_manager.to_string();
@@ -40,8 +63,11 @@ async fn main() {
     let coproc_prometheus = format!("{LOCALHOST}:{COPROCESSOR_PROM_PORT}");
     let coproc_relayer_private = hex::encode(job_manager_deploy.relayer.to_bytes());
     let coproc_operator_private = hex::encode(job_manager_deploy.coprocessor_operator.to_bytes());
-    let coproc_db_dir =
-        tempfile::Builder::new().prefix("coprocessor-node-local-db").tempdir().unwrap();
+    let coproc_db_dir = if persist_db {
+        PathBuf::from(COPROC_DB_DIR_LOCAL)
+    } else {
+        tempfile::Builder::new().prefix("coprocessor-node-local-db").tempdir().unwrap().into_path()
+    };
     std::fs::create_dir_all("./logs").unwrap();
     let coproc_log_file = "./logs/coprocessor_node.log".to_string();
     info!(?coproc_log_file, "Writing coprocessor logs to: ");
@@ -71,7 +97,7 @@ async fn main() {
         .arg("--chain-id")
         .arg(chain_id)
         .arg("--db-dir")
-        .arg(coproc_db_dir.path())
+        .arg(coproc_db_dir)
         .stdout(coproc_logs)
         .stderr(coproc_logs2)
         .spawn()
@@ -84,8 +110,12 @@ async fn main() {
     let mock_consumer_addr = mock_consumer.mock_consumer.to_string();
     tracing::info!(?mock_consumer_addr, "MockConsumer deployed at");
 
+    let clob_db_dir = if persist_db {
+        PathBuf::from(CLOB_DB_DIR_LOCAL)
+    } else {
+        tempfile::Builder::new().prefix("clob-node-local-db").tempdir().unwrap().into_path()
+    };
     let clob_deploy = anvil_with_clob_consumer(&job_manager_deploy).await;
-    let clob_db_dir = tempfile::Builder::new().prefix("clob-node-local-db").tempdir().unwrap();
     let clob_http = format!("{LOCALHOST}:{CLOB_PORT}");
     let batcher_duration_ms = 1000;
     let clob_log_file = "./logs/clob_node.log".to_string();
@@ -132,7 +162,7 @@ async fn main() {
         .arg("-p")
         .arg("clob-node")
         .env(CLOB_LISTEN_ADDR, clob_http)
-        .env(CLOB_DB_DIR, clob_db_dir.path())
+        .env(CLOB_DB_DIR, clob_db_dir)
         .env(CLOB_CN_GRPC_ADDR, client_coproc_grpc)
         .env(CLOB_ETH_WS_ADDR, ws_rpc_url)
         .env(CLOB_CONSUMER_ADDR, clob_consumer_addr)

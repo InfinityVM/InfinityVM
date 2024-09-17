@@ -108,12 +108,7 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
 
     let job_manager_deploy = job_manager_deploy(anvil.endpoint()).await;
 
-    AnvilJobManager {
-        anvil,
-        job_manager: job_manager_deploy.job_manager,
-        relayer: job_manager_deploy.relayer,
-        coprocessor_operator: job_manager_deploy.coprocessor_operator,
-    }
+    job_manager_deploy.into_anvil_job_manager(anvil)
 }
 
 /// Get the first `count` of the signers based on the reth dev seed.
@@ -143,6 +138,18 @@ pub struct JobManagerDeploy {
     pub relayer: PrivateKeySigner,
     /// Coprocessor operator private key
     pub coprocessor_operator: PrivateKeySigner,
+}
+
+impl JobManagerDeploy {
+    /// Convenience method to convert into `AnvilJobManager`
+    pub fn into_anvil_job_manager(self, anvil: AnvilInstance) -> AnvilJobManager {
+        AnvilJobManager {
+            anvil,
+            job_manager: self.job_manager,
+            relayer: self.relayer,
+            coprocessor_operator: self.coprocessor_operator,
+        }
+    }
 }
 
 /// Deploy `JobManager` contract.
