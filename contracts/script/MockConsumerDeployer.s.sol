@@ -3,18 +3,15 @@ pragma solidity ^0.8.13;
 
 import {Script, console} from "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
-import {ClobConsumer} from "../src/clob/ClobConsumer.sol";
+import {MockConsumer} from "../test/mocks/MockConsumer.sol";
 import {Utils} from "./utils/Utils.sol";
-import {E2EMockERC20} from "../test/mocks/E2EMockERC20.sol";
 
 // To deploy and verify:
-// forge script ClobDeployer.s.sol:ClobDeployer --sig "deployClobContracts(address offchainRequestSigner, uint64 initialMaxNonce, bool writeJson)" $OFFCHAIN_REQUEST_SIGNER $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
-contract ClobDeployer is Script, Utils {
-    ClobConsumer public consumer;
-    E2EMockERC20 baseToken;
-    E2EMockERC20 quoteToken;
+// forge script MockConsumerDeployer.s.sol:MockConsumerDeployer --sig "deployMockConsumerContracts(address jobManager, address offchainSigner, uint64 initialMaxNonce, bool writeJson)" $JOB_MANAGER $OFFCHAIN_SIGNER $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
+contract MockConsumerDeployer is Script, Utils {
+    MockConsumer public consumer;
 
-    function deployClobContracts(address offchainRequestSigner, uint64 initialMaxNonce, bool writeJson) public {
+    function deployMockConsumerContracts(address offchainSigner, uint64 initialMaxNonce, bool writeJson) public {
         string memory coprocessorDeployedContracts = readOutput(
             "coprocessor_deployment_output"
         );
@@ -26,11 +23,7 @@ contract ClobDeployer is Script, Utils {
 
         vm.startBroadcast();
 
-        baseToken = new E2EMockERC20("Token A", "WETH");
-        quoteToken = new E2EMockERC20("Token B", "USDC");
-
-        bytes32 initialLatestStateHash = 0x0;
-        consumer = new ClobConsumer(jobManager, offchainRequestSigner, initialMaxNonce, baseToken, quoteToken, initialLatestStateHash);
+        consumer = new MockConsumer(jobManager, offchainSigner, initialMaxNonce);
 
         if (writeJson) {
             // WRITE JSON DATA
@@ -51,7 +44,7 @@ contract ClobDeployer is Script, Utils {
                 deployed_addresses_output
             );
 
-            writeOutput(finalJson, "clob_deployment_output");
+            writeOutput(finalJson, "mock_consumer_deployment_output");
         }
 
         vm.stopBroadcast();

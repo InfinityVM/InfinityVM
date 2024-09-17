@@ -1,5 +1,6 @@
 {
   "addresses": {
+    "consumer": "0xDB8cFf278adCCF9E9b5da745B44E754fC4EE3C76",
     "coprocessorProxyAdmin": "0x90193C961A926261B756D1E5bb255e67ff9498A1",
     "jobManager": "0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3",
     "jobManagerImplementation": "0xA8452Ec99ce0C64f20701dB7dD3abDb607c00496"
