@@ -34,7 +34,7 @@ pub async fn start_deposit_event_listener(
             match p {
                 Ok(p) => break p,
                 Err(_) => {
-                    sleep(Duration::from_millis(provider_retry * 1)).await;
+                    sleep(Duration::from_millis(provider_retry)).await;
                     provider_retry += 1;
                     continue;
                 }

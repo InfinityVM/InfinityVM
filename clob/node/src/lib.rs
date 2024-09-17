@@ -46,8 +46,6 @@ pub async fn run(
     clob_consumer_addr: [u8; 20],
     job_sync_start: BlockNumberOrTag,
 ) -> eyre::Result<()> {
-   
-
     let db = crate::db::init_db(db_dir).expect("todo");
     let db = Arc::new(db);
 
