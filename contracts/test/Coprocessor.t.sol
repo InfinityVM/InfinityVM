@@ -6,8 +6,9 @@ import {JobManager} from "../src/coprocessor/JobManager.sol";
 import {Consumer} from "../src/coprocessor/Consumer.sol";
 import {MockConsumer} from "./mocks/MockConsumer.sol";
 import {CoprocessorDeployer} from "../script/CoprocessorDeployer.s.sol";
+import {MockConsumerDeployer} from "../script/MockConsumerDeployer.s.sol";
 
-contract CoprocessorTest is Test, CoprocessorDeployer {
+contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
     uint64 DEFAULT_MAX_CYCLES = 1_000_000;
     address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0x184c47137933253f49325B851307Ab1017863BD0;
@@ -21,7 +22,8 @@ contract CoprocessorTest is Test, CoprocessorDeployer {
 
     function setUp() public {
         uint64 initialMaxNonce = 0;
-        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_SIGNER, initialMaxNonce, false);
+        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, true);
+        deployMockConsumerContracts(OFFCHAIN_SIGNER, initialMaxNonce, true);
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }
 

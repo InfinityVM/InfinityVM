@@ -6,9 +6,10 @@ import {JobManager} from "../src/coprocessor/JobManager.sol";
 import {Consumer} from "../src/coprocessor/Consumer.sol";
 import {StatefulConsumer} from "../src/coprocessor/StatefulConsumer.sol";
 import {ClobConsumer} from "../src/clob/ClobConsumer.sol";
+import {CoprocessorDeployer} from "../script/CoprocessorDeployer.s.sol";
 import {ClobDeployer} from "../script/ClobDeployer.s.sol";
 
-contract ClobConsumerTest is Test, ClobDeployer {
+contract ClobConsumerTest is Test, CoprocessorDeployer, ClobDeployer {
     uint64 DEFAULT_MAX_CYCLES = 1_000_000;
     address RELAYER = address(1);
     address COPROCESSOR_OPERATOR = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
@@ -22,7 +23,8 @@ contract ClobConsumerTest is Test, ClobDeployer {
 
     function setUp() public {
         uint64 initialMaxNonce = 0;
-        deployClobContracts(RELAYER, COPROCESSOR_OPERATOR, OFFCHAIN_REQUEST_SIGNER, initialMaxNonce);
+        deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, true);
+        deployClobContracts(OFFCHAIN_REQUEST_SIGNER, initialMaxNonce, true);
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
 
         baseToken.mint(alice, 1000);
