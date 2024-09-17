@@ -2,7 +2,6 @@
 
 use crate::Client;
 use alloy::{
-    consensus::TxReceipt,
     network::EthereumWallet,
     primitives::{hex::FromHex, Address, U256},
     providers::ProviderBuilder,
@@ -10,12 +9,29 @@ use alloy::{
 use clap::{Args, Parser, Subcommand};
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
-use clob_node::K256LocalSigner;
+use clob_programs::CLOB_ELF;
 use clob_test_utils::{clob_consumer_deploy, mint_and_approve};
+use proto::coprocessor_node_client::CoprocessorNodeClient;
+use proto::{SubmitProgramRequest, VmType};
 use serde::{Deserialize, Serialize};
-use test_utils::{get_signers, job_manager_deploy};
+use test_utils::get_account;
+use test_utils::job_manager_deploy;
 
-const DEFAULT_DEPLOY_INFO: &str = "./logs/deploy_info.json";
+/// Path to write deploy info to
+pub const DEFAULT_DEPLOY_INFO: &str = "./logs/deploy_info.json";
+
+/// Contract deployment info for the clob.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DeployInfo {
+    /// Job Manager contract address.
+    pub job_manager: Address,
+    /// Quote ERC20 contract address.
+    pub quote_erc20: Address,
+    /// Base ERC20 contract address.
+    pub base_erc20: Address,
+    /// CLOB Consumer contract address.
+    pub clob_consumer: Address,
+}
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -99,8 +115,10 @@ impl Cli {
                         Err(_) => continue,
                     };
                     let event = l.data();
-                    // deposit.
-                    println!("deposit.user={:?}", event.user);
+                    println!(
+                        "deposit.user={:?}, deposit.base={}, deposit.quote={}",
+                        event.user, event.baseAmount, event.quoteAmount
+                    );
                 }
 
                 println!("receipt.status={:?}", receipt.status());
@@ -111,6 +129,13 @@ impl Cli {
                     clob_consumer_deploy(a.eth_rpc.clone(), &job_manager_deploy.job_manager).await;
                 let accounts = 100;
                 mint_and_approve(&clob_deploy, a.eth_rpc.clone(), accounts).await;
+                let mut coproc_client =
+                    CoprocessorNodeClient::connect(a.coproc_grpc).await.unwrap();
+                let submit_program_request = SubmitProgramRequest {
+                    program_elf: CLOB_ELF.to_vec(),
+                    vm_type: VmType::Risc0.into(),
+                };
+                coproc_client.submit_program(submit_program_request).await.unwrap();
 
                 println!("Minted {} accounts", accounts);
 
@@ -132,19 +157,6 @@ impl Cli {
 
         Ok(())
     }
-}
-
-fn get_account(num: usize) -> K256LocalSigner {
-    let all_wallets = get_signers(num + 1);
-    all_wallets[num].clone()
-}
-
-#[derive(Serialize, Deserialize)]
-struct DeployInfo {
-    job_manager: Address,
-    quote_erc20: Address,
-    base_erc20: Address,
-    clob_consumer: Address,
 }
 
 #[derive(Subcommand, Debug)]
@@ -220,6 +232,8 @@ struct DeployArgs {
     /// EVM node RPC address.
     #[arg(long, short, default_value = "http://127.0.0.1:60420")]
     eth_rpc: String,
+    #[arg(long, short, default_value = "http://127.0.0.1:50420")]
+    coproc_grpc: String,
 }
 
 async fn query_balances(account: Address, eth_rpc: String, clob_consumer: Address) {
@@ -228,12 +242,10 @@ async fn query_balances(account: Address, eth_rpc: String, clob_consumer: Addres
 
     let clob_consumer = ClobConsumer::new(clob_consumer, &provider);
 
-    let deposited_base =
-        clob_consumer.depositedBalanceBase(account).call().await.unwrap()._0;
+    let deposited_base = clob_consumer.depositedBalanceBase(account).call().await.unwrap()._0;
     println!("deposited_base={}", deposited_base);
 
-    let deposited_quote =
-        clob_consumer.depositedBalanceQuote(account).call().await.unwrap()._0;
+    let deposited_quote = clob_consumer.depositedBalanceQuote(account).call().await.unwrap()._0;
     println!("deposited_quote={}", deposited_quote);
 
     let free_base = clob_consumer.freeBalanceBase(account).call().await.unwrap()._0;

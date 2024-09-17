@@ -1842,13 +1842,16 @@ dependencies = [
  "clob-contracts",
  "clob-core",
  "clob-node",
+ "clob-programs",
  "clob-test-utils",
  "eyre",
+ "proto",
  "reqwest 0.12.7",
  "serde",
  "serde_json",
  "test-utils",
  "tokio",
+ "tonic",
 ]
 
 [[package]]
@@ -5716,13 +5719,16 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
+ "clob-client",
  "clob-node",
+ "clob-programs",
  "clob-test-utils",
  "db",
  "dotenv",
  "k256",
  "mock-consumer",
  "proto",
+ "serde_json",
  "tempfile",
  "test-utils",
  "tokio",

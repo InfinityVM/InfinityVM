@@ -126,6 +126,12 @@ pub fn get_signers(count: usize) -> Vec<K256LocalSigner> {
         .collect()
 }
 
+/// Get the `num` generated dev account.
+pub fn get_account(num: usize) -> K256LocalSigner {
+    let all_wallets = get_signers(num + 1);
+    all_wallets[num].clone()
+}
+
 /// Job Manager deployment info
 #[derive(Debug)]
 pub struct JobManagerDeploy {

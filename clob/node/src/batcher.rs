@@ -15,7 +15,7 @@ use risc0_zkvm::sha::Digest;
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
-use tracing::{info, instrument};
+use tracing::{debug, instrument};
 
 use crate::K256LocalSigner;
 
@@ -41,7 +41,7 @@ where
 
             break;
         } else {
-            info!("waiting for the first request to be processed before starting batcher");
+            debug!("waiting for the first request to be processed before starting batcher");
             sleep(Duration::from_millis(1_0000)).await;
             continue;
         }
@@ -81,7 +81,7 @@ where
             .ok_or_eyre("end_index")?;
 
         if start_index > end_index {
-            tracing::info!(start_index, end_index, "skipping batch creation");
+            tracing::debug!(start_index, end_index, "skipping batch creation");
             continue;
         }
 
