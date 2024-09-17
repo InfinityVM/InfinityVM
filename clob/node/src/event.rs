@@ -24,15 +24,20 @@ pub async fn start_deposit_event_listener(
     from_block: BlockNumberOrTag,
 ) -> eyre::Result<()> {
     let mut last_seen_block = from_block;
-    let mut retry = 1;
+    let mut event_stream_retry = 1;
+    let mut provider_retry = 1;
 
     loop {
         let provider = loop {
             let ws = WsConnect::new(ws_rpc_url.clone());
-            let p = ProviderBuilder::new().on_ws(ws.clone()).await;
+            let p = ProviderBuilder::new().on_ws(ws).await;
             match p {
                 Ok(p) => break p,
-                Err(_) => continue,
+                Err(_) => {
+                    sleep(Duration::from_millis(provider_retry * 1)).await;
+                    provider_retry += 1;
+                    continue;
+                }
             }
         };
 
@@ -79,9 +84,9 @@ pub async fn start_deposit_event_listener(
                 }
             }
 
-            sleep(Duration::from_millis(retry * 10)).await;
-            warn!(?retry, ?last_seen_block, "websocket reconnecting");
-            retry += 1;
+            sleep(Duration::from_millis(event_stream_retry * 10)).await;
+            warn!(?event_stream_retry, ?last_seen_block, "websocket reconnecting");
+            event_stream_retry += 1;
         }
     }
 }

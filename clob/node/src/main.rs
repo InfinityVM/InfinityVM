@@ -17,6 +17,8 @@ use clob_node::{
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
+    tracing_subscriber::fmt().event_format(tracing_subscriber::fmt::format()).init();
+
     let listen_addr = env::var(CLOB_LISTEN_ADDR).unwrap_or_else(|_| "127.0.0.1:3001".to_string());
     let db_dir = env::var(CLOB_DB_DIR).unwrap_or_else(|_| DB_DIR.to_string());
     let cn_grpc_addr =
