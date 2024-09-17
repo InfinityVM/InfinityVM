@@ -90,6 +90,7 @@ pub struct JobProcessorService<S, D> {
     zk_executor: ZkvmExecutorService<S>,
     task_handles: JoinSet<Result<(), Error>>,
     metrics: Arc<Metrics>,
+    num_workers: usize,
 }
 
 // The DB functions in JobProcessorService are async so they yield in the tokio task.
@@ -106,6 +107,7 @@ where
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
+        num_workers: usize,
     ) -> Self {
         Self {
             db,
@@ -115,6 +117,7 @@ where
             zk_executor,
             task_handles: JoinSet::new(),
             metrics,
+            num_workers,
         }
     }
 
@@ -217,8 +220,8 @@ where
 
     /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker
     /// threads
-    pub async fn start(&mut self, num_workers: usize) {
-        for _ in 0..num_workers {
+    pub async fn start(&mut self) {
+        for _ in 0..self.num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();

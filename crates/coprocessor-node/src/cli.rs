@@ -276,8 +276,9 @@ impl Cli {
             job_relayer,
             executor,
             metrics,
+            opts.worker_count
         );
-        job_processor.start(opts.worker_count).await;
+        job_processor.start().await;
         let job_processor = Arc::new(job_processor);
 
         let job_event_listener = start_job_event_listener(
