@@ -1,26 +1,22 @@
 //! Deposit event listener.
 
-use crate::db::tables::BlockHeightTable;
-use crate::db::LAST_SEEN_HEIGHT_KEY;
-use alloy::providers::Provider;
+use crate::db::{tables::BlockHeightTable, LAST_SEEN_HEIGHT_KEY};
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
-    providers::{ProviderBuilder, WsConnect},
+    providers::{Provider, ProviderBuilder, WsConnect},
 };
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{ApiResponse, DepositRequest, Request};
 use eyre::WrapErr;
-use futures_util::StreamExt;
-use reth_db::transaction::DbTx;
-use reth_db::transaction::DbTxMut;
+use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
 use std::sync::Arc;
 use tokio::{
     sync::{mpsc::Sender, oneshot},
     time::{sleep, Duration},
 };
-use tracing::{debug, error, warn};
+use tracing::{debug, warn};
 
 const FIVE_MINUTES_MILLIS: u64 = 300000;
 
@@ -64,9 +60,8 @@ where
     };
 
     let contract = ClobConsumer::new(clob_consumer, &provider);
-    let event_stream_retry = 1;
     loop {
-        let mut latest_block = provider.get_block_number().await?;
+        let latest_block = provider.get_block_number().await?;
 
         while last_seen_block <= latest_block {
             let events = match contract
