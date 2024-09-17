@@ -150,7 +150,6 @@ async fn main() {
         .spawn()
         .unwrap()
         .into();
-
     sleep_until_bound(CLOB_PORT).await;
 
     let mut signal_terminate = signal(SignalKind::terminate()).unwrap();

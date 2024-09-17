@@ -1,15 +1,29 @@
+use abi::abi_encode_offchain_job_request;
 use alloy::{
     network::EthereumWallet,
-    primitives::{keccak256, Address, U256},
-    providers::ProviderBuilder,
+    primitives::{
+        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
+    },
+    providers::{Provider, ProviderBuilder},
+    rpc::types::Filter,
     signers::{local::PrivateKeySigner, Signer},
-    sol_types::SolValue,
+    sol,
+    sol_types::{SolEvent, SolValue},
 };
-use contracts::mock_consumer::MockConsumer;
+use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use db::tables::{get_job_id, Job, RequestType};
-use proto::{JobStatus, JobStatusType};
-use test_utils::{AnvilJobManager, MOCK_CONTRACT_MAX_CYCLES};
-use zkvm_executor::service::abi_encode_result_with_metadata;
+use e2e::{Args, E2E};
+use mock_consumer::MOCK_CONTRACT_MAX_CYCLES;
+use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
+use proto::{
+    GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType,
+};
+use risc0_binfmt::compute_image_id;
+use risc0_zkp::core::digest::Digest;
+use zkvm_executor::service::{
+    abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
+    OffchainResultWithMetadata, ResultWithMetadata,
+};
 
 type MockConsumerOut = sol!((Address, U256));
 
