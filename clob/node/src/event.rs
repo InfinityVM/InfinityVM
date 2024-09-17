@@ -24,17 +24,16 @@ pub async fn start_deposit_event_listener(
     from_block: BlockNumberOrTag,
 ) -> eyre::Result<()> {
     let mut last_seen_block = from_block;
-    let mut event_stream_retry = 1;
-    let mut provider_retry = 1;
 
     loop {
+        let mut provider_retry = 1;
         let provider = loop {
             let ws = WsConnect::new(ws_rpc_url.clone());
             let p = ProviderBuilder::new().on_ws(ws).await;
             match p {
                 Ok(p) => break p,
                 Err(_) => {
-                    sleep(Duration::from_millis(provider_retry)).await;
+                    sleep(Duration::from_millis(provider_retry * 3)).await;
                     provider_retry += 1;
                     continue;
                 }
@@ -42,6 +41,7 @@ pub async fn start_deposit_event_listener(
         };
 
         let contract = ClobConsumer::new(clob_consumer, &provider);
+        let mut event_stream_retry = 1;
         loop {
             // We have this loop so we can recreate a subscription stream in case any issue is
             // encountered
