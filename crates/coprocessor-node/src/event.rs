@@ -13,10 +13,7 @@ use contracts::job_manager::JobManager;
 use db::tables::{Job, RequestType};
 use proto::{JobStatus, JobStatusType};
 use reth_db::Database;
-use tokio::{
-    task::JoinHandle,
-    time::{sleep, Duration},
-};
+use tokio::task::JoinHandle;
 use tracing::error;
 
 use crate::job_processor::JobProcessorService;
@@ -72,7 +69,6 @@ where
                     Ok(events) => events,
                     Err(error) => {
                         error!(?error, "Error fetching events");
-                        sleep(Duration::from_secs(10)).await;
                         continue;
                     }
                 };

@@ -10,8 +10,11 @@ use alloy::{
 use contracts::mock_consumer::MockConsumer;
 use db::tables::{get_job_id, Job, RequestType};
 use proto::{JobStatus, JobStatusType};
-use test_utils::{AnvilJobManager, MOCK_CONTRACT_MAX_CYCLES};
+use test_utils::{get_signers, AnvilJobManager};
 use zkvm_executor::service::abi_encode_result_with_metadata;
+
+/// Max cycles that the `MockContract` calls create job with.
+pub const MOCK_CONSUMER_MAX_CYCLES: u64 = 1_000_000;
 
 /// Output from [`anvil_with_mock_consumer`]
 #[derive(Debug)]
@@ -24,18 +27,18 @@ pub struct AnvilMockConsumer {
 
 /// Deploy `MockConsumer` contracts to anvil instance
 pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> AnvilMockConsumer {
+    let signers = get_signers(6);
     let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manager;
 
-    let consumer_owner: PrivateKeySigner = anvil.keys()[4].clone().into();
-    let offchain_signer: PrivateKeySigner = anvil.keys()[5].clone().into();
+    let consumer_owner: PrivateKeySigner = signers[4].clone();
+    let offchain_signer: PrivateKeySigner = signers[5].clone();
 
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
-    let rpc_url = anvil.endpoint();
     let consumer_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(consumer_owner_wallet)
-        .on_http(rpc_url.parse().unwrap());
+        .on_http(anvil.endpoint().parse().unwrap());
 
     let initial_max_nonce = 0;
     let mock_consumer = MockConsumer::deploy(
@@ -78,7 +81,7 @@ pub async fn mock_consumer_pending_job(
     let result_with_meta = abi_encode_result_with_metadata(
         job_id,
         keccak256(addr.abi_encode()),
-        MOCK_CONTRACT_MAX_CYCLES,
+        MOCK_CONSUMER_MAX_CYCLES,
         &bytes,
         &raw_output,
     );
@@ -88,7 +91,7 @@ pub async fn mock_consumer_pending_job(
     Job {
         id: job_id,
         nonce: 1,
-        max_cycles: MOCK_CONTRACT_MAX_CYCLES,
+        max_cycles: MOCK_CONSUMER_MAX_CYCLES,
         program_id: bytes,
         onchain_input: addr.abi_encode(),
         offchain_input: vec![],

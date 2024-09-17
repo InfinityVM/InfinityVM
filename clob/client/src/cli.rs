@@ -1,17 +1,40 @@
 //! CLI for making HTTP request to clob node.
 
 use crate::Client;
-use alloy::primitives::{hex::FromHex, Address};
+use alloy::{
+    network::EthereumWallet,
+    primitives::{Address, U256},
+    providers::ProviderBuilder,
+};
 use clap::{Args, Parser, Subcommand};
+use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
+use serde::{Deserialize, Serialize};
+use test_utils::get_account;
+
+/// Path to write deploy info to
+pub const DEFAULT_DEPLOY_INFO: &str = "./logs/clob_deploy_info.json";
+
+/// Contract deployment info for the clob.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ClobDeployInfo {
+    /// Job Manager contract address.
+    pub job_manager: Address,
+    /// Quote ERC20 contract address.
+    pub quote_erc20: Address,
+    /// Base ERC20 contract address.
+    pub base_erc20: Address,
+    /// CLOB Consumer contract address.
+    pub clob_consumer: Address,
+}
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 pub struct Cli {
-    /// HTTP endpoint.
-    #[arg(short, long)]
-    http_endpoint: String,
+    /// CLOB HTTP endpoint.
+    #[arg(long, short = 'H', default_value = "http://127.0.0.1:40420")]
+    clob_endpoint: String,
     #[clap(subcommand)]
     commands: Commands,
 }
@@ -21,7 +44,7 @@ impl Cli {
     pub async fn run() -> eyre::Result<()> {
         let args = Self::parse();
 
-        let client = Client::new(args.http_endpoint);
+        let client = Client::new(args.clob_endpoint.to_owned());
 
         match args.commands {
             Commands::Cancel(a) => {
@@ -33,7 +56,10 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Order(a) => {
-                let address = Address::from_hex(a.address).unwrap();
+                let local_signer = get_account(a.anvil_account as usize);
+                let address = local_signer.address();
+                println!("account={}", address);
+
                 let order = AddOrderRequest {
                     address: address.into(),
                     is_buy: a.is_buy,
@@ -44,7 +70,9 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Withdraw(a) => {
-                let address = Address::from_hex(a.address).unwrap();
+                let address = get_account(a.anvil_account as usize).address();
+                println!("account={}", address);
+
                 let withdraw = WithdrawRequest {
                     address: address.into(),
                     base_free: a.base_free,
@@ -52,6 +80,48 @@ impl Cli {
                 };
                 let result = client.withdraw(withdraw).await?;
                 println!("{result:?}");
+            }
+            Commands::Deposit(a) => {
+                let deploy_info: ClobDeployInfo = {
+                    let filename = DEFAULT_DEPLOY_INFO.to_string();
+                    let raw_json = std::fs::read(filename).unwrap();
+                    serde_json::from_slice(&raw_json).unwrap()
+                };
+
+                let local_signer = get_account(a.anvil_account as usize);
+                println!("account={}", local_signer.address());
+
+                let eth_wallet = EthereumWallet::from(local_signer.clone());
+                let provider = ProviderBuilder::new()
+                    .with_recommended_fillers()
+                    .wallet(eth_wallet)
+                    .on_http(a.eth_rpc.parse().unwrap());
+
+                let clob_consumer = ClobConsumer::new(deploy_info.clob_consumer, &provider);
+                let base_amount = U256::try_from(a.base).unwrap();
+                let quote_amount = U256::try_from(a.quote).unwrap();
+
+                let call = clob_consumer.deposit(base_amount, quote_amount);
+                let receipt = call.send().await.unwrap().get_receipt().await.unwrap();
+
+                print_balances(local_signer.address(), a.eth_rpc, deploy_info.clob_consumer).await;
+
+                for log in receipt.inner.logs() {
+                    let l = match log.log_decode::<ClobConsumer::Deposit>() {
+                        Ok(e) => e,
+                        Err(_) => continue,
+                    };
+                    let event = l.data();
+                    println!(
+                        "deposit.user={:?}, deposit.base={}, deposit.quote={}",
+                        event.user, event.baseAmount, event.quoteAmount
+                    );
+                }
+
+                println!("receipt.status={:?}", receipt.status());
+            }
+            Commands::Deploy(_a) => {
+                unimplemented!()
             }
         };
 
@@ -67,8 +137,12 @@ enum Commands {
     ClobState,
     /// Place an order request.
     Order(OrderArgs),
-    // / Withdraw funds.
+    /// Withdraw funds.
     Withdraw(WithdrawArgs),
+    /// Deposit funds into the CLOB contract.
+    Deposit(DepositArgs),
+    /// Deploy job manager and clob consumer contracts. Also mint erc20 tokens to users
+    Deploy(DeployArgs),
 }
 
 #[derive(Args, Debug)]
@@ -80,9 +154,9 @@ struct CancelArgs {
 
 #[derive(Args, Debug)]
 struct OrderArgs {
-    /// Address of the user placing the order.
-    #[arg(short, long)]
-    address: String,
+    /// Anvil account number to use for the key
+    #[arg(short = 'A', long)]
+    anvil_account: u32,
     /// If this is a buy or sell order.
     #[arg(short, long)]
     is_buy: bool,
@@ -97,12 +171,62 @@ struct OrderArgs {
 #[derive(Args, Debug)]
 struct WithdrawArgs {
     /// Address of the user to withdraw from.
-    #[arg(short, long)]
-    address: String,
+    #[arg(short = 'A', long)]
+    anvil_account: u32,
     /// Size of the base balance to withdraw.
-    #[arg(short, long)]
+    #[arg(short = 'B', long)]
     base_free: u64,
     /// Size of the quote asset to withdraw.
-    #[arg(short, long)]
+    #[arg(short = 'Q', long)]
     quote_free: u64,
+}
+
+#[derive(Args, Debug)]
+struct DepositArgs {
+    /// Anvil account number to use for the key
+    #[arg(short = 'A', long)]
+    anvil_account: u32,
+    /// Quote asset balance.
+    #[arg(short = 'Q', long)]
+    quote: u64,
+    /// Base asset balance.
+    #[arg(short = 'B', long)]
+    base: u64,
+    /// EVM node RPC address.
+    #[arg(long, short, default_value = "http://127.0.0.1:60420")]
+    eth_rpc: String,
+}
+
+#[derive(Args, Debug)]
+struct DeployArgs {
+    /// EVM node RPC address.
+    #[arg(long, short, default_value = "http://127.0.0.1:60420")]
+    eth_rpc: String,
+    #[arg(long, short, default_value = "http://127.0.0.1:50420")]
+    coproc_grpc: String,
+}
+
+async fn print_balances(account: Address, eth_rpc: String, clob_consumer: Address) {
+    let provider =
+        ProviderBuilder::new().with_recommended_fillers().on_http(eth_rpc.parse().unwrap());
+
+    let clob_consumer = ClobConsumer::new(clob_consumer, &provider);
+
+    let deposited_base = clob_consumer.depositedBalanceBase(account).call().await.unwrap()._0;
+    println!("deposited_base={}", deposited_base);
+
+    let deposited_quote = clob_consumer.depositedBalanceQuote(account).call().await.unwrap()._0;
+    println!("deposited_quote={}", deposited_quote);
+
+    let free_base = clob_consumer.freeBalanceBase(account).call().await.unwrap()._0;
+    println!("free_base={}", free_base);
+
+    let locked_base = clob_consumer.lockedBalanceBase(account).call().await.unwrap()._0;
+    println!("locked_base={}", locked_base);
+
+    let free_quote = clob_consumer.freeBalanceQuote(account).call().await.unwrap()._0;
+    println!("free_quote={}", free_quote);
+
+    let locked_quote = clob_consumer.lockedBalanceQuote(account).call().await.unwrap()._0;
+    println!("locked_quote={}", locked_quote);
 }

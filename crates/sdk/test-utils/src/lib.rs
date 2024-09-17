@@ -2,12 +2,16 @@
 
 use std::net::TcpListener;
 
+use crate::wallet::Wallet;
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
     primitives::Address,
     providers::{ext::AnvilApi, ProviderBuilder},
-    signers::local::PrivateKeySigner,
+    signers::{
+        k256::ecdsa::SigningKey,
+        local::{LocalSigner, PrivateKeySigner},
+    },
 };
 use contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
@@ -16,8 +20,9 @@ use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::EnvFilter;
 
-/// Max cycles that the `MockContract` calls create job with.
-pub const MOCK_CONTRACT_MAX_CYCLES: u64 = 1_000_000;
+pub mod wallet;
+
+type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// Localhost IP address
 pub const LOCALHOST: &str = "127.0.0.1";
@@ -93,22 +98,70 @@ pub struct AnvilJobManager {
 pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
     // Ensure the anvil instance will not collide with anything already running on the OS
     // Set block time to 0.01 seconds - I WANNA GO FAST MOM
-    let anvil = Anvil::new().block_time_f64(0.01).port(port).try_spawn().unwrap();
+    let anvil = Anvil::new()
+        .block_time_f64(0.01)
+        .port(port)
+        // 1000 dev accounts generated and configured
+        .args(["-a", "1000"])
+        .try_spawn()
+        .unwrap();
 
-    let initial_owner: PrivateKeySigner = anvil.keys()[0].clone().into();
-    let relayer: PrivateKeySigner = anvil.keys()[1].clone().into();
-    let coprocessor_operator: PrivateKeySigner = anvil.keys()[2].clone().into();
-    let proxy_admin: PrivateKeySigner = anvil.keys()[3].clone().into();
+    let job_manager_deploy = job_manager_deploy(anvil.endpoint()).await;
+
+    AnvilJobManager {
+        anvil,
+        job_manager: job_manager_deploy.job_manager,
+        relayer: job_manager_deploy.relayer,
+        coprocessor_operator: job_manager_deploy.coprocessor_operator,
+    }
+}
+
+/// Get the first `count` of the signers based on the reth dev seed.
+pub fn get_signers(count: usize) -> Vec<K256LocalSigner> {
+    Wallet::new(count)
+        .gen()
+        .into_iter()
+        .map(|w| w.to_bytes().0)
+        .map(|b| K256LocalSigner::from_slice(&b).unwrap())
+        .collect()
+}
+
+/// Get the `num` generated dev account.
+pub fn get_account(num: usize) -> K256LocalSigner {
+    let all_wallets = get_signers(num + 1);
+    all_wallets[num].clone()
+}
+
+/// Job Manager deployment info
+#[derive(Debug)]
+pub struct JobManagerDeploy {
+    /// Anvil instance
+    pub rpc_url: String,
+    /// Address of the job manager contract
+    pub job_manager: Address,
+    /// Relayer private key
+    pub relayer: PrivateKeySigner,
+    /// Coprocessor operator private key
+    pub coprocessor_operator: PrivateKeySigner,
+}
+
+/// Deploy `JobManager` contract.
+pub async fn job_manager_deploy(rpc_url: String) -> JobManagerDeploy {
+    let signers = get_signers(5);
+
+    let initial_owner = signers[0].clone();
+    let relayer = signers[1].clone();
+    let coprocessor_operator = signers[2].clone();
+    let proxy_admin = signers[3].clone();
 
     let initial_owner_wallet = EthereumWallet::from(initial_owner.clone());
 
-    let rpc_url = anvil.endpoint();
     let provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(initial_owner_wallet.clone())
         .on_http(rpc_url.parse().unwrap());
 
-    provider.anvil_set_auto_mine(true).await.unwrap();
+    let _ = provider.anvil_set_auto_mine(true).await;
 
     // Deploy the JobManager implementation contract
     let job_manager_implementation = JobManager::deploy(&provider).await.unwrap();
@@ -133,5 +186,5 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
 
     let job_manager = *proxy.address();
 
-    AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator }
+    JobManagerDeploy { rpc_url, job_manager, relayer, coprocessor_operator }
 }

@@ -14,7 +14,10 @@ tokio = { workspace = true }
 eyre = { workspace = true }
 reqwest = { workspace = true }
 serde = { workspace = true }
+serde_json = { workspace = true }
 
 # local deps
 clob-core = { workspace = true }
 clob-node = { workspace = true }
+test-utils = { workspace = true }
+clob-contracts = { workspace = true }

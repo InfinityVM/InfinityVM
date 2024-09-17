@@ -15,7 +15,7 @@ use risc0_zkvm::sha::Digest;
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
-use tracing::{info, instrument};
+use tracing::{debug, info, instrument, warn};
 
 use crate::K256LocalSigner;
 
@@ -41,7 +41,7 @@ where
 
             break;
         } else {
-            info!("waiting for the first request to be processed before starting batcher");
+            debug!("waiting for the first request to be processed before starting batcher");
             sleep(Duration::from_millis(1_0000)).await;
             continue;
         }
@@ -81,11 +81,11 @@ where
             .ok_or_eyre("end_index")?;
 
         if start_index > end_index {
-            tracing::info!(start_index, end_index, "skipping batch creation");
+            debug!(start_index, end_index, "skipping batch creation");
             continue;
         }
 
-        tracing::info!("creating batch {start_index}..={end_index}");
+        info!("creating batch {start_index}..={end_index}");
 
         let prev_state_index = start_index - 1;
         let start_state =
@@ -147,7 +147,7 @@ async fn submit_job_with_backoff(
     for _ in 0..RETRIES {
         match client.submit_job(request.clone()).await {
             Ok(_) => return Ok(()),
-            Err(error) => tracing::warn!(backoff, ?error, "failed to submit batch to coprocessor"),
+            Err(error) => warn!(backoff, ?error, "failed to submit batch to coprocessor"),
         }
 
         sleep(Duration::from_secs(backoff)).await;

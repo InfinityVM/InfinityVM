@@ -13,13 +13,13 @@ use alloy::{
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use db::tables::{get_job_id, Job, RequestType};
 use e2e::{Args, E2E};
+use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
-use test_utils::MOCK_CONTRACT_MAX_CYCLES;
 use zkvm_executor::service::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
     OffchainResultWithMetadata, ResultWithMetadata,
@@ -76,7 +76,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let mut job = Job {
             id: job_id,
             nonce,
-            max_cycles: MOCK_CONTRACT_MAX_CYCLES,
+            max_cycles: MOCK_CONSUMER_MAX_CYCLES,
             consumer_address: mock.mock_consumer.abi_encode_packed(),
             program_id: program_id.clone(),
             onchain_input: mock_user_address.abi_encode(),
