@@ -341,11 +341,12 @@ where
         db: &Arc<D>,
         metrics: &Arc<Metrics>,
     ) -> Result<Job, FailureReason> {
+        let id = job.id;
         let result = match job.request_type {
             RequestType::Onchain => {
                 zk_executor
                     .execute_onchain_job(
-                        job.id,
+                        id,
                         job.max_cycles,
                         job.program_id.clone(),
                         job.onchain_input.clone(),
@@ -357,7 +358,7 @@ where
             RequestType::Offchain(_) => {
                 zk_executor
                     .execute_offchain_job(
-                        job.id,
+                        id,
                         job.max_cycles,
                         job.program_id.clone(),
                         job.onchain_input.clone(),
@@ -372,7 +373,7 @@ where
 
         match result {
             Ok((result_with_metadata, zkvm_operator_signature)) => {
-                tracing::debug!("job {:?} executed successfully", job.id);
+                tracing::debug!("job {:?} executed successfully", id);
                 job.status = JobStatus {
                     status: JobStatusType::Done as i32,
                     failure_reason: None,
@@ -381,7 +382,7 @@ where
                 job.result_with_metadata = result_with_metadata;
                 job.zkvm_operator_signature = zkvm_operator_signature;
                 if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                    error!("report this error: failed to save job {:?}: {:?}", job.id, e);
+                    error!("report this error: failed to save job {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                     // We return an error here so we continue to the next
                     // job in the start_worker loop
@@ -390,7 +391,7 @@ where
                 Ok(job)
             }
             Err(e) => {
-                error!("failed to execute job {:?}: {:?}", job.id, e);
+                error!("failed to execute job {:?}: {:?}", id, e);
                 metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
                 job.status = JobStatus {
@@ -399,8 +400,8 @@ where
                     retries: 0,
                 };
 
-                if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
-                    error!("report this error: failed to save job {:?}: {:?}", job.id, e);
+                if let Err(e) = Self::save_job(db.clone(), job).await {
+                    error!("report this error: failed to save job {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
                 }
                 Err(FailureReason::ExecErr)
@@ -462,6 +463,7 @@ where
 
             // Retry each once
             for mut job in retry_jobs {
+                let id = job.id;
                 let result = match job.request_type {
                     RequestType::Onchain => {
                         job_relayer.relay_result_for_onchain_job(job.clone()).await
@@ -477,26 +479,26 @@ where
 
                 match result {
                     Ok(_) => {
-                        info!("successfully retried job relay for job: {:?}", job.id);
-                        jobs_to_delete.push(job.id);
+                        info!("successfully retried job relay for job: {:?}", id);
+                        jobs_to_delete.push(id);
                     }
                     Err(e) => {
                         if job.status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
-                            jobs_to_delete.push(job.id);
+                            jobs_to_delete.push(id);
                         } else {
                             error!(
                                 "report this error: failed to retry relaying job {:?}: {:?}",
-                                job.id, e
+                                id, e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.retries += 1;
                             if let Err(e) =
-                                Self::save_relay_error_job(db.clone(), job.clone()).await
+                                Self::save_relay_error_job(db.clone(), job).await
                             {
                                 error!(
                                     "report this error: failed to save retried job {:?}: {:?}",
-                                    job.id, e
+                                    id, e
                                 );
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }
