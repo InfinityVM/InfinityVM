@@ -13,7 +13,9 @@ use tokio::{
     sync::{mpsc::Sender, oneshot},
     time::{sleep, Duration},
 };
-use tracing::{error, info, warn};
+use tracing::{debug, error, warn};
+
+const FIVE_MINUTES_MILLIS: u64 = 300000;
 
 /// Listen for deposit events and push a corresponding
 /// `Deposit` request
@@ -33,15 +35,19 @@ pub async fn start_deposit_event_listener(
             match p {
                 Ok(p) => break p,
                 Err(_) => {
-                    sleep(Duration::from_millis(provider_retry * 3)).await;
-                    provider_retry += 1;
+                    let sleep_millis = provider_retry * 3;
+                    sleep(Duration::from_millis(sleep_millis)).await;
+                    if sleep_millis < FIVE_MINUTES_MILLIS {
+                        provider_retry += 1;
+                    }
+                    debug!(?sleep_millis, "retrying creating ws connection");
                     continue;
                 }
             }
         };
 
         let contract = ClobConsumer::new(clob_consumer, &provider);
-        let mut event_stream_retry = 1;
+        let event_stream_retry = 1;
         loop {
             // We have this loop so we can recreate a subscription stream in case any issue is
             // encountered
@@ -60,11 +66,9 @@ pub async fn start_deposit_event_listener(
                     Ok((event, log)) => (event, log),
                     Err(error) => {
                         error!(?error, "event listener");
-                        continue;
+                        break;
                     }
                 };
-
-                info!("deposit event detected");
 
                 let req = DepositRequest {
                     address: **event.user,
@@ -83,9 +87,12 @@ pub async fn start_deposit_event_listener(
                 }
             }
 
-            sleep(Duration::from_millis(event_stream_retry * 10)).await;
-            warn!(?event_stream_retry, ?last_seen_block, "websocket reconnecting");
-            event_stream_retry += 1;
+            let sleep_millis = provider_retry * 10;
+            sleep(Duration::from_millis(sleep_millis)).await;
+            warn!(?event_stream_retry, ?last_seen_block, "retrying event stream creation");
+            if sleep_millis < FIVE_MINUTES_MILLIS {
+                provider_retry += 1;
+            }
         }
     }
 }
