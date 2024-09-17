@@ -80,6 +80,15 @@ pub enum FailureReason {
     RelayErrExceedRetry,
 }
 
+/// Job processor config.
+#[derive(Debug)]
+pub struct JobProcessorConfig {
+    /// Number of worker threads to run.
+    pub num_workers: usize,
+    /// Maximum number of retries for a job.
+    pub max_retries: u32,
+}
+
 /// Job processor service.
 #[derive(Debug)]
 pub struct JobProcessorService<S, D> {
@@ -90,7 +99,7 @@ pub struct JobProcessorService<S, D> {
     zk_executor: ZkvmExecutorService<S>,
     task_handles: JoinSet<Result<(), Error>>,
     metrics: Arc<Metrics>,
-    num_workers: usize,
+    config: JobProcessorConfig,
 }
 
 // The DB functions in JobProcessorService are async so they yield in the tokio task.
@@ -107,7 +116,7 @@ where
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
-        num_workers: usize,
+        config: JobProcessorConfig,
     ) -> Self {
         Self {
             db,
@@ -117,7 +126,7 @@ where
             zk_executor,
             task_handles: JoinSet::new(),
             metrics,
-            num_workers,
+            config,
         }
     }
 
@@ -221,7 +230,7 @@ where
     /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker
     /// threads
     pub async fn start(&mut self) {
-        for _ in 0..self.num_workers {
+        for _ in 0..self.config.num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
@@ -239,8 +248,11 @@ where
         let db = Arc::clone(&self.db);
         let job_relayer = Arc::clone(&self.job_relayer);
         let metrics = Arc::clone(&self.metrics);
+        let max_retries = self.config.max_retries;
 
-        self.task_handles.spawn(async move { Self::retry_jobs(db, job_relayer, metrics, 3).await });
+        self.task_handles.spawn(async move {
+            Self::retry_jobs(db, job_relayer, metrics, max_retries).await
+        });
     }
 
     /// Start a single worker thread.

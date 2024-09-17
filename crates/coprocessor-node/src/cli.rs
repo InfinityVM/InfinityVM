@@ -2,7 +2,7 @@
 
 use crate::{
     event::{self, start_job_event_listener},
-    job_processor::JobProcessorService,
+    job_processor::{JobProcessorConfig, JobProcessorService},
     metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
@@ -276,7 +276,10 @@ impl Cli {
             job_relayer,
             executor,
             metrics,
-            opts.worker_count
+            JobProcessorConfig {
+                num_workers: opts.worker_count,
+                max_retries: 3,
+            },
         );
         job_processor.start().await;
         let job_processor = Arc::new(job_processor);
