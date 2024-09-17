@@ -3,19 +3,14 @@
 use crate::Client;
 use alloy::{
     network::EthereumWallet,
-    primitives::{hex::FromHex, Address, U256},
+    primitives::{Address, U256},
     providers::ProviderBuilder,
 };
 use clap::{Args, Parser, Subcommand};
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
-use clob_programs::CLOB_ELF;
-use clob_test_utils::{clob_consumer_deploy, mint_and_approve};
-use proto::coprocessor_node_client::CoprocessorNodeClient;
-use proto::{SubmitProgramRequest, VmType};
 use serde::{Deserialize, Serialize};
 use test_utils::get_account;
-use test_utils::job_manager_deploy;
 
 /// Path to write deploy info to
 pub const DEFAULT_DEPLOY_INFO: &str = "./logs/deploy_info.json";
@@ -75,7 +70,9 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Withdraw(a) => {
-                let address = Address::from_hex(a.address).unwrap();
+                let address = get_account(a.anvil_account as usize).address();
+                println!("account={}", address);
+
                 let withdraw = WithdrawRequest {
                     address: address.into(),
                     base_free: a.base_free,
@@ -123,35 +120,8 @@ impl Cli {
 
                 println!("receipt.status={:?}", receipt.status());
             }
-            Commands::Deploy(a) => {
-                let job_manager_deploy = job_manager_deploy(a.eth_rpc.clone()).await;
-                let clob_deploy =
-                    clob_consumer_deploy(a.eth_rpc.clone(), &job_manager_deploy.job_manager).await;
-                let accounts = 100;
-                mint_and_approve(&clob_deploy, a.eth_rpc.clone(), accounts).await;
-                let mut coproc_client =
-                    CoprocessorNodeClient::connect(a.coproc_grpc).await.unwrap();
-                let submit_program_request = SubmitProgramRequest {
-                    program_elf: CLOB_ELF.to_vec(),
-                    vm_type: VmType::Risc0.into(),
-                };
-                coproc_client.submit_program(submit_program_request).await.unwrap();
-
-                println!("Minted {} accounts", accounts);
-
-                let deploy_info = DeployInfo {
-                    job_manager: job_manager_deploy.job_manager,
-                    quote_erc20: clob_deploy.quote_erc20,
-                    base_erc20: clob_deploy.base_erc20,
-                    clob_consumer: clob_deploy.clob_consumer,
-                };
-
-                let filename = DEFAULT_DEPLOY_INFO.to_string();
-                let json = serde_json::to_string_pretty(&deploy_info).unwrap();
-
-                println!("DeployInfo: {}", json);
-                println!("Writing deploy info to: {}", filename);
-                std::fs::write(filename, json).unwrap();
+            Commands::Deploy(_a) => {
+                unimplemented!()
             }
         };
 
@@ -201,13 +171,14 @@ struct OrderArgs {
 #[derive(Args, Debug)]
 struct WithdrawArgs {
     /// Address of the user to withdraw from.
-    #[arg(short, long)]
-    address: String,
+    #[arg(short = 'A', long)]
+    anvil_account: u32,
     /// Size of the base balance to withdraw.
-    #[arg(short, long)]
+    #[arg(short = 'B', long)]
     base_free: u64,
     /// Size of the quote asset to withdraw.
-    #[arg(short, long)]
+    #[arg(short = 'Q'
+    , long)]
     quote_free: u64,
 }
 
