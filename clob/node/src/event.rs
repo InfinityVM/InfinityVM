@@ -53,7 +53,6 @@ pub async fn start_deposit_event_listener(
                     break;
                 }
             };
-            info!(?last_seen_block);
             let mut stream = sub.into_stream();
 
             while let Some(event) = stream.next().await {
