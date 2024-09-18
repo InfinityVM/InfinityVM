@@ -249,7 +249,7 @@ where
                 Err(_) => continue,
             };
 
-            if let Err(_) = Self::relay_job_result(job, &job_relayer, &db, &metrics).await {
+            if (Self::relay_job_result(job, &job_relayer, &db, &metrics).await).is_err() {
                 continue;
             }
         }
