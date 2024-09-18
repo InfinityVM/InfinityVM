@@ -249,9 +249,7 @@ where
                 Err(_) => continue,
             };
 
-            if (Self::relay_job_result(job, &job_relayer, &db, &metrics).await).is_err() {
-                continue;
-            }
+            let _ = Self::relay_job_result(job, &job_relayer, &db, &metrics).await;
         }
     }
 
@@ -284,10 +282,10 @@ where
             }
             Err(error) => {
                 error!(
-                    ?error,
-                    "DB read error"
-                    ?job.id,
-                    ?job.program_id
+                    error = ?error,
+                    "DB read error for job {:?} with program ID {:?}",
+                    job.id,
+                    job.program_id
                 );
                 metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
                 job.status = JobStatus {
@@ -362,6 +360,8 @@ where
                 Ok(job)
             }
             Err(e) => {
+                // TODO: We need to relay failed results to make sure we can charge people
+                // [ref: https://github.com/Ethos-Works/InfinityVM/issues/78]
                 error!("failed to execute job {:?}: {:?}", id, e);
                 metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
