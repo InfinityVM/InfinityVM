@@ -271,6 +271,7 @@ where
                 if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", job.id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
+                    return Err(FailureReason::DbErrStatusFailed);
                 }
                 Err(FailureReason::DbErrMissingElf)
             }
@@ -291,6 +292,7 @@ where
                 if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", job.id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
+                    return Err(FailureReason::DbErrStatusFailed);
                 }
                 Err(FailureReason::DbErrGetElf)
             }
@@ -346,10 +348,8 @@ where
                 job.zkvm_operator_signature = zkvm_operator_signature;
                 if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", id, e);
-                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
-                    // We return an error here so we continue to the next
-                    // job in the start_worker loop
-                    return Err(FailureReason::DbErrStatusFailed);
+                    metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
+                    return Err(FailureReason::DbErrStatusDone);
                 }
                 Ok(job)
             }
@@ -367,7 +367,8 @@ where
 
                 if let Err(e) = put_job(db.clone(), job) {
                     error!("report this error: failed to save job {:?}: {:?}", id, e);
-                    metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
+                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
+                    return Err(FailureReason::DbErrStatusFailed);
                 }
                 Err(FailureReason::ExecErr)
             }
@@ -398,6 +399,7 @@ where
                 if let Err(e) = put_fail_relay_job(db.clone(), job) {
                     error!("report this error: failed to save relay err {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
+                    return Err(FailureReason::DbRelayErr);
                 }
                 Err(FailureReason::RelayErr)
             }
