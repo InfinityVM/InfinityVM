@@ -123,28 +123,35 @@ pub fn cancel_order(
         }
     };
 
+    let fill_status = match state.order_status.remove(&req.oid) {
+        Some(fill_status) => fill_status,
+        None => {
+            return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop)
+        }
+    };
+
     let change = if o.is_buy {
         debug_assert!(state.quote.contains_key(&o.address));
         if let Some(quote) = state.quote.get_mut(&o.address) {
-            let quote_size = o.quote_size();
-            quote.free += quote_size;
-            quote.locked -= quote_size;
+            let remaining_quote = o.quote_size() - fill_status.filled_quote();
+            quote.free += remaining_quote;
+            quote.locked -= remaining_quote;
             Diff::cancel(o.address, 0, o.quote_size())
         } else {
             debug_assert!(false);
             return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop);
         }
     } else if let Some(base) = state.base.get_mut(&o.address) {
-        base.free += o.size;
-        base.locked -= o.size;
+        let remaining_base = o.size - fill_status.filled_size;
+        base.free += remaining_base;
+        base.locked -= remaining_base;
         Diff::cancel(o.address, o.size, 0)
     } else {
         debug_assert!(false);
         return (CancelOrderResponse { success: false, fill_status: None }, state, Diff::Noop);
     };
 
-    let fill_status = state.order_status.remove(&o.oid);
-    (CancelOrderResponse { success: true, fill_status }, state, change)
+    (CancelOrderResponse { success: true, fill_status: Some(fill_status) }, state, change)
 }
 
 /// Add an order.

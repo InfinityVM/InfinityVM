@@ -217,6 +217,18 @@ pub struct FillStatus {
     pub fills: Vec<OrderFill>,
 }
 
+impl FillStatus {
+    /// Get the amount of quote and base filled from this order
+    pub fn filled_quote(&self) -> u64 {
+        let mut quote_filled = 0;
+        for f in &self.fills {
+            quote_filled += f.quote_size();
+        }
+
+        quote_filled
+    }
+}
+
 /// A match of two orders.
 #[derive(
     Debug, Clone, Default, PartialEq, Eq, Deserialize, Serialize, BorshDeserialize, BorshSerialize,
