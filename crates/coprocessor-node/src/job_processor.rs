@@ -287,7 +287,7 @@ where
                     ?error,
                     "could not find elf for job {:?} with verifying key {:?}",
                     job.id,
-                    job.program_id
+                    ?job.program_id
                 );
                 metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
                 job.status = JobStatus {
