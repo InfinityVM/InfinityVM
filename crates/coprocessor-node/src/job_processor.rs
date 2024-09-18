@@ -285,7 +285,7 @@ where
             Err(error) => {
                 error!(
                     ?error,
-                    "could not find elf for job {:?} with verifying key {:?}",
+                    "DB read error"
                     job.id,
                     ?job.program_id
                 );
