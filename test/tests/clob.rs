@@ -7,17 +7,15 @@ use alloy::{
     sol_types::SolValue,
 };
 use clob_contracts::clob_consumer::ClobConsumer;
-use clob_core::api::OrderFill;
 use clob_core::{
     api::{
         AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest, DepositRequest,
-        FillStatus, Request, WithdrawRequest,
+        FillStatus, OrderFill, Request, WithdrawRequest,
     },
     BorshKeccak256, ClobState,
 };
 use clob_programs::CLOB_ELF;
-use clob_test_utils::mint_and_approve;
-use clob_test_utils::{mock_erc20::MockErc20, next_state};
+use clob_test_utils::{mint_and_approve, mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
 use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
@@ -435,11 +433,12 @@ async fn clob_node_e2e() {
     E2E::new().clob().run(test).await;
 }
 
-// Test that we can partially match orders, withdraw, and then cancel a partially matched order. In the past the clob has panicked in this edge case
+// Test that we can partially match orders, withdraw, and then cancel a partially matched order. In
+// the past the clob has panicked in this edge case
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn cancel_works() {
-    async fn test(mut args: Args) {
+    async fn test(args: Args) {
         let clob = args.clob_consumer.unwrap();
         let anvil = args.anvil;
 

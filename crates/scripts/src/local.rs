@@ -11,12 +11,13 @@ use clob_node::{
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
 
-use alloy::node_bindings::{Anvil, AnvilInstance};
+use alloy::node_bindings::Anvil;
 use mock_consumer::anvil_with_mock_consumer;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use std::path::PathBuf;
-use test_utils::job_manager_deploy;
-use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
+use test_utils::{
+    job_manager_deploy, sleep_until_bound, ProcKill, LOCALHOST,
+};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 
@@ -36,7 +37,7 @@ async fn main() {
     let persist_db = std::env::var("PERSIST_DB").is_ok();
 
     info!("Starting anvil on port: {ANVIL_PORT}");
-    let mut anvil_builder = Anvil::new()
+    let anvil_builder = Anvil::new()
         .block_time_f64(0.01)
         .port(ANVIL_PORT)
         // 1000 dev accounts generated and configured
