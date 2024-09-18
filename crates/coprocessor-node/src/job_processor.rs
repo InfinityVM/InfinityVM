@@ -5,8 +5,8 @@ use abi::abi_encode_offchain_job_request;
 use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::{Receiver, Sender};
 use db::{
-    delete_fail_relay_job, get_all_failed_jobs, get_elf, get_fail_relay_job, get_job, put_elf,
-    put_fail_relay_job, put_job,
+    delete_fail_relay_job, get_all_failed_jobs, get_elf, get_job, put_elf, put_fail_relay_job,
+    put_job,
     tables::{ElfWithMeta, Job, RequestType},
 };
 use proto::{JobStatus, JobStatusType, VmType};
@@ -158,12 +158,6 @@ where
         Ok(program_id)
     }
 
-    /// Save job in DB
-    pub async fn save_job(db: Arc<D>, job: Job) -> Result<(), Error> {
-        put_job(db, job)?;
-        Ok(())
-    }
-
     /// Return whether job with `job_id` exists in DB
     pub async fn has_job(&self, job_id: [u8; 32]) -> Result<bool, Error> {
         let job = get_job(self.db.clone(), job_id)?;
@@ -188,29 +182,6 @@ where
         Ok(job)
     }
 
-    /// Returns all jobs with relay failures
-    pub async fn get_all_relay_error_jobs(db: Arc<D>) -> Result<Vec<Job>, Error> {
-        let jobs = get_all_failed_jobs(db)?;
-        Ok(jobs)
-    }
-    /// Save failed relayed job in DB
-    pub async fn save_relay_error_job(db: Arc<D>, job: Job) -> Result<(), Error> {
-        put_fail_relay_job(db, job)?;
-        Ok(())
-    }
-
-    /// Returns failed relayed job with `job_id` from DB
-    pub async fn get_relay_error_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-        let job = get_fail_relay_job(self.db.clone(), job_id)?;
-        Ok(job)
-    }
-
-    /// Deletes relay error job
-    pub async fn delete_relay_err_job(db: Arc<D>, job_id: [u8; 32]) -> Result<(), Error> {
-        delete_fail_relay_job(db, job_id)?;
-        Ok(())
-    }
-
     /// Submits job, saves it in DB, and adds to exec queue
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         if self.has_job(job.id).await? {
@@ -220,7 +191,7 @@ where
         job.status =
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
 
-        Self::save_job(self.db.clone(), job.clone()).await?;
+        put_job(self.db.clone(), job.clone())?;
 
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
 
@@ -305,7 +276,7 @@ where
                     retries: 0,
                 };
 
-                if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", job.id, e);
                     metrics.incr_job_err(&FailureReason::DbErrMissingElf.to_string());
                 }
@@ -325,7 +296,7 @@ where
                     retries: 0,
                 };
 
-                if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", job.id, e);
                     metrics.incr_job_err("db_error_status_failed");
                 }
@@ -381,7 +352,7 @@ where
                 };
                 job.result_with_metadata = result_with_metadata;
                 job.zkvm_operator_signature = zkvm_operator_signature;
-                if let Err(e) = Self::save_job(db.clone(), job.clone()).await {
+                if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                     // We return an error here so we continue to the next
@@ -400,7 +371,7 @@ where
                     retries: 0,
                 };
 
-                if let Err(e) = Self::save_job(db.clone(), job).await {
+                if let Err(e) = put_job(db.clone(), job) {
                     error!("report this error: failed to save job {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
                 }
@@ -430,7 +401,7 @@ where
             Err(e) => {
                 error!("report this error: failed to relay job {:?}: {:?}", id, e);
                 metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
-                if let Err(e) = Self::save_relay_error_job(db.clone(), job).await {
+                if let Err(e) = put_fail_relay_job(db.clone(), job) {
                     error!("report this error: failed to save relay err {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
                 }
@@ -453,7 +424,7 @@ where
             // Jobs to update
             let mut jobs_to_delete: Vec<[u8; 32]> = Vec::new();
 
-            let retry_jobs = match Self::get_all_relay_error_jobs(db.clone()).await {
+            let retry_jobs = match get_all_failed_jobs(db.clone()) {
                 Ok(jobs) => jobs,
                 Err(e) => {
                     error!("error retrieving relay error jobs: {:?}", e);
@@ -493,7 +464,7 @@ where
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.retries += 1;
-                            if let Err(e) = Self::save_relay_error_job(db.clone(), job).await {
+                            if let Err(e) = put_fail_relay_job(db.clone(), job) {
                                 error!(
                                     "report this error: failed to save retried job {:?}: {:?}",
                                     id, e
@@ -506,7 +477,7 @@ where
                 }
 
                 for job_id in &jobs_to_delete {
-                    if let Err(e) = Self::delete_relay_err_job(db.clone(), *job_id).await {
+                    if let Err(e) = delete_fail_relay_job(db.clone(), *job_id) {
                         error!(
                             "report this error: failed to delete retried job {:?}: {:?}",
                             job_id, e
