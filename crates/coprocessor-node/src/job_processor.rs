@@ -5,8 +5,8 @@ use abi::abi_encode_offchain_job_request;
 use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::{Receiver, Sender};
 use db::{
-    delete_fail_relay_job, get_all_failed_jobs, get_elf, get_job, put_elf, put_fail_relay_job,
-    put_job,
+    delete_fail_relay_job, get_all_failed_jobs, get_elf, get_job, get_last_block_height, put_elf,
+    put_fail_relay_job, put_job, set_last_block_height,
     tables::{ElfWithMeta, Job, RequestType},
 };
 use proto::{JobStatus, JobStatusType, VmType};
@@ -166,13 +166,13 @@ where
 
     /// Save last block height in DB
     pub async fn set_last_block_height(&self, height: u64) -> Result<(), Error> {
-        db::set_last_block_height(self.db.clone(), height)?;
+        set_last_block_height(self.db.clone(), height)?;
         Ok(())
     }
 
     /// Get last block height from DB
     pub async fn get_last_block_height(&self) -> Result<u64, Error> {
-        let height = db::get_last_block_height(self.db.clone())?.unwrap_or_default();
+        let height = get_last_block_height(self.db.clone())?.unwrap_or_default();
         Ok(height)
     }
 
