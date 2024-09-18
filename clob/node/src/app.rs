@@ -84,7 +84,7 @@ pub async fn http_listen(state: AppState, listen_address: &str) -> eyre::Result<
 async fn deposit(
     ExtractState(state): ExtractState<AppState>,
     Json(req): Json<DepositRequest>,
-) -> Result<Json<ApiResponse>, AppError> {
+) -> Result<AppResponse, AppResponse> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
     state
@@ -95,14 +95,14 @@ async fn deposit(
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Ok(Json(resp))
+    Ok(AppResponse::Good(resp))
 }
 
 #[instrument(skip_all)]
 async fn withdraw(
     ExtractState(state): ExtractState<AppState>,
     Json(req): Json<WithdrawRequest>,
-) -> Result<Json<ApiResponse>, AppError> {
+) -> Result<AppResponse, AppResponse> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
     state
@@ -113,14 +113,14 @@ async fn withdraw(
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Ok(Json(resp))
+    Ok(AppResponse::Good(resp))
 }
 
 #[instrument(skip_all)]
 async fn add_order(
     ExtractState(state): ExtractState<AppState>,
     Json(req): Json<AddOrderRequest>,
-) -> Result<Json<ApiResponse>, AppError> {
+) -> Result<AppResponse, AppResponse> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
     state
@@ -131,14 +131,14 @@ async fn add_order(
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Ok(Json(resp))
+    Ok(AppResponse::Good(resp))
 }
 
 #[instrument(skip_all)]
 async fn cancel(
     ExtractState(state): ExtractState<AppState>,
     Json(req): Json<CancelOrderRequest>,
-) -> Result<Json<ApiResponse>, AppError> {
+) -> Result<AppResponse, AppResponse> {
     let (tx, rx) = oneshot::channel::<ApiResponse>();
 
     state
@@ -149,13 +149,13 @@ async fn cancel(
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Ok(Json(resp))
+    Ok(AppResponse::Good(resp))
 }
 
 #[instrument(skip_all)]
 async fn clob_state(
     ExtractState(state): ExtractState<AppState>,
-) -> Result<Json<ClobStateResponse>, AppError> {
+) -> Result<Json<ClobStateResponse>, AppResponse> {
     let model = state.db.view(|tx| {
         let i =
             tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY)?.unwrap_or(GENESIS_GLOBAL_INDEX);
@@ -170,23 +170,44 @@ async fn clob_state(
     Ok(Json(response))
 }
 
-// Make our own error that wraps `anyhow::Error`.
-struct AppError(eyre::Error);
+/// Response type from most app endpoints. `eyre` Errors are automatically converted to
+/// the `Bad` variant.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum AppResponse {
+    /// A successful response.
+    Good(ApiResponse),
+    /// An error response.
+    Bad(String),
+}
 
-// Tell axum how to convert `AppError` into a response.
-impl IntoResponse for AppError {
-    fn into_response(self) -> Response {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("Something went wrong: {}", self.0))
-            .into_response()
+impl AppResponse {
+    /// Get the [ApiResponse]. Panics if the response is not [Self::Good]
+    pub fn into_good(self) -> ApiResponse {
+        match self {
+            Self::Good(r) => r,
+            Self::Bad(_) => panic!("unexpected error app response"),
+        }
     }
 }
 
-impl<E> From<E> for AppError
+// Tell axum how to convert `AppError` into a response.
+impl IntoResponse for AppResponse {
+    fn into_response(self) -> Response {
+        match &self {
+            Self::Good(_) => (StatusCode::OK, Json(self)).into_response(),
+            Self::Bad(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(self)).into_response(),
+        }
+    }
+}
+
+impl<E> From<E> for AppResponse
 where
     E: Into<eyre::Error>,
 {
     fn from(err: E) -> Self {
-        Self(err.into())
+        let e: eyre::Error = err.into();
+        AppResponse::Bad(e.to_string())
     }
 }
 
@@ -274,12 +295,13 @@ mod tests {
         let server_state = test_setup().await;
         let mut app = app(server_state);
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             ORDERS,
             AddOrderRequest { address: [0; 20], is_buy: true, limit_price: 2, size: 3 },
         )
-        .await;
+        .await
+        .into_good();
 
         match r.response {
             Response::AddOrder(r) => assert!(!r.success),
@@ -292,12 +314,13 @@ mod tests {
         let server_state = test_setup().await;
         let mut app = app(server_state);
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             ORDERS,
             AddOrderRequest { address: [0; 20], is_buy: false, limit_price: 2, size: 3 },
         )
-        .await;
+        .await
+        .into_good();
 
         match r.response {
             Response::AddOrder(r) => assert!(!r.success),
@@ -310,12 +333,13 @@ mod tests {
         let server_state = test_setup().await;
         let mut app = app(server_state);
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             ORDERS,
             AddOrderRequest { address: [0; 20], is_buy: false, limit_price: 2, size: 3 },
         )
-        .await;
+        .await
+        .into_good();
 
         match r.response {
             Response::AddOrder(r) => assert!(!r.success),
@@ -331,28 +355,31 @@ mod tests {
         let user2 = [2; 20];
         let user3 = [3; 20];
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             DEPOSIT,
             DepositRequest { address: user1, quote_free: 10, base_free: 0 },
         )
-        .await;
+        .await
+        .into_good();
         assert_eq!(r.global_index, 1);
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             DEPOSIT,
             DepositRequest { address: user2, quote_free: 20, base_free: 0 },
         )
-        .await;
+        .await
+        .into_good();
         assert_eq!(r.global_index, 2);
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             DEPOSIT,
             DepositRequest { address: user3, quote_free: 30, base_free: 0 },
         )
-        .await;
+        .await
+        .into_good();
         assert_eq!(r.global_index, 3);
 
         let state = get_clob_state(&mut app).await;
@@ -370,28 +397,31 @@ mod tests {
             AssetBalance { free: 30, locked: 0 }
         );
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             ORDERS,
             AddOrderRequest { address: user1, is_buy: true, limit_price: 2, size: 4 },
         )
-        .await;
+        .await
+        .into_good();
         assert_eq!(r.global_index, 4);
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             ORDERS,
             AddOrderRequest { address: user2, is_buy: true, limit_price: 2, size: 8 },
         )
-        .await;
+        .await
+        .into_good();
         assert_eq!(r.global_index, 5);
 
-        let r: ApiResponse = post(
+        let r = post::<_, AppResponse>(
             &mut app,
             ORDERS,
             AddOrderRequest { address: user3, is_buy: true, limit_price: 2, size: 12 },
         )
-        .await;
+        .await
+        .into_good();
         assert_eq!(r.global_index, 6);
 
         let state = get_clob_state(&mut app).await;
@@ -412,10 +442,6 @@ mod tests {
 
     #[tokio::test]
     async fn deposit_order_withdraw_cancel() {
-        tracing_subscriber::fmt()
-            .event_format(tracing_subscriber::fmt::format().with_file(true).with_line_number(true))
-            .init();
-
         let server_state = test_setup().await;
         let mut app = app(server_state);
 
@@ -425,7 +451,7 @@ mod tests {
         let alice_deposit = DepositRequest { address: alice, base_free: 200, quote_free: 0 };
         let bob_deposit = DepositRequest { address: bob, base_free: 0, quote_free: 800 };
         for r in [alice_deposit, bob_deposit] {
-            let _: ApiResponse = post(&mut app, DEPOSIT, r).await;
+            let _: AppResponse = post(&mut app, DEPOSIT, r).await;
         }
         let state = get_clob_state(&mut app).await;
         assert_eq!(
@@ -442,7 +468,7 @@ mod tests {
         let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100 };
         let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100 };
         for r in [alice_limit, bob_limit1, bob_limit2] {
-            let _: ApiResponse = post(&mut app, ORDERS, r).await;
+            let _: AppResponse = post(&mut app, ORDERS, r).await;
         }
         let state = get_clob_state(&mut app).await;
         assert_eq!(
@@ -463,15 +489,15 @@ mod tests {
         );
 
         let alice_withdraw = WithdrawRequest { address: alice, base_free: 100, quote_free: 400 };
-        let _: ApiResponse = post(&mut app, WITHDRAW, alice_withdraw).await;
+        let _: AppResponse = post(&mut app, WITHDRAW, alice_withdraw).await;
         let state = get_clob_state(&mut app).await;
         assert!(!state.quote_balances().contains_key(&alice));
         assert!(!state.base_balances().contains_key(&alice));
 
         let bob_cancel = CancelOrderRequest { oid: 1 };
-        let _: ApiResponse = post(&mut app, CANCEL, bob_cancel).await;
+        let _: AppResponse = post(&mut app, CANCEL, bob_cancel).await;
         let bob_withdraw = WithdrawRequest { address: bob, base_free: 100, quote_free: 400 };
-        let _: ApiResponse = post(&mut app, WITHDRAW, bob_withdraw).await;
+        let _: AppResponse = post(&mut app, WITHDRAW, bob_withdraw).await;
         let state = get_clob_state(&mut app).await;
         assert!(state.quote_balances().is_empty());
         assert!(state.base_balances().is_empty());
