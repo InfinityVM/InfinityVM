@@ -31,8 +31,8 @@ impl Client {
         let url = self.path(CANCEL);
         let app_resp: AppResponse = post(&url, req).await;
         let api_resp = match app_resp {
-            AppResponse::Good(r) => r,
-            AppResponse::Bad(e) => bail!("unexpected app response: {e:?}"),
+            AppResponse::Success(r) => r,
+            AppResponse::Failure(e) => bail!("unexpected app response: {e:?}"),
         };
 
         let resp = match api_resp.response {
@@ -54,8 +54,8 @@ impl Client {
         let url = self.path(ORDERS);
         let app_resp: AppResponse = post(&url, req).await;
         let api_resp = match app_resp {
-            AppResponse::Good(r) => r,
-            AppResponse::Bad(e) => bail!("unexpected app response: {e:?}"),
+            AppResponse::Success(r) => r,
+            AppResponse::Failure(e) => bail!("unexpected app response: {e:?}"),
         };
 
         let resp = match api_resp.response {
@@ -71,8 +71,8 @@ impl Client {
         let url = self.path(WITHDRAW);
         let app_resp: AppResponse = post(&url, req).await;
         let api_resp = match app_resp {
-            AppResponse::Good(r) => r,
-            AppResponse::Bad(e) => bail!("unexpected app response: {e:?}"),
+            AppResponse::Success(r) => r,
+            AppResponse::Failure(e) => bail!("unexpected app response: {e:?}"),
         };
 
         let resp = match api_resp.response {

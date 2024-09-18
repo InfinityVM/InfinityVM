@@ -95,7 +95,7 @@ async fn deposit(
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Ok(AppResponse::Good(resp))
+    Ok(AppResponse::Success(resp))
 }
 
 #[instrument(skip_all)]
@@ -113,7 +113,7 @@ async fn withdraw(
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Ok(AppResponse::Good(resp))
+    Ok(AppResponse::Success(resp))
 }
 
 #[instrument(skip_all)]
@@ -131,7 +131,7 @@ async fn add_order(
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Ok(AppResponse::Good(resp))
+    Ok(AppResponse::Success(resp))
 }
 
 #[instrument(skip_all)]
@@ -149,7 +149,7 @@ async fn cancel(
     let resp = rx.await.wrap_err("engine oneshot sender unexpectedly dropped")?;
     info!(?resp);
 
-    Ok(AppResponse::Good(resp))
+    Ok(AppResponse::Success(resp))
 }
 
 #[instrument(skip_all)]
@@ -176,17 +176,17 @@ async fn clob_state(
 #[serde(rename_all = "camelCase")]
 pub enum AppResponse {
     /// A successful response.
-    Good(ApiResponse),
+    Success(ApiResponse),
     /// An error response.
-    Bad(String),
+    Failure(String),
 }
 
 impl AppResponse {
-    /// Get the [`ApiResponse`]. Panics if the response is not [`Self::Good`]
+    /// Get the [`ApiResponse`]. Panics if the response is not [`Self:: Success`]
     pub fn into_good(self) -> ApiResponse {
         match self {
-            Self::Good(r) => r,
-            Self::Bad(_) => panic!("unexpected error app response"),
+            Self::Success(r) => r,
+            Self::Failure(_) => panic!("unexpected error app response"),
         }
     }
 }
@@ -195,8 +195,8 @@ impl AppResponse {
 impl IntoResponse for AppResponse {
     fn into_response(self) -> Response {
         match &self {
-            Self::Good(_) => (StatusCode::OK, Json(self)).into_response(),
-            Self::Bad(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(self)).into_response(),
+            Self::Success(_) => (StatusCode::OK, Json(self)).into_response(),
+            Self::Failure(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(self)).into_response(),
         }
     }
 }
@@ -207,7 +207,7 @@ where
 {
     fn from(err: E) -> Self {
         let e: eyre::Error = err.into();
-        Self::Bad(e.to_string())
+        Self::Failure(e.to_string())
     }
 }
 
