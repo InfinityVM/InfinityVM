@@ -10,7 +10,9 @@ use reth_db::{
 };
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
-use tables::{ElfKey, ElfWithMeta, Job, JobID};
+use tables::{
+    ElfKey, ElfTable, ElfWithMeta, Job, JobID, JobTable, LastBlockHeight, RelayFailureJobs,
+};
 
 pub mod tables;
 
@@ -43,74 +45,35 @@ pub fn put_elf<D: Database>(
     program_id: &[u8],
     elf: Vec<u8>,
 ) -> Result<(), Error> {
-    use tables::ElfTable;
     let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
     let key = ElfKey::new(program_id);
 
-    let tx = db.tx_mut()?;
-    tx.put::<ElfTable>(key, elf_with_meta)?;
-    let _commit = tx.commit()?;
-
-    Ok(())
+    db.update(|tx| tx.put::<ElfTable>(key, elf_with_meta))?.map_err(Into::into)
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist
 pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfWithMeta>, Error> {
-    use tables::ElfTable;
-    let key = ElfKey::new(program_id);
-
-    let tx = db.tx()?;
-    let result = tx.get::<ElfTable>(key);
-    // Free mem pages for read only tx
-    let _commit = tx.commit()?;
-
-    result.map_err(Into::into)
+    db.view(|tx| tx.get::<ElfTable>(ElfKey::new(program_id)))?.map_err(Into::into)
 }
 
 /// Write a job to the database
 pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    use tables::JobTable;
-
-    let tx = db.tx_mut()?;
-    tx.put::<JobTable>(JobID(job.id), job)?;
-    let _commit = tx.commit()?;
-
-    Ok(())
+    db.update(|tx| tx.put::<JobTable>(JobID(job.id), job))?.map_err(Into::into)
 }
 
 /// Read in an Job from the database. [None] if it does not exist
 pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-    use tables::JobTable;
-
-    let tx = db.tx()?;
-    let result = tx.get::<JobTable>(JobID(job_id));
-    // Free mem pages for read only tx
-    let _commit = tx.commit()?;
-
-    result.map_err(Into::into)
+    db.view(|tx| tx.get::<JobTable>(JobID(job_id)))?.map_err(Into::into)
 }
 
 /// Write last block height to the database
 pub fn set_last_block_height<D: Database>(db: Arc<D>, height: u64) -> Result<(), Error> {
-    use tables::LastBlockHeight;
-
-    let tx = db.tx_mut()?;
-    tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY, height)?;
-    let _commit = tx.commit()?;
-
-    Ok(())
+    db.update(|tx| tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY, height))?.map_err(Into::into)
 }
 
 /// Read last block height from the database.
 pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Error> {
-    use tables::LastBlockHeight;
-
-    let tx = db.tx()?;
-    let result = tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY);
-    // Free mem pages for read only tx
-    let _commit = tx.commit()?;
-
-    result.map_err(Into::into)
+    db.view(|tx| tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY))?.map_err(Into::into)
 }
 
 /// Delete in an Job from the database. [None] if it does not exist.
@@ -124,66 +87,37 @@ pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Err
 /// for specified key will be deleted.
 /// We pass in [None] here since each `job_id` only maps to a single Job.
 pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
-    use tables::JobTable;
-
-    let tx = db.tx_mut()?;
-    let result = tx.delete::<JobTable>(JobID(job_id), None);
-    // Free mem pages for read only tx
-    let _commit = tx.commit()?;
-
-    result.map_err(Into::into)
+    db.update(|tx| tx.delete::<JobTable>(JobID(job_id), None))?.map_err(Into::into)
 }
 
 /// Write a failed relayed job to the database
 pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    use tables::RelayFailureJobs;
-
-    let tx = db.tx_mut()?;
-    tx.put::<RelayFailureJobs>(JobID(job.id), job)?;
-    let _commit = tx.commit()?;
-
-    Ok(())
+    db.update(|tx| tx.put::<RelayFailureJobs>(JobID(job.id), job))?.map_err(Into::into)
 }
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist
 pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-    use tables::RelayFailureJobs;
-
-    let tx = db.tx()?;
-    let result = tx.get::<RelayFailureJobs>(JobID(job_id));
-    // Free mem pages for read only tx
-    let _commit = tx.commit()?;
-
-    result.map_err(Into::into)
+    db.view(|tx| tx.get::<RelayFailureJobs>(JobID(job_id)))?.map_err(Into::into)
 }
 
 /// Read all failed relayed Jobs from the database. [None] if it does not exist
 pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
-    use tables::RelayFailureJobs;
+    db.view(|tx| -> Result<Vec<Job>, DatabaseError> {
+        let mut failed_jobs = Vec::new();
+        let mut cursor = tx.cursor_read::<RelayFailureJobs>()?;
 
-    let tx = db.tx()?;
-    let mut failed_jobs = Vec::new();
-    let mut cursor = tx.cursor_read::<RelayFailureJobs>()?;
+        while let Some((_, job)) = cursor.next()? {
+            failed_jobs.push(job);
+        }
 
-    while let Some((_, job)) = cursor.next()? {
-        failed_jobs.push(job);
-    }
-
-    tx.commit()?;
-
-    Ok(failed_jobs)
+        Ok(failed_jobs)
+    })?
+    .map_err(Into::into)
 }
 
 /// Delete a failed relayed Job from the database. [None] if it does not exist.
 pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
-    use tables::RelayFailureJobs;
-
-    let tx = db.tx_mut()?;
-    let result = tx.delete::<RelayFailureJobs>(JobID(job_id), None);
-    // Free mem pages for read only tx
-    let _commit = tx.commit()?;
-
-    result.map_err(Into::into)
+    db.update(|tx| tx.delete::<RelayFailureJobs>(JobID(job_id), None))?.map_err(Into::into)
 }
 
 /// Open a DB at `path`. Creates the DB if it does not exist.

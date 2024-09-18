@@ -2,7 +2,7 @@
 
 use crate::{
     event::{self, start_job_event_listener},
-    job_processor::JobProcessorService,
+    job_processor::{JobProcessorConfig, JobProcessorService},
     metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
@@ -165,6 +165,10 @@ struct Opts {
     #[arg(long, default_value_t = 4)]
     worker_count: usize,
 
+    /// Max number of retries for relaying a job
+    #[arg(long, default_value_t = 3)]
+    max_retries: usize,
+
     /// Max size for the exec queue
     #[arg(long, default_value_t = 256)]
     exec_queue_bound: usize,
@@ -276,8 +280,12 @@ impl Cli {
             job_relayer,
             executor,
             metrics,
+            JobProcessorConfig {
+                num_workers: opts.worker_count,
+                max_retries: opts.max_retries as u32,
+            },
         );
-        job_processor.start(opts.worker_count).await;
+        job_processor.start().await;
         let job_processor = Arc::new(job_processor);
 
         let job_event_listener = start_job_event_listener(
