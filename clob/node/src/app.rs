@@ -54,7 +54,7 @@ pub struct AppState {
 
 impl AppState {
     /// Create a new instance of [Self].
-    pub fn new(
+    pub const fn new(
         engine_sender: Sender<(Request, oneshot::Sender<ApiResponse>)>,
         db: Arc<DatabaseEnv>,
     ) -> Self {
@@ -182,7 +182,7 @@ pub enum AppResponse {
 }
 
 impl AppResponse {
-    /// Get the [ApiResponse]. Panics if the response is not [Self::Good]
+    /// Get the [`ApiResponse`]. Panics if the response is not [`Self::Good`]
     pub fn into_good(self) -> ApiResponse {
         match self {
             Self::Good(r) => r,
@@ -207,7 +207,7 @@ where
 {
     fn from(err: E) -> Self {
         let e: eyre::Error = err.into();
-        AppResponse::Bad(e.to_string())
+        Self::Bad(e.to_string())
     }
 }
 
