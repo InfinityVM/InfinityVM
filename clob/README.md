@@ -25,8 +25,8 @@ The PoC only allows users to exchange two tokens: a `baseToken` and a `quoteToke
 
 The user flow looks like this:
 1. A user deposits `baseToken` and/or `quoteToken` into the CLOB contract by sending a tx onchain.
-3. The user can place an order by sending an order directly to the CLOB server.
-4. The CLOB server batches orders and sends this batch along with the state of user balances + order book to the InfinityVM coprocessor.
+3. The user can place an order by sending an order directly to the CLOB server. The CLOB processes these orders in real time. 
+4. The CLOB server has a background process batches orders and sends this batch along with the state of user balances + order book to the InfinityVM coprocessor.
 5. The InfinityVM coprocessor runs the CLOB matching logic in a zkVM (without generating a proof) and posts the updates to user balances to the CLOB contract.
 6. The CLOB contract updates the user balances stored on the contract.
 7. If a user wants to withdraw their funds, they can send a withdraw action directly to the CLOB server and the CLOB will include this withdrawal in the next batch. The CLOB contract will then transfer the funds back to the user.

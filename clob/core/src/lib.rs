@@ -155,6 +155,8 @@ pub fn cancel_order(
 }
 
 /// Add an order.
+///
+/// Note that the price of each fill is determined by the maker's price.
 pub fn add_order(
     req: AddOrderRequest,
     mut state: ClobState,

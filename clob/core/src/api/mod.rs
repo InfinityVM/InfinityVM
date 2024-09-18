@@ -218,7 +218,8 @@ pub struct FillStatus {
 }
 
 impl FillStatus {
-    /// Get the amount of quote and base filled from this order.
+    /// Get the amount of quote filled from this order. Note, the price of each
+    /// fill is determined by the makers price.
     pub fn filled_quote(&self) -> u64 {
         let mut quote_filled = 0;
         for f in &self.fills {
