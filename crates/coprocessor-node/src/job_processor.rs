@@ -57,9 +57,9 @@ pub enum FailureReason {
     /// No ELF found in DB
     #[error("db_error_missing_elf")]
     DbErrMissingElf,
-    /// Error retrieving elf
-    #[error("error_get_elf")]
-    ErrGetElf,
+    /// Error retrieving elf because of low-level DB error
+    #[error("db_error_get_elf")]
+    DbErrGetElf,
     /// Unable to persist failed job to DB
     #[error("db_error_status_failed")]
     DbErrStatusFailed,
@@ -261,12 +261,6 @@ where
         match db::get_elf(db.clone(), &job.program_id) {
             Ok(Some(elf)) => Ok(elf),
             Ok(None) => {
-                error!(
-                    ?job.consumer_address,
-                    "no ELF found for job {:?} with verifying key {:?}",
-                    job.id,
-                    job.program_id,
-                );
                 metrics.incr_job_err(&FailureReason::MissingElf.to_string());
                 job.status = JobStatus {
                     status: JobStatusType::Failed as i32,
@@ -276,7 +270,7 @@ where
 
                 if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", job.id, e);
-                    metrics.incr_job_err(&FailureReason::DbErrMissingElf.to_string());
+                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                 }
                 Err(FailureReason::DbErrMissingElf)
             }
@@ -287,18 +281,18 @@ where
                     job.id,
                     job.program_id
                 );
-                metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
+                metrics.incr_job_err(&FailureReason::DbErrGetElf.to_string());
                 job.status = JobStatus {
                     status: JobStatusType::Failed as i32,
-                    failure_reason: Some(FailureReason::ErrGetElf.to_string()),
+                    failure_reason: Some(FailureReason::DbErrGetElf.to_string()),
                     retries: 0,
                 };
 
                 if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", job.id, e);
-                    metrics.incr_job_err("db_error_status_failed");
+                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                 }
-                Err(FailureReason::ErrGetElf)
+                Err(FailureReason::DbErrGetElf)
             }
         }
     }
