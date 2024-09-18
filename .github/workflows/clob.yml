@@ -25,7 +25,7 @@ jobs:
         name: Checkout
         uses: actions/checkout@v4
         with:
-          submodules: 'recursive'
+          submodules: recursive
       - id: auth
         name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
