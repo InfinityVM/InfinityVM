@@ -286,7 +286,7 @@ where
                 error!(
                     ?error,
                     "DB read error"
-                    job.id,
+                    ?job.id,
                     ?job.program_id
                 );
                 metrics.incr_job_err(&FailureReason::ErrGetElf.to_string());
