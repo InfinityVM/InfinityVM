@@ -25,6 +25,7 @@ members = [
 	"clob/programs",
 	"clob/node",
 	"clob/test-utils",
+	"test-load",
 ]
 exclude = [
 	"bin/ethos-reth",
@@ -139,6 +140,8 @@ futures = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 
 # g
+goose = { version = "0.17", default-features = false }
+
 # h
 hex = { version = "0.4", default-features = false }
 home = { version = "0.5", default-features = false }
