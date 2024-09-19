@@ -11,7 +11,16 @@ contract PrintJobResult is Script, Utils {
     MockConsumer public consumer;
 
     function printJobResult(uint64 nonce) public {
-        consumer = MockConsumer(0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6);
+        string memory coprocessorDeployedContracts = readOutput(
+            "coprocessor_deployment_output"
+        );
+
+        consumer = MockConsumer(
+            stdJson.readAddress(
+                coprocessorDeployedContracts,
+                ".addresses.consumer"
+            )
+        );
         bytes32 jobID = keccak256(abi.encodePacked(nonce, address(consumer)));
 
         bytes memory result = consumer.getJobResult(jobID);
@@ -19,10 +28,6 @@ contract PrintJobResult is Script, Utils {
         console.logBytes32(jobID);
         console.log("Result: ");
         console.logBytes(result);
-
-        uint256 balance = consumer.getBalance(0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6);
-        console.log("Balance: ");
-        console.log(balance);
     }
 
 }
