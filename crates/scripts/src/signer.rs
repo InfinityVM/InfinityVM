@@ -10,10 +10,10 @@ use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use proto::{JobStatus, JobStatusType};
 use std::env;
+use test_utils::get_signers;
 use zkvm_executor::service::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
 };
-use test_utils::get_signers;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -22,7 +22,10 @@ const PROGRAM_ID: &[u8] = b"programID";
 const NONCE: u64 = 1;
 const CONSUMER_ADDR: &str = "0xDB8cFf278adCCF9E9b5da745B44E754fC4EE3C76";
 const LOCAL_SETUP_CONSUMER_ADDR: &str = "0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6";
-const LOCAL_SETUP_PROGRAM_ID: &[u8] = &[38, 97, 129, 246, 1, 9, 102, 56, 121, 187, 170, 57, 163, 102, 31, 208, 122, 142, 221, 113, 246, 162, 114, 4, 239, 24, 213, 94, 45, 195, 127, 233];
+const LOCAL_SETUP_PROGRAM_ID: &[u8] = &[
+    38, 97, 129, 246, 1, 9, 102, 56, 121, 187, 170, 57, 163, 102, 31, 208, 122, 142, 221, 113, 246,
+    162, 114, 4, 239, 24, 213, 94, 45, 195, 127, 233,
+];
 
 /// Script to generate ABI-encoded responses + signatures for the coprocessor contract tests
 #[derive(Debug)]
@@ -90,7 +93,8 @@ impl RequestAndResultSigner {
         dotenv().ok();
 
         let zero_addr: Address = Address::ZERO;
-        let consumer_addr: Address = Address::parse_checksummed(LOCAL_SETUP_CONSUMER_ADDR, None).unwrap();
+        let consumer_addr: Address =
+            Address::parse_checksummed(LOCAL_SETUP_CONSUMER_ADDR, None).unwrap();
 
         let job = Job {
             id: get_job_id(NONCE, consumer_addr),
@@ -120,8 +124,8 @@ impl RequestAndResultSigner {
 
         // let private_key_hex = env::var("OFFCHAIN_SIGNER_PRIVATE_KEY")
         //     .expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");
-        // let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
-        // let signer = K256LocalSigner::from_slice(&decoded).unwrap();
+        // let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private
+        // key let signer = K256LocalSigner::from_slice(&decoded).unwrap();
         let signature = offchain_signer.sign_message(&encoded_job_request).await.unwrap();
 
         println!("Encoded job request: {:?}", encoded_job_request);

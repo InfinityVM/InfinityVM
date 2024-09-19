@@ -1,42 +1,47 @@
 //! Load testing for the coprocessor node
-use alloy::providers::ProviderBuilder;
-use alloy::signers::local::PrivateKeySigner;
-use goose::{goose::GooseResponse, prelude::*};
-use serde_json::json;
-use std::sync::atomic::{AtomicU64, Ordering};
-use once_cell::sync::Lazy;
+use abi::abi_encode_offchain_job_request;
 use alloy::{
     network::EthereumWallet,
     primitives::{Address, FixedBytes},
-    signers::Signer,
+    providers::ProviderBuilder,
+    signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
 };
-use abi::abi_encode_offchain_job_request;
-use db::tables::{get_job_id, Job, RequestType};
-use proto::{JobStatus, JobStatusType};
-use test_utils::get_signers;
-use std::time::Duration;
-use url;
 use contracts::mock_consumer::MockConsumer;
-use std::time::Instant;
+use db::tables::{get_job_id, Job, RequestType};
+use goose::{goose::GooseResponse, prelude::*};
+use once_cell::sync::Lazy;
+use proto::{JobStatus, JobStatusType};
+use serde_json::json;
+use std::{
+    sync::atomic::{AtomicU64, Ordering},
+    time::{Duration, Instant},
+};
+use test_utils::get_signers;
+use url;
 
 // Global atomic counter for the nonce
 static GLOBAL_NONCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(2));
 
 const MAX_CYCLES: u64 = 1_000_000;
 const CONSUMER_ADDR: &str = "0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6";
-const PROGRAM_ID: &[u8] = &[38, 97, 129, 246, 1, 9, 102, 56, 121, 187, 170, 57, 163, 102, 31, 208, 122, 142, 221, 113, 246, 162, 114, 4, 239, 24, 213, 94, 45, 195, 127, 233];
+const PROGRAM_ID: &[u8] = &[
+    38, 97, 129, 246, 1, 9, 102, 56, 121, 187, 170, 57, 163, 102, 31, 208, 122, 142, 221, 113, 246,
+    162, 114, 4, 239, 24, 213, 94, 45, 195, 127, 233,
+];
 
 #[tokio::main]
 async fn main() -> Result<(), GooseError> {
     GooseAttack::initialize()?
-        .register_scenario(scenario!("LoadtestSubmitJob")
-            .set_wait_time(Duration::from_secs(1), Duration::from_secs(3))?
-            .register_transaction(transaction!(loadtest_submit_job))
+        .register_scenario(
+            scenario!("LoadtestSubmitJob")
+                .set_wait_time(Duration::from_secs(1), Duration::from_secs(3))?
+                .register_transaction(transaction!(loadtest_submit_job)),
         )
-        .register_scenario(scenario!("LoadtestGetResult")
-            .register_transaction(transaction!(submit_first_job).set_on_start()) // We want to submit the first job first before getting the result of this job
-            .register_transaction(transaction!(loadtest_get_result))
+        .register_scenario(
+            scenario!("LoadtestGetResult")
+                .register_transaction(transaction!(submit_first_job).set_on_start()) // We want to submit the first job first before getting the result of this job
+                .register_transaction(transaction!(loadtest_get_result)),
         )
         .execute()
         .await?;
@@ -64,8 +69,8 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
         "state": Vec::<u64>::new()
     });
 
-    let _goose_metrics: GooseResponse = user.post_json("/v1/coprocessor_node/submit_job", &payload)
-        .await?;
+    let _goose_metrics: GooseResponse =
+        user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
 
     if wait_until_relay {
         wait_until_result_relayed(nonce).await;
@@ -76,15 +81,15 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
 }
 
 async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
-    let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
+    let consumer_addr: Address =
+        Address::parse_checksummed(CONSUMER_ADDR, None).expect("Valid address");
     let job_id = get_job_id(1, consumer_addr);
-    
+
     let payload = json!({
         "jobId": job_id
     });
 
-    let _goose_metrics = user.post_json("/v1/coprocessor_node/get_result", &payload)
-        .await?;
+    let _goose_metrics = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
 
     Ok(())
 }
@@ -99,18 +104,18 @@ async fn submit_first_job(user: &mut GooseUser) -> TransactionResult {
         "state": Vec::<u64>::new()
     });
 
-    let _goose_metrics = user.post_json("/v1/coprocessor_node/submit_job", &payload)
-        .await?;
+    let _goose_metrics = user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
 
     Ok(())
 }
 
 async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
-    let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
+    let consumer_addr: Address =
+        Address::parse_checksummed(CONSUMER_ADDR, None).expect("Valid address");
 
     let job = Job {
         id: get_job_id(nonce, consumer_addr),
-        nonce: nonce,
+        nonce,
         max_cycles: MAX_CYCLES,
         // Need to use abi_encode_packed because the contract address
         // should not be zero-padded
@@ -128,12 +133,13 @@ async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
             retries: 0,
         },
     };
-    let job_params = (&job).try_into().unwrap();
+    let job_params = (&job).try_into().expect("Valid job");
     let encoded_job_request = abi_encode_offchain_job_request(job_params);
 
     let signers = get_signers(6);
     let offchain_signer = signers[5].clone();
-    let signature = offchain_signer.sign_message(&encoded_job_request).await.unwrap();
+    let signature =
+        offchain_signer.sign_message(&encoded_job_request).await.expect("Signing should work");
 
     (encoded_job_request, signature.as_bytes().to_vec())
 }
@@ -145,8 +151,9 @@ async fn wait_until_result_relayed(nonce: u64) {
     let consumer_provider = ProviderBuilder::new()
         .with_recommended_fillers()
         .wallet(random_user_wallet)
-        .on_http(url::Url::parse("http://127.0.0.1:60420").unwrap());
-    let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
+        .on_http(url::Url::parse("http://127.0.0.1:60420").expect("Valid URL"));
+    let consumer_addr: Address =
+        Address::parse_checksummed(CONSUMER_ADDR, None).expect("Valid address");
     let consumer_contract = MockConsumer::new(consumer_addr, &consumer_provider);
 
     let job_id = get_job_id(nonce, consumer_addr);
@@ -160,7 +167,7 @@ async fn wait_until_result_relayed(nonce: u64) {
                 if inputs.iter().all(|&x| x == 0) {
                     tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
                 }
-            },
+            }
             Err(e) => eprintln!("Error calling getOnchainInputForJob: {:?}", e),
         }
     }
