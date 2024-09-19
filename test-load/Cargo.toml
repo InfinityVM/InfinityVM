@@ -17,5 +17,7 @@ abi = { workspace = true }
 db = { workspace = true }
 proto = { workspace = true }
 test-utils = { workspace = true }
+url = "2.4.0"
+contracts = { workspace = true }
 
 [dev-dependencies]

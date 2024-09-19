@@ -6520,6 +6520,7 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
+ "contracts",
  "db",
  "goose",
  "once_cell",
@@ -6527,6 +6528,7 @@ dependencies = [
  "serde_json",
  "test-utils",
  "tokio",
+ "url",
 ]
 
 [[package]]
