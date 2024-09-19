@@ -1,3 +1,4 @@
+use abi::{abi_encode_offchain_job_request, JobParams, StatefulProgramResult};
 use alloy::{
     network::EthereumWallet,
     primitives::U256,
@@ -9,20 +10,17 @@ use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{
     api::{
         AddOrderRequest, AddOrderResponse, AssetBalance, CancelOrderRequest, DepositRequest,
-        FillStatus, Request, WithdrawRequest,
+        FillStatus, OrderFill, Request, WithdrawRequest,
     },
     BorshKeccak256, ClobState,
 };
 use clob_programs::CLOB_ELF;
-use clob_test_utils::{mock_erc20::MockErc20, next_state};
+use clob_test_utils::{mint_and_approve, mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
 use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
 use zkvm_executor::service::OffchainResultWithMetadata;
-
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulProgramResult};
-use clob_core::api::OrderFill;
 
 fn program_id() -> Vec<u8> {
     compute_image_id(CLOB_ELF).unwrap().as_bytes().to_vec()
@@ -431,6 +429,115 @@ async fn clob_node_e2e() {
         assert_eq!(alice_quote_bal, U256::from(400));
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(900));
+    }
+    E2E::new().clob().run(test).await;
+}
+
+// Test that we can partially match orders, withdraw, and then cancel a partially matched order. In
+// the past the clob has panicked in this edge case
+#[ignore]
+#[tokio::test(flavor = "multi_thread")]
+async fn cancel_works() {
+    async fn test(args: Args) {
+        let clob = args.clob_consumer.unwrap();
+        let anvil = args.anvil;
+
+        let clob_endpoint = args.clob_endpoint.unwrap();
+        let client = clob_client::Client::new(clob_endpoint);
+
+        mint_and_approve(&clob, anvil.anvil.endpoint(), 10).await;
+
+        let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
+        let bob: [u8; 20] = bob_key.address().into();
+        let bob_wallet = EthereumWallet::new(bob_key);
+
+        let bob_provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(bob_wallet)
+            .on_http(anvil.anvil.endpoint().parse().unwrap());
+        let bob_contract = ClobConsumer::new(clob.clob_consumer, &bob_provider);
+        let call = bob_contract.deposit(U256::from(150), U256::from(300));
+        call.send().await.unwrap().get_receipt().await.unwrap();
+
+        // Wait for deposits to process
+        sleep(Duration::from_secs(3)).await;
+        let state = client.clob_state().await.unwrap();
+        assert_eq!(
+            *state.base_balances().get(&bob).unwrap(),
+            AssetBalance { free: 150, locked: 0 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 300, locked: 0 }
+        );
+
+        let limit1 = AddOrderRequest { address: bob, is_buy: false, limit_price: 5, size: 1 };
+
+        let (_r, _i) = client.order(limit1).await.unwrap();
+        let state = client.clob_state().await.unwrap();
+        assert_eq!(
+            *state.base_balances().get(&bob).unwrap(),
+            AssetBalance { free: 149, locked: 1 }
+        );
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 300, locked: 0 }
+        );
+
+        let limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 6, size: 2 };
+        let (r, _i) = client.order(limit2).await.unwrap();
+        assert_eq!(
+            r,
+            AddOrderResponse {
+                success: true,
+                status: Some(FillStatus {
+                    oid: 1,
+                    size: 2,
+                    address: [
+                        160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47, 32,
+                        167, 151, 32
+                    ],
+                    filled_size: 1,
+                    fills: vec![OrderFill {
+                        maker_oid: 0,
+                        taker_oid: 1,
+                        size: 1,
+                        price: 5,
+                        buyer: [
+                            160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47,
+                            32, 167, 151, 32
+                        ],
+                        seller: [
+                            160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47,
+                            32, 167, 151, 32
+                        ]
+                    }]
+                })
+            }
+        );
+        let state = client.clob_state().await.unwrap();
+        assert_eq!(
+            *state.base_balances().get(&bob).unwrap(),
+            AssetBalance { free: 150, locked: 0 }
+        );
+        // (6 * 2)(taker price*size) - (5 * 1)(maker price*size)
+        assert_eq!(
+            *state.quote_balances().get(&bob).unwrap(),
+            AssetBalance { free: 293, locked: 7 }
+        );
+
+        let withdraw = WithdrawRequest { address: bob, base_free: 150, quote_free: 293 };
+        let (_r, _i) = client.withdraw(withdraw).await.unwrap();
+        let state = client.clob_state().await.unwrap();
+        assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0 });
+        assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 7 });
+
+        // Cancel the partially filled order
+        let cancel = CancelOrderRequest { oid: 1 };
+        let (_r, _i) = client.cancel(cancel).await.unwrap();
+        let state = client.clob_state().await.unwrap();
+        assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0 });
+        assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free: 7, locked: 0 });
     }
     E2E::new().clob().run(test).await;
 }

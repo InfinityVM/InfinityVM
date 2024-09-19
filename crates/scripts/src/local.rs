@@ -1,7 +1,5 @@
 //! Locally spin up the coprocessor node, anvil, and the clob.
 
-use std::{fs::File, process::Command};
-
 use alloy::primitives::hex;
 use clob_client::cli::{ClobDeployInfo, DEFAULT_DEPLOY_INFO};
 use clob_node::{
@@ -10,9 +8,9 @@ use clob_node::{
 };
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
-
 use mock_consumer::anvil_with_mock_consumer;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
+use std::{fs::File, process::Command};
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
