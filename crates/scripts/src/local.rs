@@ -16,6 +16,7 @@ use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
+use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 
 const ANVIL_PORT: u16 = 60420;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
@@ -121,7 +122,16 @@ async fn main() {
         tracing::info!("Submitting CLOB ELF to coprocessor node");
         let submit_program_request =
             SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
-        coproc_client.submit_program(submit_program_request).await.unwrap();
+        let submit_program_response = coproc_client.submit_program(submit_program_request).await.unwrap();
+        tracing::info!("Program ID of CLOB ELF: {:?}", submit_program_response.into_inner().program_id);
+
+        tracing::info!("Submitting MockConsumer ELF to coprocessor node");
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
+            vm_type: VmType::Risc0.into(),
+        };
+        let submit_program_response = coproc_client.submit_program(submit_program_request).await.unwrap();
+        tracing::info!("Program ID of MockConsumer ELF: {:?}", submit_program_response.into_inner().program_id);
     }
 
     tracing::info!("Starting CLOB");

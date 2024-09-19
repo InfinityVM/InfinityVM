@@ -1,6 +1,6 @@
 #!/bin/bash
 
-RPC_URL=${RPC_URL:-http://localhost:8545}
+RPC_URL=${RPC_URL:-http://localhost:60420}
 CHAIN_ID=${CHAIN_ID:-31337}
 NONCE=${1:-1}
 

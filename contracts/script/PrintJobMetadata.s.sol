@@ -12,21 +12,9 @@ contract PrintJobMetadata is Script, Utils {
     address public consumerAddress;
 
     function printJobMetadata(uint64 nonce) public {
-        string memory coprocessorDeployedContracts = readOutput(
-            "coprocessor_deployment_output"
-        );
+        jobManager = JobManager(0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512);
 
-        jobManager = JobManager(
-            stdJson.readAddress(
-                coprocessorDeployedContracts,
-                ".addresses.jobManager"
-            )
-        );
-
-        consumerAddress = stdJson.readAddress(
-                coprocessorDeployedContracts,
-                ".addresses.consumer"
-            );
+        consumerAddress = 0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6;
         bytes32 jobID = keccak256(abi.encodePacked(nonce, consumerAddress));
 
         JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(jobID);

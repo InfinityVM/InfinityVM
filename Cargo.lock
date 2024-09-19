@@ -5723,6 +5723,7 @@ dependencies = [
  "dotenv",
  "k256",
  "mock-consumer",
+ "mock-consumer-methods",
  "proto",
  "serde_json",
  "tempfile",

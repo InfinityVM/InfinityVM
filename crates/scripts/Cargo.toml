@@ -35,3 +35,4 @@ clob-node = { workspace = true }
 clob-client = { workspace = true }
 clob-programs = { workspace = true }
 mock-consumer = { workspace = true }
+mock-consumer-methods = { workspace = true }
