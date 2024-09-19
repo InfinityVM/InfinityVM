@@ -2,7 +2,7 @@
 
 This doc contains instructions on how to run load testing for the coprocessor node. We use [Goose](https://book.goose.rs/title-page.html) for load tests.
 
-### Setup (if running load tests against a local instance)
+## Setup (if running load tests against a local instance)
 
 We need to first run the local setup for anvil + coprocessor node (this also deploys the required contracts and submits the mock consumer ELF):
 ```
@@ -14,7 +14,7 @@ Next, we need to start the REST gRPC gateway (since Goose tests need to run agai
 cargo run --bin http-gateway -- --grpc-address 127.0.0.1:50420
 ```
 
-### Running the load tests
+## Running the load tests
 
 There are two load test scenarios we run:
 
@@ -33,7 +33,7 @@ If we're testing against a remote instance of the coprocessor node and gRPC gate
 
 To stop the load tests, use `ctrl+C`. The results of the load tests will be saved in a `report.html` file. This contains stats and graphs on number of requests, response time, errors, etc.
 
-### Load test parameters
+## Load test parameters
 
 By default, Goose will spawn 10 users. If we want to increase the number of users to 50, for example, we would use the `-u` flag:
 ```
@@ -42,7 +42,7 @@ cargo run --bin test-load --release -- --host http://127.0.0.1:8080 --report-fil
 
 There are other parameters (startup time, etc.) that we can play with, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 
-### Measuring time until result is relayed by coprocessor node
+## Measuring time until result is relayed by coprocessor node
 
 `LoadtestSubmitJob` only measures the response time between when a user sends a `SubmitJob` request and receives the `jobID` from the coprocessor node as a response. The coprocessor node then spawns a thread to actually execute the job and relay the result.
 
