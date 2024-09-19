@@ -1894,7 +1894,6 @@ dependencies = [
  "clob-core",
  "clob-programs",
  "eyre",
- "futures-util",
  "http-body-util",
  "mime",
  "paste",

@@ -2,12 +2,12 @@
 
 use clob_core::{
     api::{
-        AddOrderRequest, AddOrderResponse, ApiResponse, CancelOrderRequest, CancelOrderResponse,
-        Response, WithdrawRequest, WithdrawResponse,
+        AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, Response,
+        WithdrawRequest, WithdrawResponse,
     },
     ClobState,
 };
-use clob_node::app::{ClobStateResponse, CANCEL, CLOB_STATE, ORDERS, WITHDRAW};
+use clob_node::app::{AppResponse, ClobStateResponse, CANCEL, CLOB_STATE, ORDERS, WITHDRAW};
 use eyre::bail;
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -29,10 +29,15 @@ impl Client {
         req: CancelOrderRequest,
     ) -> eyre::Result<(CancelOrderResponse, u64)> {
         let url = self.path(CANCEL);
-        let api_resp: ApiResponse = post(&url, req).await;
+        let app_resp: AppResponse = post(&url, req).await;
+        let api_resp = match app_resp {
+            AppResponse::Success(r) => r,
+            AppResponse::Failure(e) => bail!("unexpected app response: {e:?}"),
+        };
+
         let resp = match api_resp.response {
             Response::CancelOrder(resp) => resp,
-            _ => bail!("unexpected api response"),
+            x => bail!("unexpected api response: {x:?}"),
         };
 
         Ok((resp, api_resp.global_index))
@@ -47,10 +52,15 @@ impl Client {
     /// Post an add order request.
     pub async fn order(&self, req: AddOrderRequest) -> eyre::Result<(AddOrderResponse, u64)> {
         let url = self.path(ORDERS);
-        let api_resp: ApiResponse = post(&url, req).await;
+        let app_resp: AppResponse = post(&url, req).await;
+        let api_resp = match app_resp {
+            AppResponse::Success(r) => r,
+            AppResponse::Failure(e) => bail!("unexpected app response: {e:?}"),
+        };
+
         let resp = match api_resp.response {
             Response::AddOrder(resp) => resp,
-            _ => bail!("unexpected api response"),
+            x => bail!("unexpected api response: {x:?}"),
         };
 
         Ok((resp, api_resp.global_index))
@@ -59,10 +69,15 @@ impl Client {
     /// Post withdraw request.
     pub async fn withdraw(&self, req: WithdrawRequest) -> eyre::Result<(WithdrawResponse, u64)> {
         let url = self.path(WITHDRAW);
-        let api_resp: ApiResponse = post(&url, req).await;
+        let app_resp: AppResponse = post(&url, req).await;
+        let api_resp = match app_resp {
+            AppResponse::Success(r) => r,
+            AppResponse::Failure(e) => bail!("unexpected app response: {e:?}"),
+        };
+
         let resp = match api_resp.response {
             Response::Withdraw(resp) => resp,
-            _ => bail!("unexpected api response"),
+            x => bail!("unexpected api response: {x:?}"),
         };
 
         Ok((resp, api_resp.global_index))

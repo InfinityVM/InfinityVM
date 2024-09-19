@@ -89,6 +89,8 @@ impl OrderBook {
     }
 
     /// Add a limit order.
+    ///
+    /// Note that the price of each fill is determined by the maker's price.
     pub fn limit(&mut self, order: Order) -> (u64, Vec<OrderFill>) {
         let mut remaining_amount = order.size;
         let mut fills = vec![];

@@ -14,6 +14,8 @@ pub const SEEN_GLOBAL_INDEX_KEY: u32 = 0;
 pub const PROCESSED_GLOBAL_INDEX_KEY: u32 = 1;
 /// Key for the index of where the next batch should start.
 pub const NEXT_BATCH_GLOBAL_INDEX_KEY: u32 = 2;
+/// Key for last seen block height.
+pub const LAST_SEEN_HEIGHT_KEY: u32 = 0;
 
 pub mod models;
 pub mod tables;

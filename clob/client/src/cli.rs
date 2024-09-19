@@ -9,6 +9,7 @@ use alloy::{
 use clap::{Args, Parser, Subcommand};
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
+use eyre::OptionExt;
 use serde::{Deserialize, Serialize};
 use test_utils::get_account;
 
@@ -82,11 +83,7 @@ impl Cli {
                 println!("{result:?}");
             }
             Commands::Deposit(a) => {
-                let deploy_info: ClobDeployInfo = {
-                    let filename = DEFAULT_DEPLOY_INFO.to_string();
-                    let raw_json = std::fs::read(filename).unwrap();
-                    serde_json::from_slice(&raw_json).unwrap()
-                };
+                let deploy_info = get_default_deploy_info()?;
 
                 let local_signer = get_account(a.anvil_account as usize);
                 println!("account={}", local_signer.address());
@@ -95,16 +92,21 @@ impl Cli {
                 let provider = ProviderBuilder::new()
                     .with_recommended_fillers()
                     .wallet(eth_wallet)
-                    .on_http(a.eth_rpc.parse().unwrap());
+                    .on_http(a.eth_rpc.parse()?);
 
                 let clob_consumer = ClobConsumer::new(deploy_info.clob_consumer, &provider);
-                let base_amount = U256::try_from(a.base).unwrap();
-                let quote_amount = U256::try_from(a.quote).unwrap();
+                let base_amount = U256::try_from(a.base)?;
+                let quote_amount = U256::try_from(a.quote)?;
 
                 let call = clob_consumer.deposit(base_amount, quote_amount);
-                let receipt = call.send().await.unwrap().get_receipt().await.unwrap();
+                let receipt = call.send().await?.get_receipt().await?;
 
-                print_balances(local_signer.address(), a.eth_rpc, deploy_info.clob_consumer).await;
+                print_onchain_balances(
+                    local_signer.address(),
+                    a.eth_rpc,
+                    deploy_info.clob_consumer,
+                )
+                .await?;
 
                 for log in receipt.inner.logs() {
                     let l = match log.log_decode::<ClobConsumer::Deposit>() {
@@ -119,6 +121,28 @@ impl Cli {
                 }
 
                 println!("receipt.status={:?}", receipt.status());
+            }
+            Commands::Query(a) => {
+                let address = get_account(a.anvil_account as usize).address();
+                let deploy_info = get_default_deploy_info()?;
+
+                println!("account={}", address);
+
+                print_onchain_balances(address, a.eth_rpc, deploy_info.clob_consumer).await?;
+
+                let bytes = *address;
+                let clob_state = client.clob_state().await?;
+                let clob_base = clob_state
+                    .base_balances()
+                    .get(&*bytes)
+                    .ok_or_eyre("missing clob base balance")?;
+                let clob_quote = clob_state
+                    .quote_balances()
+                    .get(&*bytes)
+                    .ok_or_eyre("missing clob quote balance")?;
+
+                println!("clob base: {:?}", clob_base);
+                println!("clob quote: {:?}", clob_quote);
             }
             Commands::Deploy(_a) => {
                 unimplemented!()
@@ -143,6 +167,8 @@ enum Commands {
     Deposit(DepositArgs),
     /// Deploy job manager and clob consumer contracts. Also mint erc20 tokens to users
     Deploy(DeployArgs),
+    /// Query balances onchain and in the clob.
+    Query(QueryArgs),
 }
 
 #[derive(Args, Debug)]
@@ -206,27 +232,47 @@ struct DeployArgs {
     coproc_grpc: String,
 }
 
-async fn print_balances(account: Address, eth_rpc: String, clob_consumer: Address) {
-    let provider =
-        ProviderBuilder::new().with_recommended_fillers().on_http(eth_rpc.parse().unwrap());
+#[derive(Args, Debug)]
+struct QueryArgs {
+    /// Anvil account number to use for the key
+    #[arg(short = 'A', long)]
+    anvil_account: u32,
+    /// EVM node RPC address.
+    #[arg(long, short, default_value = "http://127.0.0.1:60420")]
+    eth_rpc: String,
+}
+
+async fn print_onchain_balances(
+    account: Address,
+    eth_rpc: String,
+    clob_consumer: Address,
+) -> eyre::Result<()> {
+    let provider = ProviderBuilder::new().with_recommended_fillers().on_http(eth_rpc.parse()?);
 
     let clob_consumer = ClobConsumer::new(clob_consumer, &provider);
 
-    let deposited_base = clob_consumer.depositedBalanceBase(account).call().await.unwrap()._0;
-    println!("deposited_base={}", deposited_base);
+    let deposited_base = clob_consumer.depositedBalanceBase(account).call().await?._0;
+    println!("onchain: deposited base {}", deposited_base);
 
-    let deposited_quote = clob_consumer.depositedBalanceQuote(account).call().await.unwrap()._0;
-    println!("deposited_quote={}", deposited_quote);
+    let deposited_quote = clob_consumer.depositedBalanceQuote(account).call().await?._0;
+    println!("onchain: deposited quote {}", deposited_quote);
 
-    let free_base = clob_consumer.freeBalanceBase(account).call().await.unwrap()._0;
-    println!("free_base={}", free_base);
+    let free_base = clob_consumer.freeBalanceBase(account).call().await?._0;
+    println!("onchain: free base {}", free_base);
 
-    let locked_base = clob_consumer.lockedBalanceBase(account).call().await.unwrap()._0;
-    println!("locked_base={}", locked_base);
+    let locked_base = clob_consumer.lockedBalanceBase(account).call().await?._0;
+    println!("onchain: locked_base {}", locked_base);
 
-    let free_quote = clob_consumer.freeBalanceQuote(account).call().await.unwrap()._0;
-    println!("free_quote={}", free_quote);
+    let free_quote = clob_consumer.freeBalanceQuote(account).call().await?._0;
+    println!("onchain: free quote {}", free_quote);
 
-    let locked_quote = clob_consumer.lockedBalanceQuote(account).call().await.unwrap()._0;
-    println!("locked_quote={}", locked_quote);
+    let locked_quote = clob_consumer.lockedBalanceQuote(account).call().await?._0;
+    println!("onchain: locked quote {}", locked_quote);
+    Ok(())
+}
+
+fn get_default_deploy_info() -> eyre::Result<ClobDeployInfo> {
+    let filename = DEFAULT_DEPLOY_INFO.to_string();
+    let raw_json = std::fs::read(filename)?;
+    serde_json::from_slice(&raw_json).map_err(Into::into)
 }

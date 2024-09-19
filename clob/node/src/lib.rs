@@ -60,8 +60,10 @@ pub async fn run(
     let db2 = Arc::clone(&db);
     let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
 
+    let db2 = Arc::clone(&db);
     let deposit_event_listener_handle = tokio::spawn(async move {
         start_deposit_event_listener(
+            db2,
             eth_ws_url,
             clob_consumer_addr.into(),
             engine_sender,
