@@ -21,7 +21,7 @@ use test_utils::get_signers;
 use url;
 
 // Global atomic counter for the nonce
-static GLOBAL_NONCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(2));
+static GLOBAL_NONCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(2)); // We start at 2 because the first job is submitted in the setup for LoadtestGetResult
 
 const MAX_CYCLES: u64 = 1_000_000;
 const CONSUMER_ADDR: &str = "0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6";
@@ -63,10 +63,10 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let (encoded_job_request, signature) = create_and_sign_offchain_request(nonce).await;
 
     let payload = json!({
-        "request": encoded_job_request.iter().map(|&b| b as u64).collect::<Vec<u64>>(),
-        "signature": signature.iter().map(|&b| b as u64).collect::<Vec<u64>>(),
-        "offchainInput": Vec::<u64>::new(),
-        "state": Vec::<u64>::new()
+        "request": encoded_job_request,
+        "signature": signature,
+        "offchainInput": Vec::<u8>::new(),
+        "state": Vec::<u8>::new()
     });
 
     let _goose_metrics: GooseResponse =
@@ -98,8 +98,8 @@ async fn submit_first_job(user: &mut GooseUser) -> TransactionResult {
     let (encoded_job_request, signature) = create_and_sign_offchain_request(1).await;
 
     let payload = json!({
-        "request": encoded_job_request.iter().map(|&b| b as u64).collect::<Vec<u64>>(),
-        "signature": signature.iter().map(|&b| b as u64).collect::<Vec<u64>>(),
+        "request": encoded_job_request,
+        "signature": signature,
         "offchainInput": Vec::<u64>::new(),
         "state": Vec::<u64>::new()
     });
