@@ -18,7 +18,6 @@ use std::{
     time::{Duration, Instant},
 };
 use test_utils::get_signers;
-use url;
 
 // Global atomic counter for the nonce
 static GLOBAL_NONCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(2)); // We start at 2 because the first job is submitted in the setup for LoadtestGetResult
@@ -145,7 +144,7 @@ async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
 }
 
 async fn wait_until_result_relayed(nonce: u64) {
-    let random_user: PrivateKeySigner = get_signers(6)[5].clone().into();
+    let random_user: PrivateKeySigner = get_signers(6)[5].clone();
     let random_user_wallet = EthereumWallet::from(random_user);
 
     let consumer_provider = ProviderBuilder::new()
