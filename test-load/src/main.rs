@@ -2,11 +2,11 @@
 use abi::abi_encode_offchain_job_request;
 use alloy::{primitives::Address, signers::Signer, sol_types::SolValue};
 use db::tables::{get_job_id, Job, RequestType};
-use goose::{goose::GooseResponse, prelude::*};
+use goose::prelude::*;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use once_cell::sync::Lazy;
-use proto::{JobStatus, JobStatusType};
-use serde_json::{json, Value};
+use proto::{GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest};
+use serde_json::Value;
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
@@ -51,15 +51,15 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
 
     let (encoded_job_request, signature) = create_and_sign_offchain_request(nonce).await;
 
-    let payload = json!({
-        "request": encoded_job_request,
-        "signature": signature,
-        "offchainInput": Vec::<u8>::new(),
-        "state": Vec::<u8>::new()
-    });
+    let submit_job_request = SubmitJobRequest {
+        request: encoded_job_request,
+        signature,
+        offchain_input: Vec::new(),
+        state: Vec::new(),
+    };
+    let payload = serde_json::to_value(submit_job_request).expect("Valid SubmitJobRequest");
 
-    let _goose_metrics: GooseResponse =
-        user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
+    let _goose_metrics = user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
 
     if wait_until_completed {
         wait_until_job_completed(user, nonce).await;
@@ -74,9 +74,8 @@ async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
         Address::parse_checksummed(CONSUMER_ADDR, None).expect("Valid address");
     let job_id = get_job_id(1, consumer_addr);
 
-    let payload = json!({
-        "jobId": job_id
-    });
+    let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
+    let payload = serde_json::to_value(get_result_request).expect("Valid GetResultRequest");
 
     let _goose_metrics = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
 
@@ -86,12 +85,13 @@ async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
 async fn submit_first_job(user: &mut GooseUser) -> TransactionResult {
     let (encoded_job_request, signature) = create_and_sign_offchain_request(1).await;
 
-    let payload = json!({
-        "request": encoded_job_request,
-        "signature": signature,
-        "offchainInput": Vec::<u64>::new(),
-        "state": Vec::<u64>::new()
-    });
+    let submit_job_request = SubmitJobRequest {
+        request: encoded_job_request,
+        signature,
+        offchain_input: Vec::new(),
+        state: Vec::new(),
+    };
+    let payload = serde_json::to_value(submit_job_request).expect("Valid SubmitJobRequest");
 
     let _goose_metrics = user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
 
@@ -156,9 +156,9 @@ async fn get_result_status(
     user: &mut GooseUser,
     job_id: [u8; 32],
 ) -> Result<i64, Box<dyn std::error::Error>> {
-    let payload = json!({
-        "jobId": job_id
-    });
+    let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
+    let payload = serde_json::to_value(get_result_request)?;
+
     let response = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
     let body = response.response?.text().await?;
 
