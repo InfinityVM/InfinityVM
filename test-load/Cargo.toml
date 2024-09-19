@@ -19,5 +19,6 @@ db = { workspace = true }
 proto = { workspace = true }
 test-utils = { workspace = true }
 contracts = { workspace = true }
+mock-consumer-methods = { workspace = true }
 
 [dev-dependencies]

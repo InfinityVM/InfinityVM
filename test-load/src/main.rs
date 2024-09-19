@@ -3,6 +3,7 @@ use abi::abi_encode_offchain_job_request;
 use alloy::{primitives::Address, signers::Signer, sol_types::SolValue};
 use db::tables::{get_job_id, Job, RequestType};
 use goose::{goose::GooseResponse, prelude::*};
+use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use once_cell::sync::Lazy;
 use proto::{JobStatus, JobStatusType};
 use serde_json::{json, Value};
@@ -17,10 +18,6 @@ static GLOBAL_NONCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(2)); // We st
 
 const MAX_CYCLES: u64 = 1_000_000;
 const CONSUMER_ADDR: &str = "0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6";
-const PROGRAM_ID: &[u8] = &[
-    38, 97, 129, 246, 1, 9, 102, 56, 121, 187, 170, 57, 163, 102, 31, 208, 122, 142, 221, 113, 246,
-    162, 114, 4, 239, 24, 213, 94, 45, 195, 127, 233,
-];
 
 #[tokio::main]
 async fn main() -> Result<(), GooseError> {
@@ -112,7 +109,7 @@ async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
         // Need to use abi_encode_packed because the contract address
         // should not be zero-padded
         consumer_address: Address::abi_encode_packed(&consumer_addr),
-        program_id: PROGRAM_ID.to_vec(),
+        program_id: MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect(),
         onchain_input: Address::abi_encode(&consumer_addr),
         offchain_input: vec![],
         state: vec![],

@@ -6522,6 +6522,7 @@ dependencies = [
  "contracts",
  "db",
  "goose",
+ "mock-consumer-methods",
  "once_cell",
  "proto",
  "serde_json",
