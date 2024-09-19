@@ -1,18 +1,11 @@
 //! Load testing for the coprocessor node
 use abi::abi_encode_offchain_job_request;
-use alloy::{
-    network::EthereumWallet,
-    primitives::{Address, FixedBytes},
-    providers::ProviderBuilder,
-    signers::{local::PrivateKeySigner, Signer},
-    sol_types::SolValue,
-};
-use contracts::mock_consumer::MockConsumer;
+use alloy::{primitives::Address, signers::Signer, sol_types::SolValue};
 use db::tables::{get_job_id, Job, RequestType};
 use goose::{goose::GooseResponse, prelude::*};
 use once_cell::sync::Lazy;
 use proto::{JobStatus, JobStatusType};
-use serde_json::json;
+use serde_json::{json, Value};
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
@@ -49,7 +42,7 @@ async fn main() -> Result<(), GooseError> {
 }
 
 async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
-    let wait_until_relay = match std::env::var("WAIT_UNTIL_RELAY") {
+    let wait_until_completed = match std::env::var("WAIT_UNTIL_JOB_COMPLETED") {
         Ok(enabled) => enabled.to_lowercase() == "true",
         Err(_) => false,
     };
@@ -71,10 +64,10 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let _goose_metrics: GooseResponse =
         user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
 
-    if wait_until_relay {
-        wait_until_result_relayed(nonce).await;
+    if wait_until_completed {
+        wait_until_job_completed(user, nonce).await;
         let total_duration = start_time.elapsed();
-        println!("Total duration until result is relayed: {:?}", total_duration);
+        println!("Total duration until job completed: {:?}", total_duration);
     }
     Ok(())
 }
@@ -143,31 +136,36 @@ async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
     (encoded_job_request, signature.as_bytes().to_vec())
 }
 
-async fn wait_until_result_relayed(nonce: u64) {
-    let random_user: PrivateKeySigner = get_signers(6)[5].clone();
-    let random_user_wallet = EthereumWallet::from(random_user);
-
-    let consumer_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
-        .wallet(random_user_wallet)
-        .on_http(url::Url::parse("http://127.0.0.1:60420").expect("Valid URL"));
+async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) {
     let consumer_addr: Address =
         Address::parse_checksummed(CONSUMER_ADDR, None).expect("Valid address");
-    let consumer_contract = MockConsumer::new(consumer_addr, &consumer_provider);
-
     let job_id = get_job_id(nonce, consumer_addr);
-    let mut inputs = vec![0u8; 32];
-    // If the inputs are all zero, then the job is not yet relayed
-    while inputs.iter().all(|&x| x == 0) {
-        let get_inputs_call = consumer_contract.getOnchainInputForJob(FixedBytes(job_id));
-        match get_inputs_call.call().await {
-            Ok(MockConsumer::getOnchainInputForJobReturn { _0: result }) => {
-                inputs = result.to_vec();
-                if inputs.iter().all(|&x| x == 0) {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+
+    loop {
+        match get_result_status(user, job_id).await {
+            Ok(status) => {
+                // 2 is the status code for a completed job
+                if status == 2 {
+                    break;
                 }
             }
-            Err(e) => eprintln!("Error calling getOnchainInputForJob: {:?}", e),
+            Err(e) => eprintln!("Error getting result: {:?}", e),
         }
+        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
     }
+}
+
+async fn get_result_status(
+    user: &mut GooseUser,
+    job_id: [u8; 32],
+) -> Result<i64, Box<dyn std::error::Error>> {
+    let payload = json!({
+        "jobId": job_id
+    });
+    let response = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
+    let body = response.response?.text().await?;
+
+    let result: Value = serde_json::from_str(&body)?;
+    let status = result["jobResult"]["status"]["status"].as_i64();
+    Ok(status.unwrap_or(0)) // Return 0 if status is not found or not an i64
 }

@@ -42,13 +42,13 @@ cargo run --bin test-load --release -- --host http://127.0.0.1:8080 --report-fil
 
 There are other parameters (startup time, etc.) that we can play with, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 
-## Measuring time until result is relayed by coprocessor node
+## Measuring time until job is completed
 
-`LoadtestSubmitJob` only measures the response time between when a user sends a `SubmitJob` request and receives the `jobID` from the coprocessor node as a response. The coprocessor node then spawns a thread to actually execute the job and relay the result.
+`LoadtestSubmitJob` only measures the response time between when a user sends a `SubmitJob` request and receives the `jobID` from the coprocessor node as a response. The coprocessor node then spawns a thread to actually execute the job.
 
-We want to also measure the time between when a user sends `SubmitJob` and when the result is actually relayed. We haven't been able to figure out a way to record this in the Goose report (Goose or Locust don't seem to support custom metrics), but for now we have added the option of logging the time it takes until the result is relayed. If we want, we can direct these logs to a log file and perform analysis using that.
+We want to also measure the time between when a user sends `SubmitJob` and when the job is actually completed. We haven't been able to figure out a way to record this in the Goose report (Goose or Locust don't seem to support custom metrics), but for now we have added the option of logging the time it takes until the job is completed. If we want, we can direct these logs to a log file and perform analysis using that.
 
-To enable this when running the load tests, set the `WAIT_UNTIL_RELAY` env var:
+To enable this when running the load tests, set the `WAIT_UNTIL_JOB_COMPLETED` env var:
 ```
-WAIT_UNTIL_RELAY=true cargo run --bin test-load --release -- --host http://127.0.0.1:8080 --report-file=report.html
+WAIT_UNTIL_JOB_COMPLETED=true cargo run --bin test-load --release -- --host http://127.0.0.1:8080 --report-file=report.html
 ```
