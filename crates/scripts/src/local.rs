@@ -120,24 +120,14 @@ async fn main() {
         tracing::info!("Submitting CLOB ELF to coprocessor node");
         let submit_program_request =
             SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
-        let submit_program_response =
-            coproc_client.submit_program(submit_program_request).await.unwrap();
-        tracing::info!(
-            "Program ID of CLOB ELF: {:?}",
-            submit_program_response.into_inner().program_id
-        );
+        coproc_client.submit_program(submit_program_request).await.unwrap();
 
         tracing::info!("Submitting MockConsumer ELF to coprocessor node");
         let submit_program_request = SubmitProgramRequest {
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
         };
-        let submit_program_response =
-            coproc_client.submit_program(submit_program_request).await.unwrap();
-        tracing::info!(
-            "Program ID of MockConsumer ELF: {:?}",
-            submit_program_response.into_inner().program_id
-        );
+        coproc_client.submit_program(submit_program_request).await.unwrap();
     }
 
     tracing::info!("Starting CLOB");
