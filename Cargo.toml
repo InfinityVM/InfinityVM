@@ -155,6 +155,8 @@ k256 = { version = "0.13", default-features = false }
 # m
 # n
 # o
+once_cell = { version = "1.8", default-features = false }
+
 # p
 prometheus = { version = "0.9", features = ["process"] }
 prost = { version = "0.13", features = ["derive", "std"], default-features = false }
@@ -194,6 +196,8 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt","json
 tracing-appender = { version = "0.2.3", default-features = false }
 
 # u
+url = { version = "2.4.0", default-features = false }
+
 # v
 # w
 # x

@@ -12,12 +12,12 @@ alloy = { workspace = true }
 goose = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
 serde_json = { workspace = true }
-once_cell = "1.8"
+once_cell = { workspace = true }
+url = { workspace = true }
 abi = { workspace = true }
 db = { workspace = true }
 proto = { workspace = true }
 test-utils = { workspace = true }
-url = "2.4.0"
 contracts = { workspace = true }
 
 [dev-dependencies]
