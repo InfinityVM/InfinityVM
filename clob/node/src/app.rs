@@ -171,7 +171,7 @@ async fn clob_state(
 }
 
 /// Response type from most app endpoints. `eyre` Errors are automatically converted to
-/// the `Bad` variant.
+/// the `Failure` variant.
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AppResponse {
