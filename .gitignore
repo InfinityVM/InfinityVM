@@ -24,3 +24,6 @@ logs/
 
 # ide
 .idea
+
+# Load testing report
+test-load/report.html
