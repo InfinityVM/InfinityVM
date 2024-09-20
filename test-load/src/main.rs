@@ -8,6 +8,7 @@ use once_cell::sync::Lazy;
 use proto::{GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest};
 use serde_json::Value;
 use std::{
+    env,
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
 };
@@ -16,11 +17,28 @@ use test_utils::get_signers;
 // Global atomic counter for the nonce
 static GLOBAL_NONCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(2)); // We start at 2 because the first job is submitted in the setup for LoadtestGetResult
 
-const MAX_CYCLES: u64 = 1_000_000;
-const CONSUMER_ADDR: &str = "0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6";
+fn max_cycles() -> u64 {
+    env::var("MAX_CYCLES")
+        .expect("MAX_CYCLES must be set")
+        .parse()
+        .expect("MAX_CYCLES must be a valid u64")
+}
+
+fn consumer_addr() -> String {
+    env::var("CONSUMER_ADDR").expect("CONSUMER_ADDR must be set")
+}
+
+fn should_wait_until_job_completed() -> bool {
+    match std::env::var("WAIT_UNTIL_JOB_COMPLETED") {
+        Ok(enabled) => enabled.to_lowercase() == "true",
+        Err(_) => false,
+    }
+}
 
 #[tokio::main]
 async fn main() -> Result<(), GooseError> {
+    dotenv::from_filename("./test-load/.env").ok();
+
     GooseAttack::initialize()?
         .register_scenario(
             scenario!("LoadtestSubmitJob")
@@ -39,11 +57,6 @@ async fn main() -> Result<(), GooseError> {
 }
 
 async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
-    let wait_until_completed = match std::env::var("WAIT_UNTIL_JOB_COMPLETED") {
-        Ok(enabled) => enabled.to_lowercase() == "true",
-        Err(_) => false,
-    };
-
     let start_time = Instant::now();
 
     // Get the current nonce and increment it
@@ -61,7 +74,7 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
 
     let _goose_metrics = user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
 
-    if wait_until_completed {
+    if should_wait_until_job_completed() {
         wait_until_job_completed(user, nonce).await;
         let total_duration = start_time.elapsed();
         println!("Total duration until job completed: {:?}", total_duration);
@@ -71,7 +84,7 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
 
 async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
     let consumer_addr: Address =
-        Address::parse_checksummed(CONSUMER_ADDR, None).expect("Valid address");
+        Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
     let job_id = get_job_id(1, consumer_addr);
 
     let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
@@ -83,7 +96,8 @@ async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
 }
 
 async fn submit_first_job(user: &mut GooseUser) -> TransactionResult {
-    let (encoded_job_request, signature) = create_and_sign_offchain_request(1).await;
+    let nonce = 1;
+    let (encoded_job_request, signature) = create_and_sign_offchain_request(nonce).await;
 
     let submit_job_request = SubmitJobRequest {
         request: encoded_job_request,
@@ -100,12 +114,12 @@ async fn submit_first_job(user: &mut GooseUser) -> TransactionResult {
 
 async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
     let consumer_addr: Address =
-        Address::parse_checksummed(CONSUMER_ADDR, None).expect("Valid address");
+        Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
 
     let job = Job {
         id: get_job_id(nonce, consumer_addr),
         nonce,
-        max_cycles: MAX_CYCLES,
+        max_cycles: max_cycles(),
         // Need to use abi_encode_packed because the contract address
         // should not be zero-padded
         consumer_address: Address::abi_encode_packed(&consumer_addr),
@@ -135,7 +149,7 @@ async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
 
 async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) {
     let consumer_addr: Address =
-        Address::parse_checksummed(CONSUMER_ADDR, None).expect("Valid address");
+        Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
     let job_id = get_job_id(nonce, consumer_addr);
 
     loop {

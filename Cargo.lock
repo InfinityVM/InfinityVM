@@ -6519,8 +6519,8 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
- "contracts",
  "db",
+ "dotenv",
  "goose",
  "mock-consumer-methods",
  "once_cell",
@@ -6528,7 +6528,6 @@ dependencies = [
  "serde_json",
  "test-utils",
  "tokio",
- "url",
 ]
 
 [[package]]
