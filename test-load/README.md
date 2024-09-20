@@ -31,6 +31,8 @@ where `http://127.0.0.1:8080` is the address of the REST gRPC gateway.
 
 If we're testing against a remote instance of the coprocessor node and gRPC gateway, we would pass the remote URL for `--host`.
 
+We can also set `CONSUMER_ADDRESS` and `MAX_CYCLES` in a `.env` file in `test-load` (an `example.env` is provided). If the `CONSUMER_ADDRESS` env var isn't set, the load test program will use the consumer address from the deploy info, or else a default consumer address hard-coded in the program.
+
 To stop the load tests, use `ctrl+C`. The results of the load tests will be saved in a `report.html` file. This contains stats and graphs on number of requests, response time, errors, etc.
 
 ## Load test parameters
@@ -48,7 +50,4 @@ There are other parameters (startup time, etc.) that we can play with, these are
 
 We want to also measure the time between when a user sends `SubmitJob` and when the job is actually completed. We haven't been able to figure out a way to record this in the Goose report (Goose or Locust don't seem to support custom metrics), but for now we have added the option of logging the time it takes until the job is completed. If we want, we can direct these logs to a log file and perform analysis using that.
 
-To enable this when running the load tests, set the `WAIT_UNTIL_JOB_COMPLETED` env var:
-```
-WAIT_UNTIL_JOB_COMPLETED=true cargo run --bin test-load --release -- --host http://127.0.0.1:8080 --report-file=report.html
-```
+To enable this when running the load tests, set the `WAIT_UNTIL_JOB_COMPLETED` env var to `true` in `test-load/.env`.
