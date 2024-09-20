@@ -1855,10 +1855,10 @@ dependencies = [
  "clob-contracts",
  "clob-core",
  "clob-node",
+ "contracts",
  "eyre",
  "reqwest 0.12.7",
  "serde",
- "serde_json",
  "test-utils",
  "tokio",
 ]
@@ -2025,6 +2025,9 @@ name = "contracts"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "eyre",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -5908,10 +5911,10 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
- "clob-client",
  "clob-node",
  "clob-programs",
  "clob-test-utils",
+ "contracts",
  "db",
  "dotenv",
  "k256",
@@ -6519,6 +6522,7 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
+ "contracts",
  "db",
  "dotenv",
  "goose",

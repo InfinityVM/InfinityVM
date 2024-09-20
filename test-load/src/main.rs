@@ -1,6 +1,7 @@
 //! Load testing for the coprocessor node
 use abi::abi_encode_offchain_job_request;
 use alloy::{primitives::Address, signers::Signer, sol_types::SolValue};
+use contracts::get_default_deploy_info;
 use db::tables::{get_job_id, Job, RequestType};
 use goose::prelude::*;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
@@ -18,18 +19,28 @@ use test_utils::get_signers;
 static GLOBAL_NONCE: Lazy<AtomicU64> = Lazy::new(|| AtomicU64::new(2)); // We start at 2 because the first job is submitted in the setup for LoadtestGetResult
 
 fn max_cycles() -> u64 {
-    env::var("MAX_CYCLES")
-        .expect("MAX_CYCLES must be set")
-        .parse()
-        .expect("MAX_CYCLES must be a valid u64")
+    match env::var("MAX_CYCLES") {
+        Ok(max_cycles) => max_cycles.parse().unwrap_or(1000000),
+        Err(_) => 1000000, // Default value if MAX_CYCLES is not set
+    }
 }
 
 fn consumer_addr() -> String {
-    env::var("CONSUMER_ADDR").expect("CONSUMER_ADDR must be set")
+    match env::var("CONSUMER_ADDR") {
+        Ok(consumer_addr) => consumer_addr,
+        Err(_) => {
+            // If env var is not set, try to get the consumer address from the deploy info
+            let deploy_info = get_default_deploy_info();
+            match deploy_info {
+                Ok(deploy_info) => deploy_info.mock_consumer.to_string(),
+                Err(_) => "0xbdEd0D2bf404bdcBa897a74E6657f1f12e5C6fb6".to_string(), /* Default consumer address */
+            }
+        }
+    }
 }
 
 fn should_wait_until_job_completed() -> bool {
-    match std::env::var("WAIT_UNTIL_JOB_COMPLETED") {
+    match env::var("WAIT_UNTIL_JOB_COMPLETED") {
         Ok(enabled) => enabled.to_lowercase() == "true",
         Err(_) => false,
     }
