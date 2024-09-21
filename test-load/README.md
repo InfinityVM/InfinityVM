@@ -9,7 +9,7 @@ We need to first run the local setup for anvil + coprocessor node (this also dep
 cargo run --bin local
 ```
 
-Next, we need to start the REST gRPC gateway (since Goose tests need to run against an HTTP server):
+Next, we need to start the REST gRPC gateway in a separate terminal (since Goose tests need to run against an HTTP server):
 ```
 cargo run --bin http-gateway -- --grpc-address 127.0.0.1:50420
 ```
