@@ -123,6 +123,7 @@ async fn main() {
             SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
+        // We submit the MockConsumer ELF to the coprocessor node for load testing.
         tracing::info!("Submitting MockConsumer ELF to coprocessor node");
         let submit_program_request = SubmitProgramRequest {
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),

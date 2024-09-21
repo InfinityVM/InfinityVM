@@ -4,7 +4,7 @@ This doc contains instructions on how to run load testing for the coprocessor no
 
 ## Setup (if running load tests against a local instance)
 
-We need to first run the local setup for anvil + coprocessor node (this also deploys the required contracts and submits the mock consumer ELF):
+We need to first run the local setup for anvil + coprocessor node (this also deploys the required contracts and submits the mock consumer and clob ELF):
 ```
 cargo run --bin local
 ```
