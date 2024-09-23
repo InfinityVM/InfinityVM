@@ -168,8 +168,8 @@ async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
             .iter()
             .flat_map(|&x| x.to_le_bytes())
             .collect::<Vec<u8>>(),
-        offchain_input_hash: *keccak256(&[]),
-        state_hash: *keccak256(&[]),
+        offchain_input_hash: *keccak256([]),
+        state_hash: *keccak256([]),
     };
 
     let encoded_job_request = abi_encode_offchain_job_request(job_params);
