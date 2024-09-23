@@ -12,7 +12,6 @@ use goose::prelude::*;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, GetResultResponse, SubmitJobRequest};
-use reqwest;
 use std::{
     env,
     sync::atomic::{AtomicU64, Ordering},
@@ -39,19 +38,19 @@ async fn initialize_global_nonce() -> AtomicU64 {
 }
 
 fn anvil_ip() -> String {
-    env::var("ANVIL_IP").unwrap_or("127.0.0.1".to_string())
+    env::var("ANVIL_IP").unwrap_or_else(|_| "127.0.0.1".to_string())
 }
 
 fn anvil_port() -> String {
-    env::var("ANVIL_PORT").unwrap_or("8545".to_string())
+    env::var("ANVIL_PORT").unwrap_or_else(|_| "8545".to_string())
 }
 
 fn coprocessor_gateway_ip() -> String {
-    env::var("COPROCESSOR_GATEWAY_IP").unwrap_or("127.0.0.1".to_string())
+    env::var("COPROCESSOR_GATEWAY_IP").unwrap_or_else(|_| "127.0.0.1".to_string())
 }
 
 fn coprocessor_gateway_port() -> String {
-    env::var("COPROCESSOR_GATEWAY_PORT").unwrap_or("8080".to_string())
+    env::var("COPROCESSOR_GATEWAY_PORT").unwrap_or_else(|_| "8080".to_string())
 }
 
 fn max_cycles() -> u64 {
