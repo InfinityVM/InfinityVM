@@ -5,6 +5,7 @@
 !/crates
 !/programs
 !/test
+!/test-load
 !/clob
 !/proto
 !/contracts
