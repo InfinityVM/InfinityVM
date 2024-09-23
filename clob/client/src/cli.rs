@@ -9,9 +9,10 @@ use alloy::{
 use clap::{Args, Parser, Subcommand};
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
+use clob_test_utils::{mint_and_approve, AnvilClob};
 use contracts::get_default_deploy_info;
 use eyre::OptionExt;
-use test_utils::get_account;
+use test_utils::{get_account, get_signers};
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -128,8 +129,17 @@ impl Cli {
                 println!("clob base: {:?}", clob_base);
                 println!("clob quote: {:?}", clob_quote);
             }
-            Commands::Deploy(_a) => {
-                unimplemented!()
+            Commands::Deploy(a) => {
+                let deploy_info = get_default_deploy_info()?;
+
+                let info = AnvilClob {
+                    // clob signer doesn't matter
+                    clob_signer: get_signers(6)[5].clone(),
+                    clob_consumer: deploy_info.clob_consumer,
+                    quote_erc20: deploy_info.quote_erc20,
+                    base_erc20: deploy_info.base_erc20,
+                };
+                mint_and_approve(&info, a.eth_rpc, a.account_count).await;
             }
         };
 
@@ -214,6 +224,8 @@ struct DeployArgs {
     eth_rpc: String,
     #[arg(long, short, default_value = "http://127.0.0.1:50420")]
     coproc_grpc: String,
+    #[arg(long, short, default_value_t = 1000)]
+    account_count: usize,
 }
 
 #[derive(Args, Debug)]

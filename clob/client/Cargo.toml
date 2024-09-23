@@ -21,3 +21,4 @@ clob-node = { workspace = true }
 test-utils = { workspace = true }
 clob-contracts = { workspace = true }
 contracts = { workspace = true }
+clob-test-utils = { workspace = true }

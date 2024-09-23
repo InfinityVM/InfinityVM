@@ -11,3 +11,5 @@ alloy = { workspace = true, features = ["full", "contract", "transport-http", "t
 clob-core = { workspace = true }
 clob-contracts = { workspace = true }
 test-utils = { workspace = true }
+
+tokio = { workspace = true }
