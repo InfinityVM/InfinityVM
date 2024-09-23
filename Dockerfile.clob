@@ -11,8 +11,6 @@ FROM base as builder
 WORKDIR /app
 COPY --from=base /app/. .
 RUN cd contracts && forge build
-RUN ls -al
-RUN ls -al /app
 RUN cargo build --release --locked --bin clob-node
 
 FROM debian:bookworm-slim
