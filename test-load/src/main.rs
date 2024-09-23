@@ -6,12 +6,11 @@ use alloy::{
     sol_types::SolValue,
 };
 use contracts::get_default_deploy_info;
-use db::tables::{get_job_id, Job, RequestType};
+use db::tables::get_job_id;
 use goose::prelude::*;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use once_cell::sync::Lazy;
-use proto::{GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest};
-use serde_json::Value;
+use proto::{GetResultRequest, GetResultResponse, SubmitJobRequest};
 use std::{
     env,
     sync::atomic::{AtomicU64, Ordering},
@@ -210,9 +209,13 @@ async fn get_result_status(
     let payload = serde_json::to_value(get_result_request)?;
 
     let response = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
-    let body = response.response?.text().await?;
+    let get_result_response: GetResultResponse = response.response?.json().await?;
 
-    let result: Value = serde_json::from_str(&body)?;
-    let status = result["jobResult"]["status"]["status"].as_i64();
-    Ok(status.unwrap_or(0)) // Return 0 if status is not found or not an i64
+    match get_result_response.job_result {
+        Some(job_result) => match job_result.status {
+            Some(status) => Ok(status.status.into()),
+            None => Ok(0),
+        },
+        None => Ok(0),
+    }
 }
