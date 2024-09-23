@@ -223,6 +223,7 @@ db = { path = "crates/db" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 proto = { path = "crates/proto" }
+test-load = { path = "test-load" }
 test-utils = { path = "crates/sdk/test-utils" }
 zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }

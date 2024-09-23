@@ -17,4 +17,4 @@ alloy-signer-local = { version = "0.3.3", features = ["mnemonic"]}
 alloy-signer = { version = "0.3.3" }
 
 contracts = { workspace = true }
-
+abi = { workspace = true }

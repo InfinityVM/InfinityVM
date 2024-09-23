@@ -12,6 +12,10 @@ path = "src/main.rs"
 name = "local"
 path = "src/local.rs"
 
+[[bin]]
+name = "grpc"
+path = "src/grpc.rs"
+
 [lints]
 workspace = true
 
@@ -24,11 +28,13 @@ tempfile = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }
+url = { workspace = true }
 
 proto = { workspace = true }
 zkvm-executor = { workspace = true }
 db = { workspace = true }
 abi = { workspace = true }
+test-load = { workspace = true }
 test-utils = { workspace = true }
 clob-test-utils = { workspace = true }
 clob-node = { workspace = true }

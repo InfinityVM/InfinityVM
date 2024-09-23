@@ -5923,10 +5923,12 @@ dependencies = [
  "proto",
  "serde_json",
  "tempfile",
+ "test-load",
  "test-utils",
  "tokio",
  "tracing 0.1.40",
  "tracing-subscriber 0.3.18",
+ "url",
  "zkvm-executor",
 ]
 
@@ -6538,6 +6540,7 @@ dependencies = [
 name = "test-utils"
 version = "0.0.1"
 dependencies = [
+ "abi",
  "alloy",
  "alloy-signer 0.3.3",
  "alloy-signer-local 0.3.3",

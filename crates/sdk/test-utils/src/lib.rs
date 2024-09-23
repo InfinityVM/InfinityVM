@@ -3,15 +3,18 @@
 use std::net::TcpListener;
 
 use crate::wallet::Wallet;
+use abi::{abi_encode_offchain_job_request, JobParams};
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
-    primitives::Address,
+    primitives::{keccak256, Address},
     providers::{ext::AnvilApi, ProviderBuilder},
     signers::{
         k256::ecdsa::SigningKey,
         local::{LocalSigner, PrivateKeySigner},
+        Signer,
     },
+    sol_types::SolValue,
 };
 use contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
@@ -195,4 +198,36 @@ pub async fn job_manager_deploy(rpc_url: String) -> JobManagerDeploy {
     let job_manager = *proxy.address();
 
     JobManagerDeploy { rpc_url, job_manager, relayer, coprocessor_operator }
+}
+
+pub async fn create_and_sign_offchain_request(
+    nonce: u64,
+    max_cycles: u64,
+    consumer_addr: Address,
+    onchain_input: &[u8],
+    program_id: &[u8],
+    offchain_signer: LocalSigner<SigningKey>,
+    offchain_input: &[u8],
+    state: &[u8],
+) -> (Vec<u8>, Vec<u8>) {
+    let job_params = JobParams {
+        nonce,
+        max_cycles,
+        // Need to use abi_encode_packed because the contract address
+        // should not be zero-padded
+        consumer_address: Address::abi_encode_packed(&consumer_addr)
+            .try_into()
+            .expect("Valid consumer address"),
+        onchain_input,
+        program_id,
+        offchain_input_hash: *keccak256(offchain_input),
+        state_hash: *keccak256(state),
+    };
+
+    let encoded_job_request = abi_encode_offchain_job_request(job_params);
+
+    let signature =
+        offchain_signer.sign_message(&encoded_job_request).await.expect("Signing should work");
+
+    (encoded_job_request, signature.as_bytes().to_vec())
 }
