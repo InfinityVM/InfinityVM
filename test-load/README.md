@@ -25,7 +25,7 @@ For each load test, Goose spawns multiple users, with a thread for each user.
 
 To run the load tests:
 ```
-cargo run --bin test-load --release -- --host http://127.0.0.1:8080 --report-file=report.html
+cargo run --bin test-load --release -- --host http://127.0.0.1:8080
 ```
 where `http://127.0.0.1:8080` is the address of the REST gRPC gateway.
 
@@ -33,16 +33,18 @@ If we're testing against a remote instance of the coprocessor node and gRPC gate
 
 We can also set `CONSUMER_ADDRESS` and `MAX_CYCLES` in a `.env` file in `test-load` (an `example.env` is provided). If the `CONSUMER_ADDRESS` env var isn't set, the load test program will use the consumer address from the deploy info, or else a default consumer address hard-coded in the program.
 
-To stop the load tests, use `ctrl+C`. The results of the load tests will be saved in a `report.html` file. This contains stats and graphs on number of requests, response time, errors, etc.
+To stop the load tests, use `ctrl+C` (or, you can use the `RUN_TIME` env var mentioned in the next section). The results of the load tests will be saved in a `report.html` file. This contains stats and graphs on number of requests, response time, errors, etc.
 
 ## Load test parameters
 
-By default, Goose will spawn 10 users. If we want to increase the number of users to 50, for example, we would use the `-u` flag:
-```
-cargo run --bin test-load --release -- --host http://127.0.0.1:8080 --report-file=report.html -u 50
-```
+We have a few parameters we can play with in `test-load/.env` (these are in `example.env` too):
 
-There are other parameters (startup time, etc.) that we can play with, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
+1. `NUM_USERS`: Number of users spawned in the load tests
+2. `REPORT_FILE_NAME`: Filename of the report with results (defaults to `report.html`)
+3. `STARTUP_TIME`: Time required for all users to be spawned when starting tests
+4. `RUN_TIME`: Time for which we want the load tests to run (in addition to the `STARTUP_TIME`)
+
+There are other parameters that we can modify, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 
 ## Measuring time until job is completed
 
