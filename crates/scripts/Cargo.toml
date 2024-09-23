@@ -34,7 +34,6 @@ proto = { workspace = true }
 zkvm-executor = { workspace = true }
 db = { workspace = true }
 abi = { workspace = true }
-test-load = { workspace = true }
 test-utils = { workspace = true }
 clob-test-utils = { workspace = true }
 clob-node = { workspace = true }

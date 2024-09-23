@@ -5923,7 +5923,6 @@ dependencies = [
  "proto",
  "serde_json",
  "tempfile",
- "test-load",
  "test-utils",
  "tokio",
  "tracing 0.1.40",
