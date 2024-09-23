@@ -47,10 +47,23 @@ fn should_wait_until_job_completed() -> bool {
 }
 
 fn num_users() -> usize {
-    env::var("NUM_USERS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(10) // Default to 10 users if not set or invalid
+    env::var("NUM_USERS").ok().and_then(|v| v.parse().ok()).unwrap_or(10) // Default to 10 users if
+                                                                          // not set or invalid
+}
+
+fn report_file_name() -> String {
+    env::var("REPORT_FILE_NAME").ok().unwrap_or("report.html".to_string())
+}
+
+fn startup_time() -> usize {
+    env::var("STARTUP_TIME").ok().and_then(|v| v.parse().ok()).unwrap_or(10) // Default to 10
+                                                                             // seconds if not set
+                                                                             // or invalid
+}
+
+fn run_time() -> usize {
+    env::var("RUN_TIME").ok().and_then(|v| v.parse().ok()).unwrap_or(20) // Default to 20 seconds if
+                                                                         // not set or invalid
 }
 
 #[tokio::main]
@@ -69,6 +82,9 @@ async fn main() -> Result<(), GooseError> {
                 .register_transaction(transaction!(loadtest_get_result)),
         )
         .set_default(GooseDefault::Users, num_users())?
+        .set_default(GooseDefault::ReportFile, report_file_name().as_str())?
+        .set_default(GooseDefault::StartupTime, startup_time())?
+        .set_default(GooseDefault::RunTime, run_time())?
         .execute()
         .await?;
 
