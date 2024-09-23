@@ -1,6 +1,10 @@
 //! Load testing for the coprocessor node
-use abi::abi_encode_offchain_job_request;
-use alloy::{primitives::Address, signers::Signer, sol_types::SolValue};
+use abi::{abi_encode_offchain_job_request, JobParams};
+use alloy::{
+    primitives::{keccak256, Address},
+    signers::Signer,
+    sol_types::SolValue,
+};
 use contracts::get_default_deploy_info;
 use db::tables::{get_job_id, Job, RequestType};
 use goose::prelude::*;
@@ -151,27 +155,24 @@ async fn create_and_sign_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
     let consumer_addr: Address =
         Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
 
-    let job = Job {
-        id: get_job_id(nonce, consumer_addr),
+    let encoded_consumer_addr = Address::abi_encode(&consumer_addr);
+    let job_params = JobParams {
         nonce,
         max_cycles: max_cycles(),
         // Need to use abi_encode_packed because the contract address
         // should not be zero-padded
-        consumer_address: Address::abi_encode_packed(&consumer_addr),
-        program_id: MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect(),
-        onchain_input: Address::abi_encode(&consumer_addr),
-        offchain_input: vec![],
-        state: vec![],
-        request_type: RequestType::Offchain(vec![]),
-        result_with_metadata: vec![],
-        zkvm_operator_signature: vec![],
-        status: JobStatus {
-            status: JobStatusType::Pending as i32,
-            failure_reason: None,
-            retries: 0,
-        },
+        consumer_address: Address::abi_encode_packed(&consumer_addr)
+            .try_into()
+            .expect("Valid consumer address"),
+        onchain_input: encoded_consumer_addr.as_slice(),
+        program_id: &MOCK_CONSUMER_GUEST_ID
+            .iter()
+            .flat_map(|&x| x.to_le_bytes())
+            .collect::<Vec<u8>>(),
+        offchain_input_hash: *keccak256(&[]),
+        state_hash: *keccak256(&[]),
     };
-    let job_params = (&job).try_into().expect("Valid job");
+
     let encoded_job_request = abi_encode_offchain_job_request(job_params);
 
     let signers = get_signers(6);
