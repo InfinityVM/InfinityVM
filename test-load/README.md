@@ -4,14 +4,9 @@ This doc contains instructions on how to run load testing for the coprocessor no
 
 ## Setup (if running load tests against a local instance)
 
-We need to first run the local setup for anvil + coprocessor node (this also deploys the required contracts and submits the mock consumer and clob ELF):
+We need to first run the local setup for anvil + coprocessor node + REST gRPC gateway (this also deploys the required contracts and submits the mock consumer and clob ELF):
 ```
 cargo run --bin local
-```
-
-Next, we need to start the REST gRPC gateway in a separate terminal (since Goose tests need to run against an HTTP server):
-```
-cargo run --bin http-gateway -- --grpc-address 127.0.0.1:50420
 ```
 
 ## Running the load tests
