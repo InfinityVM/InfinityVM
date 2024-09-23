@@ -9,25 +9,9 @@ use alloy::{
 use clap::{Args, Parser, Subcommand};
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
+use contracts::get_default_deploy_info;
 use eyre::OptionExt;
-use serde::{Deserialize, Serialize};
 use test_utils::get_account;
-
-/// Path to write deploy info to
-pub const DEFAULT_DEPLOY_INFO: &str = "./logs/clob_deploy_info.json";
-
-/// Contract deployment info for the clob.
-#[derive(Serialize, Deserialize, Debug)]
-pub struct ClobDeployInfo {
-    /// Job Manager contract address.
-    pub job_manager: Address,
-    /// Quote ERC20 contract address.
-    pub quote_erc20: Address,
-    /// Base ERC20 contract address.
-    pub base_erc20: Address,
-    /// CLOB Consumer contract address.
-    pub clob_consumer: Address,
-}
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]
@@ -269,10 +253,4 @@ async fn print_onchain_balances(
     let locked_quote = clob_consumer.lockedBalanceQuote(account).call().await?._0;
     println!("onchain: locked quote {}", locked_quote);
     Ok(())
-}
-
-fn get_default_deploy_info() -> eyre::Result<ClobDeployInfo> {
-    let filename = DEFAULT_DEPLOY_INFO.to_string();
-    let raw_json = std::fs::read(filename)?;
-    serde_json::from_slice(&raw_json).map_err(Into::into)
 }

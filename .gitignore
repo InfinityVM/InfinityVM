@@ -12,7 +12,7 @@ contracts/broadcast/**
 # Dotenv file
 contracts/.env
 crates/scripts/.env
-
+test-load/.env
 
 programs/**/methods/Cargo.lock
 programs/**/program/target
@@ -24,3 +24,6 @@ logs/
 
 # ide
 .idea
+
+# Load testing report
+report.html

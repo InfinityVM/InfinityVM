@@ -1,14 +1,15 @@
 //! Locally spin up the coprocessor node, anvil, and the clob.
 
 use alloy::primitives::hex;
-use clob_client::cli::{ClobDeployInfo, DEFAULT_DEPLOY_INFO};
 use clob_node::{
     CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR, CLOB_ETH_WS_ADDR,
     CLOB_JOB_SYNC_START, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
+use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
 use mock_consumer::anvil_with_mock_consumer;
+use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use std::{fs::File, process::Command};
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
@@ -18,6 +19,7 @@ use tracing::info;
 const ANVIL_PORT: u16 = 60420;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_PROM_PORT: u16 = 50069;
+const HTTP_GATEWAY_LISTEN_PORT: u16 = 8080;
 const CLOB_PORT: u16 = 40420;
 
 #[tokio::main]
@@ -77,10 +79,25 @@ async fn main() {
         .into();
     sleep_until_bound(COPROCESSOR_GRPC_PORT).await;
 
-    tracing::info!("Deploying MockConsumer contract");
+    info!("Starting REST gRPC gateway");
+    let http_gateway_listen_address = format!("{LOCALHOST}:{HTTP_GATEWAY_LISTEN_PORT}");
+    info!(?http_gateway_listen_address, "REST gRPC gateway listening on");
+    let _gateway_proc: ProcKill = Command::new("cargo")
+        .arg("run")
+        .arg("--bin")
+        .arg("http-gateway")
+        .arg("--")
+        .arg("--grpc-address")
+        .arg(coproc_grpc)
+        .spawn()
+        .unwrap()
+        .into();
+    sleep_until_bound(HTTP_GATEWAY_LISTEN_PORT).await;
+
+    info!("Deploying MockConsumer contract");
     let mock_consumer = anvil_with_mock_consumer(&job_manager_deploy).await;
     let mock_consumer_addr = mock_consumer.mock_consumer.to_string();
-    tracing::info!(?mock_consumer_addr, "MockConsumer deployed at");
+    info!(?mock_consumer_addr, "MockConsumer deployed at");
 
     let clob_deploy = anvil_with_clob_consumer(&job_manager_deploy).await;
     let clob_db_dir = tempfile::Builder::new().prefix("clob-node-local-db").tempdir().unwrap();
@@ -94,37 +111,46 @@ async fn main() {
     let client_coproc_grpc = format!("http://{LOCALHOST}:{COPROCESSOR_GRPC_PORT}");
 
     let accounts_num = 100;
-    tracing::info!("Minting tokens to the first {} accounts", accounts_num);
+    info!("Minting tokens to the first {} accounts", accounts_num);
     mint_and_approve(&clob_deploy, http_rpc_url.clone(), accounts_num).await;
 
     {
-        let deploy_info = ClobDeployInfo {
+        let deploy_info = DeployInfo {
             job_manager: job_manager_deploy.job_manager,
             quote_erc20: clob_deploy.quote_erc20,
             base_erc20: clob_deploy.base_erc20,
             clob_consumer: clob_deploy.clob_consumer,
+            mock_consumer: mock_consumer.mock_consumer,
         };
 
         let filename = DEFAULT_DEPLOY_INFO.to_string();
         let json = serde_json::to_string_pretty(&deploy_info).unwrap();
 
-        tracing::info!("ClobDeployInfo: {}", json);
-        tracing::info!("Writing deploy info to: {}", filename);
+        info!("DeployInfo: {}", json);
+        info!("Writing deploy info to: {}", filename);
         std::fs::write(filename, json).unwrap();
     }
 
     {
         let mut coproc_client =
             CoprocessorNodeClient::connect(client_coproc_grpc.clone()).await.unwrap();
-        tracing::info!("Submitting CLOB ELF to coprocessor node");
+        info!("Submitting CLOB ELF to coprocessor node");
         let submit_program_request =
             SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
         coproc_client.submit_program(submit_program_request).await.unwrap();
+
+        // We submit the MockConsumer ELF to the coprocessor node for load testing.
+        info!("Submitting MockConsumer ELF to coprocessor node");
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
+            vm_type: VmType::Risc0.into(),
+        };
+        coproc_client.submit_program(submit_program_request).await.unwrap();
     }
 
-    tracing::info!("Starting CLOB");
-    tracing::info!(?clob_http, "CLOB listening on");
-    tracing::info!(?clob_log_file, "CLOB logs");
+    info!("Starting CLOB");
+    info!(?clob_http, "CLOB listening on");
+    info!(?clob_log_file, "CLOB logs");
     let _proc: ProcKill = Command::new("cargo")
         .arg("run")
         .arg("-p")
@@ -147,7 +173,7 @@ async fn main() {
     let mut signal_terminate = signal(SignalKind::terminate()).unwrap();
     let mut signal_interrupt = signal(SignalKind::interrupt()).unwrap();
     tokio::select! {
-        _ = signal_terminate.recv() => tracing::info!("Received SIGTERM."),
-        _ = signal_interrupt.recv() => tracing::info!("Received SIGINT."),
+        _ = signal_terminate.recv() => info!("Received SIGTERM."),
+        _ = signal_interrupt.recv() => info!("Received SIGINT."),
     };
 }

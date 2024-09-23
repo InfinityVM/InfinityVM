@@ -25,6 +25,7 @@ members = [
 	"clob/programs",
 	"clob/node",
 	"clob/test-utils",
+	"test-load",
 ]
 exclude = [
 	"bin/ethos-reth",
@@ -139,6 +140,8 @@ futures = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
 
 # g
+goose = { version = "0.17", default-features = false }
+
 # h
 hex = { version = "0.4", default-features = false }
 home = { version = "0.5", default-features = false }
@@ -152,6 +155,8 @@ k256 = { version = "0.13", default-features = false }
 # m
 # n
 # o
+once_cell = { version = "1.8", default-features = false }
+
 # p
 prometheus = { version = "0.9", features = ["process"] }
 prost = { version = "0.13", features = ["derive", "std"], default-features = false }
@@ -191,6 +196,8 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt","json
 tracing-appender = { version = "0.2.3", default-features = false }
 
 # u
+url = { version = "2.4.0", default-features = false }
+
 # v
 # w
 # x
@@ -214,6 +221,7 @@ contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
 mock-consumer = { path = "crates/mock-consumer" }
+mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 proto = { path = "crates/proto" }
 test-utils = { path = "crates/sdk/test-utils" }
 zkvm = { path = "crates/zkvm" }

@@ -32,6 +32,7 @@ abi = { workspace = true }
 test-utils = { workspace = true }
 clob-test-utils = { workspace = true }
 clob-node = { workspace = true }
-clob-client = { workspace = true }
 clob-programs = { workspace = true }
 mock-consumer = { workspace = true }
+mock-consumer-methods = { workspace = true }
+contracts = { workspace = true }
