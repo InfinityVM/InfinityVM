@@ -46,6 +46,13 @@ fn should_wait_until_job_completed() -> bool {
     }
 }
 
+fn num_users() -> usize {
+    env::var("NUM_USERS")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(10) // Default to 10 users if not set or invalid
+}
+
 #[tokio::main]
 async fn main() -> Result<(), GooseError> {
     dotenv::from_filename("./test-load/.env").ok();
@@ -61,6 +68,7 @@ async fn main() -> Result<(), GooseError> {
                 .register_transaction(transaction!(submit_first_job).set_on_start()) // We want to submit the first job first before getting the result of this job
                 .register_transaction(transaction!(loadtest_get_result)),
         )
+        .set_default(GooseDefault::Users, num_users())?
         .execute()
         .await?;
 
