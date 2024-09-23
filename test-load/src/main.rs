@@ -2,7 +2,7 @@
 use abi::{abi_encode_offchain_job_request, JobParams};
 use alloy::{
     primitives::{keccak256, Address},
-    providers::{Provider, ProviderBuilder},
+    providers::ProviderBuilder,
     signers::Signer,
     sol_types::SolValue,
 };
@@ -12,6 +12,7 @@ use goose::prelude::*;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, GetResultResponse, SubmitJobRequest};
+use reqwest;
 use std::{
     env,
     sync::atomic::{AtomicU64, Ordering},
@@ -43,6 +44,14 @@ fn anvil_ip() -> String {
 
 fn anvil_port() -> String {
     env::var("ANVIL_PORT").unwrap_or("8545".to_string())
+}
+
+fn coprocessor_gateway_ip() -> String {
+    env::var("COPROCESSOR_GATEWAY_IP").unwrap_or("127.0.0.1".to_string())
+}
+
+fn coprocessor_gateway_port() -> String {
+    env::var("COPROCESSOR_GATEWAY_PORT").unwrap_or("8080".to_string())
 }
 
 fn max_cycles() -> u64 {
@@ -100,6 +109,9 @@ async fn main() -> Result<(), GooseError> {
     // Initialize GLOBAL_NONCE
     GLOBAL_NONCE.get_or_init(initialize_global_nonce).await;
 
+    // Submit the first job so loadtest_get_result() is guaranteed to get the result of this job
+    let _ = submit_first_job().await;
+
     GooseAttack::initialize()?
         .register_scenario(
             scenario!("LoadtestSubmitJob")
@@ -107,10 +119,12 @@ async fn main() -> Result<(), GooseError> {
                 .register_transaction(transaction!(loadtest_submit_job)),
         )
         .register_scenario(
-            scenario!("LoadtestGetResult")
-                .register_transaction(transaction!(submit_first_job).set_on_start()) // We want to submit the first job first before getting the result of this job
-                .register_transaction(transaction!(loadtest_get_result)),
+            scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
         )
+        .set_default(
+            GooseDefault::Host,
+            format!("http://{}:{}", coprocessor_gateway_ip(), coprocessor_gateway_port()).as_str(),
+        )?
         .set_default(GooseDefault::Users, num_users())?
         .set_default(GooseDefault::ReportFile, report_file_name().as_str())?
         .set_default(GooseDefault::StartupTime, startup_time())?
@@ -121,12 +135,42 @@ async fn main() -> Result<(), GooseError> {
     Ok(())
 }
 
+async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
+    let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
+
+    if nonce == 1 {
+        let (encoded_job_request, signature) = create_and_sign_offchain_request(nonce).await;
+
+        let submit_job_request = SubmitJobRequest {
+            request: encoded_job_request,
+            signature,
+            offchain_input: Vec::new(),
+            state: Vec::new(),
+        };
+        let payload = serde_json::to_value(submit_job_request)?;
+
+        let client = reqwest::Client::new();
+        let _response = client
+            .post(format!(
+                "http://{}:{}/v1/coprocessor_node/submit_job",
+                coprocessor_gateway_ip(),
+                coprocessor_gateway_port()
+            ))
+            .json(&payload)
+            .send()
+            .await?;
+
+        println!("First job submitted with nonce 1");
+    }
+
+    Ok(())
+}
+
 async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let start_time = Instant::now();
 
     // Get the current nonce and increment it
-    // We add 1 to the nonce because the first job is submitted in submit_first_job()
-    let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst) + 1;
+    let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
 
     let (encoded_job_request, signature) = create_and_sign_offchain_request(nonce).await;
 
@@ -157,28 +201,6 @@ async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
     let payload = serde_json::to_value(get_result_request).expect("Valid GetResultRequest");
 
     let _goose_metrics = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
-
-    Ok(())
-}
-
-async fn submit_first_job(user: &mut GooseUser) -> TransactionResult {
-    let nonce = GLOBAL_NONCE.get().unwrap().load(Ordering::SeqCst);
-
-    // We only need to do this once so loadtest_get_result() is guaranteed to get the result of this
-    // job
-    if nonce == 1 {
-        let (encoded_job_request, signature) = create_and_sign_offchain_request(nonce).await;
-
-        let submit_job_request = SubmitJobRequest {
-            request: encoded_job_request,
-            signature,
-            offchain_input: Vec::new(),
-            state: Vec::new(),
-        };
-        let payload = serde_json::to_value(submit_job_request).expect("Valid SubmitJobRequest");
-
-        let _goose_metrics = user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
-    }
 
     Ok(())
 }
