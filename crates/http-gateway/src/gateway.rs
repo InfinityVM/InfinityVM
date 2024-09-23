@@ -70,12 +70,12 @@ type Client = CoprocessorNodeClient<Channel>;
 
 impl HttpGrpcGateway {
     /// Create the gateway struct. Does not perform any network IO.
-    pub(crate) const fn new(grpc_addr: String, listen_addr: SocketAddr) -> Self {
+    pub const fn new(grpc_addr: String, listen_addr: SocketAddr) -> Self {
         Self { grpc_addr, listen_addr }
     }
 
     /// Run the the HTTP gateway.
-    pub(crate) async fn serve(self) -> Result<(), Error> {
+    pub async fn serve(self) -> Result<(), Error> {
         let grpc_client = CoprocessorNodeClient::<Channel>::connect(self.grpc_addr.clone())
             .await
             .map_err(|e| Error::ConnectionFailure(e.to_string()))?;
