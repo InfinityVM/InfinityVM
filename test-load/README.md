@@ -20,24 +20,25 @@ For each load test, Goose spawns multiple users, with a thread for each user.
 
 To run the load tests:
 ```
-cargo run --bin test-load --release -- --host http://127.0.0.1:8080
+cargo run --bin test-load --release
 ```
-where `http://127.0.0.1:8080` is the address of the REST gRPC gateway.
-
-If we're testing against a remote instance of the coprocessor node and gRPC gateway, we would pass the remote URL for `--host`.
-
-We can also set `CONSUMER_ADDRESS` and `MAX_CYCLES` in a `.env` file in `test-load` (an `example.env` is provided). If the `CONSUMER_ADDRESS` env var isn't set, the load test program will use the consumer address from the deploy info, or else a default consumer address hard-coded in the program.
 
 To stop the load tests, use `ctrl+C` (or, you can use the `RUN_TIME` env var mentioned in the next section). The results of the load tests will be saved in a `report.html` file. This contains stats and graphs on number of requests, response time, errors, etc.
 
 ## Load test parameters
 
-We have a few parameters we can play with in `test-load/.env` (these are in `example.env` too):
+We have a few parameters we can set in `test-load/.env` (an `example.env` is provided too):
 
-1. `NUM_USERS`: Number of users spawned in the load tests
-2. `REPORT_FILE_NAME`: Filename of the report with results (defaults to `report.html`)
-3. `STARTUP_TIME`: Time required for all users to be spawned when starting tests
-4. `RUN_TIME`: Time for which we want the load tests to run (in addition to the `STARTUP_TIME`)
+1. `COPROCESSOR_GATEWAY_IP`: External IP of the coprocessor node REST gRPC gateway (defaults to localhost)
+2. `COPROCESSOR_GATEWAY_PORT`: Port of the coprocessor node REST gRPC gateway
+3. `ANVIL_IP`: External IP of the anvil instance (defaults to localhost)
+4. `ANVIL_PORT`: Port of the anvil instance
+5. `CONSUMER_ADDRESS`: Contract address of the mock consumer. If the `CONSUMER_ADDRESS` env var isn't set, the load test program will use the consumer address from the deploy info, or else a default consumer address hard-coded in the program.
+6. `MAX_CYCLES`: Max cycles requested when submitting a job request to the coprocessor node.
+7. `NUM_USERS`: Number of users spawned in the load tests
+8. `REPORT_FILE_NAME`: Filename of the report with results (defaults to `report.html`)
+9. `STARTUP_TIME`: Time required for all users to be spawned when starting tests
+10. `RUN_TIME`: Time for which we want the load tests to run (in addition to the `STARTUP_TIME`)
 
 There are other parameters that we can modify, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 
