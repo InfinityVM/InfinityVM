@@ -52,7 +52,7 @@ fn num_users() -> usize {
 }
 
 fn report_file_name() -> String {
-    env::var("REPORT_FILE_NAME").ok().unwrap_or("report.html".to_string())
+    env::var("REPORT_FILE_NAME").ok().unwrap_or_else(|| "report.html".to_string())
 }
 
 fn startup_time() -> usize {
