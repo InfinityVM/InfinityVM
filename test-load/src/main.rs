@@ -18,8 +18,9 @@ use std::{
     time::{Duration, Instant},
 };
 use test_load::{
-    consumer_addr, get_offchain_request, num_users, report_file_name, run_time,
-    should_wait_until_job_completed, startup_time, submit_first_job, wait_until_job_completed,
+    anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
+    get_offchain_request, num_users, report_file_name, run_time, should_wait_until_job_completed,
+    startup_time, wait_until_job_completed,
 };
 use test_utils::get_signers;
 use tokio::sync::OnceCell;
@@ -39,22 +40,6 @@ async fn initialize_global_nonce() -> AtomicU64 {
     let nonce = consumer_contract.getNextNonce().call().await.unwrap()._0;
 
     AtomicU64::new(nonce)
-}
-
-fn anvil_ip() -> String {
-    env::var("ANVIL_IP").unwrap_or_else(|_| "127.0.0.1".to_string())
-}
-
-fn anvil_port() -> String {
-    env::var("ANVIL_PORT").unwrap_or_else(|_| "8545".to_string())
-}
-
-fn coprocessor_gateway_ip() -> String {
-    env::var("COPROCESSOR_GATEWAY_IP").unwrap_or_else(|_| "127.0.0.1".to_string())
-}
-
-fn coprocessor_gateway_port() -> String {
-    env::var("COPROCESSOR_GATEWAY_PORT").unwrap_or_else(|_| "8080".to_string())
 }
 
 #[tokio::main]
@@ -86,37 +71,6 @@ async fn main() -> Result<(), GooseError> {
         .set_default(GooseDefault::RunTime, run_time())?
         .execute()
         .await?;
-
-    Ok(())
-}
-
-async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
-    let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
-
-    if nonce == 1 {
-        let (encoded_job_request, signature) = create_and_sign_offchain_request(nonce).await;
-
-        let submit_job_request = SubmitJobRequest {
-            request: encoded_job_request,
-            signature,
-            offchain_input: Vec::new(),
-            state: Vec::new(),
-        };
-        let payload = serde_json::to_value(submit_job_request)?;
-
-        let client = reqwest::Client::new();
-        let _response = client
-            .post(format!(
-                "http://{}:{}/v1/coprocessor_node/submit_job",
-                coprocessor_gateway_ip(),
-                coprocessor_gateway_port()
-            ))
-            .json(&payload)
-            .send()
-            .await?;
-
-        println!("First job submitted with nonce 1");
-    }
 
     Ok(())
 }
@@ -156,6 +110,37 @@ async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
     let payload = serde_json::to_value(get_result_request).expect("Valid GetResultRequest");
 
     let _goose_metrics = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
+
+    Ok(())
+}
+
+pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
+    let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
+
+    if nonce == 1 {
+        let (encoded_job_request, signature) = get_offchain_request(nonce).await;
+
+        let submit_job_request = SubmitJobRequest {
+            request: encoded_job_request,
+            signature,
+            offchain_input: Vec::new(),
+            state: Vec::new(),
+        };
+        let payload = serde_json::to_value(submit_job_request)?;
+
+        let client = reqwest::Client::new();
+        let _response = client
+            .post(format!(
+                "http://{}:{}/v1/coprocessor_node/submit_job",
+                coprocessor_gateway_ip(),
+                coprocessor_gateway_port()
+            ))
+            .json(&payload)
+            .send()
+            .await?;
+
+        println!("First job submitted with nonce 1");
+    }
 
     Ok(())
 }

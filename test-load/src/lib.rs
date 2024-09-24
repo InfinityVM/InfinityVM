@@ -22,6 +22,22 @@ use std::{
 };
 use test_utils::{create_and_sign_offchain_request, get_signers};
 
+pub fn anvil_ip() -> String {
+    env::var("ANVIL_IP").unwrap_or_else(|_| "127.0.0.1".to_string())
+}
+
+pub fn anvil_port() -> String {
+    env::var("ANVIL_PORT").unwrap_or_else(|_| "8545".to_string())
+}
+
+pub fn coprocessor_gateway_ip() -> String {
+    env::var("COPROCESSOR_GATEWAY_IP").unwrap_or_else(|_| "127.0.0.1".to_string())
+}
+
+pub fn coprocessor_gateway_port() -> String {
+    env::var("COPROCESSOR_GATEWAY_PORT").unwrap_or_else(|_| "8080".to_string())
+}
+
 pub fn max_cycles() -> u64 {
     match env::var("MAX_CYCLES") {
         Ok(max_cycles) => max_cycles.parse().unwrap_or(1000000),
@@ -68,23 +84,6 @@ pub fn startup_time() -> usize {
 pub fn run_time() -> usize {
     env::var("RUN_TIME").ok().and_then(|v| v.parse().ok()).unwrap_or(20) // Default to 20 seconds if
                                                                          // not set or invalid
-}
-
-pub async fn submit_first_job(user: &mut GooseUser) -> TransactionResult {
-    let nonce = 1;
-    let (encoded_job_request, signature) = get_offchain_request(nonce).await;
-
-    let submit_job_request = SubmitJobRequest {
-        request: encoded_job_request,
-        signature,
-        offchain_input: Vec::new(),
-        state: Vec::new(),
-    };
-    let payload = serde_json::to_value(submit_job_request).expect("Valid SubmitJobRequest");
-
-    let _goose_metrics = user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
-
-    Ok(())
 }
 
 pub async fn get_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
