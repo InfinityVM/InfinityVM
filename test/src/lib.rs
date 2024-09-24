@@ -84,6 +84,8 @@ impl E2E {
         let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
+        let http_port = get_localhost_port();
+        let http_addr = format!("{LOCALHOST}:{http_port}");
         let prometheus_port = get_localhost_port();
         let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
         let relayer_private = hex::encode(anvil.relayer.to_bytes());
@@ -95,6 +97,8 @@ impl E2E {
             .env("ZKVM_OPERATOR_PRIV_KEY", operator_private)
             .arg("--grpc-address")
             .arg(&coprocessor_node_grpc)
+            .arg("--http-address")
+            .arg(&http_addr)
             .arg("--prom-address")
             .arg(&prometheus_addr)
             .arg("--http-eth-rpc")
