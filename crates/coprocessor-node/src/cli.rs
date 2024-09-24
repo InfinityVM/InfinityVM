@@ -6,6 +6,7 @@ use crate::{
     metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder},
     service::CoprocessorNodeServerInner,
+    gateway::{self, HttpGrpcGateway},
 };
 use alloy::{
     eips::BlockNumberOrTag,
@@ -21,8 +22,9 @@ use proto::coprocessor_node_server::CoprocessorNodeServer;
 use std::{
     net::{SocketAddr, SocketAddrV4},
     path::PathBuf,
-    sync::Arc,
+    sync::Arc, time::Duration,
 };
+use test_utils::sleep_until_bound;
 use tokio::{task::JoinHandle, try_join};
 use tracing::{info, instrument};
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
@@ -48,6 +50,9 @@ pub enum Error {
     /// invalid prometheus address
     #[error("invalid prometheus address")]
     InvalidPromAddress,
+    /// invalid http address
+    #[error("invalid http address")]
+    InvalidHttpAddress,
     /// grpc server failure
     #[error("grpc server failure: {0}")]
     GrpcServer(#[from] tonic::transport::Error),
@@ -81,6 +86,9 @@ pub enum Error {
     /// prometheus error
     #[error("prometheus error")]
     ErrorPrometheus(#[from] std::io::Error),
+    /// http grpc gateway error
+    #[error("http grpc gateway error: {0}")]
+    ErrorHttpGrpcGateway(#[from] gateway::Error),
 }
 
 type K256LocalSigner = LocalSigner<SigningKey>;
@@ -130,6 +138,10 @@ struct Opts {
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
 
+    /// Address to listen on for the REST gRPC gateway
+    #[arg(long, default_value = "127.0.0.1:8080")]
+    http_address: String,
+    
     /// prometheus metrics address
     #[arg(long, default_value = "127.0.0.1:3001")]
     prom_address: String,
@@ -246,6 +258,7 @@ impl Cli {
         // Parse the addresses for gRPC server and gateway
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
+        let http_listen_addr: SocketAddr = opts.http_address.parse().map_err(|_| Error::InvalidHttpAddress)?;
 
         let zkvm_operator = opts.operator_signer()?;
         let relayer = opts.relayer_signer()?;
@@ -313,11 +326,20 @@ impl Cli {
                 .await
         });
 
+        sleep_until_bound(grpc_addr.port()).await;
+
+        tokio::time::sleep(Duration::from_secs(8)).await;
+
+        let http_grpc_gateway = HttpGrpcGateway::new(grpc_addr.to_string(), http_listen_addr);
+        let http_grpc_gateway_server = tokio::spawn(async move {
+            http_grpc_gateway.serve().await
+        });
+
         // Exit early if either handle returns an error.
         // Note that we make sure to `spawn` each task so they can run in parallel
         // and not just concurrently on the same thread.
 
-        try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server))
+        try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server), flatten(http_grpc_gateway_server))
             .map(|_| ())
     }
 }

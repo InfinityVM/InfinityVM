@@ -74,7 +74,7 @@ Build
 cargo build
 
 # to build a specific crate run
-cargo build -p http-gateway # or whatever your crates name is
+cargo build -p coprocessor-node # or whatever your crates name is
 ```
 
 Lint
