@@ -108,17 +108,19 @@ pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String, count: us
 
         let amount = U256::try_from(u64::MAX).unwrap();
         let call_builder = quote_erc20.mint(provider.default_signer_address(), amount);
-        let _ = call_builder.send().await.unwrap().tx_hash();
+        let r1 = call_builder.send().await.unwrap().get_receipt();
 
         let call_builder = quote_erc20.approve(clob.clob_consumer, amount);
-        call_builder.send().await.unwrap().tx_hash();
+        let r2 = call_builder.send().await.unwrap().get_receipt();
 
         let base_erc20 = MockErc20::new(clob.base_erc20, &provider);
         let call_builder = base_erc20.mint(provider.default_signer_address(), amount);
-        call_builder.send().await.unwrap().tx_hash();
+        let r3 = call_builder.send().await.unwrap().get_receipt();
 
         let call_builder = base_erc20.approve(clob.clob_consumer, amount);
-        call_builder.send().await.unwrap().tx_hash();
+        let r4 = call_builder.send().await.unwrap().get_receipt();
+
+        tokio::try_join!(r1, r2, r3, r4).unwrap();
     }
 }
 
