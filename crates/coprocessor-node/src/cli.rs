@@ -2,6 +2,7 @@
 
 use crate::{
     event::{self, start_job_event_listener},
+    gateway::{self, HttpGrpcGateway},
     job_processor::{JobProcessorConfig, JobProcessorService},
     metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder},
@@ -48,6 +49,9 @@ pub enum Error {
     /// invalid prometheus address
     #[error("invalid prometheus address")]
     InvalidPromAddress,
+    /// invalid http address
+    #[error("invalid http address")]
+    InvalidHttpAddress,
     /// grpc server failure
     #[error("grpc server failure: {0}")]
     GrpcServer(#[from] tonic::transport::Error),
@@ -81,6 +85,9 @@ pub enum Error {
     /// prometheus error
     #[error("prometheus error")]
     ErrorPrometheus(#[from] std::io::Error),
+    /// http grpc gateway error
+    #[error("http grpc gateway error: {0}")]
+    ErrorHttpGrpcGateway(#[from] gateway::Error),
 }
 
 type K256LocalSigner = LocalSigner<SigningKey>;
@@ -129,6 +136,10 @@ struct Opts {
     /// gRPC server address
     #[arg(long, default_value = "127.0.0.1:50051")]
     grpc_address: String,
+
+    /// Address to listen on for the REST gRPC gateway
+    #[arg(long, default_value = "127.0.0.1:8080")]
+    http_address: String,
 
     /// prometheus metrics address
     #[arg(long, default_value = "127.0.0.1:3001")]
@@ -246,6 +257,8 @@ impl Cli {
         // Parse the addresses for gRPC server and gateway
         let grpc_addr: SocketAddrV4 =
             opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
+        let http_listen_addr: SocketAddr =
+            opts.http_address.parse().map_err(|_| Error::InvalidHttpAddress)?;
 
         let zkvm_operator = opts.operator_signer()?;
         let relayer = opts.relayer_signer()?;
@@ -313,12 +326,20 @@ impl Cli {
                 .await
         });
 
+        let http_grpc_gateway = HttpGrpcGateway::new(grpc_addr.to_string(), http_listen_addr);
+        let http_grpc_gateway_server = tokio::spawn(async move { http_grpc_gateway.serve().await });
+
         // Exit early if either handle returns an error.
         // Note that we make sure to `spawn` each task so they can run in parallel
         // and not just concurrently on the same thread.
 
-        try_join!(flatten(job_event_listener), flatten(grpc_server), flatten(prometheus_server))
-            .map(|_| ())
+        try_join!(
+            flatten(job_event_listener),
+            flatten(grpc_server),
+            flatten(prometheus_server),
+            flatten(http_grpc_gateway_server)
+        )
+        .map(|_| ())
     }
 }
 

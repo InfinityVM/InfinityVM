@@ -1,4 +1,5 @@
-//! Implementation of the gateway itself.
+//! REST gRPC gateway is a reverse proxy that exposes an HTTP interface to the coprocessor-node gRPC
+//! routes.
 
 use std::net::SocketAddr;
 
@@ -15,7 +16,19 @@ use axum::{
     Json, Router,
 };
 
-use crate::Error;
+/// Errors for the REST gRPC gateway.
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+    /// Failure to connect to gRPC server
+    #[error("failed to connect to grpc server: {0}")]
+    ConnectionFailure(String),
+    /// Network IO error
+    #[error(transparent)]
+    StdIO(#[from] std::io::Error),
+    /// invalid gRPC address
+    #[error("invalid gRPC address: {0}")]
+    InvalidGrpcAddress(#[from] std::net::AddrParseError),
+}
 
 const SUBMIT_JOB: &str = "submit_job";
 const GET_RESULT: &str = "get_result";
@@ -74,9 +87,10 @@ impl HttpGrpcGateway {
         Self { grpc_addr, listen_addr }
     }
 
-    /// Run the the HTTP gateway.
+    /// Run the HTTP gateway.
     pub async fn serve(self) -> Result<(), Error> {
-        let grpc_client = CoprocessorNodeClient::<Channel>::connect(self.grpc_addr.clone())
+        let client_coproc_grpc = format!("http://{}", self.grpc_addr);
+        let grpc_client = CoprocessorNodeClient::<Channel>::connect(client_coproc_grpc)
             .await
             .map_err(|e| Error::ConnectionFailure(e.to_string()))?;
 

@@ -37,6 +37,7 @@ async fn main() {
     let ws_rpc_url = job_manager_deploy.anvil.ws_endpoint();
 
     let coproc_grpc = format!("{LOCALHOST}:{COPROCESSOR_GRPC_PORT}");
+    let http_gateway_listen_address = format!("{LOCALHOST}:{HTTP_GATEWAY_LISTEN_PORT}");
     let coproc_prometheus = format!("{LOCALHOST}:{COPROCESSOR_PROM_PORT}");
     let coproc_relayer_private = hex::encode(job_manager_deploy.relayer.to_bytes());
     let coproc_operator_private = hex::encode(job_manager_deploy.coprocessor_operator.to_bytes());
@@ -50,6 +51,7 @@ async fn main() {
     info!("Starting coprocessor node");
     info!(?coproc_prometheus, ?coproc_grpc, "Coprocessor listening on");
     info!(?coproc_relayer_private, ?coproc_operator_private, "Coprocessor keys");
+    info!(?http_gateway_listen_address, "REST gRPC gateway listening on");
 
     let _proc: ProcKill = Command::new("cargo")
         .arg("run")
@@ -60,6 +62,8 @@ async fn main() {
         .env("ZKVM_OPERATOR_PRIV_KEY", coproc_operator_private)
         .arg("--grpc-address")
         .arg(&coproc_grpc)
+        .arg("--http-address")
+        .arg(&http_gateway_listen_address)
         .arg("--prom-address")
         .arg(&coproc_prometheus)
         .arg("--http-eth-rpc")
@@ -78,21 +82,6 @@ async fn main() {
         .unwrap()
         .into();
     sleep_until_bound(COPROCESSOR_GRPC_PORT).await;
-
-    info!("Starting REST gRPC gateway");
-    let http_gateway_listen_address = format!("{LOCALHOST}:{HTTP_GATEWAY_LISTEN_PORT}");
-    info!(?http_gateway_listen_address, "REST gRPC gateway listening on");
-    let _gateway_proc: ProcKill = Command::new("cargo")
-        .arg("run")
-        .arg("--bin")
-        .arg("http-gateway")
-        .arg("--")
-        .arg("--grpc-address")
-        .arg(coproc_grpc)
-        .spawn()
-        .unwrap()
-        .into();
-    sleep_until_bound(HTTP_GATEWAY_LISTEN_PORT).await;
 
     info!("Deploying MockConsumer contract");
     let mock_consumer = anvil_with_mock_consumer(&job_manager_deploy).await;

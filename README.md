@@ -74,7 +74,7 @@ Build
 cargo build
 
 # to build a specific crate run
-cargo build -p http-gateway # or whatever your crates name is
+cargo build -p coprocessor-node # or whatever your crates name is
 ```
 
 Lint
@@ -120,14 +120,6 @@ export RUST_LOG_FILE="zkvm.log"
 export RUST_LOG_DIR="/path/to/log" # Optional
 ```
 If RUST_LOG_DIR is not specified, logs will be written to the current directory "."
-
-To run any binary that is a non default member you need to specify the package:
-
-```sh
-cargo run -p http-gateway --bin http-gateway
-```
-
-Note: we leverage the [workspace.default-members][1] config the reduce the amount of code compiled by default when iterating
 
 ### VSCode
 
