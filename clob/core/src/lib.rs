@@ -238,7 +238,7 @@ pub fn add_order(
         address: req.address,
     };
 
-    if remaining_amount < req.size {
+    if remaining_amount != 0 {
         // Only insert the status if its pending
         state.order_status.insert(order_id, fill_status.clone());
     }
