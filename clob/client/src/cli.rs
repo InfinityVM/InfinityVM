@@ -129,7 +129,7 @@ impl Cli {
                 println!("clob base: {:?}", clob_base);
                 println!("clob quote: {:?}", clob_quote);
             }
-            Commands::Deploy(a) => {
+            Commands::MintAndApprove(a) => {
                 let deploy_info = get_default_deploy_info()?;
 
                 let info = AnvilClob {
@@ -159,8 +159,8 @@ enum Commands {
     Withdraw(WithdrawArgs),
     /// Deposit funds into the CLOB contract.
     Deposit(DepositArgs),
-    /// Deploy job manager and clob consumer contracts. Also mint erc20 tokens to users
-    Deploy(DeployArgs),
+    /// Mint erc20 tokens to users and approve transfer to Clob Consumer contracts
+    MintAndApprove(MintAndApproveArgs),
     /// Query balances onchain and in the clob.
     Query(QueryArgs),
 }
@@ -218,7 +218,7 @@ struct DepositArgs {
 }
 
 #[derive(Args, Debug)]
-struct DeployArgs {
+struct MintAndApproveArgs {
     /// EVM node RPC address.
     #[arg(long, short, default_value = "http://127.0.0.1:60420")]
     eth_rpc: String,
