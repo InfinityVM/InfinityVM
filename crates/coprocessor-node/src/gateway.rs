@@ -1,13 +1,16 @@
 //! REST gRPC gateway is a reverse proxy that exposes an HTTP interface to the coprocessor-node gRPC
 //! routes.
 
-use std::{net::SocketAddr, time::Duration};
+use std::net::SocketAddr;
 
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest, SubmitProgramResponse,
 };
-use tokio::net::TcpStream;
+use tokio::{
+    net::TcpStream,
+    time::{sleep, Duration},
+};
 use tonic::transport::Channel;
 
 use axum::{
@@ -90,32 +93,7 @@ impl HttpGrpcGateway {
 
     /// Run the HTTP gateway.
     pub async fn serve(self) -> Result<(), Error> {
-        tracing::info!("Connecting to gRPC server at {}", self.grpc_addr);
-        // Check if the gRPC server is bound and ready
-        let mut attempts = 0;
-        const MAX_ATTEMPTS: u32 = 5;
-        const RETRY_DELAY: Duration = Duration::from_secs(1);
-
-        while attempts < MAX_ATTEMPTS {
-            match TcpStream::connect(&self.grpc_addr).await {
-                Ok(_) => {
-                    tracing::info!("Successfully connected to gRPC server at {}", self.grpc_addr);
-                    break;
-                }
-                Err(e) => {
-                    tracing::warn!("Failed to connect to gRPC server: {}. Retrying...", e);
-                    attempts += 1;
-                    if attempts == MAX_ATTEMPTS {
-                        return Err(Error::ConnectionFailure(format!("Failed to connect to gRPC server after {} attempts", MAX_ATTEMPTS)));
-                    }
-                    tokio::time::sleep(RETRY_DELAY).await;
-                }
-            }
-        }
-        let grpc_client = CoprocessorNodeClient::<Channel>::connect(self.grpc_addr.clone())
-            .await
-            .map_err(|e| Error::ConnectionFailure(e.to_string()))?;
-        tracing::info!("Connected to gRPC server at {}", self.grpc_addr);
+        let grpc_client = self.connect_with_retry().await?;
 
         let app = Router::new()
             .route(&self.path(SUBMIT_JOB), post(Self::submit_job))
@@ -166,5 +144,37 @@ impl HttpGrpcGateway {
         let response = client.submit_program(tonic_request).await?.into_inner();
 
         Ok(Json(response))
+    }
+
+    async fn connect_with_retry(&self) -> Result<Client, Error> {
+        const MAX_RETRIES: u32 = 5;
+        const INITIAL_RETRY_DELAY: Duration = Duration::from_secs(1);
+
+        let mut retry_delay = INITIAL_RETRY_DELAY;
+        let mut attempts = 0;
+
+        while attempts < MAX_RETRIES {
+            match CoprocessorNodeClient::<Channel>::connect(self.grpc_addr.clone()).await {
+                Ok(client) => return Ok(client),
+                Err(e) => {
+                    attempts += 1;
+                    if attempts >= MAX_RETRIES {
+                        return Err(Error::ConnectionFailure(e.to_string()));
+                    }
+                    tracing::warn!(
+                        "Failed to connect to gRPC server: {}. Retrying ({}/{})...",
+                        e,
+                        attempts,
+                        MAX_RETRIES
+                    );
+                    sleep(retry_delay).await;
+                    retry_delay *= 2;
+                    if retry_delay > Duration::from_secs(60) {
+                        retry_delay = Duration::from_secs(60); // Cap at 60 seconds
+                    }
+                }
+            }
+        }
+        Err(Error::ConnectionFailure("Max retries reached".to_string()))
     }
 }
