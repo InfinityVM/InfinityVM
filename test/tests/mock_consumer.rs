@@ -49,7 +49,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let mock_user_address = Address::repeat_byte(69);
 
         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
-        let random_user_wallet = EthereumWallet::from(random_user.clone());
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -66,7 +65,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 
         let consumer_provider = ProviderBuilder::new()
             .with_recommended_fillers()
-            .wallet(random_user_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 

@@ -96,11 +96,9 @@ async fn main() {
     let get_result_response = coproc_client.get_result(get_result_request).await.unwrap();
     info!("Result: {:?}", get_result_response);
 
-    let random_user_wallet = EthereumWallet::from(offchain_signer);
-    let consumer_provider =
-        ProviderBuilder::new().with_recommended_fillers().wallet(random_user_wallet).on_http(
-            url::Url::parse(format!("http://{ANVIL_IP}:{ANVIL_PORT}").as_str()).expect("Valid URL"),
-        );
+    let consumer_provider = ProviderBuilder::new().with_recommended_fillers().on_http(
+        url::Url::parse(format!("http://{ANVIL_IP}:{ANVIL_PORT}").as_str()).expect("Valid URL"),
+    );
 
     let consumer_contract = MockConsumer::new(consumer_addr, &consumer_provider);
     let mut inputs = vec![0u8; 32];
