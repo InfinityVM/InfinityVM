@@ -28,7 +28,6 @@ contracts = { workspace = true }
 abi = { workspace = true }
 db = { workspace = true }
 proto = { workspace = true }
-test-utils = { workspace = true }
 zkvm-executor = { workspace = true }
 zkvm-tracing = { workspace = true }
 

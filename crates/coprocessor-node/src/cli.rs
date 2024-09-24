@@ -23,9 +23,7 @@ use std::{
     net::{SocketAddr, SocketAddrV4},
     path::PathBuf,
     sync::Arc,
-    time::Duration,
 };
-use test_utils::sleep_until_bound;
 use tokio::{task::JoinHandle, try_join};
 use tracing::{info, instrument};
 use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};

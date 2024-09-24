@@ -7,10 +7,6 @@ use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest, SubmitProgramResponse,
 };
-use tokio::{
-    net::TcpStream,
-    time::{sleep, Duration},
-};
 use tonic::transport::Channel;
 
 use axum::{
@@ -93,7 +89,10 @@ impl HttpGrpcGateway {
 
     /// Run the HTTP gateway.
     pub async fn serve(self) -> Result<(), Error> {
-        let grpc_client = self.connect_with_retry().await?;
+        let client_coproc_grpc = format!("http://{}", self.grpc_addr);
+        let grpc_client = CoprocessorNodeClient::<Channel>::connect(client_coproc_grpc)
+            .await
+            .map_err(|e| Error::ConnectionFailure(e.to_string()))?;
 
         let app = Router::new()
             .route(&self.path(SUBMIT_JOB), post(Self::submit_job))
@@ -144,37 +143,5 @@ impl HttpGrpcGateway {
         let response = client.submit_program(tonic_request).await?.into_inner();
 
         Ok(Json(response))
-    }
-
-    async fn connect_with_retry(&self) -> Result<Client, Error> {
-        const MAX_RETRIES: u32 = 5;
-        const INITIAL_RETRY_DELAY: Duration = Duration::from_secs(1);
-
-        let mut retry_delay = INITIAL_RETRY_DELAY;
-        let mut attempts = 0;
-
-        while attempts < MAX_RETRIES {
-            match CoprocessorNodeClient::<Channel>::connect(self.grpc_addr.clone()).await {
-                Ok(client) => return Ok(client),
-                Err(e) => {
-                    attempts += 1;
-                    if attempts >= MAX_RETRIES {
-                        return Err(Error::ConnectionFailure(e.to_string()));
-                    }
-                    tracing::warn!(
-                        "Failed to connect to gRPC server: {}. Retrying ({}/{})...",
-                        e,
-                        attempts,
-                        MAX_RETRIES
-                    );
-                    sleep(retry_delay).await;
-                    retry_delay *= 2;
-                    if retry_delay > Duration::from_secs(60) {
-                        retry_delay = Duration::from_secs(60); // Cap at 60 seconds
-                    }
-                }
-            }
-        }
-        Err(Error::ConnectionFailure("Max retries reached".to_string()))
     }
 }
