@@ -2093,6 +2093,7 @@ dependencies = [
  "prometheus",
  "proto",
  "reth-db",
+ "serde",
  "test-utils",
  "thiserror",
  "tokio",
@@ -3256,21 +3257,6 @@ dependencies = [
  "http 1.1.0",
  "http-body 1.0.1",
  "pin-project-lite",
-]
-
-[[package]]
-name = "http-gateway"
-version = "0.0.1"
-dependencies = [
- "axum",
- "clap",
- "proto",
- "serde",
- "thiserror",
- "tokio",
- "tonic",
- "tracing 0.0.1",
- "tracing 0.1.40",
 ]
 
 [[package]]

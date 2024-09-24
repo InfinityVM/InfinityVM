@@ -8,6 +8,9 @@ pub mod service;
 
 pub mod relayer;
 
+/// REST gRPC gateway
+pub mod gateway;
+
 /// Job processor
 pub mod job_processor;
 
