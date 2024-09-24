@@ -453,6 +453,7 @@ where
                         if job.status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
                             jobs_to_delete.push(id);
+                            info!(?id, "queueing un-broadcastable job for deletion");
                         } else {
                             error!(
                                 "report this error: failed to retry relaying job {:?}: {:?}",
