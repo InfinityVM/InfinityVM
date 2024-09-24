@@ -220,7 +220,12 @@ pub fn add_order(
 
         if let Some(make_order_status) = state.order_status.get_mut(&fill.maker_oid) {
             make_order_status.filled_size += fill.size;
-            make_order_status.fills.push(fill);
+            if make_order_status.filled_size < make_order_status.size {
+                make_order_status.fills.push(fill);
+            } else {
+                // Remove filled orders
+                state.order_status.remove(&fill.maker_oid);
+            };
         };
     }
 
@@ -232,7 +237,11 @@ pub fn add_order(
         fills,
         address: req.address,
     };
-    state.order_status.insert(order_id, fill_status.clone());
+
+    if remaining_amount != 0 {
+        // Only insert the status if its pending
+        state.order_status.insert(order_id, fill_status.clone());
+    }
 
     let resp = AddOrderResponse { success: true, status: Some(fill_status) };
 

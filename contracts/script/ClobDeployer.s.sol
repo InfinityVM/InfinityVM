@@ -38,10 +38,22 @@ contract ClobDeployer is Script, Utils {
 
             string memory deployed_addresses = "addresses";
 
-            string memory deployed_addresses_output = vm.serializeAddress(
+            vm.serializeAddress(
                 deployed_addresses,
                 "consumer",
                 address(consumer)
+            );
+
+            vm.serializeAddress(
+                deployed_addresses,
+                "baseToken",
+                address(baseToken)
+            );
+
+            string memory deployed_addresses_output = vm.serializeAddress(
+                deployed_addresses,
+                "quoteToken",
+                address(quoteToken)
             );
 
             // serialize all the data
