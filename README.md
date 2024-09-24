@@ -124,7 +124,7 @@ If RUST_LOG_DIR is not specified, logs will be written to the current directory 
 To run any binary that is a non default member you need to specify the package:
 
 ```sh
-cargo run -p http-gateway --bin http-gateway
+cargo run -p ethos-reth --bin ethos-reth
 ```
 
 Note: we leverage the [workspace.default-members][1] config the reduce the amount of code compiled by default when iterating
