@@ -16,7 +16,7 @@ use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST}
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 
-const ANVIL_PORT: u16 = 60420;
+const ANVIL_PORT: u16 = 8545;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_PROM_PORT: u16 = 50069;
 const HTTP_GATEWAY_LISTEN_PORT: u16 = 8080;
