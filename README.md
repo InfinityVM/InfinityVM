@@ -121,14 +121,6 @@ export RUST_LOG_DIR="/path/to/log" # Optional
 ```
 If RUST_LOG_DIR is not specified, logs will be written to the current directory "."
 
-To run any binary that is a non default member you need to specify the package:
-
-```sh
-cargo run -p ethos-reth --bin ethos-reth
-```
-
-Note: we leverage the [workspace.default-members][1] config the reduce the amount of code compiled by default when iterating
-
 ### VSCode
 
 If you are working in VSCode, try installing the rust-analyzer extension. We recommend the following settings:
