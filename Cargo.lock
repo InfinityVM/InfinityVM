@@ -1855,6 +1855,7 @@ dependencies = [
  "clob-contracts",
  "clob-core",
  "clob-node",
+ "clob-test-utils",
  "contracts",
  "eyre",
  "reqwest 0.12.7",
@@ -1933,6 +1934,7 @@ dependencies = [
  "clob-contracts",
  "clob-core",
  "test-utils",
+ "tokio",
 ]
 
 [[package]]
