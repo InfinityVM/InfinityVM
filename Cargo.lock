@@ -2591,6 +2591,7 @@ dependencies = [
  "clob-programs",
  "clob-test-utils",
  "contracts",
+ "coprocessor-node",
  "db",
  "futures",
  "mock-consumer",

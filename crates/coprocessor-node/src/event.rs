@@ -44,70 +44,65 @@ where
     S: Signer<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
-    let handle = tokio::spawn(async move {
-        let mut last_seen_block = from_block.as_number().unwrap_or_default();
-        let last_saved_height = job_processor.get_last_block_height().await.unwrap_or_default();
-        if last_saved_height > last_seen_block {
-            // update last seen block height
-            last_seen_block = last_saved_height;
-        }
+    let mut last_seen_block = from_block.as_number().unwrap_or_default();
+    let last_saved_height = job_processor.get_last_block_height().await.unwrap_or_default();
+    if last_saved_height > last_seen_block {
+        // update last seen block height
+        last_seen_block = last_saved_height;
+    }
 
-        let ws = WsConnect::new(ws_rpc_url.clone());
-        let provider = ProviderBuilder::new().on_ws(ws).await?;
-        let contract = JobManager::new(job_manager, provider.clone());
-        let mut latest_block = provider.get_block_number().await.unwrap();
-        loop {
-            // Iterate from the last seen block to the latest block
-            while last_seen_block <= latest_block {
-                let events = match contract
-                    .JobCreated_filter()
-                    .from_block(last_seen_block)
-                    .to_block(last_seen_block)
-                    .query()
-                    .await
-                {
-                    Ok(events) => events,
-                    Err(error) => {
-                        error!(?error, "Error fetching events");
-                        continue;
-                    }
-                };
+    let ws = WsConnect::new(ws_rpc_url.clone());
+    let provider = ProviderBuilder::new().on_ws(ws).await?;
+    let contract = JobManager::new(job_manager, provider.clone());
+    loop {
+        // get latest block
+        let latest_block = provider.get_block_number().await?;
 
-                for (event, _) in events {
-                    let job = Job {
-                        id: event.jobID.into(),
-                        nonce: event.nonce,
-                        program_id: event.programID.to_vec(),
-                        onchain_input: event.onchainInput.into(),
-                        offchain_input: vec![], // Onchain jobs do not have offchain input
-                        state: vec![],          // Onchain jobs are stateless
-                        consumer_address: event.consumer.to_vec(),
-                        max_cycles: event.maxCycles,
-                        request_type: RequestType::Onchain,
-                        result_with_metadata: vec![],
-                        zkvm_operator_signature: vec![],
-                        status: JobStatus {
-                            status: JobStatusType::Pending as i32,
-                            failure_reason: None,
-                            retries: 0,
-                        },
-                    };
-                    if let Err(error) = job_processor.submit_job(job).await {
-                        error!(?error, "failed while submitting to job processor");
-                    }
+        // Iterate from the last seen block to the latest block
+        while last_seen_block <= latest_block {
+            let events = match contract
+                .JobCreated_filter()
+                .from_block(last_seen_block)
+                .to_block(last_seen_block)
+                .query()
+                .await
+            {
+                Ok(events) => events,
+                Err(error) => {
+                    error!(?error, "Error fetching events");
+                    continue;
                 }
+            };
 
-                // update the last seen block height after processing the events
-                last_seen_block += 1;
-                if let Err(error) = job_processor.set_last_block_height(last_seen_block).await {
-                    error!(?error, "failed to set last seen block height");
+            for (event, _) in events {
+                let job = Job {
+                    id: event.jobID.into(),
+                    nonce: event.nonce,
+                    program_id: event.programID.to_vec(),
+                    onchain_input: event.onchainInput.into(),
+                    offchain_input: vec![], // Onchain jobs do not have offchain input
+                    state: vec![],          // Onchain jobs are stateless
+                    consumer_address: event.consumer.to_vec(),
+                    max_cycles: event.maxCycles,
+                    request_type: RequestType::Onchain,
+                    result_with_metadata: vec![],
+                    zkvm_operator_signature: vec![],
+                    status: JobStatus {
+                        status: JobStatusType::Pending as i32,
+                        failure_reason: None,
+                        retries: 0,
+                    },
+                };
+                if let Err(error) = job_processor.submit_job(job).await {
+                    error!(?error, ?event.jobID, "failed while submitting to job processor");
                 }
             }
 
-            // get latest block
-            latest_block = provider.get_block_number().await.unwrap();
+            // update the last seen block height after processing the events
+            last_seen_block += 1;
+            if let Err(error) = job_processor.set_last_block_height(last_seen_block).await {
+                error!(?error, "failed to set last seen block height");
+            }
         }
-    });
-
-    Ok(handle)
+    }
 }

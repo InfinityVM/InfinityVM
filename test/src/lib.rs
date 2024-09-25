@@ -1,25 +1,17 @@
 //! E2E tests and helpers.
-use alloy::{eips::BlockNumberOrTag, primitives::hex};
+use alloy::eips::BlockNumberOrTag;
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
+use coprocessor_node::{job_processor::JobProcessorConfig, node::NodeConfig};
 use futures::future::FutureExt;
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
-use std::{
-    future::Future,
-    panic::AssertUnwindSafe,
-    process::{Command, Stdio},
-};
+use std::path::PathBuf;
+use std::{future::Future, panic::AssertUnwindSafe};
 use tempfile::TempDir;
 use test_utils::{
-    anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, ProcKill,
-    LOCALHOST,
+    anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
 };
 use tonic::transport::Channel;
-
-/// The ethos reth crate is not part of the workspace so the binary is located
-/// within the crate
-pub const ETHOS_RETH_DEBUG_BIN: &str = "../bin/ethos-reth/target/debug/ethos-reth";
-const COPROCESSOR_NODE_DEBUG_BIN: &str = "../target/debug/coprocessor-node";
 
 /// Arguments passed to the test function.
 #[derive(Debug)]
@@ -76,8 +68,6 @@ impl E2E {
         let anvil_port = get_localhost_port();
         let anvil = anvil_with_job_manager(anvil_port).await;
 
-        let job_manager = anvil.job_manager.to_string();
-        let chain_id = anvil.anvil.chain_id().to_string();
         let http_rpc_url = anvil.anvil.endpoint();
         let ws_rpc_url = anvil.anvil.ws_endpoint();
 
@@ -88,34 +78,24 @@ impl E2E {
         let http_addr = format!("{LOCALHOST}:{http_port}");
         let prometheus_port = get_localhost_port();
         let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
-        let relayer_private = hex::encode(anvil.relayer.to_bytes());
-        let operator_private = hex::encode(anvil.coprocessor_operator.to_bytes());
         let cn_grpc_client_url = format!("http://{coprocessor_node_grpc}");
 
-        let _proc: ProcKill = Command::new(COPROCESSOR_NODE_DEBUG_BIN)
-            .env("RELAYER_PRIVATE_KEY", relayer_private)
-            .env("ZKVM_OPERATOR_PRIV_KEY", operator_private)
-            .arg("--grpc-address")
-            .arg(&coprocessor_node_grpc)
-            .arg("--http-address")
-            .arg(&http_addr)
-            .arg("--prom-address")
-            .arg(&prometheus_addr)
-            .arg("--http-eth-rpc")
-            .arg(&http_rpc_url)
-            .arg("--ws-eth-rpc")
-            .arg(ws_rpc_url.clone())
-            .arg("--job-manager-address")
-            .arg(job_manager)
-            .arg("--chain-id")
-            .arg(chain_id)
-            .arg("--db-dir")
-            .arg(db_dir.path())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .spawn()
-            .unwrap()
-            .into();
+        let config = NodeConfig {
+            prom_addr: prometheus_addr.parse().unwrap(),
+            grpc_addr: coprocessor_node_grpc.parse().unwrap(),
+            http_listen_addr: http_addr.parse().unwrap(),
+            zkvm_operator: anvil.coprocessor_operator.clone(),
+            relayer: anvil.relayer.clone(),
+            db_dir: db_dir.path().to_str().unwrap().to_string(),
+            exec_queue_bound: 256,
+            http_eth_rpc: http_rpc_url.clone(),
+            job_manager_address: anvil.job_manager,
+            confirmations: 1,
+            job_proc_config: JobProcessorConfig { num_workers: 2, max_retries: 1 },
+            ws_eth_rpc: ws_rpc_url.clone(),
+            job_sync_start: BlockNumberOrTag::Earliest,
+        };
+        tokio::spawn(async move { coprocessor_node::node::run(config).await });
         sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =
             CoprocessorNodeClient::connect(cn_grpc_client_url.clone()).await.unwrap();
@@ -163,7 +143,7 @@ impl E2E {
                 )
                 .await
             });
-            sleep_until_bound(coprocessor_node_port).await;
+            sleep_until_bound(listen_port).await;
 
             let clob_endpoint = format!("http://{listen_addr}");
             args.clob_endpoint = Some(clob_endpoint);

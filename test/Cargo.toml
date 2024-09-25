@@ -17,6 +17,7 @@ alloy = { workspace = true }
 tempfile = { workspace = true }
 borsh = { workspace = true }
 
+coprocessor-node = { workspace = true }
 contracts = { workspace = true }
 proto = { workspace = true }
 zkvm-executor = { workspace = true }

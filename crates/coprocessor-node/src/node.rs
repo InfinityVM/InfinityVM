@@ -146,7 +146,7 @@ pub async fn run(
     let job_processor = Arc::new(job_processor);
 
     let job_event_listener = start_job_event_listener(
-        ws_eth_rpc.to_owned(),
+        ws_eth_rpc,
         job_manager_address,
         Arc::clone(&job_processor),
         job_sync_start,
