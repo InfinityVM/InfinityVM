@@ -201,6 +201,7 @@ pub async fn job_manager_deploy(rpc_url: String) -> JobManagerDeploy {
 }
 
 /// Create and sign an ABI-encoded offchain job request.
+#[allow(clippy::too_many_arguments)]
 pub async fn create_and_sign_offchain_request(
     nonce: u64,
     max_cycles: u64,
