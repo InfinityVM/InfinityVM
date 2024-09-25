@@ -5,7 +5,6 @@ use coprocessor_node::{job_processor::JobProcessorConfig, node::NodeConfig};
 use futures::future::FutureExt;
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
-use std::path::PathBuf;
 use std::{future::Future, panic::AssertUnwindSafe};
 use tempfile::TempDir;
 use test_utils::{
