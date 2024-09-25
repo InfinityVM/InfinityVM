@@ -42,7 +42,7 @@ async fn main() {
     let coproc_relayer_private = hex::encode(job_manager_deploy.relayer.to_bytes());
     let coproc_operator_private = hex::encode(job_manager_deploy.coprocessor_operator.to_bytes());
     let coproc_db_dir =
-        tempfile::Builder::new().prefix("coprocessor-node-local-db").tempdir().unwrap();
+        tempfile::Builder::new().prefix("infinity-coproc-local-db").tempdir().unwrap();
     std::fs::create_dir_all("./logs").unwrap();
     let coproc_log_file = "./logs/coprocessor_node.log".to_string();
     info!(?coproc_log_file, "Writing coprocessor logs to: ");
@@ -89,7 +89,7 @@ async fn main() {
     info!(?mock_consumer_addr, "MockConsumer deployed at");
 
     let clob_deploy = anvil_with_clob_consumer(&job_manager_deploy).await;
-    let clob_db_dir = tempfile::Builder::new().prefix("clob-node-local-db").tempdir().unwrap();
+    let clob_db_dir = tempfile::Builder::new().prefix("infinity-clob-local-db").tempdir().unwrap();
     let clob_http = format!("{LOCALHOST}:{CLOB_PORT}");
     let batcher_duration_ms = 1000;
     let clob_log_file = "./logs/clob_node.log".to_string();

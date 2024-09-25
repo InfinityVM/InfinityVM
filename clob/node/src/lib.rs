@@ -5,8 +5,7 @@ use alloy::{
     eips::BlockNumberOrTag,
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
 };
-use std::path::Path;
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
 pub mod app;

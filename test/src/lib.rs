@@ -6,9 +6,7 @@ use futures::future::FutureExt;
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 use rand::Rng;
-use std::env::temp_dir;
-use std::path::PathBuf;
-use std::{future::Future, panic::AssertUnwindSafe};
+use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, path::PathBuf};
 use test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
 };

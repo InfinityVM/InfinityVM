@@ -152,8 +152,14 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
 /// Open a existing db in read only mode
 pub fn open_db_read_only<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
     let client_version = ClientVersion::default();
-    let args = DatabaseArguments::new(client_version);
-    let db = reth_db::open_db_read_only(path.as_ref(), args)?;
+    let args = DatabaseArguments::new(client_version).with_exclusive(Some(false));
+
+    let db = reth_db::open_db_read_only(path.as_ref(), args).map_err(|e| {
+        println!("{e}");
+        dbg!(&e);
+
+        e
+    })?;
 
     Ok(Arc::new(db))
 }
