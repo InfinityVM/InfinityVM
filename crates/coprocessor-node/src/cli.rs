@@ -213,8 +213,7 @@ impl Cli {
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
-        let db = db::init_db(&
-            opts.db_dir)?;
+        let db = db::init_db(&opts.db_dir)?;
         tracing::info!("💾 db initialized at {}", opts.db_dir);
 
         let config = NodeConfig {
