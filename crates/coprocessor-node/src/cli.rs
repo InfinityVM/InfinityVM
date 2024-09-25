@@ -1,32 +1,19 @@
 //! CLI for coprocessor-node.
 
 use crate::{
-    event::{self, start_job_event_listener},
-    gateway::{self, HttpGrpcGateway},
-    job_processor::{JobProcessorConfig, JobProcessorService},
-    metrics::{MetricServer, Metrics},
-    relayer::{self, JobRelayerBuilder},
-    service::CoprocessorNodeServerInner,
+    job_processor::JobProcessorConfig,
+    node::{self, NodeConfig},
 };
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::{hex, Address},
     signers::local::LocalSigner,
 };
-use async_channel::{bounded, Receiver, Sender};
 use clap::{Parser, Subcommand};
-use db::tables::Job;
 use k256::ecdsa::SigningKey;
-use prometheus::Registry;
-use proto::coprocessor_node_server::CoprocessorNodeServer;
-use std::{
-    net::{SocketAddr, SocketAddrV4},
-    path::PathBuf,
-    sync::Arc,
-};
-use tokio::{task::JoinHandle, try_join};
+use std::path::PathBuf;
 use tracing::{info, instrument};
-use zkvm_executor::{service::ZkvmExecutorService, DEV_SECRET};
+use zkvm_executor::DEV_SECRET;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 const ENV_ZKVM_OPERATOR_PRIV_KEY: &str = "ZKVM_OPERATOR_PRIV_KEY";
@@ -52,9 +39,6 @@ pub enum Error {
     /// invalid http address
     #[error("invalid http address")]
     InvalidHttpAddress,
-    /// grpc server failure
-    #[error("grpc server failure: {0}")]
-    GrpcServer(#[from] tonic::transport::Error),
     /// private key was not valid hex
     #[error("private key was not valid hex")]
     InvalidPrivateKeyHex(#[from] hex::FromHexError),
@@ -70,24 +54,9 @@ pub enum Error {
     /// errors from alloy signer local crate
     #[error(transparent)]
     SignerLocal(#[from] alloy::signers::local::LocalSignerError),
-    /// database error
-    #[error("database error: {0}")]
-    Database(#[from] db::Error),
-    /// relayer error
-    #[error("relayer error: {0}")]
-    Relayer(#[from] relayer::Error),
-    /// job event listener error
-    #[error("job event listener error: {0}")]
-    JobEventListener(#[from] event::Error),
-    /// task join error
-    #[error("error handling failed")]
-    ErrorHandlingFailed(#[from] tokio::task::JoinError),
-    /// prometheus error
-    #[error("prometheus error")]
-    ErrorPrometheus(#[from] std::io::Error),
-    /// http grpc gateway error
-    #[error("http grpc gateway error: {0}")]
-    ErrorHttpGrpcGateway(#[from] gateway::Error),
+    /// error running node
+    #[error(transparent)]
+    Node(#[from] crate::node::Error),
 }
 
 type K256LocalSigner = LocalSigner<SigningKey>;
@@ -241,112 +210,25 @@ impl Cli {
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
-        // Setup Prometheus registry & custom metrics
-        let registry = Arc::new(Registry::new());
-        let metrics = Arc::new(Metrics::new(&registry));
-        let metric_server = MetricServer::new(registry.clone());
-
-        // Start Prometheus server
-        let prom_addr: SocketAddr =
-            opts.prom_address.parse().map_err(|_| Error::InvalidPromAddress)?;
-        let prometheus_server = tokio::spawn(async move {
-            info!("Prometheus server listening on {}", prom_addr);
-            metric_server.serve(&prom_addr.to_string()).await
-        });
-
-        // Parse the addresses for gRPC server and gateway
-        let grpc_addr: SocketAddrV4 =
-            opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?;
-        let http_listen_addr: SocketAddr =
-            opts.http_address.parse().map_err(|_| Error::InvalidHttpAddress)?;
-
-        let zkvm_operator = opts.operator_signer()?;
-        let relayer = opts.relayer_signer()?;
-
-        info!("👷🏻 zkvm operator signer is {:?}", zkvm_operator.address());
-        info!("✉️ relayer signer is {:?}", relayer.address());
-        info!("📝 job manager contract address is {}", opts.job_manager_address);
-
-        let db = db::init_db(opts.db_dir.clone())?;
-        info!(db_path = opts.db_dir, "💾 db initialized");
-
-        // Initialize the async channels
-        let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
-            bounded(opts.exec_queue_bound);
-
-        let executor = ZkvmExecutorService::new(zkvm_operator);
-
-        let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
-            opts.http_eth_rpc.clone(),
-            opts.job_manager_address,
-            opts.confirmations,
-            metrics.clone(),
-        )?;
-        let job_relayer = Arc::new(job_relayer);
-
-        // Start the job processor with a specified number of worker threads.
-        // The job processor stores a JoinSet which has a handle to each task.
-        let mut job_processor = JobProcessorService::new(
-            db,
-            exec_queue_sender,
-            exec_queue_receiver,
-            job_relayer,
-            executor,
-            metrics,
-            JobProcessorConfig {
+        let config = NodeConfig {
+            prom_addr: opts.prom_address.parse().map_err(|_| Error::InvalidPromAddress)?,
+            grpc_addr: opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?,
+            http_listen_addr: opts.http_address.parse().map_err(|_| Error::InvalidHttpAddress)?,
+            zkvm_operator: opts.operator_signer()?,
+            relayer: opts.relayer_signer()?,
+            db_dir: opts.db_dir,
+            exec_queue_bound: opts.exec_queue_bound,
+            http_eth_rpc: opts.http_eth_rpc,
+            job_manager_address: opts.job_manager_address,
+            confirmations: opts.confirmations,
+            job_proc_config: JobProcessorConfig {
                 num_workers: opts.worker_count,
                 max_retries: opts.max_retries as u32,
             },
-        );
-        job_processor.start().await;
-        let job_processor = Arc::new(job_processor);
+            ws_eth_rpc: opts.ws_eth_rpc,
+            job_sync_start: opts.job_sync_start,
+        };
 
-        let job_event_listener = start_job_event_listener(
-            opts.ws_eth_rpc.to_owned(),
-            opts.job_manager_address,
-            Arc::clone(&job_processor),
-            opts.job_sync_start,
-        )
-        .await?;
-
-        let reflector = tonic_reflection::server::Builder::configure()
-            .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
-            .build_v1()
-            .expect("failed to build gRPC reflection service");
-
-        let coprocessor_node_server =
-            CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
-
-        info!("🚥 starting gRPC server at {}", grpc_addr);
-        let grpc_server = tokio::spawn(async move {
-            tonic::transport::Server::builder()
-                .add_service(coprocessor_node_server)
-                .add_service(reflector)
-                .serve(grpc_addr.into())
-                .await
-        });
-
-        let http_grpc_gateway = HttpGrpcGateway::new(grpc_addr.to_string(), http_listen_addr);
-        let http_grpc_gateway_server = tokio::spawn(async move { http_grpc_gateway.serve().await });
-
-        // Exit early if either handle returns an error.
-        // Note that we make sure to `spawn` each task so they can run in parallel
-        // and not just concurrently on the same thread.
-
-        try_join!(
-            flatten(job_event_listener),
-            flatten(grpc_server),
-            flatten(prometheus_server),
-            flatten(http_grpc_gateway_server)
-        )
-        .map(|_| ())
-    }
-}
-
-async fn flatten<T, E: Into<Error>>(handle: JoinHandle<Result<T, E>>) -> Result<T, Error> {
-    match handle.await {
-        Ok(Ok(result)) => Ok(result),
-        Ok(Err(err)) => Err(err.into()),
-        Err(err) => Err(Error::ErrorHandlingFailed(err)),
+        node::run(config).await.map_err(Into::into)
     }
 }
