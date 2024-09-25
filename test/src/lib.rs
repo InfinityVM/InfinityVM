@@ -62,10 +62,10 @@ impl E2E {
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
-        // test_utils::test_tracing();
-        let subscriber = tracing_subscriber::FmtSubscriber::new();
-        // use that subscriber to process traces emitted after this point
-        tracing::subscriber::set_global_default(subscriber).unwrap();
+        test_utils::test_tracing();
+        // let subscriber = tracing_subscriber::FmtSubscriber::new();
+        // // use that subscriber to process traces emitted after this point
+        // tracing::subscriber::set_global_default(subscriber).unwrap();
 
         let anvil_port = get_localhost_port();
         let anvil = anvil_with_job_manager(anvil_port).await;
