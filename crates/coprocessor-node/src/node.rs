@@ -16,7 +16,7 @@ use prometheus::Registry;
 use proto::coprocessor_node_server::CoprocessorNodeServer;
 use std::{
     net::{SocketAddr, SocketAddrV4},
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::Arc,
 };
 use tokio::{task::JoinHandle, try_join};

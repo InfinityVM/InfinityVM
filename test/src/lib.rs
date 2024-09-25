@@ -9,7 +9,6 @@ use rand::Rng;
 use std::env::temp_dir;
 use std::path::PathBuf;
 use std::{future::Future, panic::AssertUnwindSafe};
-use tempfile::TempDir;
 use test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
 };
@@ -77,7 +76,7 @@ impl E2E {
         let http_rpc_url = anvil.anvil.endpoint();
         let ws_rpc_url = anvil.anvil.ws_endpoint();
 
-        let coproc_db_dir = temp_dir().join(format!("coproc-test-db-{}", test_num));
+        let coproc_db_dir = temp_dir().join(format!("infinity-coproc-test-db-{}", test_num));
         delete_dirs.push(coproc_db_dir.clone());
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
@@ -122,7 +121,7 @@ impl E2E {
 
         if self.clob {
             let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
-            let mut clob_db_dir = temp_dir().join(format!("clob-test-db-{}", test_num));
+            let clob_db_dir = temp_dir().join(format!("infinity-clob-test-db-{}", test_num));
             delete_dirs.push(clob_db_dir.clone());
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
@@ -153,9 +152,9 @@ impl E2E {
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
 
-        for dir in delete_dirs {
-            let _ = std::fs::remove_dir_all(dir);
-        }
+        // for dir in delete_dirs {
+        //     let _ = std::fs::remove_dir_all(dir);
+        // }
 
         assert!(test_result.is_ok());
     }

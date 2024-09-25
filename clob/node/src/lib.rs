@@ -9,8 +9,6 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
 
-
-
 pub mod app;
 pub mod batcher;
 pub mod db;
