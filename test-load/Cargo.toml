@@ -11,7 +11,6 @@ workspace = true
 alloy = { workspace = true }
 goose = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
-serde_json = { workspace = true }
 once_cell = { workspace = true }
 dotenv = { workspace = true }
 reqwest = { workspace = true }

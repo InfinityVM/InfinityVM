@@ -6535,7 +6535,6 @@ dependencies = [
  "once_cell",
  "proto",
  "reqwest 0.11.27",
- "serde_json",
  "test-utils",
  "tokio",
  "url",
