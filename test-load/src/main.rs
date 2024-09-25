@@ -106,7 +106,7 @@ async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
 }
 
 /// Submit the first job to the coprocessor node so that
-/// loadtest_get_result() is guaranteed to get the result of
+/// `loadtest_get_result()` is guaranteed to get the result of
 /// this job. Only need to do this if the next nonce is 1.
 pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
     let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
