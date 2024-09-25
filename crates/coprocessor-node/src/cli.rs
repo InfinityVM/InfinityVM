@@ -326,9 +326,6 @@ impl Cli {
                 .await
         });
 
-        // Sleep for 5 seconds to allow the gRPC server to start
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-
         let http_grpc_gateway = HttpGrpcGateway::new(grpc_addr.to_string(), http_listen_addr);
         let http_grpc_gateway_server = tokio::spawn(async move { http_grpc_gateway.serve().await });
 
