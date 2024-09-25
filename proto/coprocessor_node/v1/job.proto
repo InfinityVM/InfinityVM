@@ -9,6 +9,7 @@ enum JobStatusType {
   JOB_STATUS_TYPE_PENDING = 1;
   JOB_STATUS_TYPE_DONE = 2;
   JOB_STATUS_TYPE_FAILED = 3;
+  JOB_STATUS_TYPE_RELAYED = 4;
 }
 
 // JobStatus represents the status of a job including an optional failure reason.
