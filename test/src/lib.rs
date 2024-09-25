@@ -8,7 +8,7 @@ use proto::coprocessor_node_client::CoprocessorNodeClient;
 use rand::Rng;
 use reth_db::DatabaseEnv;
 
-use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, path::PathBuf, sync::Arc};
+use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
 use test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
 };
@@ -88,7 +88,6 @@ impl E2E {
 
         tracing::info!("💾 db initialized {}", coproc_db_dir.display());
         let db = db::init_db(coproc_db_dir).unwrap();
-
         let config = NodeConfig {
             prom_addr: prometheus_addr.parse().unwrap(),
             grpc_addr: coprocessor_node_grpc.parse().unwrap(),
