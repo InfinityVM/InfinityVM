@@ -37,6 +37,8 @@ const SUBMIT_PROGRAM: &str = "submit_program";
 const CONNECT_RETRIES: u64 = 12;
 const CONNECT_DELAY_MS: u64 = 250;
 
+type Client = CoprocessorNodeClient<Channel>;
+
 /// Error response from the gateway
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ErrorResponse {
@@ -82,8 +84,6 @@ pub struct HttpGrpcGateway {
     listen_addr: SocketAddr,
 }
 
-type Client = CoprocessorNodeClient<Channel>;
-
 impl HttpGrpcGateway {
     /// Create the gateway struct. Does not perform any network IO.
     pub const fn new(grpc_addr: String, listen_addr: SocketAddr) -> Self {
@@ -94,7 +94,7 @@ impl HttpGrpcGateway {
     pub async fn serve(self) -> Result<(), Error> {
         let client_coproc_grpc = format!("http://{}", self.grpc_addr);
 
-        tracing::info!("REST gRPC Gateway attemtping to connect to {}", client_coproc_grpc);
+        tracing::info!("REST gRPC Gateway attempting to connect to {}", client_coproc_grpc);
         let mut connect_retries = 0;
         let grpc_client = loop {
             match Client::connect(client_coproc_grpc.clone()).await {
