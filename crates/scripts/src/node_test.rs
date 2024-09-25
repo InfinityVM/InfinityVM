@@ -115,11 +115,9 @@ async fn main() {
     let client = reqwest::Client::new();
 
     let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
-    let payload = serde_json::to_value(get_result_request).expect("Valid GetResultRequest");
-
     let response = client
         .post(format!("{}/v1/coprocessor_node/get_result", http_gateway_url))
-        .json(&payload)
+        .json(&get_result_request)
         .send()
         .await
         .expect("Failed to send request");

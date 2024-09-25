@@ -80,9 +80,8 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
         offchain_input: Vec::new(),
         state: Vec::new(),
     };
-    let payload = serde_json::to_value(submit_job_request).expect("Valid SubmitJobRequest");
-
-    let _goose_metrics = user.post_json("/v1/coprocessor_node/submit_job", &payload).await?;
+    let _goose_metrics =
+        user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;
 
     if should_wait_until_job_completed() {
         wait_until_job_completed(user, nonce).await;
@@ -98,9 +97,8 @@ async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
     let job_id = get_job_id(1, consumer_addr);
 
     let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
-    let payload = serde_json::to_value(get_result_request).expect("Valid GetResultRequest");
-
-    let _goose_metrics = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
+    let _goose_metrics =
+        user.post_json("/v1/coprocessor_node/get_result", &get_result_request).await?;
 
     Ok(())
 }
@@ -120,7 +118,6 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
             offchain_input: Vec::new(),
             state: Vec::new(),
         };
-        let payload = serde_json::to_value(submit_job_request)?;
 
         let client = reqwest::Client::new();
         let _response = client
@@ -129,7 +126,7 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
                 coprocessor_gateway_ip(),
                 coprocessor_gateway_port()
             ))
-            .json(&payload)
+            .json(&submit_job_request)
             .send()
             .await?;
 

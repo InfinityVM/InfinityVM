@@ -126,9 +126,7 @@ async fn get_result_status(
     job_id: [u8; 32],
 ) -> Result<i64, Box<dyn std::error::Error>> {
     let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
-    let payload = serde_json::to_value(get_result_request)?;
-
-    let response = user.post_json("/v1/coprocessor_node/get_result", &payload).await?;
+    let response = user.post_json("/v1/coprocessor_node/get_result", &get_result_request).await?;
     let get_result_response: GetResultResponse = response.response?.json().await?;
 
     match get_result_response.job_result {
