@@ -14,9 +14,12 @@ use db::tables::{Job, RequestType};
 use proto::{JobStatus, JobStatusType};
 use reth_db::Database;
 use tokio::task::JoinHandle;
+use tokio::time::{sleep, Duration};
 use tracing::error;
 
 use crate::job_processor::JobProcessorService;
+
+const FIVE_MINUTES_MILLIS: u64 = 300000;
 
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
@@ -51,57 +54,80 @@ where
         last_seen_block = last_saved_height;
     }
 
-    let ws = WsConnect::new(ws_rpc_url.clone());
-    let provider = ProviderBuilder::new().on_ws(ws).await?;
-    let contract = JobManager::new(job_manager, provider.clone());
     loop {
-        // get latest block
-        let latest_block = provider.get_block_number().await?;
-
-        // Iterate from the last seen block to the latest block
-        while last_seen_block <= latest_block {
-            let events = match contract
-                .JobCreated_filter()
-                .from_block(last_seen_block)
-                .to_block(last_seen_block)
-                .query()
-                .await
-            {
-                Ok(events) => events,
-                Err(error) => {
-                    error!(?error, "Error fetching events");
+        let mut provider_retry = 1;
+        let provider = loop {
+            let ws = WsConnect::new(ws_rpc_url.clone());
+            let p = ProviderBuilder::new().on_ws(ws).await;
+            match p {
+                Ok(p) => break p,
+                Err(_) => {
+                    let sleep_millis = provider_retry * 3;
+                    sleep(Duration::from_millis(sleep_millis)).await;
+                    if sleep_millis < FIVE_MINUTES_MILLIS {
+                        provider_retry += 1;
+                    }
+                    error!(?sleep_millis, "retrying creating ws connection");
                     continue;
                 }
+            }
+        };
+        let contract = JobManager::new(job_manager, provider.clone());
+        loop {
+            // get latest block
+            let latest_block = match provider.get_block_number().await {
+                Err(error) => {
+                    error!(?error, "error getting latest block number events");
+                    break;
+                }
+                Ok(num) => num,
             };
 
-            for (event, _) in events {
-                let job = Job {
-                    id: event.jobID.into(),
-                    nonce: event.nonce,
-                    program_id: event.programID.to_vec(),
-                    onchain_input: event.onchainInput.into(),
-                    offchain_input: vec![], // Onchain jobs do not have offchain input
-                    state: vec![],          // Onchain jobs are stateless
-                    consumer_address: event.consumer.to_vec(),
-                    max_cycles: event.maxCycles,
-                    request_type: RequestType::Onchain,
-                    result_with_metadata: vec![],
-                    zkvm_operator_signature: vec![],
-                    status: JobStatus {
-                        status: JobStatusType::Pending as i32,
-                        failure_reason: None,
-                        retries: 0,
-                    },
+            // Iterate from the last seen block to the latest block
+            while last_seen_block <= latest_block {
+                let events = match contract
+                    .JobCreated_filter()
+                    .from_block(last_seen_block)
+                    .to_block(last_seen_block)
+                    .query()
+                    .await
+                {
+                    Ok(events) => events,
+                    Err(error) => {
+                        error!(?error, "error fetching events");
+                        break;
+                    }
                 };
-                if let Err(error) = job_processor.submit_job(job).await {
-                    error!(?error, ?event.jobID, "failed while submitting to job processor");
-                }
-            }
 
-            // update the last seen block height after processing the events
-            last_seen_block += 1;
-            if let Err(error) = job_processor.set_last_block_height(last_seen_block).await {
-                error!(?error, "failed to set last seen block height");
+                for (event, _) in events {
+                    let job = Job {
+                        id: event.jobID.into(),
+                        nonce: event.nonce,
+                        program_id: event.programID.to_vec(),
+                        onchain_input: event.onchainInput.into(),
+                        offchain_input: vec![], // Onchain jobs do not have offchain input
+                        state: vec![],          // Onchain jobs are stateless
+                        consumer_address: event.consumer.to_vec(),
+                        max_cycles: event.maxCycles,
+                        request_type: RequestType::Onchain,
+                        result_with_metadata: vec![],
+                        zkvm_operator_signature: vec![],
+                        status: JobStatus {
+                            status: JobStatusType::Pending as i32,
+                            failure_reason: None,
+                            retries: 0,
+                        },
+                    };
+                    if let Err(error) = job_processor.submit_job(job).await {
+                        error!(?error, ?event.jobID, "failed while submitting to job processor");
+                    }
+                }
+
+                // update the last seen block height after processing the events
+                last_seen_block += 1;
+                if let Err(error) = job_processor.set_last_block_height(last_seen_block).await {
+                    error!(?error, "failed to set last seen block height");
+                }
             }
         }
     }

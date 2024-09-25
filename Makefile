@@ -34,8 +34,7 @@ doc: contracts
 # Use this for iterating on integration tests
 .PHONY: test-all
 test-all: contracts
-	@# Make sure to build the bins that the integration tests rely on
-	@# and run the ignored tests
+	@# Make sure to run the ignored tests
 	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: build
