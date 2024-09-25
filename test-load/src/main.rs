@@ -1,19 +1,11 @@
 //! Load testing for the coprocessor node
-use abi::{abi_encode_offchain_job_request, JobParams};
-use alloy::{
-    primitives::{keccak256, Address},
-    providers::ProviderBuilder,
-    signers::Signer,
-    sol_types::SolValue,
-};
-use contracts::{get_default_deploy_info, mock_consumer::MockConsumer};
+use alloy::{primitives::Address, providers::ProviderBuilder};
+use contracts::mock_consumer::MockConsumer;
 use db::tables::get_job_id;
 use goose::prelude::*;
-use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use once_cell::sync::Lazy;
-use proto::{GetResultRequest, GetResultResponse, SubmitJobRequest};
+use proto::{GetResultRequest, SubmitJobRequest};
 use std::{
-    env,
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
 };
@@ -22,7 +14,6 @@ use test_load::{
     get_offchain_request, num_users, report_file_name, run_time, should_wait_until_job_completed,
     startup_time, wait_until_job_completed,
 };
-use test_utils::get_signers;
 use tokio::sync::OnceCell;
 
 static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
@@ -114,6 +105,9 @@ async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {
     Ok(())
 }
 
+/// Submit the first job to the coprocessor node so that
+/// loadtest_get_result() is guaranteed to get the result of
+/// this job. Only need to do this if the next nonce is 1.
 pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
     let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
 

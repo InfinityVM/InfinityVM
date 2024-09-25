@@ -1,14 +1,12 @@
-use abi::abi_encode_offchain_job_request;
 use alloy::{
     primitives::{hex, keccak256, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
     sol,
     sol_types::{SolType, SolValue},
 };
-use db::tables::{get_job_id, Job, RequestType};
+use db::tables::get_job_id;
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
-use proto::{JobStatus, JobStatusType};
 use std::env;
 use test_utils::create_and_sign_offchain_request;
 use zkvm_executor::service::{

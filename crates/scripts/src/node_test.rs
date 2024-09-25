@@ -1,33 +1,21 @@
 //! Test the coprocessor node by submitting a program, submitting a job, and getting the result.
 
 use alloy::{
-    network::EthereumWallet,
     primitives::{hex, Address, FixedBytes},
     providers::ProviderBuilder,
-    signers::{local::LocalSigner, Signer},
+    signers::local::LocalSigner,
     sol_types::SolValue,
 };
-use clob_node::{
-    CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR, CLOB_ETH_WS_ADDR,
-    CLOB_JOB_SYNC_START, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
-};
 use clob_programs::CLOB_ELF;
-use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
-use contracts::{mock_consumer::MockConsumer, DeployInfo, DEFAULT_DEPLOY_INFO};
+use contracts::mock_consumer::MockConsumer;
 use k256::ecdsa::SigningKey;
-use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use reqwest;
-use std::{fs::File, process::Command};
-use test_utils::{
-    anvil_with_job_manager, create_and_sign_offchain_request, sleep_until_bound, ProcKill,
-    LOCALHOST,
-};
-use tokio::signal::unix::{signal, SignalKind};
+use test_utils::create_and_sign_offchain_request;
 use tracing::{error, info};
 
 const COPROCESSOR_IP: &str = "34.82.138.182";

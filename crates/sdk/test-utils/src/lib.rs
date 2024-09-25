@@ -200,6 +200,7 @@ pub async fn job_manager_deploy(rpc_url: String) -> JobManagerDeploy {
     JobManagerDeploy { rpc_url, job_manager, relayer, coprocessor_operator }
 }
 
+/// Create and sign an ABI-encoded offchain job request.
 pub async fn create_and_sign_offchain_request(
     nonce: u64,
     max_cycles: u64,
