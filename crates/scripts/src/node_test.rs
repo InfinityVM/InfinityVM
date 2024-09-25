@@ -9,6 +9,7 @@ use alloy::{
 use clob_programs::CLOB_ELF;
 use contracts::mock_consumer::MockConsumer;
 use k256::ecdsa::SigningKey;
+use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
@@ -80,7 +81,7 @@ async fn main() {
 
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
         nonce,
-        1000000,
+        MOCK_CONSUMER_MAX_CYCLES,
         consumer_addr,
         Address::abi_encode(&consumer_addr).as_slice(),
         &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),

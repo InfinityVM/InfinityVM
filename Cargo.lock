@@ -6530,6 +6530,7 @@ dependencies = [
  "db",
  "dotenv",
  "goose",
+ "mock-consumer",
  "mock-consumer-methods",
  "once_cell",
  "proto",

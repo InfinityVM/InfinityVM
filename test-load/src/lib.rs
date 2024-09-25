@@ -3,6 +3,7 @@ use alloy::{primitives::Address, sol_types::SolValue};
 use contracts::get_default_deploy_info;
 use db::tables::get_job_id;
 use goose::prelude::*;
+use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use proto::{GetResultRequest, GetResultResponse};
 use std::env;
@@ -31,8 +32,8 @@ pub fn coprocessor_gateway_port() -> String {
 /// Get the max cycles env var.
 pub fn max_cycles() -> u64 {
     match env::var("MAX_CYCLES") {
-        Ok(max_cycles) => max_cycles.parse().unwrap_or(1000000),
-        Err(_) => 1000000, // Default value if MAX_CYCLES is not set
+        Ok(max_cycles) => max_cycles.parse().unwrap_or(MOCK_CONSUMER_MAX_CYCLES),
+        Err(_) => MOCK_CONSUMER_MAX_CYCLES, // Default value if MAX_CYCLES is not set
     }
 }
 
