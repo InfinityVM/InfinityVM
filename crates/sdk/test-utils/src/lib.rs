@@ -43,7 +43,8 @@ impl Drop for ProcKill {
     }
 }
 
-/// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
+/// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level. Defaults to
+/// INFO for log level.
 ///
 /// If the tracing subscriber has already been initialized in a previous test, this
 /// function will silently fail due to `try_init()`, which does not reinitialize
