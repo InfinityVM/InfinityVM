@@ -5925,6 +5925,7 @@ dependencies = [
  "mock-consumer",
  "mock-consumer-methods",
  "proto",
+ "reqwest 0.11.27",
  "serde_json",
  "tempfile",
  "test-utils",

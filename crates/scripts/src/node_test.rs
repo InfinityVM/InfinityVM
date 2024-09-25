@@ -1,4 +1,4 @@
-//! Locally spin up the coprocessor node, anvil, and the clob.
+//! Test the coprocessor node by submitting a program, submitting a job, and getting the result.
 
 use alloy::{
     network::EthereumWallet,
@@ -18,19 +18,21 @@ use k256::ecdsa::SigningKey;
 use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
-    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, SubmitJobRequest,
-    SubmitProgramRequest, VmType,
+    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
+    SubmitJobRequest, SubmitProgramRequest, VmType,
 };
+use reqwest;
 use std::{fs::File, process::Command};
 use test_utils::{
     anvil_with_job_manager, create_and_sign_offchain_request, sleep_until_bound, ProcKill,
     LOCALHOST,
 };
 use tokio::signal::unix::{signal, SignalKind};
-use tracing::info;
+use tracing::{error, info};
 
 const COPROCESSOR_IP: &str = "34.82.138.182";
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
+const COPROCESSOR_HTTP_PORT: u16 = 8080;
 const MOCK_CONSUMER_ADDR: &str = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
 const OFFCHAIN_SIGNER_PRIVATE_KEY: &str =
     "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
@@ -45,25 +47,46 @@ async fn main() {
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
     let client_coproc_grpc = format!("http://{COPROCESSOR_IP}:{COPROCESSOR_GRPC_PORT}");
-
     let mut coproc_client =
         CoprocessorNodeClient::connect(client_coproc_grpc.clone()).await.unwrap();
-    // info!("Submitting CLOB ELF to coprocessor node");
-    // let submit_program_request =
-    //     SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
-    // coproc_client.submit_program(submit_program_request).await.unwrap();
 
-    // // We submit the MockConsumer ELF to the coprocessor node for load testing.
-    // info!("Submitting MockConsumer ELF to coprocessor node");
-    // let submit_program_request = SubmitProgramRequest {
-    //     program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
-    //     vm_type: VmType::Risc0.into(),
-    // };
-    // coproc_client.submit_program(submit_program_request).await.unwrap();
+    info!("Trying to submit CLOB ELF to coprocessor node");
+    let submit_program_request =
+        SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
+    // We handle error here because we want to run this test even if the ELF was already submitted
+    match coproc_client.submit_program(submit_program_request).await {
+        Ok(submit_program_response) => {
+            info!("Submitted CLOB ELF to coprocessor node: {:?}", submit_program_response);
+        }
+        Err(e) => {
+            error!("Error while submitting CLOB ELF to coprocessor node: {:?}", e);
+        }
+    }
 
-    let nonce = 3;
+    info!("Trying to submit MockConsumer ELF to coprocessor node");
+    let submit_program_request = SubmitProgramRequest {
+        program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
+        vm_type: VmType::Risc0.into(),
+    };
+    // We handle error here because we want to run this test even if the ELF was already submitted
+    match coproc_client.submit_program(submit_program_request).await {
+        Ok(submit_program_response) => {
+            info!("Submitted MockConsumer ELF to coprocessor node: {:?}", submit_program_response);
+        }
+        Err(e) => {
+            error!("Error while submitting MockConsumer ELF to coprocessor node: {:?}", e);
+        }
+    }
+
+    // Get nonce from the consumer contract
+    let provider = ProviderBuilder::new().with_recommended_fillers().on_http(
+        url::Url::parse(format!("http://{ANVIL_IP}:{ANVIL_PORT}").as_str()).expect("Valid URL"),
+    );
     let consumer_addr =
         Address::parse_checksummed(MOCK_CONSUMER_ADDR, None).expect("Valid address");
+    let consumer_contract = MockConsumer::new(consumer_addr, &provider);
+    let nonce = consumer_contract.getNextNonce().call().await.unwrap()._0;
+
     let decoded = hex::decode(OFFCHAIN_SIGNER_PRIVATE_KEY).unwrap();
     let offchain_signer = K256LocalSigner::from_slice(&decoded).unwrap();
 
@@ -79,6 +102,7 @@ async fn main() {
     )
     .await;
 
+    // Submit a job to the coprocessor node
     let submit_job_request = SubmitJobRequest {
         request: encoded_job_request,
         signature,
@@ -91,16 +115,31 @@ async fn main() {
 
     tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
+    // Get the job result from the coprocessor node
     let job_id = submit_job_response.into_inner().job_id;
     let get_result_request = GetResultRequest { job_id: job_id.clone() };
     let get_result_response = coproc_client.get_result(get_result_request).await.unwrap();
     info!("Result: {:?}", get_result_response);
 
-    let consumer_provider = ProviderBuilder::new().with_recommended_fillers().on_http(
-        url::Url::parse(format!("http://{ANVIL_IP}:{ANVIL_PORT}").as_str()).expect("Valid URL"),
-    );
+    // Call get_result on HTTP gateway as well to make sure the gateway works correctly
+    let http_gateway_url = format!("http://{COPROCESSOR_IP}:{COPROCESSOR_HTTP_PORT}");
+    let client = reqwest::Client::new();
 
-    let consumer_contract = MockConsumer::new(consumer_addr, &consumer_provider);
+    let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
+    let payload = serde_json::to_value(get_result_request).expect("Valid GetResultRequest");
+
+    let response = client
+        .post(format!("{}/v1/coprocessor_node/get_result", http_gateway_url))
+        .json(&payload)
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    let get_result_response: GetResultResponse =
+        response.json().await.expect("Failed to parse JSON response");
+    info!("HTTP Gateway Result: {:?}", get_result_response);
+
+    // Wait for the job result to be relayed to anvil
     let mut inputs = vec![0u8; 32];
     // If the inputs are all zero, then the job is not yet relayed
     while inputs.iter().all(|&x| x == 0) {
