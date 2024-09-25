@@ -5913,7 +5913,6 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 name = "scripts"
 version = "0.0.1"
 dependencies = [
- "abi",
  "alloy",
  "clob-node",
  "clob-programs",
@@ -6526,7 +6525,6 @@ dependencies = [
 name = "test-load"
 version = "0.0.1"
 dependencies = [
- "abi",
  "alloy",
  "contracts",
  "db",
