@@ -30,9 +30,6 @@ COPY contracts /root/contracts
 # Set the working directory
 WORKDIR /root/contracts
 
-# Ensure the startup script is executable
-RUN chmod +x /root/contracts/script/anvil-devnet-startup.sh
-
 # Expose the Anvil port
 EXPOSE 8545
 
