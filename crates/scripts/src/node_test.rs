@@ -15,7 +15,6 @@ use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitProgramRequest, VmType,
 };
-use reqwest;
 use test_utils::create_and_sign_offchain_request;
 use tracing::{error, info};
 
