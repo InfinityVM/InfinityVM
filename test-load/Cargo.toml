@@ -11,15 +11,14 @@ workspace = true
 alloy = { workspace = true }
 goose = { workspace = true }
 tokio = { workspace = true, features = ["process"] }
-serde_json = { workspace = true }
 once_cell = { workspace = true }
 dotenv = { workspace = true }
 reqwest = { workspace = true }
 url = { workspace = true }
-abi = { workspace = true }
 db = { workspace = true }
 proto = { workspace = true }
 test-utils = { workspace = true }
+mock-consumer = { workspace = true }
 mock-consumer-methods = { workspace = true }
 contracts = { workspace = true }
 
