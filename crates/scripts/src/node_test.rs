@@ -1,4 +1,4 @@
-//! Test the coprocessor node by submitting a program, submitting a job, and getting the result.
+//! Test the coprocessor node by submitting programs, submitting a job, and getting the result.
 
 use alloy::{
     primitives::{hex, Address, FixedBytes},
@@ -41,7 +41,7 @@ async fn main() {
     info!("Trying to submit CLOB ELF to coprocessor node");
     let submit_program_request =
         SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
-    // We handle error here because we want to run this test even if the ELF was already submitted
+    // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
         Ok(submit_program_response) => {
             info!("Submitted CLOB ELF to coprocessor node: {:?}", submit_program_response);
@@ -56,7 +56,7 @@ async fn main() {
         program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
         vm_type: VmType::Risc0.into(),
     };
-    // We handle error here because we want to run this test even if the ELF was already submitted
+    // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
         Ok(submit_program_response) => {
             info!("Submitted MockConsumer ELF to coprocessor node: {:?}", submit_program_response);
