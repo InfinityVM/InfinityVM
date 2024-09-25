@@ -57,6 +57,9 @@ pub enum Error {
     /// error running node
     #[error(transparent)]
     Node(#[from] crate::node::Error),
+    /// database error
+    #[error("database error: {0}")]
+    Database(#[from] db::Error),
 }
 
 type K256LocalSigner = LocalSigner<SigningKey>;
@@ -90,9 +93,9 @@ struct Secret {
 fn db_dir() -> String {
     let mut p = home::home_dir().expect("could not find users home dir");
     p.push(".config");
-    p.push("ethos");
+    p.push("ivm");
     p.push("networks");
-    p.push("ethos-dev0");
+    p.push("ivm-dev0");
     p.push("coprocessor-node");
     p.push("db");
     p.into_os_string().into_string().expect("could not create default db path")
@@ -210,13 +213,17 @@ impl Cli {
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
+        let db = db::init_db(&
+            opts.db_dir)?;
+        tracing::info!("💾 db initialized at {}", opts.db_dir);
+
         let config = NodeConfig {
             prom_addr: opts.prom_address.parse().map_err(|_| Error::InvalidPromAddress)?,
             grpc_addr: opts.grpc_address.parse().map_err(|_| Error::InvalidGrpcAddress)?,
             http_listen_addr: opts.http_address.parse().map_err(|_| Error::InvalidHttpAddress)?,
             zkvm_operator: opts.operator_signer()?,
             relayer: opts.relayer_signer()?,
-            db_dir: opts.db_dir.into(),
+            db,
             exec_queue_bound: opts.exec_queue_bound,
             http_eth_rpc: opts.http_eth_rpc,
             job_manager_address: opts.job_manager_address,

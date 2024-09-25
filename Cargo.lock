@@ -2598,6 +2598,7 @@ dependencies = [
  "mock-consumer-methods",
  "proto",
  "rand 0.7.3",
+ "reth-db",
  "risc0-binfmt",
  "risc0-zkp",
  "serde_json",

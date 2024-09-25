@@ -6,6 +6,9 @@ use futures::future::FutureExt;
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 use rand::Rng;
+use reth_db::DatabaseEnv;
+
+use std::sync::Arc;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, path::PathBuf};
 use test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
@@ -23,10 +26,10 @@ pub struct Args {
     pub clob_endpoint: Option<String>,
     /// Anvil setup with `JobManager`.
     pub anvil: AnvilJobManager,
-    /// Coprocessor Node gRPC client
+    /// Coprocessor Node gRPC client.
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
-    /// db dir path for test
-    pub db_dir: PathBuf,
+    /// Handle for DB. Use with care.
+    pub db: Arc<DatabaseEnv>,
 }
 
 /// E2E test environment builder and runner.
@@ -84,13 +87,16 @@ impl E2E {
         let prometheus_addr = format!("{LOCALHOST}:{prometheus_port}");
         let cn_grpc_client_url = format!("http://{coprocessor_node_grpc}");
 
+        tracing::info!("💾 db initialized {}", coproc_db_dir.display());
+        let db = db::init_db(coproc_db_dir).unwrap();
+
         let config = NodeConfig {
             prom_addr: prometheus_addr.parse().unwrap(),
             grpc_addr: coprocessor_node_grpc.parse().unwrap(),
             http_listen_addr: http_addr.parse().unwrap(),
             zkvm_operator: anvil.coprocessor_operator.clone(),
             relayer: anvil.relayer.clone(),
-            db_dir: coproc_db_dir.clone(),
+            db: Arc::clone(&db),
             exec_queue_bound: 256,
             http_eth_rpc: http_rpc_url.clone(),
             job_manager_address: anvil.job_manager,
@@ -110,7 +116,9 @@ impl E2E {
             anvil,
             clob_consumer: None,
             clob_endpoint: None,
-            db_dir: coproc_db_dir,
+            db
+            
+            ,
         };
 
         if self.mock_consumer {

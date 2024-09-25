@@ -238,6 +238,12 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let done_status = JobStatusType::Done as i32;
         assert_eq!(job_result.status.unwrap().status, done_status);
 
+        // Check saved height
+        let current_block_number = consumer_provider.get_block_number().await.unwrap();
+        let saved_height = db::get_last_block_height(args.db.clone()).unwrap().unwrap();
+        assert_ne!(current_block_number, 0);
+        assert_eq!(current_block_number + 1, saved_height);
+
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
@@ -280,14 +286,6 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let get_balance_call = consumer_contract.getBalance(mock_user_address);
         let MockConsumer::getBalanceReturn { _0: balance } = get_balance_call.call().await.unwrap();
         assert_eq!(balance, expected_balance);
-
-        // Check saved height
-        let test_db = db::open_db_read_only(args.db_dir).unwrap();
-        assert!(test_db.is_read_only());
-        let saved_height = db::get_last_block_height(test_db).unwrap().unwrap();
-        let block_number = consumer_provider.get_block_number().await.unwrap();
-        assert_ne!(block_number, 0);
-        assert_eq!(block_number + 1, saved_height);
     }
     E2E::new().mock_consumer().run(test).await;
 }

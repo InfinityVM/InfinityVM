@@ -14,9 +14,9 @@ use db::tables::Job;
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
 use proto::coprocessor_node_server::CoprocessorNodeServer;
+use reth_db::Database;
 use std::{
     net::{SocketAddr, SocketAddrV4},
-    path::PathBuf,
     sync::Arc,
 };
 use tokio::{task::JoinHandle, try_join};
@@ -53,7 +53,7 @@ pub enum Error {
 
 /// Arguments to run a node
 #[derive(Debug)]
-pub struct NodeConfig {
+pub struct NodeConfig<D> {
     /// Prometheus metrics listen address.
     pub prom_addr: SocketAddr,
     /// gRPC server listen address.
@@ -64,8 +64,8 @@ pub struct NodeConfig {
     pub zkvm_operator: K256LocalSigner,
     /// Job result relayer private key.
     pub relayer: K256LocalSigner,
-    /// Path to directory to init/open embedded database.
-    pub db_dir: PathBuf,
+    /// Database handle
+    pub db: Arc<D>,
     /// The upper bound size for the execution queue.
     pub exec_queue_bound: usize,
     /// EVM http rpc address.
@@ -83,14 +83,14 @@ pub struct NodeConfig {
 }
 
 /// Run the coprocessor node.
-pub async fn run(
+pub async fn run<D>(
     NodeConfig {
         prom_addr,
         grpc_addr,
         http_listen_addr,
         zkvm_operator,
         relayer,
-        db_dir,
+        db,
         exec_queue_bound,
         http_eth_rpc,
         job_manager_address,
@@ -98,8 +98,11 @@ pub async fn run(
         job_proc_config,
         ws_eth_rpc,
         job_sync_start,
-    }: NodeConfig,
-) -> Result<(), Error> {
+    }: NodeConfig<D>,
+) -> Result<(), Error>
+where
+    D: Database + 'static,
+{
     info!("👷🏻 zkvm operator signer is {:?}", zkvm_operator.address());
     info!("✉️  relayer signer is {:?}", relayer.address());
     info!("📝 job manager contract address is {}", job_manager_address);
@@ -114,9 +117,6 @@ pub async fn run(
         info!("📊 prometheus server listening on {}", prom_addr);
         metric_server.serve(&prom_addr.to_string()).await
     });
-
-    tracing::info!("💾 db initialized {}", db_dir.display());
-    let db = db::init_db(db_dir)?;
 
     // Initialize the async channels
     let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =

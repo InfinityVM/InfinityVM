@@ -19,6 +19,7 @@ borsh = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 rand = "*"
+reth-db = { workspace = true }
 
 coprocessor-node = { workspace = true }
 contracts = { workspace = true }
