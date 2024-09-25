@@ -32,5 +32,3 @@ WORKDIR /root/contracts
 
 # Expose the Anvil port
 EXPOSE 8545
-
-ENTRYPOINT ["/bin/bash", "/root/contracts/script/anvil-devnet-startup.sh"]
