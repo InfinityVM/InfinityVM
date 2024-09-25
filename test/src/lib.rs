@@ -5,6 +5,9 @@ use coprocessor_node::{job_processor::JobProcessorConfig, node::NodeConfig};
 use futures::future::FutureExt;
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
+use rand::Rng;
+use std::env::temp_dir;
+use std::path::PathBuf;
 use std::{future::Future, panic::AssertUnwindSafe};
 use tempfile::TempDir;
 use test_utils::{
@@ -26,7 +29,7 @@ pub struct Args {
     /// Coprocessor Node gRPC client
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
     /// db dir path for test
-    pub db_dir: TempDir,
+    pub db_dir: PathBuf,
 }
 
 /// E2E test environment builder and runner.
@@ -63,9 +66,10 @@ impl E2E {
         R: Future<Output = ()>,
     {
         test_utils::test_tracing();
-        // let subscriber = tracing_subscriber::FmtSubscriber::new();
-        // // use that subscriber to process traces emitted after this point
-        // tracing::subscriber::set_global_default(subscriber).unwrap();
+
+        let mut rng = rand::thread_rng();
+        let test_num: u32 = rng.gen();
+        let mut delete_dirs = vec![];
 
         let anvil_port = get_localhost_port();
         let anvil = anvil_with_job_manager(anvil_port).await;
@@ -73,7 +77,8 @@ impl E2E {
         let http_rpc_url = anvil.anvil.endpoint();
         let ws_rpc_url = anvil.anvil.ws_endpoint();
 
-        let db_dir = tempfile::Builder::new().prefix("coprocessor-node-test-db").tempdir().unwrap();
+        let coproc_db_dir = temp_dir().join(format!("coproc-test-db-{}", test_num));
+        delete_dirs.push(coproc_db_dir.clone());
         let coprocessor_node_port = get_localhost_port();
         let coprocessor_node_grpc = format!("{LOCALHOST}:{coprocessor_node_port}");
         let http_port = get_localhost_port();
@@ -88,7 +93,7 @@ impl E2E {
             http_listen_addr: http_addr.parse().unwrap(),
             zkvm_operator: anvil.coprocessor_operator.clone(),
             relayer: anvil.relayer.clone(),
-            db_dir: db_dir.path().to_str().unwrap().to_string(),
+            db_dir: coproc_db_dir.clone(),
             exec_queue_bound: 256,
             http_eth_rpc: http_rpc_url.clone(),
             job_manager_address: anvil.job_manager,
@@ -98,7 +103,6 @@ impl E2E {
             job_sync_start: BlockNumberOrTag::Earliest,
         };
         tokio::spawn(async move { coprocessor_node::node::run(config).await });
-        dbg!(coprocessor_node_port);
         sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =
             CoprocessorNodeClient::connect(cn_grpc_client_url.clone()).await.unwrap();
@@ -109,7 +113,7 @@ impl E2E {
             anvil,
             clob_consumer: None,
             clob_endpoint: None,
-            db_dir,
+            db_dir: coproc_db_dir,
         };
 
         if self.mock_consumer {
@@ -118,14 +122,8 @@ impl E2E {
 
         if self.clob {
             let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
-            let db_dir = tempfile::Builder::new()
-                .prefix("clob-node-test-db")
-                .tempdir()
-                .unwrap()
-                .into_path()
-                .to_str()
-                .unwrap()
-                .to_string();
+            let mut clob_db_dir = temp_dir().join(format!("clob-test-db-{}", test_num));
+            delete_dirs.push(clob_db_dir.clone());
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
             let batcher_duration_ms = 1000;
@@ -135,7 +133,7 @@ impl E2E {
             let operator_signer = clob_consumer.clob_signer.clone();
             tokio::spawn(async move {
                 clob_node::run(
-                    db_dir,
+                    clob_db_dir,
                     listen_addr2,
                     batcher_duration_ms,
                     operator_signer,
@@ -154,6 +152,11 @@ impl E2E {
         }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
-        assert!(test_result.is_ok())
+
+        for dir in delete_dirs {
+            let _ = std::fs::remove_dir_all(dir);
+        }
+
+        assert!(test_result.is_ok());
     }
 }

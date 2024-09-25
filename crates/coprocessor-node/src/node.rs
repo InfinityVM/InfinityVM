@@ -16,6 +16,7 @@ use prometheus::Registry;
 use proto::coprocessor_node_server::CoprocessorNodeServer;
 use std::{
     net::{SocketAddr, SocketAddrV4},
+    path::{Path, PathBuf},
     sync::Arc,
 };
 use tokio::{task::JoinHandle, try_join};
@@ -64,7 +65,7 @@ pub struct NodeConfig {
     /// Job result relayer private key.
     pub relayer: K256LocalSigner,
     /// Path to directory to init/open embedded database.
-    pub db_dir: String,
+    pub db_dir: PathBuf,
     /// The upper bound size for the execution queue.
     pub exec_queue_bound: usize,
     /// EVM http rpc address.
@@ -114,8 +115,8 @@ pub async fn run(
         metric_server.serve(&prom_addr.to_string()).await
     });
 
-    let db = db::init_db(db_dir.clone())?;
-    info!(db_dir, "💾 db initialized");
+    tracing::info!("💾 db initialized {}", db_dir.display());
+    let db = db::init_db(db_dir)?;
 
     // Initialize the async channels
     let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =

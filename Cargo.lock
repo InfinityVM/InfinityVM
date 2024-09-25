@@ -2597,6 +2597,7 @@ dependencies = [
  "mock-consumer",
  "mock-consumer-methods",
  "proto",
+ "rand 0.7.3",
  "risc0-binfmt",
  "risc0-zkp",
  "serde_json",

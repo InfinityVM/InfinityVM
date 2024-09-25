@@ -18,6 +18,7 @@ tempfile = { workspace = true }
 borsh = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
+rand = "*"
 
 coprocessor-node = { workspace = true }
 contracts = { workspace = true }

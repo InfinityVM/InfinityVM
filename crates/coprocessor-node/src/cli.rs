@@ -216,7 +216,7 @@ impl Cli {
             http_listen_addr: opts.http_address.parse().map_err(|_| Error::InvalidHttpAddress)?,
             zkvm_operator: opts.operator_signer()?,
             relayer: opts.relayer_signer()?,
-            db_dir: opts.db_dir,
+            db_dir: opts.db_dir.into(),
             exec_queue_bound: opts.exec_queue_bound,
             http_eth_rpc: opts.http_eth_rpc,
             job_manager_address: opts.job_manager_address,
