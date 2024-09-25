@@ -91,6 +91,7 @@ where
                             failure_reason: None,
                             retries: 0,
                         },
+                        relay_tx_hash: vec![],
                     };
                     if let Err(error) = job_processor.submit_job(job).await {
                         error!(?error, "failed while submitting to job processor");

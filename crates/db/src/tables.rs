@@ -75,6 +75,8 @@ pub struct Job {
     pub zkvm_operator_signature: Vec<u8>,
     /// The status of the job
     pub status: JobStatus,
+    /// Tx hash of relayed result
+    pub relay_tx_hash: Vec<u8>,
 }
 
 impl_compress_decompress! { Job }

@@ -105,5 +105,6 @@ pub async fn mock_consumer_pending_job(
         },
         consumer_address: mock_consumer.abi_encode(),
         zkvm_operator_signature: operator_signature,
+        relay_tx_hash: vec![],
     }
 }

@@ -89,6 +89,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
                 failure_reason: None,
                 retries: 0,
             },
+            relay_tx_hash: vec![],
         };
 
         // Add signature from user on job request

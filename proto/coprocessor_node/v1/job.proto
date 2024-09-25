@@ -49,4 +49,6 @@ message JobResult {
   bytes zkvm_operator_signature = 11;
   // The status of the job.
   JobStatus status = 12;
+  // Tx hash of relayed result
+  bytes relay_tx_hash = 13;
 }
