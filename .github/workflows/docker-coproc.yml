@@ -2,7 +2,10 @@ name: docker-anvil
 
 on:
   workflow_dispatch:
-
+  # push:
+  #   branches:
+  #     - main
+  pull_request:
 env:
   PROJECT_ID: ethos-artifacts
   REGION: us-west1
