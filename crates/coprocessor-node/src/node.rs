@@ -100,7 +100,7 @@ pub async fn run(
     }: NodeConfig,
 ) -> Result<(), Error> {
     info!("👷🏻 zkvm operator signer is {:?}", zkvm_operator.address());
-    info!("✉️ relayer signer is {:?}", relayer.address());
+    info!("✉️  relayer signer is {:?}", relayer.address());
     info!("📝 job manager contract address is {}", job_manager_address);
 
     // Setup Prometheus registry & custom metrics
@@ -110,7 +110,7 @@ pub async fn run(
 
     // Start prometheus server
     let prometheus_server = tokio::spawn(async move {
-        info!("prometheus server listening on {}", prom_addr);
+        info!("📊 prometheus server listening on {}", prom_addr);
         metric_server.serve(&prom_addr.to_string()).await
     });
 
@@ -145,13 +145,11 @@ pub async fn run(
     job_processor.start().await;
     let job_processor = Arc::new(job_processor);
 
-    let job_event_listener = start_job_event_listener(
-        ws_eth_rpc,
-        job_manager_address,
-        Arc::clone(&job_processor),
-        job_sync_start,
-    )
-    .await?;
+    let job_processor2 = Arc::clone(&job_processor);
+    let job_event_listener = tokio::spawn(async move {
+        start_job_event_listener(ws_eth_rpc, job_manager_address, job_processor2, job_sync_start)
+            .await
+    });
 
     let reflector = tonic_reflection::server::Builder::configure()
         .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)

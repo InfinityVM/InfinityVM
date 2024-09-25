@@ -62,7 +62,10 @@ impl E2E {
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
-        test_utils::test_tracing();
+        // test_utils::test_tracing();
+        let subscriber = tracing_subscriber::FmtSubscriber::new();
+        // use that subscriber to process traces emitted after this point
+        tracing::subscriber::set_global_default(subscriber).unwrap();
 
         let anvil_port = get_localhost_port();
         let anvil = anvil_with_job_manager(anvil_port).await;
@@ -95,6 +98,7 @@ impl E2E {
             job_sync_start: BlockNumberOrTag::Earliest,
         };
         tokio::spawn(async move { coprocessor_node::node::run(config).await });
+        dbg!(coprocessor_node_port);
         sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =
             CoprocessorNodeClient::connect(cn_grpc_client_url.clone()).await.unwrap();
