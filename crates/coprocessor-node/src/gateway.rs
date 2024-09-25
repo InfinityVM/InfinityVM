@@ -1,7 +1,7 @@
 //! REST gRPC gateway is a reverse proxy that exposes an HTTP interface to the coprocessor-node gRPC
 //! routes.
 
-use std::net::SocketAddr;
+use std::{net::SocketAddr, time::Duration};
 
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
@@ -33,6 +33,11 @@ pub enum Error {
 const SUBMIT_JOB: &str = "submit_job";
 const GET_RESULT: &str = "get_result";
 const SUBMIT_PROGRAM: &str = "submit_program";
+
+const CONNECT_RETRIES: u64 = 12;
+const CONNECT_DELAY_MS: u64 = 250;
+
+type Client = CoprocessorNodeClient<Channel>;
 
 /// Error response from the gateway
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -79,8 +84,6 @@ pub struct HttpGrpcGateway {
     listen_addr: SocketAddr,
 }
 
-type Client = CoprocessorNodeClient<Channel>;
-
 impl HttpGrpcGateway {
     /// Create the gateway struct. Does not perform any network IO.
     pub const fn new(grpc_addr: String, listen_addr: SocketAddr) -> Self {
@@ -90,9 +93,26 @@ impl HttpGrpcGateway {
     /// Run the HTTP gateway.
     pub async fn serve(self) -> Result<(), Error> {
         let client_coproc_grpc = format!("http://{}", self.grpc_addr);
-        let grpc_client = CoprocessorNodeClient::<Channel>::connect(client_coproc_grpc)
-            .await
-            .map_err(|e| Error::ConnectionFailure(e.to_string()))?;
+
+        tracing::info!(
+            "REST gRPC Gateway attempting to connect to gRPC service at {}",
+            client_coproc_grpc
+        );
+        let mut connect_retries = 0;
+        let grpc_client = loop {
+            match Client::connect(client_coproc_grpc.clone()).await {
+                Ok(client) => break client,
+                Err(e) => {
+                    if connect_retries > CONNECT_RETRIES {
+                        return Err(Error::ConnectionFailure(e.to_string()));
+                    } else {
+                        connect_retries += 1;
+                        let sleep_ms = CONNECT_DELAY_MS * connect_retries;
+                        tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
+                    }
+                }
+            }
+        };
 
         let app = Router::new()
             .route(&self.path(SUBMIT_JOB), post(Self::submit_job))

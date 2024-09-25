@@ -453,6 +453,7 @@ where
                         if job.status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
                             jobs_to_delete.push(id);
+                            info!(?id, "queueing un-broadcastable job for deletion");
                         } else {
                             error!(
                                 "report this error: failed to retry relaying job {:?}: {:?}",
@@ -471,15 +472,12 @@ where
                         continue;
                     }
                 }
+            }
 
-                for job_id in &jobs_to_delete {
-                    if let Err(e) = delete_fail_relay_job(db.clone(), *job_id) {
-                        error!(
-                            "report this error: failed to delete retried job {:?}: {:?}",
-                            job_id, e
-                        );
-                        metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
-                    }
+            for job_id in &jobs_to_delete {
+                if let Err(e) = delete_fail_relay_job(db.clone(), *job_id) {
+                    error!("report this error: failed to delete retried job {:?}: {:?}", job_id, e);
+                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                 }
             }
             tokio::time::sleep(Duration::from_secs(30)).await;
