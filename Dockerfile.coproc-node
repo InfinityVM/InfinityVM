@@ -1,5 +1,6 @@
 FROM us-docker.pkg.dev/ethos-artifacts/docker/risc0-builder:1.80.1 as base
 WORKDIR /app
+
 COPY . .
 RUN apt-get update && apt-get -y upgrade && apt-get install -y libclang-dev pkg-config && \
 apt-get clean && \
