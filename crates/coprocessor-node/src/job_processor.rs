@@ -69,6 +69,9 @@ pub enum FailureReason {
     /// Unable to persist successfully completed job to DB
     #[error("db_error_status_done")]
     DbErrStatusDone,
+    /// Unable to persist relayed job to DB
+    #[error("db_error_status_relayed")]
+    DbErrStatusRelayed,
     /// Failure submitting job to `JobManager` contract
     #[error("relay_error")]
     RelayErr,
@@ -376,7 +379,7 @@ where
     }
 
     async fn relay_job_result(
-        job: Job,
+        mut job: Job,
         job_relayer: &Arc<JobRelayer>,
         db: &Arc<D>,
         metrics: &Arc<Metrics>,
@@ -391,8 +394,8 @@ where
             }
         };
 
-        match relay_receipt_result {
-            Ok(_receipt) => Ok(()),
+        let relay_tx_hash = match relay_receipt_result {
+            Ok(receipt) => receipt.transaction_hash,
             Err(e) => {
                 error!("report this error: failed to relay job {:?}: {:?}", id, e);
                 metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
@@ -401,12 +404,21 @@ where
                     metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
                     return Err(FailureReason::DbRelayErr);
                 }
-                Err(FailureReason::RelayErr)
+                return Err(FailureReason::RelayErr);
             }
+        };
+
+        // Save the relay tx hash and status to DB
+        job.relay_tx_hash = relay_tx_hash.to_vec();
+        job.status =
+            JobStatus { status: JobStatusType::Relayed as i32, failure_reason: None, retries: 0 };
+        if let Err(e) = put_job(db.clone(), job) {
+            error!("report this error: failed to save relayed job {:?}: {:?}", id, e);
+            metrics.incr_job_err(&FailureReason::DbErrStatusRelayed.to_string());
+            return Err(FailureReason::DbErrStatusRelayed);
         }
 
-        // TODO: Save tx hash of job receipt to DB
-        // [ref: https://github.com/Ethos-Works/InfinityVM/issues/46]
+        Ok(())
     }
 
     /// Retry jobs that failed to relay
@@ -445,9 +457,24 @@ where
                 };
 
                 match result {
-                    Ok(_) => {
+                    Ok(receipt) => {
                         info!("successfully retried job relay for job: {:?}", id);
                         jobs_to_delete.push(id);
+
+                        // Save the relay tx hash and status to DB
+                        job.relay_tx_hash = receipt.transaction_hash.to_vec();
+                        job.status = JobStatus {
+                            status: JobStatusType::Relayed as i32,
+                            failure_reason: None,
+                            retries: 0,
+                        };
+                        if let Err(e) = put_job(db.clone(), job) {
+                            error!(
+                                "report this error: failed to save relayed job {:?}: {:?}",
+                                id, e
+                            );
+                            metrics.incr_job_err(&FailureReason::DbErrStatusRelayed.to_string());
+                        }
                     }
                     Err(e) => {
                         if job.status.retries == max_retries {

@@ -89,6 +89,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
                 failure_reason: None,
                 retries: 0,
             },
+            relay_tx_hash: vec![],
         };
 
         // Add signature from user on job request
@@ -106,7 +107,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
         assert_eq!(submit_job_response.job_id, job_id);
 
-        // wait for the job to be processed
+        // wait for the job to be processed and relayed
         tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
         let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
@@ -114,9 +115,12 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             args.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
         let job_result = get_result_response.job_result.unwrap();
 
-        // Verify the job execution result
-        let done_status: i32 = JobStatusType::Done.into();
-        assert_eq!(job_result.status.unwrap().status, done_status);
+        // Verify the job status
+        let relayed_status: i32 = JobStatusType::Relayed.into();
+        assert_eq!(job_result.status.unwrap().status, relayed_status);
+
+        // Verify the relay tx hash is not empty
+        assert!(!job_result.relay_tx_hash.is_empty());
 
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
@@ -232,9 +236,12 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
             args.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
         let job_result = get_result_response.job_result.unwrap();
 
-        // Verify the job execution result
-        let done_status = JobStatusType::Done as i32;
-        assert_eq!(job_result.status.unwrap().status, done_status);
+        // Verify the job status
+        let relayed_status = JobStatusType::Relayed as i32;
+        assert_eq!(job_result.status.unwrap().status, relayed_status);
+
+        // Verify the relay tx hash is not empty
+        assert!(!job_result.relay_tx_hash.is_empty());
 
         // Check saved height
         let current_block_number = consumer_provider.get_block_number().await.unwrap();
