@@ -7,7 +7,6 @@ use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 use rand::Rng;
 use reth_db::DatabaseEnv;
-
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
 use test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
@@ -154,9 +153,9 @@ impl E2E {
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;
 
-        // for dir in delete_dirs {
-        //     let _ = std::fs::remove_dir_all(dir);
-        // }
+        for dir in delete_dirs {
+            let _ = std::fs::remove_dir_all(dir);
+        }
 
         assert!(test_result.is_ok());
     }
