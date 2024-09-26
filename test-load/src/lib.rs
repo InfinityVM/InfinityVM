@@ -116,7 +116,7 @@ pub async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) {
             }
             Err(e) => eprintln!("Error getting result: {:?}", e),
         }
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(1)).await;
     }
 }
 
