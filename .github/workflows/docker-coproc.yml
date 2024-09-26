@@ -2,10 +2,10 @@ name: docker-coproc
 
 on:
   workflow_dispatch:
-  # push:
-  #   branches:
-  #     - main
-  pull_request:
+  push:
+    branches:
+      - main
+
 env:
   PROJECT_ID: ethos-artifacts
   REGION: us-west1
