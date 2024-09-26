@@ -2,7 +2,7 @@
 
 use crate::{
     job_processor::JobProcessorConfig,
-    node::{self, NodeConfig},
+    node::{self, NodeConfig, WsConfig},
 };
 use alloy::{
     eips::BlockNumberOrTag,
@@ -129,6 +129,15 @@ struct Opts {
     #[arg(long, default_value = "ws://127.0.0.1:8545")]
     ws_eth_rpc: String,
 
+    /// WS Ethereum RPC retry backoff duration limit in milliseconds.
+    #[arg(long, default_value_t = 5 * 60 * 1_000)]
+    ws_backoff_limit_ms: u64,
+
+    /// WS Ethereum RPC retry backoff multiplier. The sleep duration will be `num_retrys *
+    /// backoff_multiplier_ms`.
+    #[arg(long, default_value_t = 10)]
+    ws_backoff_multiplier_ms: u64,
+
     /// Chain ID of where results are expected to get submitted. Defaults to anvil node chain id.
     #[arg(long, default_value = "31337")]
     chain_id: Option<u64>,
@@ -231,7 +240,11 @@ impl Cli {
                 num_workers: opts.worker_count,
                 max_retries: opts.max_retries as u32,
             },
-            ws_eth_rpc: opts.ws_eth_rpc,
+            ws_config: WsConfig {
+                ws_eth_rpc: opts.ws_eth_rpc,
+                backoff_limit_ms: opts.ws_backoff_limit_ms,
+                backoff_multiplier_ms: opts.ws_backoff_multiplier_ms,
+            },
             job_sync_start: opts.job_sync_start,
         };
 

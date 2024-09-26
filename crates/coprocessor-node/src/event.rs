@@ -19,9 +19,7 @@ use tokio::{
 };
 use tracing::error;
 
-use crate::job_processor::JobProcessorService;
-
-const FIVE_MINUTES_MILLIS: u64 = 300000;
+use crate::{job_processor::JobProcessorService, node::WsConfig};
 
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
@@ -40,10 +38,10 @@ pub enum Error {
 /// Listen for job request events and push a corresponding [`Job`] onto the
 /// execution queue.
 pub async fn start_job_event_listener<S, D>(
-    ws_rpc_url: String,
     job_manager: Address,
     job_processor: Arc<JobProcessorService<S, D>>,
     from_block: BlockNumberOrTag,
+    ws_config: WsConfig,
 ) -> Result<JoinHandle<Result<(), Error>>, Error>
 where
     S: Signer<Signature> + Send + Sync + Clone + 'static,
@@ -59,14 +57,14 @@ where
     loop {
         let mut provider_retry = 1;
         let provider = loop {
-            let ws = WsConnect::new(ws_rpc_url.clone());
+            let ws = WsConnect::new(ws_config.ws_eth_rpc.clone());
             let p = ProviderBuilder::new().on_ws(ws).await;
             match p {
                 Ok(p) => break p,
                 Err(_) => {
-                    let sleep_millis = provider_retry * 3;
+                    let sleep_millis = provider_retry * ws_config.backoff_multiplier_ms;
                     sleep(Duration::from_millis(sleep_millis)).await;
-                    if sleep_millis < FIVE_MINUTES_MILLIS {
+                    if sleep_millis < ws_config.backoff_limit_ms {
                         provider_retry += 1;
                     }
                     error!(?sleep_millis, "retrying creating ws connection");
@@ -79,7 +77,7 @@ where
             // get latest block
             let latest_block = match provider.get_block_number().await {
                 Err(error) => {
-                    error!(?error, "error getting latest block number events");
+                    error!(?error, "error getting latest block number");
                     break;
                 }
                 Ok(num) => num,

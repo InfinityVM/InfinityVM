@@ -1,7 +1,10 @@
 //! E2E tests and helpers.
 use alloy::eips::BlockNumberOrTag;
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
-use coprocessor_node::{job_processor::JobProcessorConfig, node::NodeConfig};
+use coprocessor_node::{
+    job_processor::JobProcessorConfig,
+    node::{NodeConfig, WsConfig},
+};
 use futures::future::FutureExt;
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
@@ -99,7 +102,11 @@ impl E2E {
             job_manager_address: anvil.job_manager,
             confirmations: 1,
             job_proc_config: JobProcessorConfig { num_workers: 2, max_retries: 1 },
-            ws_eth_rpc: ws_rpc_url.clone(),
+            ws_config: WsConfig {
+                ws_eth_rpc: ws_rpc_url.clone(),
+                backoff_limit_ms: 1000,
+                backoff_multiplier_ms: 3,
+            },
             job_sync_start: BlockNumberOrTag::Earliest,
         };
         tokio::spawn(async move { coprocessor_node::node::run(config).await });

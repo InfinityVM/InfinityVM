@@ -51,6 +51,17 @@ pub enum Error {
     Relayer(#[from] relayer::Error),
 }
 
+/// Configuration for ETH RPC websocket connection.
+#[derive(Debug)]
+pub struct WsConfig {
+    /// EVM ws rpc address.
+    pub ws_eth_rpc: String,
+    /// Backoff limit ms.
+    pub backoff_limit_ms: u64,
+    /// Backoff multiplier. The sleep duration will be `num_retrys * backoff_multiplier_ms`.
+    pub backoff_multiplier_ms: u64,
+}
+
 /// Arguments to run a node
 #[derive(Debug)]
 pub struct NodeConfig<D> {
@@ -76,8 +87,8 @@ pub struct NodeConfig<D> {
     pub confirmations: u64,
     /// Job processor config values
     pub job_proc_config: JobProcessorConfig,
-    /// EVM ws rpc address.
-    pub ws_eth_rpc: String,
+    /// Configuration for ETH RPC websocket connection.
+    pub ws_config: WsConfig,
     /// Block number to start reading job requests from.
     pub job_sync_start: BlockNumberOrTag,
 }
@@ -96,7 +107,7 @@ pub async fn run<D>(
         job_manager_address,
         confirmations,
         job_proc_config,
-        ws_eth_rpc,
+        ws_config,
         job_sync_start,
     }: NodeConfig<D>,
 ) -> Result<(), Error>
@@ -148,7 +159,7 @@ where
 
     let job_processor2 = Arc::clone(&job_processor);
     let job_event_listener = tokio::spawn(async move {
-        start_job_event_listener(ws_eth_rpc, job_manager_address, job_processor2, job_sync_start)
+        start_job_event_listener(job_manager_address, job_processor2, job_sync_start, ws_config)
             .await
     });
 
