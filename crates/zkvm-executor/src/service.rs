@@ -121,7 +121,6 @@ where
             job_id = ?job_id,
             vm_type = vm_type.as_str_name(),
             program_id = base64_program_id,
-            raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
             "job complete"
         );
 
