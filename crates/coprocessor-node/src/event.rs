@@ -13,10 +13,13 @@ use contracts::job_manager::JobManager;
 use db::tables::{Job, RequestType};
 use proto::{JobStatus, JobStatusType};
 use reth_db::Database;
-use tokio::task::JoinHandle;
+use tokio::{
+    task::JoinHandle,
+    time::{sleep, Duration},
+};
 use tracing::error;
 
-use crate::job_processor::JobProcessorService;
+use crate::{job_processor::JobProcessorService, node::WsConfig};
 
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
@@ -35,28 +38,51 @@ pub enum Error {
 /// Listen for job request events and push a corresponding [`Job`] onto the
 /// execution queue.
 pub async fn start_job_event_listener<S, D>(
-    ws_rpc_url: String,
     job_manager: Address,
     job_processor: Arc<JobProcessorService<S, D>>,
     from_block: BlockNumberOrTag,
+    ws_config: WsConfig,
 ) -> Result<JoinHandle<Result<(), Error>>, Error>
 where
     S: Signer<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
-    let handle = tokio::spawn(async move {
-        let mut last_seen_block = from_block.as_number().unwrap_or_default();
-        let last_saved_height = job_processor.get_last_block_height().await.unwrap_or_default();
-        if last_saved_height > last_seen_block {
-            // update last seen block height
-            last_seen_block = last_saved_height;
-        }
+    let mut last_seen_block = from_block.as_number().unwrap_or_default();
+    let last_saved_height = job_processor.get_last_block_height().await.unwrap_or_default();
+    if last_saved_height > last_seen_block {
+        // update last seen block height
+        last_seen_block = last_saved_height;
+    }
 
-        let ws = WsConnect::new(ws_rpc_url.clone());
-        let provider = ProviderBuilder::new().on_ws(ws).await?;
+    loop {
+        let mut provider_retry = 1;
+        let provider = loop {
+            let ws = WsConnect::new(ws_config.ws_eth_rpc.clone());
+            let p = ProviderBuilder::new().on_ws(ws).await;
+            match p {
+                Ok(p) => break p,
+                Err(_) => {
+                    let sleep_millis = provider_retry * ws_config.backoff_multiplier_ms;
+                    sleep(Duration::from_millis(sleep_millis)).await;
+                    if sleep_millis < ws_config.backoff_limit_ms {
+                        provider_retry += 1;
+                    }
+                    error!(?sleep_millis, "retrying creating ws connection");
+                    continue;
+                }
+            }
+        };
         let contract = JobManager::new(job_manager, provider.clone());
-        let mut latest_block = provider.get_block_number().await.unwrap();
         loop {
+            // get latest block
+            let latest_block = match provider.get_block_number().await {
+                Err(error) => {
+                    error!(?error, "error getting latest block number");
+                    break;
+                }
+                Ok(num) => num,
+            };
+
             // Iterate from the last seen block to the latest block
             while last_seen_block <= latest_block {
                 let events = match contract
@@ -68,8 +94,8 @@ where
                 {
                     Ok(events) => events,
                     Err(error) => {
-                        error!(?error, "Error fetching events");
-                        continue;
+                        error!(?error, "error fetching events");
+                        break;
                     }
                 };
 
@@ -93,7 +119,7 @@ where
                         },
                     };
                     if let Err(error) = job_processor.submit_job(job).await {
-                        error!(?error, "failed while submitting to job processor");
+                        error!(?error, ?event.jobID, "failed while submitting to job processor");
                     }
                 }
 
@@ -103,11 +129,6 @@ where
                     error!(?error, "failed to set last seen block height");
                 }
             }
-
-            // get latest block
-            latest_block = provider.get_block_number().await.unwrap();
         }
-    });
-
-    Ok(handle)
+    }
 }
