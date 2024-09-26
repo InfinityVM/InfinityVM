@@ -1,15 +1,14 @@
-use abi::abi_encode_offchain_job_request;
 use alloy::{
     primitives::{hex, keccak256, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
     sol,
     sol_types::{SolType, SolValue},
 };
-use db::tables::{get_job_id, Job, RequestType};
+use db::tables::get_job_id;
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
-use proto::{JobStatus, JobStatusType};
 use std::env;
+use test_utils::create_and_sign_offchain_request;
 use zkvm_executor::service::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
 };
@@ -89,37 +88,25 @@ impl RequestAndResultSigner {
         let zero_addr: Address = Address::ZERO;
         let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
 
-        let job = Job {
-            id: get_job_id(NONCE, consumer_addr),
-            nonce: NONCE,
-            max_cycles: MAX_CYCLES,
-            // Need to use abi_encode_packed because the contract address
-            // should not be zero-padded
-            consumer_address: Address::abi_encode_packed(&consumer_addr),
-            program_id: PROGRAM_ID.to_vec(),
-            onchain_input: Address::abi_encode(&zero_addr),
-            offchain_input: vec![],
-            state: vec![],
-            request_type: RequestType::Offchain(vec![]),
-            result_with_metadata: vec![],
-            zkvm_operator_signature: vec![],
-            status: JobStatus {
-                status: JobStatusType::Pending as i32,
-                failure_reason: None,
-                retries: 0,
-            },
-        };
-        let job_params = (&job).try_into().unwrap();
-        let encoded_job_request = abi_encode_offchain_job_request(job_params);
-
         let private_key_hex = env::var("OFFCHAIN_SIGNER_PRIVATE_KEY")
             .expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");
         let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
         let signer = K256LocalSigner::from_slice(&decoded).unwrap();
-        let signature = signer.sign_message(&encoded_job_request).await.unwrap();
+
+        let (encoded_job_request, signature) = create_and_sign_offchain_request(
+            NONCE,
+            MAX_CYCLES,
+            consumer_addr,
+            Address::abi_encode(&zero_addr).as_slice(),
+            PROGRAM_ID,
+            signer,
+            &[],
+            &[],
+        )
+        .await;
 
         println!("Encoded job request: {}", hex::encode(&encoded_job_request));
-        println!("Signature for encoded job request: {}", hex::encode(signature.as_bytes()));
+        println!("Signature for encoded job request: {}", hex::encode(signature));
     }
 }
 
