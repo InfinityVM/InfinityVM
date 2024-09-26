@@ -16,6 +16,7 @@ reth-db-api = { workspace = true }
 eyre = { workspace = true }
 serde = { workspace = true }
 borsh = { workspace = true }
-abi = { workspace = true }
+tracing = { workspace = true }
 
+abi = { workspace = true }
 proto = { workspace = true }

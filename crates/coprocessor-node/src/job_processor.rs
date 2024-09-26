@@ -13,7 +13,7 @@ use proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
-use tracing::{error, info};
+use tracing::{error, info, instrument};
 use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors from job processor
@@ -299,6 +299,7 @@ where
         }
     }
 
+    #[instrument(skip_all)]
     async fn execute_job(
         mut job: Job,
         zk_executor: &ZkvmExecutorService<S>,

@@ -12,11 +12,12 @@ use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use std::{fs::File, process::Command};
+use test_utils::sleep_until_bound_config;
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 
-const ANVIL_PORT: u16 = 60420;
+const ANVIL_PORT: u16 = 8545;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_PROM_PORT: u16 = 50069;
 const HTTP_GATEWAY_LISTEN_PORT: u16 = 8080;
@@ -76,12 +77,15 @@ async fn main() {
         .arg(chain_id)
         .arg("--db-dir")
         .arg(coproc_db_dir.path())
+        .arg("--worker-count")
+        .arg("32")
         .stdout(coproc_logs)
         .stderr(coproc_logs2)
         .spawn()
         .unwrap()
         .into();
-    sleep_until_bound(COPROCESSOR_GRPC_PORT).await;
+    // Build times can be long
+    sleep_until_bound_config(COPROCESSOR_GRPC_PORT, 5 * 60).await.unwrap();
 
     info!("Deploying MockConsumer contract");
     let mock_consumer = anvil_with_mock_consumer(&job_manager_deploy).await;

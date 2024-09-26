@@ -108,6 +108,10 @@ where
         .await
         .expect("spawn blocking join handle is infallible. qed.")?;
 
+        // let raw_output = vm
+        //     .execute_onchain_job(&elf, &onchain_input, max_cycles)
+        //     .map_err(Error::ZkvmExecuteFailed)?;
+
         let result_with_metadata = abi_encode_result_with_metadata(
             job_id,
             onchain_input_hash,
@@ -166,6 +170,10 @@ where
         })
         .await
         .expect("spawn blocking join handle is infallible. qed.")?;
+
+        // let raw_output = vm
+        //     .execute_offchain_job(&elf, &onchain_input, &offchain_input, &state, max_cycles)
+        //     .map_err(Error::ZkvmExecuteFailed)?;
 
         let offchain_result_with_metadata = abi_encode_offchain_result_with_metadata(
             job_id,

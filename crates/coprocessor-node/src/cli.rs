@@ -154,7 +154,7 @@ struct Opts {
     operator_key: Option<Operator>,
 
     /// Number of worker threads to use for processing jobs
-    #[arg(long, default_value_t = 4)]
+    #[arg(long, default_value_t = 32)]
     worker_count: usize,
 
     /// Max number of retries for relaying a job

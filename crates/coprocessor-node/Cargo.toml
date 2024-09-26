@@ -31,6 +31,8 @@ proto = { workspace = true }
 zkvm-executor = { workspace = true }
 zkvm-tracing = { workspace = true }
 
+console-subscriber = "*"
+
 [dev-dependencies]
 test-utils = { workspace = true }
 mock-consumer = { workspace = true }

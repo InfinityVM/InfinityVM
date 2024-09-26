@@ -187,7 +187,7 @@ strum = { version = "0.26.3", features = ["derive"], default-features = false}
 tonic-build = { version = "0.12", features = ["prost", "transport"], default-features = false }
 tonic = { version = "0.12", features = ["transport", "codegen", "prost", "channel", "server", "router"], default-features = false }
 tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "tracing"], default-features = false }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "tracing", "full"], default-features = false }
 thiserror = { version = "1", default-features = false }
 tempfile = { version = "3", default-features = false }
 tracing = { version = "0.1.40", default-features = false}

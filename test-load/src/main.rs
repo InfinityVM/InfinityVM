@@ -49,9 +49,9 @@ async fn main() -> Result<(), GooseError> {
                 .set_wait_time(Duration::from_secs(1), Duration::from_secs(3))?
                 .register_transaction(transaction!(loadtest_submit_job)),
         )
-        .register_scenario(
-            scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
-        )
+        // .register_scenario(
+        //     scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
+        // )
         .set_default(
             GooseDefault::Host,
             format!("http://{}:{}", coprocessor_gateway_ip(), coprocessor_gateway_port()).as_str(),

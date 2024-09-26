@@ -14,6 +14,8 @@ use tables::{
     ElfKey, ElfTable, ElfWithMeta, Job, JobID, JobTable, LastBlockHeight, RelayFailureJobs,
 };
 
+use tracing::instrument;
+
 pub mod tables;
 
 const LAST_HEIGHT_KEY: u32 = 0;
@@ -39,6 +41,7 @@ pub enum Error {
 }
 
 /// Write an ELF file to the database
+#[instrument(skip_all)]
 pub fn put_elf<D: Database>(
     db: Arc<D>,
     vm_type: VmType,
@@ -52,16 +55,19 @@ pub fn put_elf<D: Database>(
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist
+#[instrument(skip_all)]
 pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfWithMeta>, Error> {
     db.view(|tx| tx.get::<ElfTable>(ElfKey::new(program_id)))?.map_err(Into::into)
 }
 
 /// Write a job to the database
+#[instrument(skip_all)]
 pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
     db.update(|tx| tx.put::<JobTable>(JobID(job.id), job))?.map_err(Into::into)
 }
 
 /// Read in an Job from the database. [None] if it does not exist
+#[instrument(skip_all)]
 pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     db.view(|tx| tx.get::<JobTable>(JobID(job_id)))?.map_err(Into::into)
 }
@@ -101,6 +107,7 @@ pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<O
 }
 
 /// Read all failed relayed Jobs from the database. [None] if it does not exist
+#[instrument(skip_all)]
 pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
     db.view(|tx| -> Result<Vec<Job>, DatabaseError> {
         let mut failed_jobs = Vec::new();

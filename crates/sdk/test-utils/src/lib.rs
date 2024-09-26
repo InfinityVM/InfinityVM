@@ -75,15 +75,22 @@ pub fn get_localhost_port() -> u16 {
 
 /// Sleep until the given port is bound.
 pub async fn sleep_until_bound(port: u16) {
-    for _ in 0..16 {
+    if let Err(e) = sleep_until_bound_config(port, 16).await {
+        panic!("{e}");
+    }
+}
+
+/// Sleep until the given port is bound after the given number of attempts with 1 second of sleep between.
+pub async fn sleep_until_bound_config(port: u16, attempts: usize) -> Result<(), String> {
+    for _ in 0..attempts {
         if TcpListener::bind((LOCALHOST, port)).is_err() {
-            return;
+            return Ok(());
         }
 
         sleep(Duration::from_secs(1)).await;
     }
 
-    panic!("localhost:{port} was not successfully bound");
+    Err("localhost:{port} was not successfully bound".to_string())
 }
 
 /// Output from [`anvil_with_job_manager`]
