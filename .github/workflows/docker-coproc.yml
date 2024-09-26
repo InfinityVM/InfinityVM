@@ -42,7 +42,10 @@ jobs:
       - uses: technote-space/get-diff-action@v6.1.2
         id: diff
         with:
-          PATTERNS: |
+          PATTERNS: |            
+            .github/workflows/coproc.yml
+            contracts/**
+            crates/coprocessor-node/**
             Dockerfile.coproc-node
 
       - name: Docker Metadata Pull
