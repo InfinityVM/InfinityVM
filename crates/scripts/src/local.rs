@@ -12,11 +12,12 @@ use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use std::{fs::File, process::Command};
+use test_utils::sleep_until_bound_config;
 use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 
-const ANVIL_PORT: u16 = 60420;
+const ANVIL_PORT: u16 = 8545;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_PROM_PORT: u16 = 50069;
 const HTTP_GATEWAY_LISTEN_PORT: u16 = 8080;
@@ -29,7 +30,7 @@ async fn main() {
 
     info!("Starting anvil on port: {ANVIL_PORT}");
     let job_manager_deploy = anvil_with_job_manager(ANVIL_PORT).await;
-    sleep_until_bound(ANVIL_PORT).await;
+    sleep_until_bound_config(ANVIL_PORT, 30).await.unwrap();
 
     let job_manager = job_manager_deploy.job_manager.to_string();
     let chain_id = job_manager_deploy.anvil.chain_id().to_string();
@@ -53,13 +54,16 @@ async fn main() {
     info!(?coproc_relayer_private, ?coproc_operator_private, "Coprocessor keys");
     info!(?http_gateway_listen_address, "REST gRPC gateway listening on");
 
-    let _proc: ProcKill = Command::new("cargo")
+    let proc: ProcKill = Command::new("cargo")
         .arg("run")
         .arg("-p")
         .arg("coprocessor-node")
         .arg("--")
         .env("RELAYER_PRIVATE_KEY", coproc_relayer_private)
         .env("ZKVM_OPERATOR_PRIV_KEY", coproc_operator_private)
+        .env("RUST_LOG_FILE", "coproc-tracing.log")
+        .env("RUST_LOG_DIR", "./logs")
+        .env("RUST_LOG_FORMAT", "text")
         .arg("--grpc-address")
         .arg(&coproc_grpc)
         .arg("--http-address")
@@ -76,12 +80,17 @@ async fn main() {
         .arg(chain_id)
         .arg("--db-dir")
         .arg(coproc_db_dir.path())
+        .arg("--worker-count")
+        .arg("4")
         .stdout(coproc_logs)
         .stderr(coproc_logs2)
         .spawn()
         .unwrap()
         .into();
-    sleep_until_bound(COPROCESSOR_GRPC_PORT).await;
+    sleep_until_bound_config(COPROCESSOR_GRPC_PORT, 5 * 60).await.unwrap();
+    info!("coproc-node process ID: {}", proc.0.id());
+
+    //TODO: print process ID
 
     info!("Deploying MockConsumer contract");
     let mock_consumer = anvil_with_mock_consumer(&job_manager_deploy).await;
@@ -157,7 +166,7 @@ async fn main() {
         .spawn()
         .unwrap()
         .into();
-    sleep_until_bound(CLOB_PORT).await;
+    sleep_until_bound_config(CLOB_PORT, 5 * 60).await.unwrap();
 
     let mut signal_terminate = signal(SignalKind::terminate()).unwrap();
     let mut signal_interrupt = signal(SignalKind::interrupt()).unwrap();

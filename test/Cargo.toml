@@ -9,7 +9,7 @@ workspace = true
 
 [dependencies]
 tonic = { workspace = true }
-tokio = { workspace = true, features = ["process"] }
+tokio = { workspace = true }
 futures = { workspace = true }
 risc0-binfmt = { workspace = true }
 risc0-zkp = { workspace = true }

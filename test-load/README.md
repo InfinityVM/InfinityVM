@@ -39,6 +39,7 @@ We have a few parameters we can set in `test-load/.env` (an `example.env` is pro
 8. `REPORT_FILE_NAME`: Filename of the report with results (defaults to `report.html`)
 9. `STARTUP_TIME`: Time required for all users to be spawned when starting tests
 10. `RUN_TIME`: Time for which we want the load tests to run (in addition to the `STARTUP_TIME`)
+11: `WAIT_UNTIL_JOB_COMPLETED`: Set to false to not poll for job results after submitting the job. Defaults to true.
 
 There are other parameters that we can modify, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 
