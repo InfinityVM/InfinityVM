@@ -79,8 +79,8 @@ pub async fn sleep_until_bound(port: u16) {
     }
 }
 
-/// Sleep until the given port is bound after the given number of attempts with 1 second of sleep
-/// between.
+/// Sleep until the given port is bound after the given number of attempts. Each attempt has 1
+/// second of sleep between.
 pub async fn sleep_until_bound_config(port: u16, attempts: usize) -> Result<(), String> {
     for _ in 0..attempts {
         if TcpListener::bind((LOCALHOST, port)).is_err() {

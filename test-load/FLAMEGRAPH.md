@@ -24,9 +24,9 @@ You should see the log line with the PID. Keep track of the pid
 coproc-node process ID: <PID>
 ```
 
-3. Start the load tests to generate realistic load
+3. Start the load tests to generate realistic load.
 
-To keep the data focused on job execution, we opt out of polling for job result.
+To keep the data focused on job execution, we opt out of polling for job result and just run the scenario `loadtestsubmitjob`.
 
 ```sh
 export WAIT_UNTIL_JOB_COMPLETED=false

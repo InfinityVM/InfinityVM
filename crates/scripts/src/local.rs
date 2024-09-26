@@ -12,9 +12,7 @@ use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use std::{fs::File, process::Command};
-use test_utils::{
-    anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST,
-};
+use test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 
