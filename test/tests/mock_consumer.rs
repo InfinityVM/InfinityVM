@@ -119,6 +119,9 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let relayed_status: i32 = JobStatusType::Relayed.into();
         assert_eq!(job_result.status.unwrap().status, relayed_status);
 
+        // Verify the relay tx hash is not empty
+        assert!(!job_result.relay_tx_hash.is_empty());
+
         // Verify signature and message format
         let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
@@ -236,6 +239,9 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         // Verify the job status
         let relayed_status = JobStatusType::Relayed as i32;
         assert_eq!(job_result.status.unwrap().status, relayed_status);
+
+        // Verify the relay tx hash is not empty
+        assert!(!job_result.relay_tx_hash.is_empty());
 
         // Check saved height
         let test_db = db::open_db_read_only(args.db_dir.path()).unwrap();
