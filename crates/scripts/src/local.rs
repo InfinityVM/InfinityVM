@@ -12,8 +12,9 @@ use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use std::{fs::File, process::Command};
-use test_utils::sleep_until_bound_config;
-use test_utils::{anvil_with_job_manager, sleep_until_bound, ProcKill, LOCALHOST};
+use test_utils::{
+    anvil_with_job_manager, sleep_until_bound, sleep_until_bound_config, ProcKill, LOCALHOST,
+};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 
@@ -61,7 +62,7 @@ async fn main() {
         .arg("--")
         .env("RELAYER_PRIVATE_KEY", coproc_relayer_private)
         .env("ZKVM_OPERATOR_PRIV_KEY", coproc_operator_private)
-        .env("RUST_LOG_FILE", "coproc-tracing.log")
+        .env("RUST_LOG_FILE", "coproc_tracing.log")
         .env("RUST_LOG_DIR", "./logs")
         .env("RUST_LOG_FORMAT", "text")
         .arg("--grpc-address")
@@ -81,7 +82,7 @@ async fn main() {
         .arg("--db-dir")
         .arg(coproc_db_dir.path())
         .arg("--worker-count")
-        .arg("4")
+        .arg("32")
         .stdout(coproc_logs)
         .stderr(coproc_logs2)
         .spawn()
@@ -89,8 +90,6 @@ async fn main() {
         .into();
     sleep_until_bound_config(COPROCESSOR_GRPC_PORT, 5 * 60).await.unwrap();
     info!("coproc-node process ID: {}", proc.0.id());
-
-    //TODO: print process ID
 
     info!("Deploying MockConsumer contract");
     let mock_consumer = anvil_with_mock_consumer(&job_manager_deploy).await;
