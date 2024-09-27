@@ -33,7 +33,7 @@ where
     D: Database + 'static,
 {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
-    #[instrument(name = "coprocessor_submit_job", skip(self, request), err(Debug))]
+    #[instrument(skip(self, request), err(Debug))]
     async fn submit_job(
         &self,
         request: Request<SubmitJobRequest>,

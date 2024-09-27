@@ -10,7 +10,7 @@ workspace = true
 [dependencies]
 alloy = { workspace = true }
 goose = { workspace = true }
-tokio = { workspace = true, features = ["process"] }
+tokio = { workspace = true }
 once_cell = { workspace = true }
 dotenv = { workspace = true }
 reqwest = { workspace = true }

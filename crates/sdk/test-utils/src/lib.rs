@@ -32,7 +32,7 @@ pub const LOCALHOST: &str = "127.0.0.1";
 
 /// Kill [`std::process::Child`] on `drop`
 #[derive(Debug)]
-pub struct ProcKill(std::process::Child);
+pub struct ProcKill(pub std::process::Child);
 
 impl From<std::process::Child> for ProcKill {
     fn from(child: std::process::Child) -> Self {
@@ -75,15 +75,23 @@ pub fn get_localhost_port() -> u16 {
 
 /// Sleep until the given port is bound.
 pub async fn sleep_until_bound(port: u16) {
-    for _ in 0..16 {
+    if let Err(e) = sleep_until_bound_config(port, 16).await {
+        panic!("{e}");
+    }
+}
+
+/// Sleep until the given port is bound after the given number of attempts. Each attempt has 1
+/// second of sleep between.
+pub async fn sleep_until_bound_config(port: u16, attempts: usize) -> Result<(), String> {
+    for _ in 0..attempts {
         if TcpListener::bind((LOCALHOST, port)).is_err() {
-            return;
+            return Ok(());
         }
 
         sleep(Duration::from_secs(1)).await;
     }
 
-    panic!("localhost:{port} was not successfully bound");
+    Err(format!("localhost:{port} was not successfully bound"))
 }
 
 /// Output from [`anvil_with_job_manager`]

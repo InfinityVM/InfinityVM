@@ -11,3 +11,4 @@
 !/contracts
 !Cargo.lock
 !Cargo.toml
+!.cargo
