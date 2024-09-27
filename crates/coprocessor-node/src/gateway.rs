@@ -94,10 +94,6 @@ impl HttpGrpcGateway {
     pub async fn serve(self) -> Result<(), Error> {
         let client_coproc_grpc = format!("http://{}", self.grpc_addr);
 
-        tracing::info!(
-            "REST gRPC Gateway attempting to connect to gRPC service at {}",
-            client_coproc_grpc
-        );
         let mut connect_retries = 0;
         let grpc_client = loop {
             match Client::connect(client_coproc_grpc.clone()).await {
@@ -124,7 +120,7 @@ impl HttpGrpcGateway {
 
         let listener = tokio::net::TcpListener::bind(self.listen_addr).await?;
 
-        tracing::info!("REST gRPC Gateway listening on {}", listener.local_addr()?);
+        tracing::info!("⛩️  REST gRPC Gateway listening on {}", listener.local_addr()?);
 
         axum::serve(listener, app).await?;
 

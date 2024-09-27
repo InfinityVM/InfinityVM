@@ -102,6 +102,7 @@ where
                 failure_reason: None,
                 retries: 0,
             },
+            relay_tx_hash: vec![],
         };
 
         self.job_processor
@@ -148,6 +149,7 @@ where
                             result_with_metadata: job.result_with_metadata,
                             zkvm_operator_signature: job.zkvm_operator_signature,
                             status: Some(job.status),
+                            relay_tx_hash: job.relay_tx_hash,
                         })
                     }
                     None => return Err(Status::not_found("job not found")),

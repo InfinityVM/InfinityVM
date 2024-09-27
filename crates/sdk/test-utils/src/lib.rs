@@ -21,7 +21,7 @@ use contracts::{
 };
 use rand::Rng;
 use tokio::time::{sleep, Duration};
-use tracing_subscriber::EnvFilter;
+use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 pub mod wallet;
 
@@ -46,16 +46,17 @@ impl Drop for ProcKill {
     }
 }
 
-/// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level.
+/// Initialize a tracing subscriber for tests. Use `RUSTLOG` to set the filter level. Defaults to
+/// INFO for log level.
 ///
 /// If the tracing subscriber has already been initialized in a previous test, this
 /// function will silently fail due to `try_init()`, which does not reinitialize
 /// the subscriber if one is already set.
 pub fn test_tracing() {
-    let _ = tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::from_default_env())
-        .with_writer(std::io::stderr)
-        .try_init();
+    let filter =
+        EnvFilter::builder().with_default_directive(LevelFilter::INFO.into()).from_env_lossy();
+    let _ =
+        tracing_subscriber::fmt().with_env_filter(filter).with_writer(std::io::stderr).try_init();
 }
 
 /// Find a free port on localhost.

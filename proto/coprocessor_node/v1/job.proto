@@ -9,6 +9,7 @@ enum JobStatusType {
   JOB_STATUS_TYPE_PENDING = 1;
   JOB_STATUS_TYPE_DONE = 2;
   JOB_STATUS_TYPE_FAILED = 3;
+  JOB_STATUS_TYPE_RELAYED = 4;
 }
 
 // JobStatus represents the status of a job including an optional failure reason.
@@ -49,4 +50,6 @@ message JobResult {
   bytes zkvm_operator_signature = 11;
   // The status of the job.
   JobStatus status = 12;
+  // Tx hash of relayed result
+  bytes relay_tx_hash = 13;
 }

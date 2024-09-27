@@ -33,6 +33,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .field_attribute("result_with_metadata", SERDE_BYTES_HEX)
         .field_attribute("zkvm_operator_signature", SERDE_BYTES_HEX)
         .field_attribute("consumer_address", SERDE_BYTES_HEX)
+        .field_attribute("relay_tx_hash", SERDE_BYTES_HEX)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .compile(
             &[

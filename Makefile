@@ -33,9 +33,8 @@ doc: contracts
 
 # Use this for iterating on integration tests
 .PHONY: test-all
-test-all: contracts debug-coprocessor-node
-	@# Make sure to build the bins that the integration tests rely on
-	@# and run the ignored tests
+test-all: contracts
+	@# Make sure to run the ignored tests
 	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: build
@@ -45,7 +44,3 @@ build: contracts
 .PHONY: contracts
 contracts:
 	cd contracts && forge build
-
-.PHONY: debug-coprocessor-node
-debug-coprocessor-node:
-	cargo build -p coprocessor-node

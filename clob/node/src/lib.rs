@@ -5,7 +5,7 @@ use alloy::{
     eips::BlockNumberOrTag,
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
 };
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
 pub mod app;
@@ -36,8 +36,8 @@ pub type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// Run the CLOB node.
 #[allow(clippy::too_many_arguments)]
-pub async fn run(
-    db_dir: String,
+pub async fn run<P: AsRef<Path>>(
+    db_dir: P,
     listen_addr: String,
     batcher_duration_ms: u64,
     operator_signer: K256LocalSigner,

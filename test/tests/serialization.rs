@@ -15,12 +15,13 @@ fn serde_json_test() {
         state_hash: input.clone(),
         request_signature: input.clone(),
         result_with_metadata: input.clone(),
-        zkvm_operator_signature: input,
+        zkvm_operator_signature: input.clone(),
         status: Some(JobStatus {
             status: JobStatusType::Pending as i32,
             failure_reason: None,
             retries: 0,
         }),
+        relay_tx_hash: input,
     };
 
     let serialized = serde_json::to_string(&job_result).expect("serialization failed");
@@ -41,7 +42,8 @@ fn serde_json_test() {
                 "status": 1,
                 "failureReason": null,
                 "retries": 0
-            }
+            },
+            "relayTxHash": "000001"
         }"#
     .replace(['\n', ' '], "");
 

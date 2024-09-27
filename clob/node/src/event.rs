@@ -18,7 +18,7 @@ use tokio::{
 };
 use tracing::{debug, warn};
 
-const FIVE_MINUTES_MILLIS: u64 = 300000;
+const FIVE_MINUTES_MILLIS: u64 = 5 * 60 * 1000;
 
 /// Listen for deposit events and push a corresponding
 /// `Deposit` request
