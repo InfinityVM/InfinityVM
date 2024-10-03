@@ -16,6 +16,10 @@ path = "src/local.rs"
 name = "node-test"
 path = "src/node_test.rs"
 
+[[bin]]
+name = "memory-image-demo"
+path = "src/memory_image_demo.rs"
+
 [lints]
 workspace = true
 
@@ -30,6 +34,10 @@ tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }
 url = { workspace = true }
 reqwest = { workspace = true }
+risc0-zkvm = { workspace = true }
+risc0-binfmt = { workspace = true }
+risc0-zkvm-platform = { workspace = true }
+anyhow = { workspace = true }
 
 proto = { workspace = true }
 zkvm-executor = { workspace = true }
