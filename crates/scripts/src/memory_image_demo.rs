@@ -1,4 +1,4 @@
-//! Simple program to compare different MemoryImage initialization techniques.
+//! Simple program to compare different `MemoryImage` initialization techniques.
 
 use anyhow::Result;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
@@ -17,7 +17,7 @@ fn main() -> Result<()> {
 
     println!("ELF len: {}", MOCK_CONSUMER_GUEST_ELF.len());
 
-    let program = Program::load_elf(&MOCK_CONSUMER_GUEST_ELF, GUEST_MAX_MEM as u32)?;
+    let program = Program::load_elf(MOCK_CONSUMER_GUEST_ELF, GUEST_MAX_MEM as u32)?;
     // Measure time for MemoryImage::new
     let image_start = Instant::now();
     let image = MemoryImage::new(&program, PAGE_SIZE as u32)?;
@@ -28,7 +28,7 @@ fn main() -> Result<()> {
     let start = Instant::now();
     {
         let env = ExecutorEnv::builder().write(&input)?.build()?;
-        let mut exec = ExecutorImpl::from_elf(env, MOCK_CONSUMER_GUEST_ELF)?;
+        let _exec = ExecutorImpl::from_elf(env, MOCK_CONSUMER_GUEST_ELF)?;
         // exec.run()?;
     }
     let duration = start.elapsed();
@@ -38,7 +38,7 @@ fn main() -> Result<()> {
     let start = Instant::now();
     {
         let env = ExecutorEnv::builder().write(&input)?.build()?;
-        let mut exec = ExecutorImpl::new(env, image)?;
+        let _exec = ExecutorImpl::new(env, image)?;
         // let _session = exec.run()?;
     }
     let duration = start.elapsed();
