@@ -143,5 +143,5 @@ async fn main() {
         }
     }
 
-    info!("Job result relayed to anvil with inputs: {:?}", inputs);
+    info!("Job result relayed to anvil with inputs: {:x?}", inputs);
 }

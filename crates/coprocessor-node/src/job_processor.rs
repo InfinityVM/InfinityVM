@@ -2,7 +2,7 @@
 
 use crate::{metrics::Metrics, relayer::JobRelayer};
 use abi::abi_encode_offchain_job_request;
-use alloy::{primitives::Signature, signers::Signer};
+use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::Receiver;
 use db::{
     delete_fail_relay_job, get_all_failed_jobs, put_fail_relay_job, put_job,
@@ -165,7 +165,7 @@ where
             let mut job =
                 exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
             let id = job.id;
-            info!("executing job {:?}", id);
+            info!("executing job {:?}", hex::encode(id));
 
             let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics).await {
                 Ok(elf) => elf,
@@ -383,7 +383,7 @@ where
 
                 match result {
                     Ok(receipt) => {
-                        info!("successfully retried job relay for job: {:?}", id);
+                        info!("successfully retried job relay for job: {:?}", hex::encode(id));
                         jobs_to_delete.push(id);
 
                         // Save the relay tx hash and status to DB
@@ -396,7 +396,8 @@ where
                         if let Err(e) = put_job(db.clone(), job) {
                             error!(
                                 "report this error: failed to save relayed job {:?}: {:?}",
-                                id, e
+                                hex::encode(id),
+                                e
                             );
                             metrics.incr_job_err(&FailureReason::DbErrStatusRelayed.to_string());
                         }
@@ -405,18 +406,23 @@ where
                         if job.status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
                             jobs_to_delete.push(id);
-                            info!(?id, "queueing un-broadcastable job for deletion");
+                            info!(
+                                id = hex::encode(id),
+                                "queueing un-broadcastable job for deletion"
+                            );
                         } else {
                             error!(
                                 "report this error: failed to retry relaying job {:?}: {:?}",
-                                id, e
+                                hex::encode(id),
+                                e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.retries += 1;
                             if let Err(e) = put_fail_relay_job(db.clone(), job) {
                                 error!(
                                     "report this error: failed to save retried job {:?}: {:?}",
-                                    id, e
+                                    hex::encode(id),
+                                    e
                                 );
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }

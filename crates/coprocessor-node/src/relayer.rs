@@ -149,7 +149,7 @@ impl JobRelayer {
             receipt.block_number,
             ?receipt.block_hash,
             ?receipt.transaction_hash,
-            ?job.id,
+            id=hex::encode(job.id),
             "tx included"
         );
 
@@ -197,7 +197,7 @@ impl JobRelayer {
                 receipt.block_number,
                 ?receipt.block_hash,
                 ?receipt.transaction_hash,
-                ?job.id,
+                id=hex::encode(job.id),
                 "tx included"
             );
 
