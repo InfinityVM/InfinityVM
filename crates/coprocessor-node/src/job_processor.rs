@@ -2,11 +2,10 @@
 
 use crate::{metrics::Metrics, relayer::JobRelayer};
 use abi::abi_encode_offchain_job_request;
-use alloy::{hex, primitives::Signature, signers::Signer};
-use async_channel::{Receiver, Sender};
+use alloy::{primitives::Signature, signers::Signer};
+use async_channel::Receiver;
 use db::{
-    delete_fail_relay_job, get_all_failed_jobs, get_elf, get_job, get_last_block_height, put_elf,
-    put_fail_relay_job, put_job, set_last_block_height,
+    delete_fail_relay_job, get_all_failed_jobs, put_fail_relay_job, put_job,
     tables::{ElfWithMeta, Job, RequestType},
 };
 use proto::{JobStatus, JobStatusType, VmType};
@@ -19,9 +18,6 @@ use zkvm_executor::service::ZkvmExecutorService;
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// Could not create ELF in zkvm executor
-    #[error("failed to create ELF in zkvm executor: {0}")]
-    CreateElfFailed(#[from] zkvm_executor::service::Error),
     /// database error
     #[error("database error: {0}")]
     Database(#[from] db::Error),
@@ -96,7 +92,6 @@ pub struct JobProcessorConfig {
 #[derive(Debug)]
 pub struct JobProcessorService<S, D> {
     db: Arc<D>,
-    exec_queue_sender: Sender<Job>,
     exec_queue_receiver: Receiver<Job>,
     job_relayer: Arc<JobRelayer>,
     zk_executor: ZkvmExecutorService<S>,
@@ -114,7 +109,6 @@ where
     /// Create a new job processor service.
     pub fn new(
         db: Arc<D>,
-        exec_queue_sender: Sender<Job>,
         exec_queue_receiver: Receiver<Job>,
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
@@ -123,7 +117,6 @@ where
     ) -> Self {
         Self {
             db,
-            exec_queue_sender,
             exec_queue_receiver,
             job_relayer,
             zk_executor,
@@ -131,74 +124,6 @@ where
             metrics,
             config,
         }
-    }
-
-    /// Submit program ELF, save it in DB, and return verifying key.
-    pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
-        let program_id = self
-            .zk_executor
-            .create_elf(&elf, VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?)
-            .await?;
-
-        if get_elf(self.db.clone(), &program_id)
-            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
-            .is_some()
-        {
-            return Err(Error::ElfAlreadyExists(format!(
-                "elf with verifying key {:?} already exists",
-                hex::encode(program_id.as_slice()),
-            )));
-        }
-
-        put_elf(
-            self.db.clone(),
-            VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
-            &program_id,
-            elf,
-        )
-        .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
-
-        Ok(program_id)
-    }
-
-    /// Return whether job with `job_id` exists in DB
-    pub async fn has_job(&self, job_id: [u8; 32]) -> Result<bool, Error> {
-        let job = get_job(self.db.clone(), job_id)?;
-        Ok(job.is_some())
-    }
-
-    /// Save last block height in DB
-    pub async fn set_last_block_height(&self, height: u64) -> Result<(), Error> {
-        set_last_block_height(self.db.clone(), height)?;
-        Ok(())
-    }
-
-    /// Get last block height from DB
-    pub async fn get_last_block_height(&self) -> Result<u64, Error> {
-        let height = get_last_block_height(self.db.clone())?.unwrap_or_default();
-        Ok(height)
-    }
-
-    /// Returns job with `job_id` from DB
-    pub async fn get_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-        let job = get_job(self.db.clone(), job_id)?;
-        Ok(job)
-    }
-
-    /// Submits job, saves it in DB, and adds to exec queue
-    pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        if self.has_job(job.id).await? {
-            return Err(Error::JobAlreadyExists);
-        }
-
-        job.status =
-            JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
-
-        put_job(self.db.clone(), job.clone())?;
-
-        self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
-
-        Ok(())
     }
 
     /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker

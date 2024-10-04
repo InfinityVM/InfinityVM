@@ -1,13 +1,13 @@
-use std::sync::Arc;
+//! gRPC server handlers.
 
-use crate::job_processor::JobProcessorService;
+use crate::intake::IntakeHandlers;
 use abi::OffchainJobRequest;
 use alloy::{
+    hex,
     primitives::{keccak256, Signature},
     signers::Signer,
     sol_types::SolType,
 };
-use base64::{prelude::BASE64_STANDARD, Engine};
 use db::tables::{get_job_id, Job, RequestType};
 use proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
@@ -16,14 +16,19 @@ use proto::{
 };
 use reth_db::Database;
 use tonic::{Request, Response, Status};
-use tracing::{info, instrument};
+use tracing::info;
 
 /// gRPC service server
 #[derive(Debug)]
 pub struct CoprocessorNodeServerInner<S, D> {
-    // TODO (Maanav): should we use `DatabaseEnv` instead of a generic `D`?
-    /// Job processor service
-    pub job_processor: Arc<JobProcessorService<S, D>>,
+    intake_service: IntakeHandlers<S, D>,
+}
+
+impl<S, D> CoprocessorNodeServerInner<S, D> {
+    /// Create a new instance of [Self].
+    pub const fn new(intake_service: IntakeHandlers<S, D>) -> Self {
+        Self { intake_service }
+    }
 }
 
 #[tonic::async_trait]
@@ -33,7 +38,6 @@ where
     D: Database + 'static,
 {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
-    #[instrument(skip(self, request), err(Debug))]
     async fn submit_job(
         &self,
         request: Request<SubmitJobRequest>,
@@ -83,7 +87,7 @@ where
         // TODO: Make contract calls to verify nonce, signature, etc. on job request
         // [ref: https://github.com/Ethos-Works/InfinityVM/issues/168]
 
-        info!(job_id = ?job_id, "new job request");
+        info!(job_id = hex::encode(job_id), "new job request");
 
         let job = Job {
             id: job_id,
@@ -105,13 +109,14 @@ where
             relay_tx_hash: vec![],
         };
 
-        self.job_processor
+        self.intake_service
             .submit_job(job)
             .await
             .map_err(|e| Status::internal(format!("failed to submit job: {e}")))?;
 
         Ok(Response::new(SubmitJobResponse { job_id: job_id.to_vec() }))
     }
+
     /// GetResult defines the gRPC method for getting the result of a coprocessing
     /// job.
     async fn get_result(
@@ -119,50 +124,48 @@ where
         request: Request<GetResultRequest>,
     ) -> Result<Response<GetResultResponse>, Status> {
         let req = request.into_inner();
-        let job_id_array: Result<[u8; 32], _> = req.job_id.clone().try_into();
+        let job_id: [u8; 32] = req
+            .job_id
+            .clone()
+            .try_into()
+            .map_err(|_| Status::invalid_argument("job ID must be 32 bytes in length"))?;
 
-        match job_id_array {
-            Ok(job_id) => {
-                let job = self
-                    .job_processor
-                    .get_job(job_id)
-                    .await
-                    .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
+        let job = self
+            .intake_service
+            .get_job(job_id)
+            .await
+            .map_err(|e| Status::internal(format!("failed to get job: {e}")))?;
 
-                let job_result = match job {
-                    Some(job) => {
-                        let request_signature = match job.request_type {
-                            RequestType::Onchain => vec![],
-                            RequestType::Offchain(signature) => signature,
-                        };
-
-                        Some(JobResult {
-                            id: job.id.to_vec(),
-                            nonce: job.nonce,
-                            program_id: job.program_id,
-                            onchain_input: job.onchain_input,
-                            offchain_input_hash: keccak256(&job.offchain_input).as_slice().to_vec(),
-                            state_hash: keccak256(&job.state).as_slice().to_vec(),
-                            consumer_address: job.consumer_address,
-                            max_cycles: job.max_cycles,
-                            request_signature,
-                            result_with_metadata: job.result_with_metadata,
-                            zkvm_operator_signature: job.zkvm_operator_signature,
-                            status: Some(job.status),
-                            relay_tx_hash: job.relay_tx_hash,
-                        })
-                    }
-                    None => return Err(Status::not_found("job not found")),
+        let job_result = job
+            .map(|job| {
+                let request_signature = match job.request_type {
+                    RequestType::Onchain => vec![],
+                    RequestType::Offchain(signature) => signature,
                 };
 
-                Ok(Response::new(GetResultResponse { job_result }))
-            }
-            Err(_) => Err(Status::invalid_argument("job ID must be 32 bytes in length")),
-        }
+                JobResult {
+                    id: job.id.to_vec(),
+                    nonce: job.nonce,
+                    program_id: job.program_id,
+                    onchain_input: job.onchain_input,
+                    offchain_input_hash: keccak256(&job.offchain_input).as_slice().to_vec(),
+                    state_hash: keccak256(&job.state).as_slice().to_vec(),
+                    consumer_address: job.consumer_address,
+                    max_cycles: job.max_cycles,
+                    request_signature,
+                    result_with_metadata: job.result_with_metadata,
+                    zkvm_operator_signature: job.zkvm_operator_signature,
+                    status: Some(job.status),
+                    relay_tx_hash: job.relay_tx_hash,
+                }
+            })
+            .ok_or_else(|| Status::not_found("job not found"))?;
+
+        Ok(Response::new(GetResultResponse { job_result: Some(job_result) }))
     }
+
     /// SubmitProgram defines the gRPC method for submitting a new program to
     /// generate a unique program verification key.
-    #[instrument(name = "coprocessor_submit_program", skip(self, request), err(Debug))]
     async fn submit_program(
         &self,
         request: Request<SubmitProgramRequest>,
@@ -173,12 +176,12 @@ where
         }
 
         let program_id = self
-            .job_processor
+            .intake_service
             .submit_elf(req.program_elf, req.vm_type)
             .await
             .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))?;
 
-        info!(program_id = BASE64_STANDARD.encode(program_id.clone()), "new elf program");
+        info!(program_id = hex::encode(program_id.clone()), "new elf program");
 
         Ok(Response::new(SubmitProgramResponse { program_id }))
     }

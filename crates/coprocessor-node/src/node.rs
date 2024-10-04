@@ -1,12 +1,13 @@
 //! Run the coprocessor node.
 
 use crate::{
-    event::{self, start_job_event_listener},
+    event::{self, JobEventListener},
     gateway::{self, HttpGrpcGateway},
+    intake::IntakeHandlers,
     job_processor::{JobProcessorConfig, JobProcessorService},
     metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder},
-    service::CoprocessorNodeServerInner,
+    server::CoprocessorNodeServerInner,
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
@@ -133,8 +134,10 @@ where
     let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
         bounded(exec_queue_bound);
 
+    // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
 
+    // Configure the job relayer
     let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
         http_eth_rpc.clone(),
         job_manager_address,
@@ -143,42 +146,52 @@ where
     )?;
     let job_relayer = Arc::new(job_relayer);
 
-    // Start the job processor with a specified number of worker threads.
-    // The job processor stores a JoinSet which has a handle to each task.
+    // Configure the job processor
     let mut job_processor = JobProcessorService::new(
-        db,
-        exec_queue_sender,
+        Arc::clone(&db),
         exec_queue_receiver,
         job_relayer,
-        executor,
+        executor.clone(),
         metrics,
         job_proc_config,
     );
+    // Start the job processor workers
     job_processor.start().await;
-    let job_processor = Arc::new(job_processor);
 
-    let job_processor2 = Arc::clone(&job_processor);
-    let job_event_listener = tokio::spawn(async move {
-        start_job_event_listener(job_manager_address, job_processor2, job_sync_start, ws_config)
-            .await
-    });
+    let job_event_listener = {
+        let intake =
+            IntakeHandlers::new(Arc::clone(&db), exec_queue_sender.clone(), executor.clone());
+        // Configure the job listener
+        let job_event_listener = JobEventListener::new(
+            job_manager_address,
+            intake,
+            job_sync_start,
+            ws_config,
+            db.clone(),
+        );
 
-    let reflector = tonic_reflection::server::Builder::configure()
-        .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
-        .build_v1()
-        .expect("failed to build gRPC reflection service");
+        // Run the job listener
+        tokio::spawn(async move { job_event_listener.run().await })
+    };
 
-    let coprocessor_node_server =
-        CoprocessorNodeServer::new(CoprocessorNodeServerInner { job_processor });
+    let grpc_server = {
+        let reflector = tonic_reflection::server::Builder::configure()
+            .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
+            .build_v1()
+            .expect("failed to build gRPC reflection service");
+        let intake = IntakeHandlers::new(Arc::clone(&db), exec_queue_sender, executor.clone());
+        let coprocessor_node_server =
+            CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake));
 
-    let grpc_server = tokio::spawn(async move {
-        info!("🚥 starting gRPC server at {}", grpc_addr);
-        tonic::transport::Server::builder()
-            .add_service(coprocessor_node_server)
-            .add_service(reflector)
-            .serve(grpc_addr.into())
-            .await
-    });
+        tokio::spawn(async move {
+            info!("🚥 starting gRPC server at {}", grpc_addr);
+            tonic::transport::Server::builder()
+                .add_service(coprocessor_node_server)
+                .add_service(reflector)
+                .serve(grpc_addr.into())
+                .await
+        })
+    };
 
     let http_grpc_gateway = HttpGrpcGateway::new(grpc_addr.to_string(), http_listen_addr);
     let http_grpc_gateway_server = tokio::spawn(async move { http_grpc_gateway.serve().await });

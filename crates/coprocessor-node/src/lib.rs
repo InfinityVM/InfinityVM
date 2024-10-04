@@ -1,22 +1,11 @@
-//! The coprocessor node.
+//! Coprocessor Node components.
 
-/// CLI scaffolding
 pub mod cli;
-
-/// gRPC Server
-pub mod service;
-
-pub mod relayer;
-
-/// REST gRPC gateway
-pub mod gateway;
-
-/// Job processor
-pub mod job_processor;
-
 pub mod event;
-
-/// Metrics
+pub mod gateway;
+pub mod intake;
+pub mod job_processor;
 pub mod metrics;
-
 pub mod node;
+pub mod relayer;
+pub mod server;
