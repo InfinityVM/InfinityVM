@@ -2083,7 +2083,6 @@ dependencies = [
  "alloy",
  "async-channel",
  "axum",
- "base64 0.22.1",
  "clap",
  "contracts",
  "db",
