@@ -10,7 +10,7 @@ use db::{
 };
 use proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
-use std::{marker::Send, sync::Arc, time::Duration};
+use std::{marker::Send, sync::Arc, thread::yield_now, time::Duration};
 use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
@@ -354,7 +354,7 @@ where
         max_retries: u32,
     ) -> Result<(), Error> {
         loop {
-            // Jobs to update
+            // Jobs that we no longer want to retry
             let mut jobs_to_delete: Vec<[u8; 32]> = Vec::new();
 
             let retry_jobs = match get_all_failed_jobs(db.clone()) {
@@ -421,9 +421,10 @@ where
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }
                         }
-                        continue;
                     }
                 }
+
+                tokio::time::sleep(Duration::from_millis(10)).await;
             }
 
             for job_id in &jobs_to_delete {
@@ -431,6 +432,7 @@ where
                     error!("report this error: failed to delete retried job {:?}: {:?}", job_id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                 }
+                yield_now();
             }
             tokio::time::sleep(Duration::from_secs(30)).await;
         }
