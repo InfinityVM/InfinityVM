@@ -3,10 +3,9 @@
 use crate::{metrics::Metrics, relayer::JobRelayer};
 use abi::abi_encode_offchain_job_request;
 use alloy::{hex, primitives::Signature, signers::Signer};
-use async_channel::{Receiver, Sender};
+use async_channel::Receiver;
 use db::{
-    delete_fail_relay_job, get_all_failed_jobs, get_elf, get_job, get_last_block_height, put_elf,
-    put_fail_relay_job, put_job, set_last_block_height,
+    delete_fail_relay_job, get_all_failed_jobs, put_fail_relay_job, put_job,
     tables::{ElfWithMeta, Job, RequestType},
 };
 use proto::{JobStatus, JobStatusType, VmType};
@@ -16,12 +15,12 @@ use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
 
+/// Delay between retrying failed jobs, in milliseconds.m
+const JOB_RETRY_DELAY_MS: u64 = 250;
+
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// Could not create ELF in zkvm executor
-    #[error("failed to create ELF in zkvm executor: {0}")]
-    CreateElfFailed(#[from] zkvm_executor::service::Error),
     /// database error
     #[error("database error: {0}")]
     Database(#[from] db::Error),
@@ -93,10 +92,11 @@ pub struct JobProcessorConfig {
 }
 
 /// Job processor service.
+///
+/// This stores a `JoinSet` with a handle to each job processor worker and the job retry task.
 #[derive(Debug)]
 pub struct JobProcessorService<S, D> {
     db: Arc<D>,
-    exec_queue_sender: Sender<Job>,
     exec_queue_receiver: Receiver<Job>,
     job_relayer: Arc<JobRelayer>,
     zk_executor: ZkvmExecutorService<S>,
@@ -114,7 +114,6 @@ where
     /// Create a new job processor service.
     pub fn new(
         db: Arc<D>,
-        exec_queue_sender: Sender<Job>,
         exec_queue_receiver: Receiver<Job>,
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
@@ -123,7 +122,6 @@ where
     ) -> Self {
         Self {
             db,
-            exec_queue_sender,
             exec_queue_receiver,
             job_relayer,
             zk_executor,
@@ -131,74 +129,6 @@ where
             metrics,
             config,
         }
-    }
-
-    /// Submit program ELF, save it in DB, and return verifying key.
-    pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
-        let program_id = self
-            .zk_executor
-            .create_elf(&elf, VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?)
-            .await?;
-
-        if get_elf(self.db.clone(), &program_id)
-            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
-            .is_some()
-        {
-            return Err(Error::ElfAlreadyExists(format!(
-                "elf with verifying key {:?} already exists",
-                hex::encode(program_id.as_slice()),
-            )));
-        }
-
-        put_elf(
-            self.db.clone(),
-            VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
-            &program_id,
-            elf,
-        )
-        .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
-
-        Ok(program_id)
-    }
-
-    /// Return whether job with `job_id` exists in DB
-    pub async fn has_job(&self, job_id: [u8; 32]) -> Result<bool, Error> {
-        let job = get_job(self.db.clone(), job_id)?;
-        Ok(job.is_some())
-    }
-
-    /// Save last block height in DB
-    pub async fn set_last_block_height(&self, height: u64) -> Result<(), Error> {
-        set_last_block_height(self.db.clone(), height)?;
-        Ok(())
-    }
-
-    /// Get last block height from DB
-    pub async fn get_last_block_height(&self) -> Result<u64, Error> {
-        let height = get_last_block_height(self.db.clone())?.unwrap_or_default();
-        Ok(height)
-    }
-
-    /// Returns job with `job_id` from DB
-    pub async fn get_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-        let job = get_job(self.db.clone(), job_id)?;
-        Ok(job)
-    }
-
-    /// Submits job, saves it in DB, and adds to exec queue
-    pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        if self.has_job(job.id).await? {
-            return Err(Error::JobAlreadyExists);
-        }
-
-        job.status =
-            JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
-
-        put_job(self.db.clone(), job.clone())?;
-
-        self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
-
-        Ok(())
     }
 
     /// Starts both the relay retry cron job and the job processor, and spawns `num_workers` worker
@@ -213,8 +143,14 @@ where
 
             self.task_handles.spawn({
                 async move {
-                    Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor, metrics)
-                        .await
+                    Self::start_processor_worker(
+                        exec_queue_receiver,
+                        db,
+                        job_relayer,
+                        zk_executor,
+                        metrics,
+                    )
+                    .await
                 }
             });
         }
@@ -224,12 +160,13 @@ where
         let metrics = Arc::clone(&self.metrics);
         let max_retries = self.config.max_retries;
 
-        self.task_handles
-            .spawn(async move { Self::retry_jobs(db, job_relayer, metrics, max_retries).await });
+        self.task_handles.spawn(async move {
+            Self::start_job_retry_task(db, job_relayer, metrics, max_retries).await
+        });
     }
 
-    /// Start a single worker thread.
-    async fn start_worker(
+    /// Start a single queue puller worker task.
+    async fn start_processor_worker(
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
@@ -240,7 +177,7 @@ where
             let mut job =
                 exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
             let id = job.id;
-            info!("executing job {:?}", id);
+            info!("executing job {:?}", hex::encode(id));
 
             let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics).await {
                 Ok(elf) => elf,
@@ -422,14 +359,14 @@ where
     }
 
     /// Retry jobs that failed to relay
-    async fn retry_jobs(
+    async fn start_job_retry_task(
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
         metrics: Arc<Metrics>,
         max_retries: u32,
     ) -> Result<(), Error> {
         loop {
-            // Jobs to update
+            // Jobs that we no longer want to retry
             let mut jobs_to_delete: Vec<[u8; 32]> = Vec::new();
 
             let retry_jobs = match get_all_failed_jobs(db.clone()) {
@@ -458,7 +395,7 @@ where
 
                 match result {
                     Ok(receipt) => {
-                        info!("successfully retried job relay for job: {:?}", id);
+                        info!("successfully retried job relay for job: {:?}", hex::encode(id));
                         jobs_to_delete.push(id);
 
                         // Save the relay tx hash and status to DB
@@ -471,7 +408,8 @@ where
                         if let Err(e) = put_job(db.clone(), job) {
                             error!(
                                 "report this error: failed to save relayed job {:?}: {:?}",
-                                id, e
+                                hex::encode(id),
+                                e
                             );
                             metrics.incr_job_err(&FailureReason::DbErrStatusRelayed.to_string());
                         }
@@ -480,25 +418,32 @@ where
                         if job.status.retries == max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
                             jobs_to_delete.push(id);
-                            info!(?id, "queueing un-broadcastable job for deletion");
+                            info!(
+                                id = hex::encode(id),
+                                "queueing un-broadcastable job for deletion"
+                            );
                         } else {
                             error!(
                                 "report this error: failed to retry relaying job {:?}: {:?}",
-                                id, e
+                                hex::encode(id),
+                                e
                             );
                             metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.retries += 1;
                             if let Err(e) = put_fail_relay_job(db.clone(), job) {
                                 error!(
                                     "report this error: failed to save retried job {:?}: {:?}",
-                                    id, e
+                                    hex::encode(id),
+                                    e
                                 );
                                 metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                             }
                         }
-                        continue;
                     }
                 }
+
+                // Before retrying another job, wait to reduce general load on the system
+                tokio::time::sleep(Duration::from_millis(JOB_RETRY_DELAY_MS)).await;
             }
 
             for job_id in &jobs_to_delete {
@@ -506,6 +451,9 @@ where
                     error!("report this error: failed to delete retried job {:?}: {:?}", job_id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                 }
+                // There could potentially be a lot of jobs to delete, so in order to not block for
+                // too long we make sure to yield to the tokio runtime.
+                tokio::task::yield_now().await;
             }
             tokio::time::sleep(Duration::from_secs(30)).await;
         }

@@ -1,12 +1,12 @@
 //! gRPC service implementation.
 
 use alloy::{
+    hex,
     primitives::{keccak256, Address, FixedBytes, Signature},
     signers::Signer,
     sol,
     sol_types::SolValue,
 };
-use base64::prelude::*;
 use proto::VmType;
 use std::marker::Send;
 use zkvm::Zkvm;
@@ -84,20 +84,19 @@ where
         elf: Vec<u8>,
         vm_type: VmType,
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
-        let base64_program_id = BASE64_STANDARD.encode(program_id.as_slice());
+        let hex_program_id = hex::encode(program_id.as_slice());
         let vm = self.vm(vm_type)?;
         info!(
-            ?job_id,
+            id = hex::encode(job_id),
             vm_type = vm_type.as_str_name(),
-            program_id = base64_program_id,
+            program_id = hex_program_id,
             "new job received"
         );
 
         if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
-            return Err(Error::InvalidVerifyingKey(format!(
-                "bad verifying key {}",
-                base64_program_id,
-            )));
+            return Err(Error::InvalidVerifyingKey(
+                format!("bad verifying key {}", hex_program_id,),
+            ));
         }
 
         let onchain_input_hash = keccak256(&onchain_input);
@@ -120,7 +119,7 @@ where
         info!(
             job_id = ?job_id,
             vm_type = vm_type.as_str_name(),
-            program_id = base64_program_id,
+            program_id = hex_program_id,
             "job complete"
         );
 
@@ -141,20 +140,19 @@ where
         elf: Vec<u8>,
         vm_type: VmType,
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
-        let base64_program_id = BASE64_STANDARD.encode(program_id.as_slice());
+        let hex_program_id = hex::encode(&program_id);
         let vm = self.vm(vm_type)?;
         info!(
             ?job_id,
             vm_type = vm_type.as_str_name(),
-            program_id = base64_program_id,
+            program_id = hex_program_id,
             "new job received"
         );
 
         if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
-            return Err(Error::InvalidVerifyingKey(format!(
-                "bad verifying key {}",
-                base64_program_id,
-            )));
+            return Err(Error::InvalidVerifyingKey(
+                format!("bad verifying key {}", hex_program_id,),
+            ));
         }
 
         let onchain_input_hash = keccak256(&onchain_input);
@@ -179,10 +177,10 @@ where
         let zkvm_operator_signature = self.sign_message(&offchain_result_with_metadata).await?;
 
         info!(
-            job_id = ?job_id,
+            id = hex::encode(job_id),
             vm_type = vm_type.as_str_name(),
-            program_id = base64_program_id,
-            raw_output = BASE64_STANDARD.encode(raw_output.as_slice()),
+            program_id = hex_program_id,
+            raw_output = hex::encode(&raw_output),
             "job complete"
         );
 
@@ -198,9 +196,11 @@ where
             .derive_verifying_key(elf)
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
 
-        let base64_program_id = BASE64_STANDARD.encode(program_id.as_slice());
-
-        info!(vm_type = vm_type.as_str_name(), program_id = base64_program_id, "new elf program");
+        info!(
+            vm_type = vm_type.as_str_name(),
+            program_id = hex::encode(&program_id),
+            "new elf program"
+        );
 
         Ok(program_id)
     }

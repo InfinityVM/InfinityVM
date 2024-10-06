@@ -1,3 +1,5 @@
+//! Prometheus metrics registry wrapper and server.
+
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Router};
 use prometheus::{self, CounterVec, Encoder, Opts, Registry, TextEncoder};
 use std::{fmt::Debug, sync::Arc};

@@ -2083,7 +2083,6 @@ dependencies = [
  "alloy",
  "async-channel",
  "axum",
- "base64 0.22.1",
  "clap",
  "contracts",
  "db",
@@ -7764,7 +7763,6 @@ name = "zkvm-executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "base64 0.22.1",
  "proto",
  "thiserror",
  "tokio",

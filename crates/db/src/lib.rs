@@ -1,4 +1,4 @@
-//! Executor database
+//! Coprocessor node database.
 
 use proto::VmType;
 use reth_db::{
