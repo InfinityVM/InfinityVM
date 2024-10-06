@@ -15,6 +15,9 @@ use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
 
+/// Delay between retrying failed jobs, in milliseconds.m
+const JOB_RETRY_DELAY_MS: u64 = 250;
+
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -89,6 +92,8 @@ pub struct JobProcessorConfig {
 }
 
 /// Job processor service.
+///
+/// This stores a `JoinSet` with a handle to each job processor worker and the job retry task.
 #[derive(Debug)]
 pub struct JobProcessorService<S, D> {
     db: Arc<D>,
@@ -138,8 +143,14 @@ where
 
             self.task_handles.spawn({
                 async move {
-                    Self::start_worker(exec_queue_receiver, db, job_relayer, zk_executor, metrics)
-                        .await
+                    Self::start_processor_worker(
+                        exec_queue_receiver,
+                        db,
+                        job_relayer,
+                        zk_executor,
+                        metrics,
+                    )
+                    .await
                 }
             });
         }
@@ -149,12 +160,13 @@ where
         let metrics = Arc::clone(&self.metrics);
         let max_retries = self.config.max_retries;
 
-        self.task_handles
-            .spawn(async move { Self::retry_jobs(db, job_relayer, metrics, max_retries).await });
+        self.task_handles.spawn(async move {
+            Self::start_job_retry_task(db, job_relayer, metrics, max_retries).await
+        });
     }
 
-    /// Start a single worker thread.
-    async fn start_worker(
+    /// Start a single queue puller worker task.
+    async fn start_processor_worker(
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
@@ -347,7 +359,7 @@ where
     }
 
     /// Retry jobs that failed to relay
-    async fn retry_jobs(
+    async fn start_job_retry_task(
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
         metrics: Arc<Metrics>,
@@ -430,7 +442,8 @@ where
                     }
                 }
 
-                tokio::time::sleep(Duration::from_millis(10)).await;
+                // Before retrying another job, wait to reduce general load on the system
+                tokio::time::sleep(Duration::from_millis(JOB_RETRY_DELAY_MS)).await;
             }
 
             for job_id in &jobs_to_delete {
