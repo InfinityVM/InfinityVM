@@ -10,7 +10,7 @@ use db::{
 };
 use proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
-use std::{marker::Send, sync::Arc, thread::yield_now, time::Duration};
+use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
@@ -438,7 +438,9 @@ where
                     error!("report this error: failed to delete retried job {:?}: {:?}", job_id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
                 }
-                yield_now();
+                // There could potentially be a lot of jobs to delete, so in order to not block for
+                // too long we make sure to yield to the tokio runtime.
+                tokio::task::yield_now().await;
             }
             tokio::time::sleep(Duration::from_secs(30)).await;
         }
