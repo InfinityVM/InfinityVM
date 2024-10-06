@@ -41,7 +41,7 @@ pub enum Error {
     InvalidVmType,
 }
 
-/// Job and program intake handles.
+/// Job and program intake handlers.
 ///
 /// New, valid jobs submitted to this service will be sent over the exec queue to the job processor.
 #[derive(Debug)]
