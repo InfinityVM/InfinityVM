@@ -1,6 +1,6 @@
 # Contributing
 
-This repo is rust workspace. The workspace configuration is defined by `Cargo.toml`.
+This repo is a rust workspace. The workspace configuration is defined by `Cargo.toml`.
 
 ## Develop
 
