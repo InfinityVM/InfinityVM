@@ -1,6 +1,6 @@
-# infinityvm
+# InfinityVM
 
-The new world of realtime, composable and verifiable compute. infinityvm is for people who are over restrictive blockchains and want fast applications that just work.
+InfinityVM is for people who are over restrictive blockchains and instead simply desire fast and permissionless applications that just work.
 
 ## Contributing
 
@@ -8,4 +8,4 @@ See the [contributing](./CONTRIBUTING.md) doc for instructions on how to setup t
 
 ## Docs
 
-Consult the [infinityvm Book](./book) for network architecture, coprocessor integrations, and coprocessor internals.
+Consult the [InfinityVM Book](./book) for network architecture, coprocessor integrations, and coprocessor internals.
