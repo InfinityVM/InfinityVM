@@ -8,4 +8,4 @@ See the [contributing](./CONTRIBUTING.md) doc for instructions on how to setup t
 
 ## Docs
 
-Consult the [infinityvm Book](./book) for network architecture, coprocessor integrations, and coprocessor internals
+Consult the [infinityvm Book](./book) for network architecture, coprocessor integrations, and coprocessor internals.
