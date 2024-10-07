@@ -1,12 +1,3 @@
-# Coprocessor
+# Coprocessor Node
 
-## Components
-
-- Contracts
-- Node
-
-## Audience
-
-- App Developers
-- Users
-- Contributors
+Details and running the coprocessor node, it's API, and it's internal architecture.

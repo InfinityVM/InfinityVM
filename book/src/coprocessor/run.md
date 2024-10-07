@@ -2,7 +2,7 @@
 
 ## Docker
 
-## Build from SRC
+## Build from source
 
 ## Configuration
 

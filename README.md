@@ -1,6 +1,6 @@
 # infinityvm
 
-An architecture that goes beyond the old world of blockchains and into the new world of infinite, composable, verifiable compute.
+The new world of realtime, composable and verifiable compute. infinityvm is for people who are over restrictive blockchains and want fast applications that just work.
 
 ## Contributing
 

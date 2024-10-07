@@ -4,7 +4,7 @@ This repo is a rust workspace. The workspace configuration is defined by `Cargo.
 
 ## Develop
 
-**Workspace setup**
+### Install tools
 
 Rust
 
@@ -49,7 +49,7 @@ foundryup
 cd contracts && forge build
 ```
 
-**Iterating**
+### Iterating
 
 View docs
 
@@ -60,7 +60,6 @@ make doc
 Build
 
 ```sh
-# N.B. this will only build the workspace's default-members
 cargo build
 
 # to build a specific crate run
@@ -71,7 +70,7 @@ Lint
 
 ```sh
 # NOTE: there is a bug with risc0 build tooling where you need to build before
-# running clippy; needs investigation, but we might drop risc0 soon.
+# running clippy; needs investigation.
 make clippy
 make fmt
 
@@ -85,7 +84,7 @@ Unit tests
 cargo test
 ```
 
-Integration tests
+E2E tests
 
 ```sh
 make test-all
