@@ -28,3 +28,6 @@ logs/
 # Load testing report
 report.html
 my_flamegraph.svg
+
+# mdBook
+book/book/*

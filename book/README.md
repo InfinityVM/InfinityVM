@@ -1,7 +1,11 @@
-# infinityvm Book
+# infinityvm mdBook
 
-*Documentation for infinityvm integrators*
+These docs are created with [mdBook](https://rust-lang.github.io/mdBook/). To contribute, take look at the [mdbook getting started guide](https://rust-lang.github.io/mdBook/guide/creating.html). 
 
-infinityvm is a blockchain architecture that vertically integrates offchain compute. This book has details specific to a single implementation by the original infinityvm team. Consult the teams [litepaper](https://infinityvm.xyz/infinityvm_litepaper.pdf) for the architectures genesis.
+To open this book locally run
 
-These docs are created with [mdBook](https://rust-lang.github.io/mdBook/).
+```
+cargo install mdbook
+cd book 
+mdbook serve --open`
+```

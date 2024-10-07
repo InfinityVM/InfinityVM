@@ -18,9 +18,9 @@ level = 1
 [build]
 build-dir = "target/book"
 
-[preprocessor.template]
-before = ["links"]
+# [preprocessor.template]
+# before = ["links"]
 
-[preprocessor.index]
+# [preprocessor.index]
 
-[preprocessor.links]
+# [preprocessor.links]
