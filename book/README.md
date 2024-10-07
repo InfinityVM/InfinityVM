@@ -1,4 +1,4 @@
-# infinityvm mdBook
+# InfinityVM Book
 
 These docs are created with [mdBook](https://rust-lang.github.io/mdBook/). To contribute, a take look at the [mdbook getting started guide](https://rust-lang.github.io/mdBook/guide/creating.html). 
 

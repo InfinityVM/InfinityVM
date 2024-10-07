@@ -51,7 +51,7 @@ cd contracts && forge build
 
 ### Iterating
 
-View docs
+View rust docs (generated via cargo doc)
 
 ```sh
 make doc
