@@ -1,13 +1,11 @@
-# Documentation and mdbook related jobs.
-
 name: book
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
-  merge_group:
+  workflow_dispatch:
 
 jobs:
   test:
