@@ -1,0 +1,12 @@
+[package]
+name = "proto"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[dependencies]
+tonic = { workspace = true }
+prost = { workspace = true }
+serde = { workspace = true }
+borsh = { workspace = true }
+serde_with = { workspace = true }

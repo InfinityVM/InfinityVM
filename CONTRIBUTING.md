@@ -90,6 +90,12 @@ E2E tests
 make test-all
 ```
 
+Re-geneerate proto based types
+
+```sh
+cargo run --bin proto-build
+```
+
 ### VSCode
 
 If you are working in VSCode, try installing the rust-analyzer extension. We recommend the following settings:

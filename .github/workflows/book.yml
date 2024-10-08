@@ -2,9 +2,15 @@ name: book
 
 on:
   push:
+    paths:
+      - 'book/**'
+      - '.github/workflows/book.yml'
     branches:
       - main
   pull_request:
+    paths:
+      - 'book/**'
+      - '.github/workflows/book.yml'
   workflow_dispatch:
 
 jobs:

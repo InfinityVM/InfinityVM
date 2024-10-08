@@ -7,7 +7,7 @@ rust-version = "1.78"
 members = [
 	"crates/contracts",
 	"crates/mock-consumer",
-	"crates/proto",
+	"crates/sdk/proto",
 	"crates/scripts",
 	"crates/sdk/abi",
 	"crates/sdk/test-utils",
@@ -180,7 +180,7 @@ strum = { version = "0.26.3", features = ["derive"], default-features = false}
 # sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
 
 # t
-tonic-build = { version = "0.12", features = ["prost", "transport"], default-features = false }
+tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
 tonic = { version = "0.12", features = ["transport", "codegen", "prost", "channel", "server", "router"], default-features = false }
 tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "tracing"], default-features = false }
@@ -217,7 +217,7 @@ coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
-proto = { path = "crates/proto" }
+proto = { path = "crates/sdk/proto" }
 test-utils = { path = "crates/sdk/test-utils" }
 zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
