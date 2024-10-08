@@ -6,7 +6,7 @@ All the protobuf definitions can be found [here](https://github.com/InfinityVM/I
 
 Additionally, there is an embedded [json HTTP gateway](https://github.com/InfinityVM/InfinityVM/blob/main/crates/coprocessor-node/src/gateway.rs) with endpoints mapping 1:1 with each gRPC endpoint. This is useful when using tooling, (e.g. load testing frameworks), that does not support gRPC out of the box.
 
-To learn more about how to use the gRPC API to build an application, take a look at the [Integration section](../integration/README.md).
+To learn more about how to use the gRPC API to build an application, take a look at the [Building with InfinityVM section](../integration/README.md).
 
 ## Clients
 
@@ -127,7 +127,7 @@ pub enum JobStatusType {
 
 #### Description
 
-Submit an ELF file for a zkVM program. This endpoint will validate the ELF and persist it in the network.
+Submit a zkVM program binary. This endpoint will validate the program binary and persist it in the network.
 
 #### Details
 
