@@ -3,10 +3,6 @@ description: common setup for rust builds
 runs:
   using: "composite"
   steps:
-      - uses: arduino/setup-protoc@v1
-        with:
-          version: '3.x'
-
       - uses: dtolnay/rust-toolchain@1.80.1
         with:
           components: clippy
