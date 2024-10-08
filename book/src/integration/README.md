@@ -1,6 +1,6 @@
 # Integration Concepts
 
- InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of permissionless applications. This section discusses the specific affordances of InfinityVM for building such applications.
+ InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of permissionless applications. This section discusses key concepts for building such applications.
 
 ## Coprocessing Jobs
 
@@ -12,12 +12,9 @@ There are two paradigms for requesting jobs: onchain and offchain.
 
 ### Onchain
 
-Onchain job requests are initiated by an event emitted from a smart contract. Typically we expect the smart contract to be triggered to emit the event by user interaction. But in some designs, contract callback handling logic for a previous job result may trigger a new job request event, effectively creating a continuous loop of requests without user interaction.
-
-![onchain job request](../assets/onchain-job-request.png)
+Read more in the [onchain jobs section](./onchain.md).
 
 ### Offchain
 
-Offchain job requests are are triggered by sending a request directly to a coprocessor nodes' submit job endpoint. The result will be submitted onchain and can also be queried directly from the CN.
+Read more in the offchain jobs section(./offchain.md).
 
-![offchain job request](../assets/offchain-job-request.png)
