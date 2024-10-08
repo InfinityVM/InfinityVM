@@ -47,7 +47,6 @@ pub struct SubmitJobResponse {
 }
 ```
 
-
 ### `/coprocessor_node.v1.CoprocessorNode/GetResult`
 
 #### Description
@@ -101,6 +100,16 @@ pub struct JobResult {
     pub status: Option<JobStatus>,
     /// Tx hash of relayed result
     pub relay_tx_hash: Vec<u8>,
+}
+
+pub struct JobStatus {
+    /// The status type of the job.
+    #[prost(enumeration = "JobStatusType", tag = "1")]
+    pub status: i32,
+    /// The optional reason for failure.
+    pub failure_reason: Option<String>,
+    /// The optional number of retries
+    pub retries: u32,
 }
 
 pub enum JobStatusType {
