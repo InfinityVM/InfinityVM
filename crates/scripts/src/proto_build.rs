@@ -1,5 +1,5 @@
 //! Generate coprocessor node types based off of protobuf definitions.
-//! 
+//!
 //! The generated code is part of the `proto` crate.
 
 use std::path::PathBuf;
