@@ -1,4 +1,4 @@
-//! gRPC service implementation.
+//! zkVM execution logic.
 
 use alloy::{
     hex,
@@ -9,9 +9,8 @@ use alloy::{
 };
 use proto::VmType;
 use std::marker::Send;
-use zkvm::Zkvm;
-
 use tracing::{error, info};
+use zkvm::Zkvm;
 
 /// Zkvm executor errors
 #[derive(thiserror::Error, Debug)]
@@ -86,12 +85,6 @@ where
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
         let hex_program_id = hex::encode(program_id.as_slice());
         let vm = self.vm(vm_type)?;
-        info!(
-            id = hex::encode(job_id),
-            vm_type = vm_type.as_str_name(),
-            program_id = hex_program_id,
-            "new job received"
-        );
 
         if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
             return Err(Error::InvalidVerifyingKey(
@@ -116,13 +109,6 @@ where
         );
         let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
 
-        info!(
-            job_id = ?job_id,
-            vm_type = vm_type.as_str_name(),
-            program_id = hex_program_id,
-            "job complete"
-        );
-
         Ok((result_with_metadata, zkvm_operator_signature))
     }
 
@@ -142,12 +128,6 @@ where
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
         let hex_program_id = hex::encode(&program_id);
         let vm = self.vm(vm_type)?;
-        info!(
-            ?job_id,
-            vm_type = vm_type.as_str_name(),
-            program_id = hex_program_id,
-            "new job received"
-        );
 
         if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
             return Err(Error::InvalidVerifyingKey(
@@ -175,14 +155,6 @@ where
             &raw_output,
         );
         let zkvm_operator_signature = self.sign_message(&offchain_result_with_metadata).await?;
-
-        info!(
-            id = hex::encode(job_id),
-            vm_type = vm_type.as_str_name(),
-            program_id = hex_program_id,
-            raw_output = hex::encode(&raw_output),
-            "job complete"
-        );
 
         Ok((offchain_result_with_metadata, zkvm_operator_signature))
     }
