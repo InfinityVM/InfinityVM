@@ -3,16 +3,16 @@ use alloy::{primitives::Address, providers::ProviderBuilder};
 use contracts::mock_consumer::MockConsumer;
 use db::tables::get_job_id;
 use goose::prelude::*;
+use load_test::{
+    anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
+    get_offchain_request, num_users, report_file_name, run_time, should_wait_until_job_completed,
+    startup_time, wait_until_job_completed,
+};
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
-};
-use test_load::{
-    anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
-    get_offchain_request, num_users, report_file_name, run_time, should_wait_until_job_completed,
-    startup_time, wait_until_job_completed,
 };
 use tokio::sync::OnceCell;
 
