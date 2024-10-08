@@ -7,7 +7,7 @@ rust-version = "1.78"
 members = [
 	"crates/contracts",
 	"crates/mock-consumer",
-	"crates/proto",
+	"crates/sdk/proto",
 	"crates/scripts",
 	"crates/sdk/abi",
 	"crates/sdk/test-utils",
@@ -217,7 +217,7 @@ coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
-proto = { path = "crates/proto" }
+proto = { path = "crates/sdk/proto" }
 test-utils = { path = "crates/sdk/test-utils" }
 zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }

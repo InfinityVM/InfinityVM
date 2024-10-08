@@ -11,7 +11,7 @@ const SERDE_RENAME_CAMELCASE: &str = "#[serde(rename_all = \"camelCase\")]";
 const SERDE_BYTES_HEX: &str = "#[serde_as(as = \"Hex\")]";
 const BORSH_USE_DISCRIMINANT_TRUE: &str = "#[borsh(use_discriminant=true)]";
 const SERDE_DEFAULT: &str = "#[serde(default)]";
-const PROTO_CRATE_SRC: &str = "crates/proto/src";
+const PROTO_CRATE_SRC: &str = "crates/sdk/proto/src";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(PROTO_CRATE_SRC);
