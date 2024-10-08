@@ -70,7 +70,7 @@ Response
 
 ```rust
 pub struct GetResultResponse {
-    pub job_result: ::core::option::Option<JobResult>,
+    pub job_result: Option<JobResult>,
 }
 
 pub struct JobResult {
@@ -98,7 +98,7 @@ pub struct JobResult {
     /// The signature of the operator that executed the job
     pub zkvm_operator_signature: Vec<u8>,
     /// The status of the job.
-    pub status: ::core::option::Option<JobStatus>,
+    pub status: Option<JobStatus>,
     /// Tx hash of relayed result
     pub relay_tx_hash: Vec<u8>,
 }

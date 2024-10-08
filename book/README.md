@@ -7,5 +7,5 @@ To open this book locally run:
 ```
 cargo install mdbook
 cd book 
-mdbook serve --open`
+mdbook serve --open
 ```
