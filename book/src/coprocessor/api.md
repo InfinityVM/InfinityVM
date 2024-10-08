@@ -14,6 +14,8 @@ The InfinityVM team ships a Rust gRPC client, which can be found in the [`proto`
 
 ## Endpoints
 
+Note that for json encoding request and response types, all `Vec<u8>` are encoded as hex strings.
+
 ### `/coprocessor_node.v1.CoprocessorNode/SubmitJob`
 
 #### Description
