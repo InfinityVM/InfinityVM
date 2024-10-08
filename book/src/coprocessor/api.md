@@ -106,7 +106,7 @@ pub struct JobResult {
 
 pub struct JobStatus {
     /// The status type of the job.
-    #[prost(enumeration = "JobStatusType", tag = "1")]
+    // Corresponds to `JobStatusType`.
     pub status: i32,
     /// The optional reason for failure.
     pub failure_reason: Option<String>,
