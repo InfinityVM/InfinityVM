@@ -15,16 +15,16 @@ members = [
 	"crates/zkvm",
 	"crates/zkvm-executor",
     "crates/tracing",
-	"test",
-	"programs/risc0/mock-consumer/methods",
-	"programs/risc0/vapenation/methods",
 	"clob/client",
 	"clob/core",
 	"clob/contracts",
 	"clob/programs",
 	"clob/node",
 	"clob/test-utils",
-	"test-load",
+	"test/e2e",
+	"test/load-test",
+	"programs/risc0/mock-consumer/methods",
+	"programs/risc0/vapenation/methods",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021

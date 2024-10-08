@@ -3765,6 +3765,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
 
 [[package]]
+name = "load-test"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "contracts",
+ "db",
+ "dotenv",
+ "goose",
+ "mock-consumer",
+ "mock-consumer-methods",
+ "once_cell",
+ "proto",
+ "reqwest 0.11.27",
+ "test-utils",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "lock_api"
 version = "0.4.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6541,25 +6560,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "06794f8f6c5c898b3275aebefa6b8a1cb24cd2c6c79397ab15774837a0bc5755"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "test-load"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "contracts",
- "db",
- "dotenv",
- "goose",
- "mock-consumer",
- "mock-consumer-methods",
- "once_cell",
- "proto",
- "reqwest 0.11.27",
- "test-utils",
- "tokio",
- "url",
 ]
 
 [[package]]
