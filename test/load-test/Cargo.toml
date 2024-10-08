@@ -1,5 +1,5 @@
 [package]
-name = "test-load"
+name = "load-test"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -21,5 +21,3 @@ test-utils = { workspace = true }
 mock-consumer = { workspace = true }
 mock-consumer-methods = { workspace = true }
 contracts = { workspace = true }
-
-[dev-dependencies]
