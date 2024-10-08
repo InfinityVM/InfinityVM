@@ -4,11 +4,11 @@
 
 // We don't have control over tonic generated code so we ignore the
 // lints it complains about
-#![allow(clippy::all, clippy::missing_const_for_fn, unreachable_pub)]
+// #![allow(clippy::all, clippy::missing_const_for_fn, unreachable_pub)]
 
 use serde_with::{hex::Hex, serde_as};
 
-tonic::include_proto!("coprocessor_node.v1");
+std::include!("coprocessor_node.v1.rs");
 
-/// Reflection
-pub const FILE_DESCRIPTOR_SET: &[u8] = tonic::include_file_descriptor_set!("descriptor");
+/// gRPC reflection binary. 
+pub const FILE_DESCRIPTOR_SET: &[u8] = std::include_bytes!("descriptor.bin");
