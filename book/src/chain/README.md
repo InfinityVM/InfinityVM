@@ -10,7 +10,7 @@ Infinity uses Reth as its high-performance execution engine. Reth is responsible
 
 ### Consensus
 
-The Infinity L1 uses InfinityBFT, a single-slot finality consensus protocol. This is how nodes gossip and produce blocks, and agree on the contents of each block. InfinityBFT is also modelled after the Ethereum beacon chain (for more info, read the [ETH 2.0 spec](https://eth2book.info/capella/part3/containers/state/)), and maintains the state of the beacon chain. The consensus and execution layer communicate using the [Engine API](https://hackmd.io/@danielrachi/engine_api).
+The Infinity L1 uses InfinityBFT, a single-slot finality consensus protocol. This is how nodes gossip and produce blocks, and agree on the contents of each block. InfinityBFT is also inspired by the Ethereum beacon chain (for more info, read the [ETH 2.0 spec](https://eth2book.info/capella/part3/containers/state/)), and maintains the state of the beacon chain. The consensus and execution layer communicate using the [Engine API](https://hackmd.io/@danielrachi/engine_api).
 
 ![infinity overview](../assets/infinity-overview.png)
 
