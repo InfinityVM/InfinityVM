@@ -13,4 +13,9 @@
   - [Coprocessor Node Internals](./coprocessor/internals.md)
   - [Run a Coprocessor Node](./coprocessor/run.md)
 - [Infinity L1](./chain/README.md)
+  - [Key Modules](./chain/modules.md)
+  - [Block Lifecycle](./chain/lifecycle.md)
+  - [Optimistic Payload Building](./chain/optimistic-payload.md)
+  - [Reorg Logic](./chain/reorg.md)
 - [Infra](./infra/README.md)
+
