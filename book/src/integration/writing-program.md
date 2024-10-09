@@ -20,16 +20,14 @@ Lets take the [square program](square-root-app) as an example. For this exercise
 
 First we read in opaque bytes for each type and deserialize
 
-```rust
-use alloy_primitives::U256;
-
+```rust,ignore
 fn main() {
-  // We create a buffer
+  // Create an empty buffer
   let mut input_bytes = Vec::<u8>::new();
-  // And then read in all the bytes from the host to buffer
+  // Read in all the bytes from the host to buffer
   risc0_zkvm::guest::env::stdin().read_to_end(&mut input_bytes).unwrap();
 
-  // We then deserialize the buffer into the expected type, U256
+  // Deserialize the buffer into the expected type, U256
   let number = <U256>::abi_decode(&input_bytes, true).unwrap();
 
   // ..
@@ -38,7 +36,7 @@ fn main() {
 
 Then we run logic
 
-```rust
+```rust,ignore
 fn main() {
   // .. reading and deserialization logic
 
@@ -51,7 +49,7 @@ fn main() {
 
 Finally, we serialize the output and write it to the host
 
-```rust
+```rust,ignore
 type NumberWithSquareRoot = sol! {
     tuple(uint256,uint256)
 };
