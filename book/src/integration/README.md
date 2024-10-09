@@ -4,7 +4,7 @@
 
 ## Overview
 
-The high-level flow of the InfinityVM coprocessor looks like this:
+The InfinityVM coprocessor allows developers to run a zkVM program with any set of inputs and then use the results onchain. The high-level flow looks like this:
 
 1. An app contract or an offchain user/server requests a `job` from the coprocessor. Each job request contains a program ID (identifier for zkVM program) and inputs to the program.
 2. The coprocessor executes this program with the given inputs in a RISC-V interpreter.

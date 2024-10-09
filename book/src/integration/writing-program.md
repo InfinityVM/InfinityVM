@@ -6,15 +6,15 @@ If you just want to quickly get your hands dirty, head over to the [InfinityVM f
 
 ## Structure of a program
 
-A zkVM program is (normally) written and Rust and compiled down to RISC-V. The executable file is commonly referred to as an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format).
+A zkVM program is written in a language that compiles down to RISC-V (most commonly Rust). The executable file is commonly referred to as an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format).
 
 The logic for a program is:
 
 1. Read input bytes
-1. Deserialize input bytes
-1. Run logic
-1. Serialize output bytes
-1. Write output bytes
+2. Deserialize input bytes
+3. Run logic
+4. Serialize output bytes
+5. Write output bytes
 
 Lets take a [square root program](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square-root.rs) as an example. This program takes in a number as input and returns the square root of the number as output. For this exercise we will incrementally build out the program.
 
@@ -83,4 +83,4 @@ If you're not using the Infinity foundry template, you can write unit tests by c
 
 For integration tests, we recommend reading the [Using your zkVM Program](./using-program.md) section.
 
-The InfinityVM team is working on a growing set of [SDK crates](https://github.com/InfinityVM/InfinityVM/tree/main/crates/sdk) to make writing programs and tests easier. The SDK is in very early stages and dog food'ed with the CLOB app server PoC.
+The InfinityVM team is working on a growing set of [SDK crates](https://github.com/InfinityVM/InfinityVM/tree/main/crates/sdk) to make writing programs and tests easier.
