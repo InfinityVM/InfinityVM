@@ -93,6 +93,7 @@ To export logs to a file:
 ```sh
 # Defaults to not exporting logs to a file.
 RUST_LOG_FILE="zkvm.log" 
-# If RUST_LOG_DIR is not specified, logs will be written to the current directory "."
+
+# If this is not specified, logs will be written to the current directory "."
 RUST_LOG_DIR="/path/to/log"
 ```
