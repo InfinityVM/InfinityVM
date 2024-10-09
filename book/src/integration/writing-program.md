@@ -73,35 +73,16 @@ fn main() {
 
 Assuming you organize the main function of your zkVM program as above, you can have your business logic encapsulated in a pure function. If your logic is non-trivial, its recommended to define this function in a separate crate such that the code can be easily reused and unit tested without the restrictions of the zkVM host, which can be prohibitive in using typical rust tooling.
 
-For example, the clob program has a [stf function](stf) defined in a "core" crate. This function is a wrapper around the [clob engine's tick function](stf-tick), which processes a single request at a time. By design, the app server engine uses this same exact [tick function](engine-tick) to process each request.
+For example, the clob program has a [stf function](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/core/src/lib.rs#L275) defined in a "core" crate. This function is a wrapper around the [clob engine's tick function](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/core/src/lib.rs#L282), which processes a single request at a time. By design, the app server engine uses this same exact [tick function](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/node/src/engine.rs) to process each request.
 
-One thing to keep in mind is that any of the dependencies of the zkVM program will need to be compatible with the VM; roughly 70% of major crates are compatible with the VM. However, trouble shooting issues with incompatible deps can be non-trivial and it will force your crate with core logic to not contain incompatible deps. A common source of pain is the [alloy](alloy-features) crate, which works with most of the [features disabled](alloy-infinity), but breaks builds with the [`full` feature](alloy-full) enabled. Don't hesitate to reach out to the InfinityVM team if you are having any persistent challenges!
+One thing to keep in mind is that any of the dependencies of the zkVM program will need to be compatible with the VM; roughly 70% of major crates are compatible with the VM. However, trouble shooting issues with incompatible deps can be non-trivial and it will force your crate with core logic to not contain incompatible deps. A common source of pain is the [alloy](https://docs.rs/crate/alloy/latest/features) crate, which works with most of the [features disabled](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/Cargo.toml#L118), but breaks builds with the [`full` feature](https://github.com/alloy-rs/alloy/blob/3f5f1e5de21552ed875ffdc16fb4d5db9d1ba0e8/crates/alloy/Cargo.toml#L76) enabled. Don't hesitate to reach out to the InfinityVM team if you are having any persistent challenges!
 
 ## Testing your program
 
-For direct unit tests of your program, you can create an executor and run it against inputs and the program ELF. An example with the CLOB program can be found [here](clob-unit).
+For direct unit tests of your program, you can create an executor and run it against inputs and the program ELF. An example with the CLOB program can be found [here](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/programs/src/lib.rs#L120).
 
-For integration tests with the EVM for onchain requests and stateless offchain requests, you can use the [foundry template](template).
+For integration tests with the EVM for onchain requests and stateless offchain requests, you can use the [foundry template](https://github.com/InfinityVM/infinity-foundry-template).
 
-For integration tests for stateful requests from an app server, you will need to build out a custom test harness. You can find an example test harness with the coprocessor and clob [here](infinity-test-harness). 
+For integration tests for stateful requests from an app server, you will need to build out a custom test harness. You can find an example test harness with the coprocessor and clob [here](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/src/lib.rs). 
 
-The InfinityVM team is working on a growing set of [SDK crates](sdk-crates) to make writing programs and tests easier. The SDK is in very early stages and dog food'ed with the CLOB app server PoC.
-
-
-[template]: https://github.com/InfinityVM/infinity-foundry-template
-[offchain]: offchain.md
-[clob]: clob.md
-[square-root]: square-root.md
-[square-root-app]: https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square-root.rs
-[elf]: https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
-[clob-app]: https://github.com/InfinityVM/InfinityVM/blob/main/clob/programs/app/src/clob.rs
-[engine-tick]: https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/node/src/engine.rs#L66
-[stf-tick]: https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/core/src/lib.rs#L282
-[tick-unit]: https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/core/src/lib.rs#L348
-[stf]: https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/core/src/lib.rs#L275
-[alloy-full]: https://github.com/alloy-rs/alloy/blob/3f5f1e5de21552ed875ffdc16fb4d5db9d1ba0e8/crates/alloy/Cargo.toml#L76
-[alloy-features]: https://docs.rs/crate/alloy/latest/features
-[alloy-infinity]: https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/Cargo.toml#L118
-[clob-unit]: https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/programs/src/lib.rs#L120
-[infinity-test-harness]: (https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/src/lib.rs)
-[sdk-crates]: https://github.com/InfinityVM/InfinityVM/tree/main/crates/sdk
+The InfinityVM team is working on a growing set of [SDK crates](https://github.com/InfinityVM/InfinityVM/tree/main/crates/sdk) to make writing programs and tests easier. The SDK is in very early stages and dog food'ed with the CLOB app server PoC.
