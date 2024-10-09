@@ -13,11 +13,11 @@ The coprocessor node is designed to execute zkVM jobs that may potentially take 
     1. Execute them via the zkVM executor
     1. Relay execution results onchain
     1. Update the job in the DB with the execution result and relay status
-1. For jobs that failed to get relayed, they get placed in a dead letter queue and a background service will attempt to retry posting them onchain at a set interval.
+1. For jobs that fail to get relayed, they get placed in a dead letter queue and a background service will attempt to retry posting them onchain at a set interval.
 
 ## Diagram
 
-This diagram shows the logical components involved in processing job requests from both web2 users (gRPC) and onchain requests (event listener). For simplicity, it does not include data flows for submitting programs. The diagram roughly shows the flow of a request from left to right.
+This diagram shows the logical components involved in processing job requests from both web2 users (gRPC) and onchain requests (contract events). It is intended to roughly show the flow of a request from left to right.
 
 ![Coprocessor Architecture Diagram](../assets/coproc-node-internals.png)
 <!-- https://app.excalidraw.com/s/8oh7cYrMkAR/4Aups68pO9j -->
