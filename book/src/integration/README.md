@@ -1,27 +1,30 @@
-# Integration Concepts
+# Building with InfinityVM
 
- InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of permissionless applications. This section discusses key concepts for building such applications.
+ InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications. This section discusses key concepts for building an app with InfinityVM.
 
-## Coprocessing Jobs
+## Overview
 
-Core to offchain compute is the notion of a coprocessing job. Each request for compute to the InfinityVM coprocessor is called a Job. A job reflects a single invocation of a zkVM program with a specific set of inputs. The job request contains a program ID and inputs to the program. Valid job requests are picked up by a coprocessing node (CN), and the requested program along with the specified inputs get executed in a RISC-V interpreter. The result of a job (i.e. the programs output), can be configure to be posted either fully or partially onchain[^note1]. When a job result is posted onchain, it will call a callback for a specified contract, which can then execute arbitrary logic. Importantly, InfinityVM guarantees that the canonical execution chain only contains valid job results.
+The high-level flow of the InfinityVM coprocessor looks like this:
 
-There are two paradigms for requesting jobs: onchain and offchain.
+1. An app contract or an offchain user/server requests a `job` from the coprocessor. Each job request contains a program ID (identifier for zkVM program) and inputs to the program.
+2. The coprocessor executes this program with the given inputs in a RISC-V interpreter.
+3. The coprocessor submits the result (output of program) back to the contract.
+4. The app contract can simply use the result from the coprocessor in any of their app logic. A callback function is called on the app contract, which can then execute arbitrary logic.
 
-[^note1]: In the case of partially posting results onchain, a commitment to the full result and its inclusion in DA is included.
+![coprocessor flow](../assets/coprocessor-overview.png)
 
-### Onchain
+Importantly, InfinityVM guarantees that the canonical execution chain only contains valid job results.
 
-Read more in the [onchain jobs section](onchain).
+### Writing a zkVM Program
 
-### Offchain
+Read more in the [Writing a Program](./writing-program.md) section.
 
-Read more in the [offchain jobs section](offchain).
+### Using a zkVM Program
 
-### Programs
+A zkVM program can be run in InfinityVM using two types of job requests: **onchain** and **offchain**. Read more in the [Using a Program](./using-program.md) section.
 
-Read more in the [writing a program](program)
+### Examples
 
-[onchain]: ./onchain.md
-[offchain]: ./offchain.md
-[program]: ./writing-program.md
+We have walked through two examples of building apps with InfinityVM:
+- [<u>Onchain Example: Square Root</u>](./square-root.md)
+- [<u>Offchain Example: CLOB</u>](./clob.md)
