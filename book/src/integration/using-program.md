@@ -16,7 +16,7 @@ You can read more in the [Onchain Jobs](./onchain.md) section.
 
 ## Offchain requests
 
-This allows you to send requests directly to the InfinityVM coprocessor. This can be done using gRPC or the coprocessor node's REST API. The result will still be submitted onchain and can be used by a callback function in your app contract, similer to onchain requests.
+This allows you to send requests directly to the InfinityVM coprocessor. This can be done using gRPC or the coprocessor node's REST API. The result will still be submitted onchain and can be used by a callback function in your app contract, similar to onchain requests.
 
 ![offchain job request](../assets/offchain-job-request.png)
 
