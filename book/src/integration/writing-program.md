@@ -1,29 +1,30 @@
 # Writing a zkVM Program
 
-The InfinityVM coprocessor runs zkVM programs. While the zkVM abstraction is extensible across SP1, Jolt, Risc0 and more - the current implementation just has support for Risc0. Please, let us know if you would like support for another zkVM, its fairly straightforward to add!
+The InfinityVM coprocessor runs zkVM programs. While the zkVM abstraction is extensible across SP1, Risc0, Jolt, and more - the current implementation just has support for Risc0. Please let us know if you would like support for another zkVM, its fairly straightforward to add!
 
-If you just want to quickly get your hands dirty, head over the [InfinityVM foundry template](template)
+If you just want to quickly get your hands dirty, head over to the [InfinityVM foundry template](https://github.com/InfinityVM/infinity-foundry-template). We have instructions on how to write a program in the `README`.
 
 ## Anatomy of a program
 
-A zkVM program is (normally) written and rust and compiled down to a RISC-V set of instructions. The executable file is commonly referred to as an [ELF](elf).
+A zkVM program is (normally) written and Rust and compiled down to RISC-V. The executable file is commonly referred to as an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format).
 
 The logic for a program is:
 
-1. Read input bytes from host
+1. Read input bytes
 1. Deserialize input bytes
 1. Run logic
 1. Serialize output bytes
-1. Write output bytes to host
+1. Write output bytes
 
-Lets take the [square program](square-root-app) as an example. For this exercise we will incrementally build out the program.
+Lets take a [square root program](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square-root.rs) as an example. This program takes in a number as input and returns the square root of the number as output. For this exercise we will incrementally build out the program.
 
-First we read in opaque bytes for each type and deserialize
+First, we read in opaque bytes for the inputs and deserialize:
 
 ```rust,ignore
 fn main() {
   // Create an empty buffer
   let mut input_bytes = Vec::<u8>::new();
+  
   // Read in all the bytes from the host to buffer
   risc0_zkvm::guest::env::stdin().read_to_end(&mut input_bytes).unwrap();
 
@@ -34,7 +35,7 @@ fn main() {
 }
 ```
 
-Then we run logic
+Next, we run logic (computing the square root) on the input `number`:
 
 ```rust,ignore
 fn main() {
@@ -46,8 +47,9 @@ fn main() {
   // ..
 }
 ```
+Since we are writing in Rust, we're able to easily use the `root()` function in Rust.
 
-Finally, we serialize the output and write it to the host
+Finally, we serialize the output and write it:
 
 ```rust,ignore
 type NumberWithSquareRoot = sol! {
@@ -55,13 +57,15 @@ type NumberWithSquareRoot = sol! {
 };
 
 fn main() {
+  // .. reading and deserialization logic
+
   // .. run logic
 
-  /// Serialize the result bytes.
-  let abi_encoded = NumberWithSquareRoot::abi_encode(&(number, square_root)
+  // Serialize the result bytes
+  let abi_encoded_output = NumberWithSquareRoot::abi_encode(&(number, square_root));
 
-  /// Write the raw, serialized bytes to the host. Note that this will get posted onchain
-  risc0_zkvm::guest::env::commit_slice(&abi_encoded);
+  // Write the raw, serialized bytes to the host. This will get posted onchain
+  risc0_zkvm::guest::env::commit_slice(&abi_encoded_output);
 }
 ```
 
@@ -83,12 +87,6 @@ For integration tests for stateful requests from an app server, you will need to
 
 The InfinityVM team is working on a growing set of [SDK crates](sdk-crates) to make writing programs and tests easier. The SDK is in very early stages and dog food'ed with the CLOB app server PoC.
 
-## Further reading
-
-- (Offchain Jobs section)[offchain]
-- (CLOB example section)[clob]
-- (square root example section)[square-root]
-- (InfinityVM foundry template)[template]
 
 [template]: https://github.com/InfinityVM/infinity-foundry-template
 [offchain]: offchain.md
