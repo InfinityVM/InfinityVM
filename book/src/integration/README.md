@@ -12,9 +12,16 @@ There are two paradigms for requesting jobs: onchain and offchain.
 
 ### Onchain
 
-Read more in the [onchain jobs section](./onchain.md).
+Read more in the [onchain jobs section](onchain).
 
 ### Offchain
 
-Read more in the offchain jobs section(./offchain.md).
+Read more in the [offchain jobs section](offchain).
 
+### Programs
+
+Read more in the [writing a program](program)
+
+[onchain]: ./onchain.md
+[offchain]: ./offchain.md
+[program]: ./writing-program.md
