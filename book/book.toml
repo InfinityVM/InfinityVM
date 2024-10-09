@@ -2,7 +2,7 @@
 authors = ["infinityvm Core Contributors"]
 language = "en"
 multilingual = false
-title = "infinityvm Book"
+title = "InfinityVM Book"
 
 [output.html]
 git-repository-url = "https://github.com/infinityvm/infinityvm"
