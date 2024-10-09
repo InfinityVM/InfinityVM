@@ -6,7 +6,7 @@ Infinity is a high-performance EVM-compatible layer-1 blockchain. Infinity is bu
 
 ### Consensus
 
-The Infinity L1 uses InfinityBFT, a single-slot finality consensus protocol. This is how nodes gossip and produce blocks, and agree on the contents of each block. The consensus layer is also inspired by the Ethereum beacon chain (for more info, read the [ETH 2.0 spec](https://eth2book.info/capella/part3/containers/state/)), and maintains the state of the beacon chain.
+The Infinity L1 uses InfinityBFT, a consensus protocol with single-slot finality. The consensus protocol is responsible for validator selection, gossiping blocks, and agreeing on the contents of each block. The consensus layer is also inspired by the Ethereum beacon chain (for more info, read the [ETH 2.0 spec](https://eth2book.info/capella/part3/containers/state/)), and maintains the beacon chain's state. The consensus and execution layer communicate using the [Engine API](https://hackmd.io/@danielrachi/engine_api).
 
 ### Execution
 
@@ -14,7 +14,7 @@ Infinity uses [Reth](https://github.com/paradigmxyz/reth) as its high-performanc
 
 ![infinity overview](../assets/infinity-overview.png)
 
-Because Infinity separates consensus and execution, **the chain is able to add custom reorg logic to enshrine offchain compute in the chain's fork choice while still enjoying single-slot finality**. This is because the chain can just reorg the execution layer, while the consensus layer continues as normal.
+By separating consensus and execution, **Infinity is able to rollback the execution layer to enshrine offchain compute in the chain's fork choice, while still enjoying single-slot finality on the beacon chain state**. This is because the execution layer can be reorged via the Engine API, while the consensus layer continues to move forward.
 
 ## Technical Architecture
 
@@ -22,6 +22,6 @@ To better understand the architecture of the Infinity L1 and the optimizations w
 
 - [<u>Block Lifecycle</u>](./lifecycle.md): Overview of the end-to-end lifecycle for proposing blocks, processing blocks, etc.
 - [<u>Optimistic Payload Building</u>](./optimistic-payload.md): Performance optimization to prematurely build execution payloads
-- [<u>Reorg Logic</u>](./reorg.md): Enshrining offchain compute into the fork choice of the Infinity L1
+- [<u>Reorgs</u>](./reorgs.md): Enshrining offchain compute into the fork choice of the Infinity L1
 
 **Note:** It isn't required to understand any of these sections to build with InfinityVM.
