@@ -14,7 +14,7 @@ Infinity uses [Reth](https://github.com/paradigmxyz/reth) as its high-performanc
 
 ![infinity overview](../assets/infinity-overview.png)
 
-By separating consensus and execution, **Infinity is able to rollback the execution layer to enshrine offchain compute in the chain's fork choice, while still enjoying single-slot finality on the beacon chain state**. This is because the execution layer can be reorged via the Engine API, while the consensus layer continues to move forward.
+By separating consensus and execution, **Infinity is able to rollback the execution layer to enshrine offchain compute in the chain's fork choice, while still enjoying single-slot finality on the beacon chain state**. This means that beacon chain state like staking, slashing, etc., will not rollback (it will have single-slot finality) even if Infinity rolls back the execution layer state. This is because the execution layer can be reorged via the Engine API, while the consensus layer continues to move forward.
 
 ## Technical Architecture
 
