@@ -1,4 +1,4 @@
-## Key modules
+# Key modules
 
 Infinity follows a service-based architecture, with code separated into different modules and a service that can be run for each module.
 

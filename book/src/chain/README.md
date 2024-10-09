@@ -20,9 +20,9 @@ Because Infinity separates execution and consensus, **the chain is able to add c
 
 To better understand the architecture of the Infinity L1 and the optimizations we have made, please read:
 
-- [Key Modules](./modules.md): Descriptions of important modules in the Infinity L1 codebase
-- [Block Lifecycle](./lifecycle.md): Overview of the end-to-end lifecycle for proposing blocks, processing blocks, etc.
-- [Optimistic Payload Building](./optimistic-payload.md): Performance optimization to prematurely build execution payloads
-- [Reorg Logic](./reorg.md): Enshrining offchain compute into the fork choice of the Infinity L1
+- [<u>Key Modules</u>](./modules.md): Descriptions of important modules in the Infinity L1 codebase
+- [<u>Block Lifecycle</u>](./lifecycle.md): Overview of the end-to-end lifecycle for proposing blocks, processing blocks, etc.
+- [<u>Optimistic Payload Building</u>](./optimistic-payload.md): Performance optimization to prematurely build execution payloads
+- [<u>Reorg Logic</u>](./reorg.md): Enshrining offchain compute into the fork choice of the Infinity L1
 
 **Note:** It isn't required to understand any of these sections to build with InfinityVM.
