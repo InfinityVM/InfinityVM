@@ -4,7 +4,7 @@ The InfinityVM coprocessor runs zkVM programs. While the zkVM abstraction is ext
 
 If you just want to quickly get your hands dirty, head over to the [InfinityVM foundry template](https://github.com/InfinityVM/infinity-foundry-template). We have instructions on how to write a program in the `README`.
 
-## Anatomy of a program
+## Structure of a program
 
 A zkVM program is (normally) written and Rust and compiled down to RISC-V. The executable file is commonly referred to as an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format).
 
