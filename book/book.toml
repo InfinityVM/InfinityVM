@@ -1,12 +1,12 @@
 [book]
-authors = ["infinityvm Core Contributors"]
+authors = ["InfinityVM Core Contributors"]
 language = "en"
 multilingual = false
 title = "InfinityVM Book"
 
 [output.html]
 git-repository-url = "https://github.com/infinityvm/infinityvm"
-default-theme = "ayu"
+default-theme = "light"
 
 [output.html.fold]
 enable = true
