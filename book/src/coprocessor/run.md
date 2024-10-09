@@ -2,11 +2,11 @@
 
 ## Docker
 
-We do not yet have a public docker repository, but you can build yourself with [this docker image](https://github.com/InfinityVM/InfinityVM/blob/main/Dockerfile.coproc-node) in the InfinityVM repo
+We do not yet have a public docker repository, but you can build [this docker image](https://github.com/InfinityVM/InfinityVM/blob/main/Dockerfile.coproc-node) located in the InfinityVM repo.
 
 ## Build from source
 
-To build from source, you will need `rustc` greater >= 1.79. We recommend building with the release profile. To build with cargo, from the root of the InfinityVM repo you can run `cargo build --bin coprocessor-node --release`.
+To build from source, you will need `rustc` greater >= 1.79. We recommend building with the release profile. To build with cargo, from the root of the [InfinityVM repo](https://github.com/InfinityVM/InfinityVM/tree/main) you can run `cargo build --bin coprocessor-node --release`.
 
 ## Configuration
 
@@ -14,7 +14,7 @@ The coprocessor node is primarily configured via CLI and optionally has some env
 
 The CLI has the following options:
 
-```sh 
+```
 Usage: coprocessor-node [OPTIONS] --job-manager-address <JOB_MANAGER_ADDRESS> [COMMAND]
 
 Commands:
@@ -91,7 +91,7 @@ RUST_LOG_FORMAT="text"
 To export logs to a file:
 
 ```sh
-# Defaults to not exporting logs to a file.
+# Defaults to not exporting logs to a file
 RUST_LOG_FILE="zkvm.log" 
 
 # If this is not specified, logs will be written to the current directory "."
