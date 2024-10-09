@@ -6,7 +6,7 @@ In this section, we go through the end-to-end lifecycle of various block-related
 
 ![propose block](../assets/propose-block.png)
 
-When it's a validator's turn to propose a block, a `getPayload()` Engine API call is made to the execution engine to retrieve the execution payload. The proposed block is then gossiped to the rest of the network.
+When it's a validator's turn to propose a block, a `getPayload()` Engine API call is made to the execution engine to retrieve the execution payload. The proposed block containing the payload is then gossiped to the rest of the network.
 
 ### Processing a block
 

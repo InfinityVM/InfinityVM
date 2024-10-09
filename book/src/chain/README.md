@@ -6,11 +6,11 @@ Infinity is a high-performance EVM-compatible layer-1 blockchain. The network is
 
 ### Consensus
 
-The Infinity L1 uses InfinityBFT, a consensus protocol with single-slot finality. The consensus protocol is responsible for validator selection, gossiping blocks, and agreeing on the contents of each block. The consensus layer is also inspired by the Ethereum beacon chain (for more info, read the [ETH 2.0 spec](https://eth2book.info/capella/part3/containers/state/)), and maintains the beacon chain's state. The consensus and execution layer communicate using the [Engine API](https://hackmd.io/@danielrachi/engine_api).
+The Infinity L1 uses InfinityBFT, a consensus protocol with single-slot finality. The consensus protocol is responsible for validator selection, gossiping blocks, and agreeing on the contents of each block. The consensus layer is also inspired by the Ethereum beacon chain (for more info, read the [ETH 2.0 spec](https://eth2book.info/capella/part3/containers/state/)), and maintains the beacon chain's state. For this reason, we refer to *consensus layer* and *beacon chain* interchangeably in this doc. The consensus and execution layer communicate using the [Engine API](https://hackmd.io/@danielrachi/engine_api).
 
 ### Execution
 
-Infinity uses [Reth](https://github.com/paradigmxyz/reth) as its high-performance execution engine via the [Engine API](https://hackmd.io/@danielrachi/engine_api). Reth is responsible for executing the EVM execution payload in each beacon block, and for gossipping EVM transactions plus blocks between execution nodes. By using Reth, we can take advantage of all its battle-tested code, and benefit from planned future features such as parallel EVM execution and Reth's goal of [1 gigagas per second](https://www.paradigm.xyz/2024/04/reth-perf).
+Infinity uses [Reth](https://github.com/paradigmxyz/reth) as its high-performance execution engine via the [Engine API](https://hackmd.io/@danielrachi/engine_api). Reth is responsible for executing the EVM execution payload in each beacon block, and for the EVM mempool and gossiping payloads between nodes. By using Reth, we can take advantage of all its battle-tested code, and benefit from planned future features such as parallel EVM execution and Reth's goal of [1 gigagas per second](https://www.paradigm.xyz/2024/04/reth-perf).
 
 ![infinity overview](../assets/infinity-overview.png)
 
