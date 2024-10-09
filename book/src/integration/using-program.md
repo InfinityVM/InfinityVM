@@ -20,10 +20,7 @@ This allows you to send requests directly to the InfinityVM coprocessor. This ca
 
 ![offchain job request](../assets/offchain-job-request.png)
 
+Offchain job requests can be sent by a user, your app, or any authorized third-party. In the case that your app sends the requests, there is an interesting class of applications that run as real-time servers. 
+
 You can read more in the [Offchain Jobs](./offchain.md) section.
 
-#### Offchain Requests and App Servers
-
-Offchain job requests can be sent by a user, your app, or any authorized third-party. In the case that your app sends the requests, there is an interesting class of applications run as real-time servers. 
-
-These servers can accept and process user requests in real-time, and regularly batch inputs and submit them to the InfinityVM coprocessor as an offchain request. You can write some state transition function in your zkVM program which performs compute on each batch of inputs. The results are finally submitted onchain and immediately usable by the app. An example of this is shown in the [Offchain Example: CLOB](./clob.md) section.
