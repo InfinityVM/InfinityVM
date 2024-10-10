@@ -2,6 +2,8 @@
 
 - what are offchain jobs
 - submitjob and getresult endpoints
-- writing your app contract (interfaces isValidSignature() etc.)
+- high level flow of posting result and signed job request onchain
 - onchain vs offchain input
-- app server idea and stateful offchain jobs (with high-level diagram of STF)
+- writing your app contract (interfaces isValidSignature() offchainrequester singleoffchainsigner etc.)
+- basic testing using infinity foundry template
+- app server idea and stateful offchain jobs (with high-level diagram of STF) and state hash in job request and statefulconsumer interface
