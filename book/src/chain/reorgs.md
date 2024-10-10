@@ -1,22 +1,22 @@
 # Reorgs
 
-The InfinityVM architecture achieves real time coprocessing by executing jobs in a normal VM instead of upfront creating costly and time consuming ZK proofs. On a trad blockchain, if results are optimistically accepted, the application needs to be able to handle cases where the result is later proven wrong. This also means that downstream apps need to handle the toxic result. InfinityVM solves this by ensuring that the canonical chain only ever includes valid coprocessing results.
+The InfinityVM architecture achieves real time coprocessing by executing jobs in a normal VM instead of generating costly and time consuming ZK proofs upfront. On a trad blockchain, if results are optimistically accepted, the application needs to be able to handle cases where the result is later proven wrong. This also means that downstream apps need to handle the toxic result. InfinityVM solves this by ensuring that the canonical chain only ever includes valid coprocessing results.
 
 ![](../assets/trad-coproc-problem.png)
-*The harmful fallout of a bad coprocessing result on a trad blockchain.*
+*The toxic fallout of a bad coprocessing result on a trad blockchain.*
 
-To ensure that Infinity's canonical chain does not contain invalid coprocessing results, the chain will abandon blocks with invalid results. The set of conditions for rejecting certain blocks is typically called the fork choice rules. So on top top of the typical fork choice rules for single slot finality BFT algos, we also include the condition that if a coprocessing fraud proof is submitted within the fraud period, the block containing the result (and the fork building on it) is invalid.[^note1] 
+To ensure that Infinity's canonical chain does not contain invalid coprocessing results, the chain will abandon blocks with invalid results. The set of conditions for rejecting certain blocks is typically called the fork choice rules. So on top of the typical fork choice rules for single slot finality BFT algos, we also include the condition that if a coprocessing fraud proof is submitted within the fraud period, the execution chain block containing the result (and the fork building on it) is invalid.[^note1]
 
-To achieve these fork choice capabilities, we pursue an approach that decouples consensus and execution such that there is a separate consensus chain and execution chain [^note2]. The benefit is that the consensus chain will have single slot finality while the execution chain will be subject to roll back within a fraud proof period [^note3].
+To achieve these fork choice capabilities, we pursue an approach that decouples consensus and execution such that there is a separate consensus chain and execution chain [^note2]. The benefit is that the consensus chain will have single slot finality while the execution chain will be subject to roll back within a fraud proof period [^note3]. Effectively, the state transition function of the consensus chain enforces this fork choice rule of the execution chain.
 
 [^note1]: Checkout the [InfinityVM litepaper](https://infinityvm.xyz/infinityvm_litepaper.pdf) for more motivation on why this forkchoice rule is important.
-[^note2]: In practice, outside of this section, we refer to execution chain blocks as execution payloads and consensus chain blocks simply as blocks. In this section, we refer to them as separate chains to illustrate how the execution chain can independently be rolled back. For context, the consensus chain blocks contain the execution payload and the root of execution chain state, in addition to the root of consensus state. The execution client also independently propagates execution blocks.
-[^note3]: The fraud period is the maximum length of consensus blocks after job results are posted that a fraud proof can be posted. So if a result is in the execution payload for block `C`, the latest that execution payload can be reverted is block `C + FRAUD_PERIOD`.
+[^note2]: Outside of this section we refer to execution chain blocks as execution payloads and consensus chain blocks simply as blocks. In this section, we refer to them as separate chains to illustrate how the execution chain can independently be rolled back. For context, the consensus chain blocks contain the execution payload and the root of execution chain state, in addition to the root of consensus chain state. The execution client also independently propagates execution blocks.
+[^note3]: The fraud period is the maximum length of consensus blocks after job results are posted that a fraud proof can be posted. So if a bad result is in the execution payload for block `C`, the latest that execution payload can be reverted is block `C + FRAUD_PERIOD`.
 
 ## High level flows
 
 ![](./../assets/reorg-notation.png)
-*The execution chain forking while the consensus chain makes monotonic progress.*
+*The execution chain choosing a different fork while the consensus chain makes monotonic progress.*
 
 ### Notation
 
