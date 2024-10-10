@@ -16,7 +16,7 @@ The logic for a program is:
 4. Serialize output bytes
 5. Write output bytes
 
-Lets take a [square root program](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square-root.rs) as an example. This program takes in a number as input and returns the square root of the number as output. For this exercise we will incrementally build out the program.
+Lets take a [square root program](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square_root.rs) as an example. This program takes in a number as input and returns the square root of the number as output. For this exercise we will incrementally build out the program.
 
 First, we read in opaque bytes for the inputs and deserialize:
 

@@ -2,7 +2,7 @@
 
 In this section, we walk through a simple example of a square root app from the [Infinity foundry template](https://github.com/InfinityVM/infinity-foundry-template). There is no native operation in Solidity to calculate a square root, so we can just write this in Rust to compute square roots in InfinityVM.
 
-The zkVM program used by this app is [`square-root.rs`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square-root.rs). The contract for the square root app is [`SquareRootConsumer.sol`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/src/SquareRootConsumer.sol), and stores a `numberToSquareRoot` mapping from each number to its square root.
+The zkVM program used by this app is [`square_root.rs`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square_root.rs). The contract for the square root app is [`SquareRootConsumer.sol`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/src/SquareRootConsumer.sol), and stores a `numberToSquareRoot` mapping from each number to its square root.
 
 ## Writing the zkVM Program
 
