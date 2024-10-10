@@ -22,6 +22,6 @@ To better understand the architecture of the Infinity L1 and the optimizations w
 
 - [<u>Block Lifecycle</u>](./lifecycle.md): Overview of the end-to-end lifecycle for proposing blocks, processing blocks, etc.
 - [<u>Optimistic Payload Building</u>](./optimistic-payload.md): Performance optimization to prematurely build execution payloads
-- [<u>Reorgs</u>](./reorgs.md): Enshrining offchain compute into the fork choice of the Infinity L1
+- [<u>Fork Choice</u>](./fork-choice.md): Enshrining offchain compute into the fork choice of the Infinity L1
 
 **Note:** It isn't required to understand any of these sections to build with InfinityVM.

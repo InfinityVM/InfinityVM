@@ -1,4 +1,4 @@
-# Reorgs
+# Fork Choice
 
 The InfinityVM architecture achieves real time coprocessing by executing jobs in a normal VM instead of generating costly and time consuming ZK proofs upfront. On a trad blockchain, if results are optimistically accepted, the application needs to be able to handle cases where the result is later proven wrong. This also means that downstream apps need to handle the toxic result. InfinityVM solves this by ensuring that the canonical chain only ever includes valid coprocessing results.
 
