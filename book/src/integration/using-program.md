@@ -1,6 +1,8 @@
 # Using a zkVM Program
 
-To run your zkVM program in the InfinityVM coprocessor, you can make a request in two ways: onchain and offchain.
+To run your zkVM program in the InfinityVM coprocessor, you first need to submit your program to the coprocessor. You can do this using the [`SubmitProgram` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodesubmitprogram) in the coprocessor node's gRPC or REST API. You can submit your program's executable file (ELF) to the endpoint, and the coprocessor returns the program ID (unique identifier for the program).
+
+After submitting your zkVM program, you can make a job request in two ways: onchain and offchain.
 
 ## Onchain requests
 

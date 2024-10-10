@@ -8,7 +8,7 @@ Any app contract building with InfinityVM needs to inherit the [`Consumer`](http
 
 Next, your app contract needs to do two things:
 
-1. Call `requestJob()` with the program ID of your zkVM program along with ABI-encoded inputs that you want to pass into your program from the contract. We have instructions on how to generate the program ID in the Infinity foundry template's `README`.
+1. Call `requestJob()` with the program ID of your zkVM program along with ABI-encoded inputs that you want to pass into your program from the contract. If you're using the foundry template, we have instructions on how to generate the program ID in the `README`. Otherwise, you can get the program ID when you submit your program to the coprocessor node's [`SubmitProgram` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodesubmitprogram).
 2. Write a `_receiveResult()` callback function which accepts the output from the InfinityVM coprocessor running your program. You can write any app logic in this function and even call into any other functions you'd like.
 
 #### Initiating onchain job requests
