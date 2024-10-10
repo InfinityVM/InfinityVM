@@ -13,6 +13,8 @@ Next, your app contract needs to do two things:
 
 #### Initiating onchain job requests
 
+![onchain apps](../assets/onchain-apps.png)
+
 Typically, we expect an onchain request to be triggered by user interaction with your app contract. But in some designs, contract callback handling logic for a previous job result may trigger a new request event, effectively creating a continuous loop of requests without user interaction.
 
 ## Testing your app contract
