@@ -4,7 +4,7 @@ This page discusses the internals of the coprocessor node and is geared primaril
 
 ## Lifecycle of a job request
 
-The coprocessor node is designed to execute zkVM jobs that may potentially take awhile to complete. To work with long running jobs, the coprocessor node uses an async API that separates request intake and execution result retrieval.
+The coprocessor node is designed to execute zkVM jobs that may potentially take a while to complete. To work with long running jobs, the coprocessor node uses an async API that separates request intake and execution result retrieval.
 
 1. Jobs can make their way into the node via either the gRPC server or the internal event listener. Both pass requests off to the intake.
 1. Upon intake, requests are converted into an internal job type that will track the request, execution result, and relay status.
