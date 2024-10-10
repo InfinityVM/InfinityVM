@@ -4,9 +4,11 @@
 
 ## Overview
 
-The InfinityVM coprocessor allows developers to run a zkVM program with any set of inputs and then use the results onchain. The high-level flow looks like this:
+The InfinityVM coprocessor allows developers to run a zkVM program with any set of inputs and then use the results onchain. A zkVM program is written in a language that compiles down to RISC-V (most commonly Rust). It accepts any inputs, runs some compute using these inputs, and then returns the result.
 
-1. An app submits a zkVM program to the coprocessor. The coprocess returns a program ID (unique identifier for program).
+The high-level flow looks like this:
+
+1. An app submits a zkVM program to the coprocessor. The coprocessor returns a program ID (unique identifier for program).
 2. An app contract or an offchain user/server requests a `job` from the coprocessor. Each job request contains the program ID and inputs to the program.
 3. The coprocessor executes this program with the given inputs in a RISC-V interpreter.
 4. The coprocessor submits the result (output of program) back to the contract.
