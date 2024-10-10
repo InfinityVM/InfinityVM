@@ -112,7 +112,10 @@ We have provided a default implementation for `getNextNonce()` and `updateLatest
 
 ## Testing your app
 
+If your app involves sending offchain job requests directly to the InfinityVM coprocessor without an app server, you can use the [`Infinity foundry template`](https://github.com/InfinityVM/infinity-foundry-template/tree/main) to test your app. You can write tests for the end-to-end flow of your app in Solidity similar to any other foundry tests. We have built a Solidity SDK within the foundry template which allows you to request and receive compute from InfinityVM within the foundry tests.
 
+Specifically, you just need to call `requestOffchainJob()` in the foundry tests to send an offchain job request to the coprocessor. We have written an example test [`test_Consumer_RequestOffchainJob()`](https://github.com/InfinityVM/infinity-foundry-template/blob/f032050b3276b6f232f94aa6a3dcd375c833d577/contracts/test/SquareRootConsumer.t.sol#L41) in [`SquareRootConsumer.t.sol`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/test/SquareRootConsumer.t.sol). This test sends an offchain request for the square root of a number directly to the coprocessor, using `requestOffchainJob()`. It verifies that the coprocessor submits the correct result back to the `SquareRootConsumer.sol` contract.
 
-- basic testing using infinity foundry template
-- clob-like testing
+#### Testing an App Server
+
+Because of the limitations of foundry, we don't have an SDK to write end-to-end tests for an app server in Solidity. Instead, you would need to write tests for your app server similar to how you would write tests for any other infrastructure or web2 service. For example, we have written tests for the [CLOB app server example](./clob.md) in the [`clob.rs` file](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/tests/clob.rs) in Rust. You can reuse a lot of logic from these tests to write tests for your own app server.
