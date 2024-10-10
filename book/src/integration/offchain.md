@@ -69,15 +69,37 @@ Inputs that are submitted offchain to the coprocessor but *only the hash* of the
 
 The `offchain_input` field in `SubmitJobRequest` is the actual value of the input passed to the zkVM program and posted to DA, and an app needs to sign over the hash of `offchain_input` in the job request sent to the InfinityVM coprocessor.
 
+## App Servers
+
+When an app sends offchain job requests in InfinityVM, your app can now run as a real-time server:
+
+1. This server can accept and process user requests in real-time.
+2. It can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
+3. You can write some state transition logic in your zkVM program which performs some logic on each batch of inputs.
+4. The result of each job is submitted onchain and immediately usable by the app contract. The app contract maintains some state which is updated by the result of the coprocessor.
+
+![app servers](../assets/app-servers.png)
+
+With the power of this architecture, an app can own the relationship with users and provide real-time experiences to users since users directly interact with the app server. At the same time, apps still enjoy all the benefits of maintaining state and settling funds onchain.
+
+Apps can also choose how to scale their infrastructure. Since it's a server, you can easily use battle-tested web2 scalability solutions.
+
+We walk through a detailed example of building an app server in [Offchain Example: CLOB](./clob.md).
+
+#### Stateful App Servers
+
+Some app servers might be "stateful", i.e. they maintain some state, which is passed into a zkVM program along with some inputs, and then the result of the program is used to update this state. For example, a CLOB app might have user balances + the existing order book as the state of the app.
+
+This is why we have the `state` field in `SubmitJobRequest`, which apps can use to submit their state along with a job request.
+
+This raises an interesting problem: how do we ensure that app servers submit the correct state to the coprocessor? For example, if the latest state on the app contract is `X` but the app server submits `Y` as the `state` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state hash submitted by the app server in the job request matches the most recent state hash in the app contract.
+
 ## Writing your app contract
 
 
 
 #### Nonces
 
-## App Servers
-
-![app servers](../assets/app-servers.png)
 
 ## Testing your app
 
@@ -90,12 +112,3 @@ The `offchain_input` field in `SubmitJobRequest` is the actual value of the inpu
 - writing your app contract (interfaces isValidSignature() offchainrequester singleoffchainsigner etc.)
 - basic testing using infinity foundry template
 - app server idea and stateful offchain jobs (with high-level diagram of STF) and state hash in job request and statefulconsumer interface
-
-
-
-
-Offchain job requests are are triggered by sending a request directly to a coprocessor node's [`SubmitJob` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodesubmitjob). The result will be submitted onchain and can also be queried directly from the coprocessor node via the [`GetResult` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodegetresult).
-
-Offchain job requests can either be user initiated or service initiated. In the latter, there is a class of applications that run as real time servers with core state transition function (STFs) packaged up in InfinityVM programs. The servers will process user requests real time and have a background task that regularly batches STF inputs and submits them to the coprocessor node as a Job request. The results and are then submitted onchain and immediately usable by all other applications. The CLOB example illustrate
-
-These servers can accept and process user requests in real-time, and regularly batch inputs and submit them to the InfinityVM coprocessor as an offchain request. You can write some state transition function in your zkVM program which performs compute on each batch of inputs. The results are finally submitted onchain and immediately usable by the app. An example of this is shown in the [Offchain Example: CLOB](./clob.md) section.
