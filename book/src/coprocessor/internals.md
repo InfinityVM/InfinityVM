@@ -1,6 +1,6 @@
 # Coprocessor Node Internal Architecture
 
-This page discusses the internals of the coprocessor node and is geared primarily towards contributors. This is no required reading for building on app on InfinityVM.
+This page discusses the internals of the coprocessor node and is geared primarily towards contributors. This is not required reading for building on app on InfinityVM.
 
 ## Lifecycle of a job request
 
