@@ -6,7 +6,7 @@ We do not yet have a public docker repository, but you can build [this docker im
 
 ## Build from source
 
-To build from source, you will need `rustc` greater >= 1.79. We recommend building with the release profile. To build with cargo, from the root of the [InfinityVM repo](https://github.com/InfinityVM/InfinityVM/tree/main) you can run `cargo build --bin coprocessor-node --release`.
+To build from source, you will need `rustc` >= 1.79. We recommend building with the release profile. To build with cargo, from the root of the [InfinityVM repo](https://github.com/InfinityVM/InfinityVM/tree/main) you can run `cargo build --bin coprocessor-node --release`.
 
 ## Configuration
 
