@@ -1,4 +1,12 @@
-# Offchain jobs
+# Offchain Jobs
+
+- what are offchain jobs
+- submitjob and getresult endpoints
+- writing your app contract (interfaces isValidSignature() etc.)
+- onchain vs offchain input
+- app server idea and stateful offchain jobs (with high-level diagram of STF)
+
+
 
 Offchain job requests are are triggered by sending a request directly to a coprocessor node's [`SubmitJob` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodesubmitjob). The result will be submitted onchain and can also be queried directly from the coprocessor node via the [`GetResult` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodegetresult).
 
