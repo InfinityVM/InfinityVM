@@ -5,7 +5,7 @@ The InfinityVM architecture achieves real time coprocessing by executing jobs in
 ![](../assets/trad-coproc-problem.png)
 *The toxic fallout of a bad coprocessing result on a trad blockchain.*
 
-To ensure that Infinity's canonical chain does not contain invalid coprocessing results, the chain will abandon blocks with invalid results. The set of conditions for rejecting certain blocks is typically called the fork choice rules. So on top of the typical fork choice rules for single slot finality BFT algos, we also include the condition that if a coprocessing fraud proof is submitted within the fraud period, the execution chain block containing the result (and the fork building on it) is invalid.[^note1]
+To ensure that Infinity's canonical chain does not contain invalid coprocessing results, the chain will abandon blocks with invalid results. The set of conditions for rejecting certain blocks is typically called the fork choice rules. On top of the typical fork choice rules for single slot finality BFT algorithms, we also include the condition that if a coprocessing fraud proof is submitted within the fraud period, the execution chain block containing the result (and the fork building on it) is invalid.[^note1]
 
 To achieve these fork choice capabilities, we pursue an approach that decouples consensus and execution such that there is a separate consensus chain and execution chain [^note2]. The benefit is that the consensus chain will have single slot finality while the execution chain will be subject to roll back within a fraud proof period [^note3]. Effectively, the state transition function of the consensus chain enforces this fork choice rule of the execution chain.
 
