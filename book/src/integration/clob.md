@@ -76,9 +76,7 @@ struct OffchainJobRequest {
 }
 ```
 
-The CLOB uses `offchain_input` since we need to pass in a large number of orders as input in each batch. This `offchain_input` contains:
-- the new batch of orders/cancels/deposits/withdraws
-- user signature for each order in the batch
+The CLOB uses `offchain_input` since we need to pass in a large number of orders as input in each batch. This `offchain_input` contains the new batch of orders/cancels/deposits/withdraws.
 
 We also use `state` since the CLOB is a stateful app server, where the state contains all user balances in the CLOB along with the order book.
 
@@ -89,7 +87,6 @@ The `offchain_input` and `state` is borsh-encoded by the CLOB server before subm
 The zkVM program takes in `state` and `offchain_input` as inputs. It does these things:
 
 1. Decodes `state` and `offchain_input`
-1. Verifies that the signature on every order in the batch is valid
 1. Runs the CLOB matching function, which takes in the batch from `offchain_input` and the existing order book from `state` as inputs. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275).
 1. Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of state updates which will be processed by the CLOB app contract.
 
