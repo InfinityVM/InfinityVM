@@ -35,7 +35,7 @@ Running `cargo build` in the foundry template builds the program and generates a
 ## Making an onchain job request 
 
 `SquareRootConsumer.sol` has a [`requestSquareRoot()`](https://github.com/InfinityVM/infinity-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/src/SquareRootConsumer.sol#L35) function:
-```rust,ignore
+```solidity=
 function requestSquareRoot(uint256 number) public returns (bytes32) {
     return requestJob(ProgramID.SQUARE_ROOT_ID, abi.encode(number), DEFAULT_MAX_CYCLES);
 }
@@ -48,7 +48,7 @@ It also passes in `DEFAULT_MAX_CYCLES` (max cycles is the max number of executio
 ## Receiving the result onchain
 
 This is the [`_receiveResult()`](https://github.com/InfinityVM/infinity-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/src/SquareRootConsumer.sol#L39) function in `SquareRootConsumer.sol`:
-```rust,ignore
+```solidity=
 function _receiveResult(bytes32 jobID, bytes memory result) internal override {
     // Decode the coprocessor result into AddressWithBalance
     (uint256 originalNumber, uint256 squareRoot) = abi.decode(result, (uint256, uint256));
