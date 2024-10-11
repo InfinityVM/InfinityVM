@@ -6,7 +6,7 @@ In this section, we walk through an example of an offchain app server: a central
 
 Fully onchain CLOBs are inefficient for two reasons:
 1. It is expensive to run all order book matching logic onchain and store all order book state onchain.
-1. Every time a user places or cancels an order, this needs to be an onchain transaction. Needing to pay a transaction fee for every user action is infeasible.
+1. Users have to pay for every order creation/cancellation, making it economically infeasible.
 
 With InfinityVM, a CLOB is able to solve these problems by running an App Server. This server accepts orders and cancellations from users directly offchain and so users don't need to pay a transaction fee for every action. Meanwhile, by running the matching logic in the InfinityVM coprocessor, the CLOB is able to run matching efficiently without sacrificing any verifiability.
 
