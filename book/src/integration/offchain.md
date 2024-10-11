@@ -86,7 +86,7 @@ Apps can also choose how to scale their infrastructure. Since it's a server, you
 
 We walk through a detailed example of building an app server in [Offchain Example: CLOB](./clob.md).
 
-#### Stateful App Servers
+### Stateful App Servers
 
 Some app servers might be "stateful", i.e. they maintain some state, which is passed into a zkVM program along with some inputs, and then the result of the program is used to update this state. For example, a CLOB app might have user balances + the existing order book as the state of the app.
 
