@@ -1,7 +1,7 @@
 //! Load testing for the coprocessor node
+use abi::get_job_id;
 use alloy::{primitives::Address, providers::ProviderBuilder};
 use contracts::mock_consumer::MockConsumer;
-use abi::get_job_id;
 use goose::prelude::*;
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
