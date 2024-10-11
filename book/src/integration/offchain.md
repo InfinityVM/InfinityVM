@@ -61,7 +61,7 @@ Once the InfinityVM coprocessor executes your zkVM program with the inputs, it w
 
 As noted earlier, for offchain jobs, the InfinityVM coprocessor posts the job request onchain as well when posting the result of the job. The job request includes the inputs for the zkVM program; so apps that need to pass in large amounts of input might find this to be a bottleneck. To solve this, we introduced two types of input passed into the zkVM program: onchain and offchain.
 
-### Onchain Input
+### Onchain Inputs
 Inputs that are included in the signed job request and are posted onchain along with the result. An app might need to use these inputs in some logic in their app contract, for example, and so would need these inputs posted onchain.
 
 ### Offchain Input
