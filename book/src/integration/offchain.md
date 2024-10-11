@@ -75,12 +75,12 @@ When an app sends offchain job requests in InfinityVM, your app can now run as a
 
 1. This server can accept and process user requests in real-time.
 2. It can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
-3. You can write some state transition logic in your zkVM program which performs some logic on each batch of inputs.
+3. Your server's state transition logic can be written in a zkVM program which performs some logic on each batch of inputs.
 4. The result of each job is submitted onchain and immediately usable by the app contract. The app contract maintains some state which is updated by the result of the coprocessor.
 
 ![app servers](../assets/app-servers.png)
 
-With the power of this architecture, an app can own the relationship with users and provide real-time experiences to users since users directly interact with the app server. At the same time, apps still enjoy all the benefits of maintaining state and settling funds onchain.
+With this architecture, an app can provide real-time experiences to users via the server while still enjoying all the benefits of maintaining state and settling funds onchain.
 
 Apps can also choose how to scale their infrastructure. Since it's a server, you can easily use battle-tested web2 scalability solutions.
 
@@ -100,15 +100,15 @@ Similar to onchain jobs, any app contract building with InfinityVM needs to inhe
 
 For apps that use offchain jobs, you can also inherit [`OffchainRequester`](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/coprocessor/OffchainRequester.sol), which contains the `isValidSignature()` function. You need to implement `isValidSignature()` in your app contract, which is called to verify that an offchain request is signed by an authorized signer/user. 
 
-We've provided an example implementation of `isValidSignature()` which you can use in the [`SingleOffchainSigner.sol` contract](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/coprocessor/SingleOffchainSigner.sol) (this checks that each job request is signed by a single pre-defined `offchainSigner` address). But, you can implement any logic or checks you'd like. For example, you could store a list of whitelisted users in your app contract and add logic in `isValidSignature()` to verify that every job request is signed by some whitelisted user.
+We've provided an example implementation of [`isValidSignature()`](https://github.com/InfinityVM/InfinityVM/blob/67958041ebfec9ca0a93631d28bc5fb47892e0ce/contracts/src/coprocessor/SingleOffchainSigner.sol#L21) which you can use in the [`SingleOffchainSigner.sol` contract](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/coprocessor/SingleOffchainSigner.sol) (this checks that each job request is signed by a single pre-defined `offchainSigner` address). But, you can implement any logic or checks you'd like. For example, you could store a list of whitelisted users in your app contract and add logic in `isValidSignature()` to verify that every job request is signed by some whitelisted user.
 
 Finally, you need to write a `_receiveResult()` callback function which accepts the output from the InfinityVM coprocessor running your program. You can write any app logic in this function and even call into any other functions you'd like.
 
 #### Nonces
 
-Each job request for an app contract must have a unique nonce submitted with it, to prevent replay attacks. The [`Consumer`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/src/coprocessor/Consumer.sol) interface inherited by all app contracts contains a `getNextNonce()` function to return the next nonce to be used by both onchain and offchain job requests, and an `updateLatestNonce()` function to update the latest nonce value once a job has been submitted.
+Each job request for an app contract must have a unique nonce submitted with it, to prevent replay attacks. The [`Consumer`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/src/coprocessor/Consumer.sol) interface inherited by all app contracts contains a `getNextNonce()` function to return the next nonce to be used by both onchain and offchain job requests, and an `updateLatestNonce()` function to update the latest nonce value once a job has been submitted. Nonces need to be unique but don't necessarily need to be increasing.
 
-We have provided a default implementation for `getNextNonce()` and `updateLatestNonce()` in Consumer.sol to implement a simple nonce which increases by 1 every time a job is requested. This should be good enough for most apps, but you can override it in your app contract if you'd like. For example, you could use the unix timestamp in milliseconds as the nonce for offchain calls to the coprocessor.
+We have provided a default implementation for `getNextNonce()` and `updateLatestNonce()` in `Consumer.sol` to implement a simple nonce which increases by 1 every time a job is requested. This should be good enough for most apps, but you can override it in your app contract if you'd like. For example, you could use the unix timestamp in milliseconds as the nonce for offchain calls to the coprocessor.
 
 ## Testing your app
 
