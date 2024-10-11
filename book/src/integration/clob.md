@@ -16,8 +16,8 @@ The CLOB app contract is [`ClobConsumer.sol`](https://github.com/InfinityVM/Infi
 
 All code for the CLOB server lives in [`clob/`](https://github.com/InfinityVM/InfinityVM/tree/main/clob) in the InfinityVM repo. Specifically:
 
-- [node](./node): the CLOB service. 
-- [client](./client): client for seeding accounts, depositing, placing orders, withdrawing, and viewing state.
+- [node](https://github.com/InfinityVM/InfinityVM/tree/main/clob/node): the CLOB service. 
+- [client](https://github.com/InfinityVM/InfinityVM/tree/main/clob/client): client for seeding accounts, depositing, placing orders, withdrawing, and viewing state.
 
 The zkVM program for the CLOB is [`clob.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/programs/app/src/clob.rs). 
 
