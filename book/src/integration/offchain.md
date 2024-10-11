@@ -73,8 +73,8 @@ The `offchain_input` field in `SubmitJobRequest` is the actual value of the inpu
 
 Your app can run as a real-time server, leveraging offchain job requests:
 
-1. This server can accept and process user requests in real-time.
-2. It can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
+1. The app server can accept and process user requests in real-time.
+2. The app server can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
 3. You can write some state transition logic in your zkVM program which performs some logic on each batch of inputs.
 4. The result of each job is submitted onchain and immediately usable by the app contract. The app contract maintains some state which is updated by the result of the coprocessor.
 
