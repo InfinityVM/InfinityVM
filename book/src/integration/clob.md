@@ -12,7 +12,7 @@ With InfinityVM, a CLOB is able to solve these problems by running an App Server
 
 ## Code Overview
 
-The CLOB app contract is [`ClobConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/clob/ClobConsumer.sol).
+The CLOB app contract is [`ClobConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/clob/ClobConsumer.sol).
 
 All code for the CLOB server lives in [`clob/`](https://github.com/InfinityVM/InfinityVM/tree/main/clob) in the InfinityVM repo. Specifically:
 
@@ -21,7 +21,7 @@ All code for the CLOB server lives in [`clob/`](https://github.com/InfinityVM/In
 
 The zkVM program for the CLOB is [`clob.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/programs/app/src/clob.rs). 
 
-**Note:** Because the CLOB logic is non-trivial, we defined a lot of the code in separate crates so the code can be easily reused in the app server and unit tested without the restrictions of the zkVM. For example, the CLOB's zkVM program has a [stf function](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/core/src/lib.rs#L275) defined in a `core` crate. This function is a wrapper around the [CLOB engine's tick function](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/core/src/lib.rs#L282), which processes a single request at a time. By design, the app server code also uses this same exact [tick function](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/node/src/engine.rs) to process each request.
+**Note:** Because the CLOB logic is non-trivial, we defined a lot of the code in separate crates so the code can be easily reused in the app server and unit tested without the restrictions of the zkVM. For example, the CLOB's zkVM program has a [stf function](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275) defined in a `core` crate. This function is a wrapper around the [CLOB engine's tick function](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L282), which processes a single request at a time. By design, the app server code also uses this same exact [tick function](https://github.com/InfinityVM/InfinityVM/blob/main/clob/node/src/engine.rs) to process each request.
 
 ## High-level user flow
 
@@ -90,7 +90,7 @@ The zkVM program takes in `state` and `offchain_input` as inputs. It does these 
 
 1. Decodes `state` and `offchain_input`
 1. Verifies that the signature on every order in the batch is valid
-1. Runs the CLOB matching function, which takes in the batch from `offchain_input` and the existing order book from `state` as inputs. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/core/src/lib.rs#L275).
+1. Runs the CLOB matching function, which takes in the batch from `offchain_input` and the existing order book from `state` as inputs. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275).
 1. Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of state updates which will be processed by the CLOB app contract.
 
 The list of state updates sent to the CLOB contract is structured like this:
@@ -109,4 +109,4 @@ The CLOB contract receives this list of state updates and processes it to update
 
 In [Stateful App Servers](./offchain.md#stateful-app-servers), we discussed the problem of ensuring the correctness of the state submitted by an app server to the coprocessor.
 
-The `ClobConsumer` contract implements the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/coprocessor/StatefulConsumer.sol) interface, to verify that the state hash submitted by the CLOB server in the job request is correct.
+The `ClobConsumer` contract implements the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface, to verify that the state hash submitted by the CLOB server in the job request is correct.

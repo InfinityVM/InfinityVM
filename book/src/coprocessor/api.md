@@ -1,6 +1,6 @@
 # Coprocessor Node API
 
-The coprocessor node exposes [gRPC](https://grpc.io/about/) endpoints for third party interaction. gRPC is a modern standard used widely in the web2 world. gRPC services are defined in [protobuf](https://protobuf.dev/overview/) and most major languages have production grade tooling to generate clients and servers based off of the protobuf definitions. All of the protobuf definitions can be found [here](https://github.com/InfinityVM/InfinityVM/blob/44bd7f645b2b6170be5421770977a9f5e2f849ba/proto/coprocessor_node/v1/coprocessor_node.proto#L9).
+The coprocessor node exposes [gRPC](https://grpc.io/about/) endpoints for third party interaction. gRPC is a modern standard used widely in the web2 world. gRPC services are defined in [protobuf](https://protobuf.dev/overview/) and most major languages have production grade tooling to generate clients and servers based off of the protobuf definitions. All of the protobuf definitions can be found [here](https://github.com/InfinityVM/InfinityVM/blob/main/proto/coprocessor_node/v1/coprocessor_node.proto#L9).
 
 Additionally, there is an embedded [json HTTP gateway](https://github.com/InfinityVM/InfinityVM/blob/main/crates/coprocessor-node/src/gateway.rs) with endpoints mapping 1:1 with each gRPC endpoint. This is useful when using tooling, (e.g. load testing frameworks), that does not support gRPC out of the box.
 
@@ -8,7 +8,7 @@ To learn more about how to use the gRPC API to build an application, take a look
 
 ## Clients
 
-The InfinityVM team ships a Rust gRPC client, which can be found in the [`proto` crate](https://github.com/InfinityVM/InfinityVM/blob/44bd7f645b2b6170be5421770977a9f5e2f849ba/crates/sdk/proto/src/coprocessor_node.v1.rs#L236). As mentioned above, gRPC clients can be generated in other languages based off of the protobuf definitions.
+The InfinityVM team ships a Rust gRPC client, which can be found in the [`proto` crate](https://github.com/InfinityVM/InfinityVM/blob/main/crates/sdk/proto/src/coprocessor_node.v1.rs#L236). As mentioned above, gRPC clients can be generated in other languages based off of the protobuf definitions.
 
 ## Endpoints
 
