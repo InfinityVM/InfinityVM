@@ -1,14 +1,14 @@
 //! gRPC server handlers.
 
 use crate::intake::IntakeHandlers;
-use abi::OffchainJobRequest;
+use abi::{get_job_id, OffchainJobRequest};
 use alloy::{
     hex,
     primitives::{keccak256, Signature},
     signers::Signer,
     sol_types::SolType,
 };
-use db::tables::{get_job_id, Job, RequestType};
+use db::tables::{Job, RequestType};
 use proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
     GetResultResponse, JobResult, JobStatus, JobStatusType, SubmitJobRequest, SubmitJobResponse,

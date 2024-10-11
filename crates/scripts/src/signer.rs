@@ -4,7 +4,7 @@ use alloy::{
     sol,
     sol_types::{SolType, SolValue},
 };
-use db::tables::get_job_id;
+use abi::get_job_id;
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use std::env;

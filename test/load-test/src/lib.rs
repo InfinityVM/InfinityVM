@@ -1,7 +1,7 @@
 //! Load testing for the coprocessor node
 use alloy::{primitives::Address, sol_types::SolValue};
 use contracts::get_default_deploy_info;
-use db::tables::get_job_id;
+use abi::get_job_id;
 use goose::prelude::*;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;

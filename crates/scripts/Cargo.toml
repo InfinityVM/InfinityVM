@@ -38,7 +38,7 @@ tonic-build = { workspace = true }
 
 proto = { workspace = true }
 zkvm-executor = { workspace = true }
-db = { workspace = true }
+abi = { workspace = true }
 test-utils = { workspace = true }
 clob-test-utils = { workspace = true }
 clob-node = { workspace = true }
