@@ -71,7 +71,7 @@ The `offchain_input` field in `SubmitJobRequest` is the actual value of the inpu
 
 ## App Servers
 
-When an app sends offchain job requests in InfinityVM, your app can now run as a real-time server:
+Your app can run as a real-time server, leveraging offchain job requests:
 
 1. This server can accept and process user requests in real-time.
 2. It can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
