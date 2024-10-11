@@ -1,9 +1,36 @@
 # Coprocessor Node Internal Architecture
 
-Docs specifically geared for infinityvm contributors, including documentation on the structure and architecture of the coprocessor node, and other useful tips.
+This page discusses the internals of the coprocessor node and is geared primarily towards contributors. This is not required reading for building on app on InfinityVM.
 
-## Architecture Diagram
+## Lifecycle of a job request
 
-![Coprocessor Architecture Diagram](../assets/coprocessor_architecture.png)
+The coprocessor node is designed to execute zkVM jobs that may potentially take a while to complete. To work with long running jobs, the coprocessor node uses an async API that separates the submission of a job request from retrieving the result of executing the job.
 
-<!-- https://app.excalidraw.com/s/8oh7cYrMkAR/5fsQ8hJAP0k -->
+1. Jobs can be submitted to the node either directly via the gRPC server ([offchain jobs](../integration/offchain.md)) or through the event listener which listens for events from contracts ([onchain jobs](../integration/onchain.md)). Both pass requests off to the intake.
+2. Upon intake, requests are converted into an internal job type that will track the request, execution result, and relay status.
+3. Intake will check that the job does not already exist, record the job in the DB as pending and then push it onto the execution queue.
+4. Job processor workers pull jobs off the queue and then:
+    1. Execute them via the zkVM executor
+    2. Relay execution results onchain
+    3. Update the job in the DB with the execution result and relay status
+5. For jobs that fail to get relayed, they get placed in a dead letter queue and a background service will attempt to retry posting them onchain at a set interval.
+
+## Diagram
+
+This diagram shows the logical components involved in processing job requests from both offchain users (gRPC) and onchain requests (contract events). It is intended to roughly show the flow of a request from left to right.
+
+![Coprocessor Architecture Diagram](../assets/coproc-node-internals.png)
+<!-- https://app.excalidraw.com/s/8oh7cYrMkAR/4Aups68pO9j -->
+
+Legend:
+
+* Blue: external IO.
+* Orange: worker threads.
+* Red: long running execution.
+* Directional arrow: data traveling in the given direction.
+
+### Components
+
+* **DB:** We use [MDBX](https://erthink.github.io/libmdbx/intro.html) due to its superior performance over other embedded KV DBs, such as RocksDB.
+* **Queue:** The queue is just a [mpmc async channel](https://docs.rs/async-channel/latest/async_channel/fn.bounded.html).
+* **DLQ:** The dead-letter queue is implemented using a table in the DB and a long lived tokio task.
