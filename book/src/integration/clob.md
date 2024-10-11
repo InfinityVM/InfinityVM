@@ -32,7 +32,7 @@ The user flow looks like this:
 ![clob app server](../assets/clob.png)
 
 1. A user deposits `baseToken` and/or `quoteToken` into the CLOB contract.
-1. The user can place an order by sending an order directly to the CLOB server. The CLOB processes these orders in real time. 
+1. The user can continuously place orders by sending them directly to the CLOB server. The CLOB processes these orders in real time. 
 1. The CLOB server has a background process that regularly batches orders. It sends each batch along with the state of user balances + order book to the InfinityVM coprocessor.
 1. The InfinityVM coprocessor runs the CLOB matching logic in the zkVM program to match orders.
 1. The coprocessor posts the result to the CLOB contract.
