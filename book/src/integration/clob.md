@@ -8,7 +8,7 @@ Fully onchain CLOBs are inefficient for two reasons:
 1. It is expensive to run all order book matching logic onchain and store all order book state onchain.
 1. Users have to pay for every order creation/cancellation, making it economically infeasible.
 
-With InfinityVM, a CLOB is able to solve these problems by running an App Server. This server accepts orders and cancellations from users directly offchain and so users don't need to pay a transaction fee for every action. Meanwhile, by running the matching logic in the InfinityVM coprocessor, the CLOB is able to run matching efficiently without sacrificing any verifiability.
+With InfinityVM, a CLOB is able to solve these problems by running an App Server. This server processes orders from users offchain in real-time, at zero cost to users. Meanwhile, by running the matching logic in the InfinityVM coprocessor, the CLOB is able to efficiently update the orderbook without sacrificing any verifiability.
 
 ## Code Overview
 
