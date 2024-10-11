@@ -55,11 +55,11 @@ The `SubmitJob` endpoint returns a **unique Job ID** for the job. The job ID [ca
 
 ### GetResult
 
-Once the InfinityVM coprocessor executes your zkVM program with the inputs, it will submit the result onchain, but you can also query the result offchain if you'd like. You can use the coprocessor node's [`GetResult endpoint`](../coprocessor/api.md#coprocessor_nodev1coprocessornodegetresult). This takes in the job ID as input and returns the job result + metadata (program ID, job status, inputs for program, etc.).
+Once the InfinityVM coprocessor executes your zkVM program with the inputs, it will submit the result onchain. You can also query the result offchain using the coprocessor node's [`GetResult endpoint`](../coprocessor/api.md#coprocessor_nodev1coprocessornodegetresult). This takes in the job ID as input and returns the job result + metadata (program ID, job status, inputs for program, etc.).
 
 ## Onchain vs offchain input
 
-As noted earlier, for offchain jobs, the InfinityVM coprocessor posts the job request onchain as well when posting the result of the job. The job request includes the inputs for the zkVM program; so apps that need to pass in large amounts of input might find this to be a bottleneck. To solve this, we introduced two types of input passed into the zkVM program: onchain and offchain.
+As noted earlier, for offchain jobs, the InfinityVM coprocessor posts the job request onchain as well when posting the result of the job. The job request includes the inputs for the zkVM program; apps that need to pass in large amounts of input might find this to be a bottleneck. To solve this, we introduced two types of inputs passed into the zkVM program: onchain and offchain.
 
 ### Onchain Inputs
 Inputs that are included in the signed job request and are posted onchain along with the result. An app might need to use these inputs in some logic in their app contract, for example, and so would need these inputs posted onchain.
