@@ -14,7 +14,7 @@ To achieve these fork choice capabilities, we pursue an approach that decouples 
 ## High level flows
 
 ![](./../assets/reorg-notation.png)
-*The execution chain choosing a different fork while the consensus chain makes monotonic progress.*
+*The execution chain choosing a different fork while the consensus chain continues to make consistent, forward progress.*
 
 ### Notation
 
