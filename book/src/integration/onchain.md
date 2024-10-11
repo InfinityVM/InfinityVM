@@ -1,10 +1,10 @@
 # Onchain Jobs
 
-For building an app which uses onchain jobs, we recommend forking the [Infinity foundry template](https://github.com/InfinityVM/infinity-foundry-template/tree/main). We have instructions in the `README` to get started (most of the content in this page is in the `README` too).
+For building an app which uses onchain jobs, we recommend forking the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template/tree/main). We have instructions in the `README` to get started (most of the content in this page is in the `README` too).
 
 ## Writing your app contract
 
-Any app contract building with InfinityVM needs to inherit the [`Consumer`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/src/coprocessor/Consumer.sol) interface. To build an app, you don't need to read how `Consumer` or any of the other contracts in [`contracts/src/coprocessor`](https://github.com/InfinityVM/infinity-foundry-template/tree/main/contracts/src/coprocessor) are implemented; you can just focus on your app.
+Any app contract building with InfinityVM needs to inherit the [`Consumer`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/contracts/src/coprocessor/Consumer.sol) interface. To build an app, you don't need to read how `Consumer` or any of the other contracts in [`contracts/src/coprocessor`](https://github.com/InfinityVM/infinityVM-foundry-template/tree/main/contracts/src/coprocessor) are implemented; you can just focus on your app.
 
 Next, your app contract needs to do two things:
 
@@ -21,4 +21,4 @@ Typically, we expect an onchain request to be triggered by user interaction with
 
 In the foundry template, you can write tests for the end-to-end flow of your app in Solidity similar to any other foundry tests. We have built a Solidity SDK within the foundry template which allows you to request and receive compute from InfinityVM within the foundry tests.
 
-One example of this is [`test_Consumer_RequestJob`](https://github.com/InfinityVM/infinity-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/test/SquareRootConsumer.t.sol#L26). You can run the test using `forge test -vvv --ffi`.
+One example of this is [`test_Consumer_RequestJob`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/test/SquareRootConsumer.t.sol#L26). You can run the test using `forge test -vvv --ffi`.

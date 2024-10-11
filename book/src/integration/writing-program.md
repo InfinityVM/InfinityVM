@@ -2,7 +2,7 @@
 
 The InfinityVM coprocessor runs zkVM programs. While the zkVM abstraction is extensible across SP1, Risc0, Jolt, and more - the current implementation just has support for Risc0. Please let us know if you would like support for another zkVM, its fairly straightforward to add!
 
-If you just want to quickly get your hands dirty, head over to the [Infinity foundry template](https://github.com/InfinityVM/infinity-foundry-template). You can fork the repo and we have instructions on how to write a program in the `README`.
+If you just want to quickly get your hands dirty, head over to the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template). You can fork the repo and we have instructions on how to write a program in the `README`.
 
 ## Structure of a program
 
@@ -16,7 +16,7 @@ The logic for a program is:
 4. Serialize output bytes
 5. Write output bytes
 
-Lets take a [square root program](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square_root.rs) as an example. This program takes in a number as input and returns the square root of the number as output. For this exercise we will incrementally build out the program.
+Lets take a [square root program](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/programs/app/src/square_root.rs) as an example. This program takes in a number as input and returns the square root of the number as output. For this exercise we will incrementally build out the program.
 
 First, we read in opaque bytes for the inputs and deserialize:
 
@@ -77,9 +77,9 @@ Assuming you organize the main function of your zkVM program as above, you can h
 
 ## Testing your program
 
-If you're using the [Infinity foundry template](https://github.com/InfinityVM/infinity-foundry-template), you can test and debug your zkVM program itself by following the example [here](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/src/lib.rs) (you can run this using `cargo test`). You can add `println!` statements anywhere to help while debugging.
+If you're using the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template), you can test and debug your zkVM program itself by following the example [here](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/programs/src/lib.rs) (you can run this using `cargo test`). You can add `dbg!` statements anywhere to help while debugging.
 
-If you're not using the Infinity foundry template, you can write unit tests by creating an executor and running the executor with your inputs and zkVM program ELF. An example with the CLOB program can be found [here](https://github.com/InfinityVM/InfinityVM/blob/main/clob/programs/src/lib.rs#L120) (More info on this in the [Offchain Example: CLOB](./clob.md) section).
+If you're not using the InfinityVM foundry template, you can write unit tests by creating an executor and running the executor with your inputs and zkVM program ELF. An example with the CLOB program can be found [here](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/programs/src/lib.rs#L120) (More info on this in the [Offchain Example: CLOB](./clob.md) section).
 
 For integration tests, we recommend reading the [Using your zkVM Program](./using-program.md) section.
 
