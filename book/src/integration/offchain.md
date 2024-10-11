@@ -48,7 +48,7 @@ struct OffchainJobRequest {
 A few notes:
 - `consumer`: address of your app contract.
 - `programId`: unique ID of your program. You can get the program ID when you submit your program to the coprocessor node's [`SubmitProgram` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodesubmitprogram).
-- `maxCycles`: max number of cycles to execute your program in zkVM
+- `maxCycles`: max number of cycles to execute your program in zkVM.
 - `nonce`: each job request for a particular app contract has a unique nonce, to prevent replay attacks. More info on this in [`Writing your app contract`](./offchain.md#writing-your-app-contract) below.
 
 The `SubmitJob` endpoint returns a **unique Job ID** for the job.
