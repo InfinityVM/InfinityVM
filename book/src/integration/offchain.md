@@ -75,7 +75,7 @@ Your app can run as a real-time server, leveraging offchain job requests:
 
 1. The app server can accept and process user requests in real-time.
 2. The app server can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
-3. Your serverå's state transition logic can be written in a zkVM program which performs some logic on each batch of inputs.
+3. Your server's state transition logic can be written in a zkVM program which performs some logic on each batch of inputs.
 4. The result of each job is submitted onchain and immediately usable by the app contract. The app contract maintains some state which is updated by the result of the coprocessor.
 
 ![app servers](../assets/app-servers.png)
