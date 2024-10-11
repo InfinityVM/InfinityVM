@@ -71,7 +71,7 @@ pub type NonceAndConsumer = sol! {
     tuple(uint64, address)
 };
 
-/// Continence method to abi encode [`NonceAndConsumer`].
+/// Convenience method to abi encode [`NonceAndConsumer`].
 pub fn abi_encode_nonce_and_consumer(nonce: u64, consumer: Address) -> Vec<u8> {
     NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
 }
