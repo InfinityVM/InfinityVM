@@ -10,7 +10,7 @@ The flow for a simple offchain job is:
 2. The InfinityVM coprocessor executes your zkVM program with the inputs from the job request.
 3. The coprocessor posts the result of executing the job onchain, and this can now be used by the app contract. 
 
-**Note:** For offchain jobs, the coprocessor also posts the job request onchain. This is because the InfinityVM contracts need to verify that the metadata which the coprocessor commits to when posting the result (program ID, input, etc.) matches the metadata in the job request. This isn't required for onchain jobs since the job request happens onchain anyway.
+**Note:** For offchain jobs, the coprocessor also includes the original job request with the job result posted onchain. This is because the InfinityVM contracts need to verify that the metadata which the coprocessor commits to when posting the result (program ID, input, etc.) matches the metadata in the job request. This isn't required for onchain jobs since the job request happens onchain anyway.
 
 ### App Servers
 
