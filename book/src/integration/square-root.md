@@ -1,16 +1,16 @@
 # Onchain Example: Square Root
 
-In this section, we walk through a simple example of a square root app from the [Infinity foundry template](https://github.com/InfinityVM/infinity-foundry-template). There is no native operation in Solidity to calculate a square root, so we can just write this in Rust to compute square roots in InfinityVM.
+In this section, we walk through a simple example of a square root app from the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template). There is no native operation in Solidity to calculate a square root, so we can just write this in Rust to compute square roots in InfinityVM.
 
-The zkVM program used by this app is [`square_root.rs`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/app/src/square_root.rs). The contract for the square root app is [`SquareRootConsumer.sol`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/src/SquareRootConsumer.sol), and stores a `numberToSquareRoot` mapping from each number to its square root.
+The zkVM program used by this app is [`square_root.rs`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/programs/app/src/square_root.rs). The contract for the square root app is [`SquareRootConsumer.sol`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/contracts/src/SquareRootConsumer.sol), and stores a `numberToSquareRoot` mapping from each number to its square root.
 
 ## Writing the zkVM Program
 
 The zkVM program does three things:
 
 1. Read and decode the input data (an ABI-encoded integer)
-2. Calculate the square root
-3. Commit the result (encoded using ABI for easy decoding in the app contract)
+1. Calculate the square root
+1. Commit the result (encoded using ABI for easy decoding in the app contract)
 
 ```rust,ignore
 fn main() {
@@ -34,7 +34,7 @@ Running `cargo build` in the foundry template builds the program and generates a
 
 ## Making an onchain job request 
 
-`SquareRootConsumer.sol` has a [`requestSquareRoot()`](https://github.com/InfinityVM/infinity-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/src/SquareRootConsumer.sol#L35) function:
+`SquareRootConsumer.sol` has a [`requestSquareRoot()`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/src/SquareRootConsumer.sol#L35) function:
 ```rust,ignore
 function requestSquareRoot(uint256 number) public returns (bytes32) {
     return requestJob(ProgramID.SQUARE_ROOT_ID, abi.encode(number), DEFAULT_MAX_CYCLES);
@@ -47,7 +47,7 @@ It also passes in `DEFAULT_MAX_CYCLES` (max cycles is the max number of executio
 
 ## Receiving the result onchain
 
-This is the [`_receiveResult()`](https://github.com/InfinityVM/infinity-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/src/SquareRootConsumer.sol#L39) function in `SquareRootConsumer.sol`:
+This is the [`_receiveResult()`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/src/SquareRootConsumer.sol#L39) function in `SquareRootConsumer.sol`:
 ```rust,ignore
 function _receiveResult(bytes32 jobID, bytes memory result) internal override {
     // Decode the coprocessor result into AddressWithBalance
@@ -63,4 +63,4 @@ This is a callback function called when the InfinityVM coprocessor submits the r
 
 ## Testing the end-to-end flow
 
-To test the end-to-end flow of requesting an onchain job in the square root app, we have written [`test_Consumer_RequestJob()`](https://github.com/InfinityVM/infinity-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/test/SquareRootConsumer.t.sol#L26) in [`SquareRootConsumer.t.sol`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/test/SquareRootConsumer.t.sol#L26). This test requests the square root of a number and verifies that the contract makes a call to InfinityVM and that the coprocessor submits the correct result back to the contract.
+To test the end-to-end flow of requesting an onchain job in the square root app, we have written [`test_Consumer_RequestJob()`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/test/SquareRootConsumer.t.sol#L26) in [`SquareRootConsumer.t.sol`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/contracts/test/SquareRootConsumer.t.sol#L26). This test requests the square root of a number and verifies that the contract makes a call to InfinityVM and that the coprocessor submits the correct result back to the contract.

@@ -21,4 +21,4 @@ When a validator receives a block proposal from the proposer, a `newPayload()` E
 When a validator receives a block to finalize from the network, it does two things:
 
 1. It performs the [beacon chain state transition function](https://eth2book.info/capella/part3/transition/) to compute validator updates and makes a `newPayload()` Engine API call to the execution engine to process the execution payload.
-2. It sends a `forkChoiceUpdate()` to the execution engine to notify the execution client of the latest block being finalized.
+1. It sends a `forkChoiceUpdate()` to the execution engine to notify the execution client of the latest block being finalized.
