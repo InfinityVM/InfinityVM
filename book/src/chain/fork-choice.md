@@ -41,7 +41,7 @@ Steps for a validator to verify a consensus block that rolls back the execution 
 1) Verifier receives `C`, containing a fraudulent coprocessor result from `E` and execution payload from `E'`. 
 1) Verifier successfully verifies the proof (or the block is rejected, the proposer is penalized and we exit).
 1) Verifier verifies execution payload for `E'` by calling [`engine_newPayload`](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#engine_newpayloadv3) against the EC, (where the `parentHash = block E - 1`).
-1) Once the verifier completes the remaining checks and staking accounting[^note4], the consensus chain has monotonically advanced one block. Effectively, the execution chain has been rolled back and now has the head `E'`.
+1) Once the verifier completes the remaining checks and staking accounting[^note4], the consensus chain has advanced one block. And the execution chain has been rolled back, with the new head `E'`.
 
 [^note1]: Checkout the [InfinityVM litepaper](https://infinityvm.xyz/infinityvm_litepaper.pdf) for more motivation on why this forkchoice rule is important.
 [^note2]: Outside of this section we refer to execution chain blocks as execution payloads and consensus chain blocks simply as blocks. In this section, we refer to them as separate chains to illustrate how the execution chain can independently be rolled back. For context, the consensus chain blocks contain the execution payload and the root of execution chain state, in addition to the root of consensus chain state. The execution client also independently propagates execution blocks.
