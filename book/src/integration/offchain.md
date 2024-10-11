@@ -71,11 +71,11 @@ The `offchain_input` field in `SubmitJobRequest` is the actual value of the inpu
 
 ## App Servers
 
-When an app sends offchain job requests in InfinityVM, your app can now run as a real-time server:
+Your app can run as a real-time server, leveraging offchain job requests:
 
-1. This server can accept and process user requests in real-time.
-2. It can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
-3. Your server's state transition logic can be written in a zkVM program which performs some logic on each batch of inputs.
+1. The app server can accept and process user requests in real-time.
+2. The app server can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
+3. Your serverå's state transition logic can be written in a zkVM program which performs some logic on each batch of inputs.
 4. The result of each job is submitted onchain and immediately usable by the app contract. The app contract maintains some state which is updated by the result of the coprocessor.
 
 ![app servers](../assets/app-servers.png)
@@ -86,7 +86,7 @@ Apps can also choose how to scale their infrastructure. Since it's a server, you
 
 We walk through a detailed example of building an app server in [Offchain Example: CLOB](./clob.md).
 
-#### Stateful App Servers
+### Stateful App Servers
 
 Some app servers might be "stateful", i.e. they maintain some state, which is passed into a zkVM program along with some inputs, and then the result of the program is used to update this state. For example, a CLOB app might have user balances + the existing order book as the state of the app.
 
@@ -104,7 +104,7 @@ We've provided an example implementation of [`isValidSignature()`](https://githu
 
 Finally, you need to write a `_receiveResult()` callback function which accepts the output from the InfinityVM coprocessor running your program. You can write any app logic in this function and even call into any other functions you'd like.
 
-#### Nonces
+### Nonces
 
 Each job request for an app contract must have a unique nonce submitted with it, to prevent replay attacks. The [`Consumer`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/src/coprocessor/Consumer.sol) interface inherited by all app contracts contains a `getNextNonce()` function to return the next nonce to be used by both onchain and offchain job requests, and an `updateLatestNonce()` function to update the latest nonce value once a job has been submitted. Nonces need to be unique but don't necessarily need to be increasing.
 
@@ -118,4 +118,4 @@ Specifically, you just need to call `requestOffchainJob()` in the foundry tests 
 
 #### Testing an App Server
 
-Because of the limitations of foundry, we don't have an SDK to write end-to-end tests for an app server in Solidity. Instead, you would need to write tests for your app server similar to how you would write tests for any other infrastructure or web2 service. For example, we have written tests for the [CLOB app server example](./clob.md) in the [`clob.rs` file](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/tests/clob.rs) in Rust. You can reuse a lot of logic from these tests to write tests for your own app server.
+Because of the limitations of foundry, we don't have an SDK to write end-to-end tests for an app server in Solidity. Instead, you would need to write tests for your app server similar to how you would write end-to-end tests for any multi service setup. For example, we have written end-to-end tests for the [CLOB app server example](./clob.md) in the [`clob.rs` file](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/tests/clob.rs) in Rust. You can take a look at the [test harness](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/src/lib.rs) for inspiration.

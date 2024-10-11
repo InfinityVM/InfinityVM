@@ -77,7 +77,7 @@ Assuming you organize the main function of your zkVM program as above, you can h
 
 ## Testing your program
 
-If you're using the [Infinity foundry template](https://github.com/InfinityVM/infinity-foundry-template), you can test and debug your zkVM program itself by following the example [here](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/src/lib.rs) (you can run this using `cargo test`). You can add `println!` statements anywhere to help while debugging.
+If you're using the [Infinity foundry template](https://github.com/InfinityVM/infinity-foundry-template), you can test and debug your zkVM program itself by following the example [here](https://github.com/InfinityVM/infinity-foundry-template/blob/main/programs/src/lib.rs) (you can run this using `cargo test`). You can add `dbg!` statements anywhere to help while debugging.
 
 If you're not using the Infinity foundry template, you can write unit tests by creating an executor and running the executor with your inputs and zkVM program ELF. An example with the CLOB program can be found [here](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/clob/programs/src/lib.rs#L120) (More info on this in the [Offchain Example: CLOB](./clob.md) section).
 
