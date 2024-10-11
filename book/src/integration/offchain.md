@@ -7,8 +7,8 @@ Offchain jobs enable you to send job requests directly to the InfinityVM coproce
 This is the flow for a simple offchain job (assuming you have already submitted a zkVM program to the coprocessor):
 
 1. User or app sends a job request using the coprocessor node's gRPC or REST API. This involves sending a signature over the job request as well.
-2. The InfinityVM coprocessor executes your zkVM program with the inputs from the job request.
-3. The coprocessor posts the result of executing the job onchain, and this can now be used by the app contract. 
+1. The InfinityVM coprocessor executes your zkVM program with the inputs from the job request.
+1. The coprocessor posts the result of executing the job onchain, and this can now be used by the app contract. 
 
 **Note:** For offchain jobs, the coprocessor also includes the original job request with the job result posted onchain. This is because the InfinityVM contracts need to verify that the metadata which the coprocessor commits to when posting the result (program ID, input, etc.) matches the metadata in the job request. This isn't required for onchain jobs since the job request happens onchain anyway.
 
@@ -74,9 +74,9 @@ The `offchain_input` field in `SubmitJobRequest` is the actual value of the inpu
 Your app can run as a real-time server, leveraging offchain job requests:
 
 1. The app server can accept and process user requests in real-time.
-2. The app server can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
-3. Your server's logic can be written in a zkVM program which performs some compute on each batch of inputs.
-4. The result of each job is submitted onchain and immediately usable by the app contract. The app contract maintains some state which is updated by the result of the coprocessor.
+1. The app server can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
+1. Your server's logic can be written in a zkVM program which performs some compute on each batch of inputs.
+1. The result of each job is submitted onchain and immediately usable by the app contract. The app contract maintains some state which is updated by the result of the coprocessor.
 
 ![app servers](../assets/app-servers.png)
 

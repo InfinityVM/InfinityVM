@@ -7,13 +7,13 @@ This page discusses the internals of the coprocessor node and is geared primaril
 The coprocessor node is designed to execute zkVM jobs that may potentially take a while to complete. To work with long running jobs, the coprocessor node uses an async API that separates the submission of a job request from retrieving the result of executing the job.
 
 1. Jobs can be submitted to the node either directly via the gRPC server ([offchain jobs](../integration/offchain.md)) or through the event listener which listens for events from contracts ([onchain jobs](../integration/onchain.md)). Both pass requests off to the intake.
-2. Upon intake, requests are converted into an internal job type that will track the request, execution result, and relay status.
-3. Intake will check that the job does not already exist, record the job in the DB as pending and then push it onto the execution queue.
-4. Job processor workers pull jobs off the queue and then:
+1. Upon intake, requests are converted into an internal job type that will track the request, execution result, and relay status.
+1. Intake will check that the job does not already exist, record the job in the DB as pending and then push it onto the execution queue.
+1. Job processor workers pull jobs off the queue and then:
     1. Execute them via the zkVM executor
-    2. Relay execution results onchain
-    3. Update the job in the DB with the execution result and relay status
-5. For jobs that fail to get relayed, they get placed in a dead letter queue and a background service will attempt to retry posting them onchain at a set interval.
+    1. Relay execution results onchain
+    1. Update the job in the DB with the execution result and relay status
+1. For jobs that fail to get relayed, they get placed in a dead letter queue and a background service will attempt to retry posting them onchain at a set interval.
 
 ## Diagram
 

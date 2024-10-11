@@ -9,8 +9,8 @@ The zkVM program used by this app is [`square_root.rs`](https://github.com/Infin
 The zkVM program does three things:
 
 1. Read and decode the input data (an ABI-encoded integer)
-2. Calculate the square root
-3. Commit the result (encoded using ABI for easy decoding in the app contract)
+1. Calculate the square root
+1. Commit the result (encoded using ABI for easy decoding in the app contract)
 
 ```rust,ignore
 fn main() {

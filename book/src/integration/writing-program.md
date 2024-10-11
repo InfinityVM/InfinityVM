@@ -11,10 +11,10 @@ A zkVM program is written in a language that compiles down to RISC-V (most commo
 The logic for a program is:
 
 1. Read input bytes
-2. Deserialize input bytes
-3. Run logic
-4. Serialize output bytes
-5. Write output bytes
+1. Deserialize input bytes
+1. Run logic
+1. Serialize output bytes
+1. Write output bytes
 
 Lets take a [square root program](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/programs/app/src/square_root.rs) as an example. This program takes in a number as input and returns the square root of the number as output. For this exercise we will incrementally build out the program.
 
