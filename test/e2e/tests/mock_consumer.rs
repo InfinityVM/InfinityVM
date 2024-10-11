@@ -1,4 +1,4 @@
-use abi::abi_encode_offchain_job_request;
+use abi::{abi_encode_offchain_job_request, get_job_id};
 use alloy::{
     network::EthereumWallet,
     primitives::{
@@ -11,7 +11,7 @@ use alloy::{
     sol_types::{SolEvent, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-use db::tables::{get_job_id, Job, RequestType};
+use db::tables::{Job, RequestType};
 use e2e::{Args, E2E};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};

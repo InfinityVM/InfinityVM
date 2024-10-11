@@ -3768,9 +3768,9 @@ checksum = "78b3ae25bc7c8c38cec158d1f2757ee79e9b3740fbc7ccf0e59e4b08d793fa89"
 name = "load-test"
 version = "0.0.1"
 dependencies = [
+ "abi",
  "alloy",
  "contracts",
- "db",
  "dotenv",
  "goose",
  "mock-consumer",
@@ -3927,6 +3927,7 @@ dependencies = [
 name = "mock-consumer"
 version = "0.0.1"
 dependencies = [
+ "abi",
  "alloy",
  "contracts",
  "db",
@@ -5953,12 +5954,12 @@ checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 name = "scripts"
 version = "0.0.1"
 dependencies = [
+ "abi",
  "alloy",
  "clob-node",
  "clob-programs",
  "clob-test-utils",
  "contracts",
- "db",
  "dotenv",
  "k256",
  "mock-consumer",

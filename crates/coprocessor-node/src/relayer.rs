@@ -214,6 +214,7 @@ mod test {
     use std::{collections::HashSet, sync::Arc};
 
     use crate::{metrics::Metrics, relayer::JobRelayerBuilder};
+    use abi::get_job_id;
     use alloy::{
         network::EthereumWallet,
         providers::{Provider, ProviderBuilder},
@@ -222,7 +223,6 @@ mod test {
         sol_types::SolEvent,
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-    use db::tables::get_job_id;
     use mock_consumer::{
         anvil_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
         AnvilMockConsumer,
