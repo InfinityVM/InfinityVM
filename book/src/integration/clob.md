@@ -32,7 +32,7 @@ The user flow looks like this:
 ![clob app server](../assets/clob.png)
 
 1. A user deposits `baseToken` and/or `quoteToken` into the CLOB contract.
-1. The user can place an order by sending an order directly to the CLOB server. The CLOB processes these orders in real time. 
+1. The user can continuously place orders by sending them directly to the CLOB server. The CLOB processes these orders in real time. 
 1. The CLOB server has a background process that regularly batches orders. It sends each batch along with the state of user balances + order book to the InfinityVM coprocessor.
 1. The InfinityVM coprocessor runs the CLOB matching logic in the zkVM program to match orders.
 1. The coprocessor posts the result to the CLOB contract.
@@ -88,7 +88,7 @@ The zkVM program takes in `state` and `offchain_input` as inputs. It does these 
 
 1. Decodes `state` and `offchain_input`
 1. Runs the CLOB matching function, which takes in the batch from `offchain_input` and the existing order book from `state` as inputs. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275).
-1. Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of state updates which will be processed by the CLOB app contract.
+1. Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of balance updates which will be processed by the CLOB app contract.
 
 The list of state updates sent to the CLOB contract is structured like this:
 
