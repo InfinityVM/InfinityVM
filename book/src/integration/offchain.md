@@ -33,7 +33,7 @@ message SubmitJobRequest {
 }
 ```
 
-This includes the actual job request (ABI-encoded), a signature over the request, and `offchain_input` and `state` (we explain `offchain_input` and `state` later in this doc). The job request is an ABI-encoded version of this:
+This includes the actual job request (ABI-encoded), a signature over the request, and `offchain_input` and `state` (we explain `offchain_input` and `state` later in [Offchain Inputs](./offchain.md#offchain-inputs) and [Stateful App Servers](./offchain.md#stateful-app-servers) in this doc). The job request is an ABI-encoded version of this:
 ```rust,ignore
 struct OffchainJobRequest {
     uint64 nonce;
