@@ -9,24 +9,30 @@
 - zkvm program
 - future improvements
 
+In this section, we walk through an example of an offchain app server: a central-limit order book (CLOB).
 
-
-## Overview
+## Why build a CLOB with InfinityVM
 
 Fully onchain CLOBs are inefficient for two reasons:
 1. It is expensive to run all order book matching logic onchain and store all order book state onchain.
-2. Every time a user places or cancels an order, this needs to be a tx. Market makers place and cancel a lot of orders for every fill, and so needing to pay a fee for every action makes market making infeasible. This is free on CEXs.
+2. Every time a user places or cancels an order, this needs to be an onchain transaction. Market makers place and cancel a lot of orders, and so needing to pay a transaction fee for every action makes market making infeasible.
 
-To solve these problems, the InfinityVM CLOB runs a "CLOB server" offchain. This server accepts orders/cancellations from users directly. It then creates a batch of new orders/cancellations and sends this to the InfinityVM coprocessor along with the state of user balances and the existing order book. The InfinityVM coprocessor runs the CLOB matching logic, and posts the updated user balances onchain.
+With InfinityVM, a CLOB is able to solve these problems by running an App Server. This server accepts orders and cancellations from users directly offchain and so users don't need to pay a transaction fee for every action. Meanwhile, by running the matching logic in a zkVM program in the InfinityVM coprocessor, the CLOB is able to run matching efficiently without sacrificing any trust in the correctness.
 
-We solve (1) because the matching logic is now run offchain in the InfinityVM coprocessor, and only the user balances are stored onchain (instead of storing the entire order book onchain as well). This is done without sacrificing any trust assumptions on the correctness of the results (i.e. given a batch of orders, the balance updates returned from the matching logic are correct since the matching is run in a zkVM).
+## Components
 
-We solve (2) because all orders/cancellations are sent to the CLOB server and not to the chain, and so we can make these actions free. Also, we gain additional efficiencies because if a market maker creates 100 orders and cancels 95 of them in the same batch, only the 5 non-cancelled orders need to be included in the batch sent by the CLOB server to the InfinityVM coprocessor.
+All code for the CLOB server lives in [`clob/`](https://github.com/InfinityVM/InfinityVM/tree/main/clob) in the InfinityVM repo. Specifically:
+
+- [node](./node): the CLOB service. 
+- [client](./client): client for seeding accounts, depositing, placing orders, withdrawing, and viewing state.
+
+The zkVM program for the CLOB is [`clob.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/programs/app/src/clob.rs). One thing to note is that the 
+
+## Overview
+
 
 ## PoC Components
 
-- [clob-node](./node): the CLOB service. 
-- [clob-client](./client): client for seeding accounts, depositing, placing orders, withdrawing, and viewing state.
 
 ## Spec
 
