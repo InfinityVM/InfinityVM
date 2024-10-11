@@ -10,7 +10,7 @@ This is the flow for a simple offchain job (assuming you have already submitted 
 2. The InfinityVM coprocessor executes your zkVM program with the inputs from the job request.
 3. The coprocessor posts the result of executing the job onchain, and this can now be used by the app contract. 
 
-**Note:** For offchain jobs, the coprocessor also posts the job request onchain. This is because the InfinityVM contracts need to verify that the metadata which the coprocessor commits to when posting the result (program ID, input, etc.) matches the metadata in the job request. This isn't required for onchain jobs since the job request happens onchain anyway.
+**Note:** For offchain jobs, the coprocessor also includes the original job request with the job result posted onchain. This is because the InfinityVM contracts need to verify that the metadata which the coprocessor commits to when posting the result (program ID, input, etc.) matches the metadata in the job request. This isn't required for onchain jobs since the job request happens onchain anyway.
 
 ### App Servers
 
@@ -61,10 +61,10 @@ Once the InfinityVM coprocessor executes your zkVM program with the inputs, it w
 
 As noted earlier, for offchain jobs, the InfinityVM coprocessor posts the job request onchain as well when posting the result of the job. The job request includes the inputs for the zkVM program; so apps that need to pass in large amounts of input might find this to be a bottleneck. To solve this, we introduced two types of input passed into the zkVM program: onchain and offchain.
 
-### Onchain Input
+### Onchain Inputs
 Inputs that are included in the signed job request and are posted onchain along with the result. An app might need to use these inputs in some logic in their app contract, for example, and so would need these inputs posted onchain.
 
-### Offchain Input
+### Offchain Inputs
 Offchain inputs are submitted offchain to the coprocessor but *only the hash* of these inputs are posted onchain along with the result. The actual values of the inputs are made available on alternative DA. This allows an app to use large amounts of input in their zkVM program without the chain's bandwidth being a bottleneck.
 
 The `offchain_input` field in `SubmitJobRequest` is the actual value of the input passed to the zkVM program and posted to DA, and an app needs to sign over the hash of `offchain_input` in the job request sent to the InfinityVM coprocessor.
