@@ -2,7 +2,6 @@
 
 The InfinityVM architecture achieves real time coprocessing by executing jobs in a normal VM instead of generating costly and time consuming ZK proofs upfront. This enables InfinityVM applications to tap into the security of ZK with no additional latency and cost. On a traditional blockchain, if results are optimistically accepted, the application needs to be able to handle cases where the result is later proven wrong. This also means that downstream apps need to handle the toxic result.
 
-This diagram shows the consequences of apps needing to handle a toxic result:
 ![](../assets/trad-coproc-problem.png)
 *The toxic fallout of a bad coprocessing result on a traditional blockchain.*
 
