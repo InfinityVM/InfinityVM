@@ -2,7 +2,7 @@
 
 ## Overview
 
-Infinity is a high-performance EVM-compatible layer-1 blockchain. The network is built with a modular architecture separating consensus and execution.
+Infinity is a high-performance EVM-compatible layer-1 blockchain with real time coprocessing. The network is built with a modular architecture separating consensus and execution.
 
 ### Consensus
 
