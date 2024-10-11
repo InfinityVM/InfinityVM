@@ -14,7 +14,7 @@ The coprocessor node is primarily configured via CLI and optionally has some env
 
 The CLI has the following options:
 
-```
+```sh
 Usage: coprocessor-node [OPTIONS] --job-manager-address <JOB_MANAGER_ADDRESS> [COMMAND]
 
 Commands:
