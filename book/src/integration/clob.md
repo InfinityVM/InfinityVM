@@ -95,7 +95,7 @@ The zkVM program takes in `state` and `offchain_input` as inputs. It does these 
 
 The list of state updates sent to the CLOB contract is structured like this:
 
-```solidity=
+```rust,ignore
 struct ClobResultDeltas {
     DepositDelta[] depositDeltas;
     OrderDelta[] orderDeltas;
