@@ -51,7 +51,7 @@ A few notes:
 - `maxCycles`: max number of cycles to execute your program in zkVM.
 - `nonce`: each job request for a particular app contract has a unique nonce, to prevent replay attacks. More info on this in [`Writing your app contract`](./offchain.md#writing-your-app-contract) below.
 
-The `SubmitJob` endpoint returns a **unique Job ID** for the job.
+The `SubmitJob` endpoint returns a **unique Job ID** for the job. The job ID [can be derived](https://github.com/InfinityVM/InfinityVM/blob/ff48f66f9d88e4d43325741bbb63a9deda8e6ec6/crates/sdk/abi/src/lib.rs#L65) from the `nonce` and `consumer` address.
 
 ### GetResult
 
@@ -75,7 +75,7 @@ Your app can run as a real-time server, leveraging offchain job requests:
 
 1. The app server can accept and process user requests in real-time.
 2. The app server can regularly batch these requests and submit them to the InfinityVM coprocessor as the input in an offchain job request.
-3. Your server's state transition logic can be written in a zkVM program which performs some logic on each batch of inputs.
+3. Your server's logic can be written in a zkVM program which performs some compute on each batch of inputs.
 4. The result of each job is submitted onchain and immediately usable by the app contract. The app contract maintains some state which is updated by the result of the coprocessor.
 
 ![app servers](../assets/app-servers.png)
