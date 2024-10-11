@@ -90,6 +90,8 @@ We walk through a detailed example of building an app server in [Offchain Exampl
 
 Some app servers might be "stateful", i.e. they maintain some state, which is passed into a zkVM program along with some inputs, and then the result of the program is used to update this state. For example, a CLOB app might have user balances + the existing order book as the state of the app.
 
+![stateful app server](../assets/stateful-app-server.png)
+
 This is why we have the `state` field in `SubmitJobRequest`, which apps can use to submit their state along with a job request.
 
 This raises an interesting problem: how do we ensure that app servers submit the correct state to the coprocessor? For example, if the latest state on the app contract is `X` but the app server submits `Y` as the `state` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state hash submitted by the app server in the job request matches the most recent state hash in the app contract.
@@ -112,7 +114,7 @@ We have provided a default implementation for `getNextNonce()` and `updateLatest
 
 ## Testing your app
 
-If your app involves sending offchain job requests directly to the InfinityVM coprocessor without an app server, you can use the [`Infinity foundry template`](https://github.com/InfinityVM/infinity-foundry-template/tree/main) to test your app. You can write tests for the end-to-end flow of your app in Solidity similar to any other foundry tests. We have built a Solidity SDK within the foundry template which allows you to request and receive compute from InfinityVM within the foundry tests.
+If you just want to test sending offchain job requests directly to the InfinityVM coprocessor without an app server, you can use the [`Infinity foundry template`](https://github.com/InfinityVM/infinity-foundry-template/tree/main) to test your app. You can write tests for the end-to-end flow of your app in Solidity similar to any other foundry tests. We have built a Solidity SDK within the foundry template which allows you to request and receive compute from InfinityVM within the foundry tests.
 
 Specifically, you just need to call `requestOffchainJob()` in the foundry tests to send an offchain job request to the coprocessor. We have written an example test [`test_Consumer_RequestOffchainJob()`](https://github.com/InfinityVM/infinity-foundry-template/blob/f032050b3276b6f232f94aa6a3dcd375c833d577/contracts/test/SquareRootConsumer.t.sol#L41) in [`SquareRootConsumer.t.sol`](https://github.com/InfinityVM/infinity-foundry-template/blob/main/contracts/test/SquareRootConsumer.t.sol). This test sends an offchain request for the square root of a number directly to the coprocessor, using `requestOffchainJob()`. It verifies that the coprocessor submits the correct result back to the `SquareRootConsumer.sol` contract.
 
