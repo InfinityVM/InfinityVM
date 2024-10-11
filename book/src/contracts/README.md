@@ -27,8 +27,8 @@ We discuss these interfaces in more detail in the [Offchain Jobs](../integration
 
 ## Payments
 
-TODO
+Coming soon...
 
 ## Deployments
 
-TODO
+Coming soon...
