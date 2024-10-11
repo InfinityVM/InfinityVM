@@ -1,6 +1,6 @@
 # Contracts
 
-**Note:** You don't need to read this section to build an app with InfinityVM. All the relevant info on contracts is already covered in the [Building with InfinityVM](../integration/README.md) sections.
+This section provides details on _how_ InfinityVM's coprocessor contracts work. This is not required reading for building an app; all the relevant info on contracts is already covered in the [Building with InfinityVM](../integration/README.md) sections.
 
 ## Coprocessor contracts
 
