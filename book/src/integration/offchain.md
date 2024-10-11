@@ -4,7 +4,7 @@ Offchain jobs enable you to send job requests directly to the InfinityVM coproce
 
 ## High-level flow
 
-The flow for a simple offchain job is:
+This is the flow for a simple offchain job (assuming you have already submitted a zkVM program to the coprocessor):
 
 1. User or app sends a job request using the coprocessor node's gRPC or REST API. This involves sending a signature over the job request as well.
 2. The InfinityVM coprocessor executes your zkVM program with the inputs from the job request.
@@ -37,7 +37,7 @@ This includes the actual job request (ABI-encoded), a signature over the request
 ```rust,ignore
 struct OffchainJobRequest {
     uint64 nonce;
-    uint64 maxCycles; // Max number of cycles to execute program in zkVM
+    uint64 maxCycles;
     address consumer;
     bytes programID;
     bytes onchainInput;
@@ -46,10 +46,10 @@ struct OffchainJobRequest {
 }
 ```
 A few notes:
+- `nonce`: each job request for a particular app contract has a unique nonce, to prevent replay attacks. More info on this in [`Writing your app contract`](./offchain.md#writing-your-app-contract) below.
+- `maxCycles`: max number of cycles to execute your program in zkVM.
 - `consumer`: address of your app contract.
 - `programId`: unique ID of your program. You can get the program ID when you submit your program to the coprocessor node's [`SubmitProgram` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodesubmitprogram).
-- `maxCycles`: max number of cycles to execute your program in zkVM.
-- `nonce`: each job request for a particular app contract has a unique nonce, to prevent replay attacks. More info on this in [`Writing your app contract`](./offchain.md#writing-your-app-contract) below.
 
 The `SubmitJob` endpoint returns a **unique Job ID** for the job. The job ID [can be derived](https://github.com/InfinityVM/InfinityVM/blob/ff48f66f9d88e4d43325741bbb63a9deda8e6ec6/crates/sdk/abi/src/lib.rs#L65) from the `nonce` and `consumer` address.
 
@@ -65,7 +65,7 @@ As noted earlier, for offchain jobs, the InfinityVM coprocessor posts the job re
 Inputs that are included in the signed job request and are posted onchain along with the result. An app might need to use these inputs in some logic in their app contract, for example, and so would need these inputs posted onchain.
 
 ### Offchain Input
-Offchain inputs are submitted offchain to the coprocessor but *only the hash* of these inputs are posted onchain along with the result. The actual values of the inputs are made available on the Infinity L1's DA or an alternative DA. This allows an app to use large amounts of input in their zkVM program without the chain's bandwidth being a bottleneck.
+Offchain inputs are submitted offchain to the coprocessor but *only the hash* of these inputs are posted onchain along with the result. The actual values of the inputs are made available on alternative DA. This allows an app to use large amounts of input in their zkVM program without the chain's bandwidth being a bottleneck.
 
 The `offchain_input` field in `SubmitJobRequest` is the actual value of the input passed to the zkVM program and posted to DA, and an app needs to sign over the hash of `offchain_input` in the job request sent to the InfinityVM coprocessor.
 
