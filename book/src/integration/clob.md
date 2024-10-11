@@ -87,7 +87,7 @@ The `offchain_input` and `state` is borsh-encoded by the CLOB server before subm
 The zkVM program takes in `state` and `offchain_input` as inputs. It does these things:
 
 1. Decodes `state` and `offchain_input`
-1. Runs the CLOB matching function, which takes in the batch from `offchain_input` and the existing order book from `state` as inputs. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275).
+1. Runs the CLOB app's state transition function, which matches orders given the inputs from the batch in `offchain_input` and the existing order book + balances in `state`. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275).
 1. Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of balance updates which will be processed by the CLOB app contract.
 
 The list of state updates sent to the CLOB contract is structured like this:
