@@ -25,7 +25,7 @@ The zkVM program for the CLOB is [`clob.rs`](https://github.com/InfinityVM/Infin
 
 We defined a lot of the CLOB logic in a shared `core` crate so the code can be easily reused in both the app server and the zkVM program.
 
-For example, the CLOB engine has a [`tick` function](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L282) in the `core` crate which processes a single request. This used in the [app server code](https://github.com/InfinityVM/InfinityVM/blob/main/clob/node/src/engine.rs) to process each request sent to the app server. This same code is reused in the zkVM program's [stf function](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275), to process each request in the batch given to the zkVM program as input.
+For example, the CLOB engine has a [`tick` function](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L282) in the `core` crate which processes a single request. This is used in the [app server code](https://github.com/InfinityVM/InfinityVM/blob/main/clob/node/src/engine.rs) to process each request sent to the app server. This same code is reused in the zkVM program's [stf function](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275), to process each request in the batch given to the zkVM program as input.
 
 This also allows the `tick` function to be easily unit tested without the restrictions of the zkVM.
 

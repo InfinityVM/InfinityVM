@@ -1,6 +1,10 @@
 //! Common crate for ABI-encoded types.
 
-use alloy::{sol, sol_types::SolValue};
+use alloy::{
+    primitives::{keccak256, Address},
+    sol,
+    sol_types::{SolType, SolValue},
+};
 
 /// Params for ABI encoded job input.
 #[derive(Clone)]
@@ -55,4 +59,19 @@ pub fn abi_encode_offchain_job_request(job: JobParams) -> Vec<u8> {
         state_hash: job.state_hash.into(),
     }
     .abi_encode()
+}
+
+/// Returns the job ID hash for a given nonce and consumer address.
+pub fn get_job_id(nonce: u64, consumer: Address) -> [u8; 32] {
+    keccak256(abi_encode_nonce_and_consumer(nonce, consumer)).into()
+}
+
+/// Job nonce and consumer contract address. Used for deriving a job ID.
+pub type NonceAndConsumer = sol! {
+    tuple(uint64, address)
+};
+
+/// Convenience method to abi encode [`NonceAndConsumer`].
+pub fn abi_encode_nonce_and_consumer(nonce: u64, consumer: Address) -> Vec<u8> {
+    NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
 }
