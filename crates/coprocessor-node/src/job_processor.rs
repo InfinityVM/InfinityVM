@@ -295,7 +295,7 @@ where
             }
             Err(e) => {
                 // TODO: We need to relay failed results to make sure we can charge people
-                // [ref: https://github.com/Ethos-Works/InfinityVM/issues/78]
+                // [ref: https://github.com/InfinityVM/InfinityVM/issues/78]
                 error!("failed to execute job {:?}: {:?}", id, e);
                 metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 

@@ -65,7 +65,7 @@ where
     fn vm(&self, vm_type: VmType) -> Result<Box<dyn Zkvm + Send>, Error> {
         let vm: Box<dyn Zkvm + Send> = match vm_type {
             VmType::Risc0 => Box::new(zkvm::Risc0),
-            VmType::Sp1 => unimplemented!("https://github.com/Ethos-Works/InfinityVM/issues/120"),
+            VmType::Sp1 => unimplemented!("https://github.com/InfinityVM/InfinityVM/issues/120"),
         };
 
         Ok(vm)

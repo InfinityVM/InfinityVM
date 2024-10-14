@@ -85,7 +85,7 @@ where
         let job_id = get_job_id(nonce, consumer);
 
         // TODO: Make contract calls to verify nonce, signature, etc. on job request
-        // [ref: https://github.com/Ethos-Works/InfinityVM/issues/168]
+        // [ref: https://github.com/InfinityVM/InfinityVM/issues/168]
 
         info!(job_id = hex::encode(job_id), "new job request");
 

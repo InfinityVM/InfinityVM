@@ -57,7 +57,7 @@ where
     D: Database + 'static,
 {
     /// Create an instance of [Self].
-    pub fn new(
+    pub const fn new(
         db: Arc<D>,
         exec_queue_sender: async_channel::Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,

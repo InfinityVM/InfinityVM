@@ -166,7 +166,7 @@ struct Opts {
     exec_queue_bound: usize,
 
     /// Block to start syncing from.
-    // TODO: https://github.com/Ethos-Works/InfinityVM/issues/142
+    // TODO: https://github.com/InfinityVM/InfinityVM/issues/142
     #[arg(long, default_value_t = BlockNumberOrTag::Earliest)]
     job_sync_start: BlockNumberOrTag,
 

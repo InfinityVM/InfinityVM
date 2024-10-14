@@ -109,7 +109,7 @@ impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
 ///
 /// This is safe to use across threads and should correctly handle nonce incrementing as long as
 /// no transactions fail after being broadcasted.
-/// TODO: <https://github.com/Ethos-Works/InfinityVM/issues/131>
+/// TODO: <https://github.com/InfinityVM/InfinityVM/issues/131>
 #[derive(Debug)]
 pub struct JobRelayer {
     job_manager: JobManagerContract,

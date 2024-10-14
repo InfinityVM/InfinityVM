@@ -16,7 +16,7 @@ runs:
           cargo risczero install
           cargo risczero --version
 
-      # TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+      # TODO: https://github.com/InfinityVM/InfinityVM/issues/120
       # - name: Install sp1 tooling
       #   shell: bash
       #   run: |
