@@ -6,7 +6,7 @@ This section provides details on _how_ InfinityVM's coprocessor contracts work. 
 
 There is a single [`JobManager` contract](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/JobManager.sol) for the InfinityVM coprocessor, which is shared by all app contracts. All interactions between app contracts and the coprocessor go through the `JobManager`.
 
-The flow looks like this:
+The flow for onchain jobs looks like this (for offchain jobs, we skip calling `requestJob()` and emitting an event since jobs are sent directly to the coprocessor offchain):
 
 ![contracts](../assets/contracts.png)
 
