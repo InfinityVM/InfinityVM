@@ -16,6 +16,6 @@
 - [Infinity L1](./chain/README.md)
   - [Block Lifecycle](./chain/lifecycle.md)
   - [Optimistic Payload Building](./chain/optimistic-payload.md)
-  - [Reorgs](./chain/reorgs.md)
+  - [Fork Choice](./chain/fork-choice.md)
 - [Infra](./infra/README.md)
 

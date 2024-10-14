@@ -1,14 +1,8 @@
 //! Database tables
 
-use alloy::{
-    primitives::{utils::keccak256, Address},
-    rlp::bytes,
-    sol,
-    sol_types::SolType,
-};
-
 use crate::Error;
 use abi::JobParams;
+use alloy::{primitives::utils::keccak256, rlp::bytes};
 use borsh::{BorshDeserialize, BorshSerialize};
 use proto::JobStatus;
 use reth_db::{
@@ -100,19 +94,6 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
             program_id: &job.program_id,
         })
     }
-}
-
-/// Returns the job ID hash for a given nonce and consumer address.
-pub fn get_job_id(nonce: u64, consumer: Address) -> [u8; 32] {
-    keccak256(abi_encode_nonce_and_consumer(nonce, consumer)).into()
-}
-
-type NonceAndConsumer = sol! {
-    tuple(uint64, address)
-};
-
-fn abi_encode_nonce_and_consumer(nonce: u64, consumer: Address) -> Vec<u8> {
-    NonceAndConsumer::abi_encode_packed(&(nonce, consumer))
 }
 
 /// Key to tables storing job metadata and failed jobs.

@@ -9,8 +9,8 @@ After submitting your zkVM program, you can make a job request in two ways: onch
 This allows you to make calls to the coprocessor from a smart contract. At a high level, this is how onchain requests work:
 
 1. You make a call to the coprocessor from your app contract, and pass in your zkVM program ID and inputs. This emits an event that gets picked up by the coprocessor.
-2. The InfinityVM coprocessor executes your zkVM program with the inputs.
-3. You write a callback function in your app contract which accepts the coprocessor's output and uses it in any application logic.
+1. The InfinityVM coprocessor executes your zkVM program with the inputs.
+1. You write a callback function in your app contract which accepts the coprocessor's output and uses it in any application logic.
 
 ![onchain job request](../assets/onchain-job-request.png)
 

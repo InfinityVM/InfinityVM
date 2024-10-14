@@ -1,10 +1,10 @@
+use abi::get_job_id;
 use alloy::{
     primitives::{hex, keccak256, Address, Uint, U256},
     signers::{local::LocalSigner, Signer},
     sol,
     sol_types::{SolType, SolValue},
 };
-use db::tables::get_job_id;
 use dotenv::dotenv;
 use k256::ecdsa::SigningKey;
 use std::env;
