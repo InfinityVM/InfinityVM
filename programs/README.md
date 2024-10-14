@@ -1,15 +1,14 @@
-# ZKVM programs
+# zkVM programs
 
-This folder contains sample programs for running in the ZKVM executor.
+This folder contains sample programs for running in the zkVM executor.
 
-We currently have a risc0 program and an unused sp1 program. 
+We currently only have a risc0 program. (Previously we had an equivalent sp1 program, but that was removed since it's not currently in use.)
 
 We intend to [bring back support of sp1][1] and investigate adding support for [jolt][2].
 
 Open questions:
 
 - How should programs handle errors?
-- What does developer experience look like for testing programs along side smart contracts?
 
-[1]: https://github.com/Ethos-Works/InfinityVM/issues/120
+[1]: https://github.com/InfinityVM/InfinityVM/issues/120
 [2]: https://github.com/a16z/jolt
