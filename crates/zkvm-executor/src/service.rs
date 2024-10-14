@@ -65,7 +65,7 @@ where
     fn vm(&self, vm_type: VmType) -> Result<Box<dyn Zkvm + Send>, Error> {
         let vm: Box<dyn Zkvm + Send> = match vm_type {
             VmType::Risc0 => Box::new(zkvm::Risc0),
-            VmType::Sp1 => unimplemented!("https://github.com/Ethos-Works/InfinityVM/issues/120"),
+            VmType::Sp1 => unimplemented!("https://github.com/InfinityVM/InfinityVM/issues/120"),
         };
 
         Ok(vm)
@@ -87,9 +87,10 @@ where
         let vm = self.vm(vm_type)?;
 
         if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
-            return Err(Error::InvalidVerifyingKey(
-                format!("bad verifying key {}", hex_program_id,),
-            ));
+            return Err(Error::InvalidVerifyingKey(format!(
+                "bad verifying key {}",
+                hex_program_id,
+            )));
         }
 
         let onchain_input_hash = keccak256(&onchain_input);
@@ -130,9 +131,10 @@ where
         let vm = self.vm(vm_type)?;
 
         if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
-            return Err(Error::InvalidVerifyingKey(
-                format!("bad verifying key {}", hex_program_id,),
-            ));
+            return Err(Error::InvalidVerifyingKey(format!(
+                "bad verifying key {}",
+                hex_program_id,
+            )));
         }
 
         let onchain_input_hash = keccak256(&onchain_input);

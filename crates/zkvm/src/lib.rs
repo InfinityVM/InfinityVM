@@ -143,7 +143,7 @@ impl Zkvm for Risc0 {
     }
 }
 
-// TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+// TODO: https://github.com/InfinityVM/InfinityVM/issues/120
 // Sp1 impl of [Zkvm].
 // #[derive(Debug)]
 // pub struct Sp1;
