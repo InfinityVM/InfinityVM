@@ -73,7 +73,7 @@ fn main() {
 
 Assuming you organize the main function of your zkVM program as above, you can have all your logic in a single pure function. If your logic is more complex, you can also write your code in a separate crate such that the code can be easily reused and unit tested without the restrictions of the zkVM.
 
-**Note:** Any of the dependencies you use in your zkVM program need to be compatible with the zkVM; roughly 70% of major crates are compatible. A common issue is the [alloy](https://docs.rs/crate/alloy/latest/features) crate, which works with most of the [features disabled](https://github.com/InfinityVM/InfinityVM/blob/f0d3e956e67d07e68a2670ebbafe6a34839f3df5/Cargo.toml#L118), but breaks builds with the [`full` feature](https://github.com/alloy-rs/alloy/blob/3f5f1e5de21552ed875ffdc16fb4d5db9d1ba0e8/crates/alloy/Cargo.toml#L76) enabled. Don't hesitate to reach out to the InfinityVM team if you face any challenges with this!
+**Note:** Any of the dependencies you use in your zkVM program need to be compatible with the zkVM; roughly 70% of major crates are compatible. A common issue is the [alloy](https://docs.rs/crate/alloy/latest/features) crate, which works with most of the [features disabled](https://github.com/InfinityVM/InfinityVM/blob/main/Cargo.toml#L118), but breaks builds with the [`full` feature](https://github.com/alloy-rs/alloy/blob/3f5f1e5de21552ed875ffdc16fb4d5db9d1ba0e8/crates/alloy/Cargo.toml#L76) enabled. Don't hesitate to reach out to the InfinityVM team if you face any challenges with this!
 
 ## Testing your program
 

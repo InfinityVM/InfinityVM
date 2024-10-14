@@ -8,6 +8,7 @@
     - [Offchain Jobs](./integration/offchain.md)
   - [Onchain Example: Square Root](./integration/square-root.md)
   - [Offchain Example: CLOB](./integration/clob.md)
+- [Contracts](./contracts/README.md)
 - [Coprocessor Node](./coprocessor/README.md)
   - [Run a Coprocessor Node](./coprocessor/run.md)
   - [API](./coprocessor/api.md)
