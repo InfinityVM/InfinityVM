@@ -17,5 +17,3 @@
   - [Block Lifecycle](./chain/lifecycle.md)
   - [Optimistic Payload Building](./chain/optimistic-payload.md)
   - [Fork Choice](./chain/fork-choice.md)
-- [Infra](./infra/README.md)
-
