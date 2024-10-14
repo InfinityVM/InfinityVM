@@ -3,8 +3,6 @@ package coprocessor_node.v1;
 
 import "coprocessor_node/v1/job.proto";
 
-option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
-
 // Service defines the gRPC service for the coprocessing node.
 service CoprocessorNode {
   // SubmitJob defines the gRPC method for submitting a coprocessing job.

@@ -1,8 +1,6 @@
 syntax = "proto3";
 package coprocessor_node.v1;
 
-option go_package = "github.com/ethos-works/infinityvm/coprocessor_node/pkg/types";
-
 // JobStatusType defines the status of a submitted coprocessor job.
 enum JobStatusType {
   JOB_STATUS_TYPE_UNSPECIFIED = 0;
