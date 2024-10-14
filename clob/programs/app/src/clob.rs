@@ -16,12 +16,14 @@ fn main() {
     let offchain_input_len: u32 = env::read();
     let mut offchain_input_buf = vec![0; offchain_input_len as usize];
     env::read_slice(&mut offchain_input_buf);
-    let requests: Vec<Request> = borsh::from_slice(&offchain_input_buf).expect("todo");
+    let requests: Vec<Request> = borsh::from_slice(&offchain_input_buf)
+        .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
 
     let state_len: u32 = env::read();
     let mut state_buf = vec![0; state_len as usize];
     env::read_slice(&mut state_buf);
-    let state: ClobState = borsh::from_slice(&state_buf).expect("todo");
+    let state: ClobState = borsh::from_slice(&state_buf)
+        .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
 
     let clob_program_output = zkvm_stf(requests, state);
     let abi_encoded = StatefulProgramResult::abi_encode(&clob_program_output);

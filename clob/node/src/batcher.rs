@@ -130,7 +130,8 @@ where
         let next_batch_idx = end_index + 1;
         db.update(|tx| tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, next_batch_idx))??;
 
-        // TODO: read highest job nonce from contract
+        // TODO: https://github.com/InfinityVM/InfinityVM/issues/295
+        // read highest job nonce from contract
         job_nonce += 1;
     }
 }
