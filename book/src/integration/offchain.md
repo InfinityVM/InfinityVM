@@ -51,7 +51,7 @@ A few notes:
 - `consumer`: address of your app contract.
 - `programId`: unique ID of your program. You can get the program ID when you submit your program to the coprocessor node's [`SubmitProgram` endpoint](../coprocessor/api.md#coprocessor_nodev1coprocessornodesubmitprogram).
 
-The `SubmitJob` endpoint returns a **unique Job ID** for the job. The job ID [can be derived](https://github.com/InfinityVM/InfinityVM/blob/ff48f66f9d88e4d43325741bbb63a9deda8e6ec6/crates/sdk/abi/src/lib.rs#L65) from the `nonce` and `consumer` address.
+The `SubmitJob` endpoint returns a **unique Job ID** for the job. The job ID [can be derived](https://github.com/InfinityVM/InfinityVM/blob/main/crates/sdk/abi/src/lib.rs#L65) from the `nonce` and `consumer` address.
 
 ### GetResult
 
@@ -102,7 +102,7 @@ Similar to onchain jobs, any app contract building with InfinityVM needs to inhe
 
 For apps that use offchain jobs, you can also inherit [`OffchainRequester`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/OffchainRequester.sol), which contains the `isValidSignature()` function. You need to implement `isValidSignature()` in your app contract, which is called to verify that an offchain request is signed by an authorized signer/user. 
 
-We've provided an example implementation of [`isValidSignature()`](https://github.com/InfinityVM/InfinityVM/blob/67958041ebfec9ca0a93631d28bc5fb47892e0ce/contracts/src/coprocessor/SingleOffchainSigner.sol#L21) which you can use in the [`SingleOffchainSigner.sol` contract](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/coprocessor/SingleOffchainSigner.sol) (this checks that each job request is signed by a single pre-defined `offchainSigner` address). But, you can implement any logic or checks you'd like. For example, you could store a list of whitelisted users in your app contract and add logic in `isValidSignature()` to verify that every job request is signed by some whitelisted user.
+We've provided an example implementation of [`isValidSignature()`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/SingleOffchainSigner.sol#L21) which you can use in the [`SingleOffchainSigner.sol` contract](https://github.com/InfinityVM/InfinityVM/blob/zeke-reorg-docs/contracts/src/coprocessor/SingleOffchainSigner.sol) (this checks that each job request is signed by a single pre-defined `offchainSigner` address). But, you can implement any logic or checks you'd like. For example, you could store a list of whitelisted users in your app contract and add logic in `isValidSignature()` to verify that every job request is signed by some whitelisted user.
 
 Finally, you need to write a `_receiveResult()` callback function which accepts the output from the InfinityVM coprocessor running your program. You can write any app logic in this function and even call into any other functions you'd like.
 
@@ -116,7 +116,7 @@ We have provided a default implementation for `getNextNonce()` and `updateLatest
 
 If you just want to test sending offchain job requests directly to the InfinityVM coprocessor without an app server, you can use the [`InfinityVM foundry template`](https://github.com/InfinityVM/infinityVM-foundry-template/tree/main) to test your app. You can write tests for the end-to-end flow of your app in Solidity similar to any other foundry tests. We have built a Solidity SDK within the foundry template which allows you to request and receive compute from InfinityVM within the foundry tests.
 
-Specifically, you just need to call `requestOffchainJob()` in the foundry tests to send an offchain job request to the coprocessor. We have written an example test [`test_Consumer_RequestOffchainJob()`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/f032050b3276b6f232f94aa6a3dcd375c833d577/contracts/test/SquareRootConsumer.t.sol#L41) in [`SquareRootConsumer.t.sol`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/contracts/test/SquareRootConsumer.t.sol). This test sends an offchain request for the square root of a number directly to the coprocessor, using `requestOffchainJob()`. It verifies that the coprocessor submits the correct result back to the `SquareRootConsumer.sol` contract.
+Specifically, you just need to call `requestOffchainJob()` in the foundry tests to send an offchain job request to the coprocessor. We have written an example test [`test_Consumer_RequestOffchainJob()`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/contracts/test/SquareRootConsumer.t.sol#L41) in [`SquareRootConsumer.t.sol`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/contracts/test/SquareRootConsumer.t.sol). This test sends an offchain request for the square root of a number directly to the coprocessor, using `requestOffchainJob()`. It verifies that the coprocessor submits the correct result back to the `SquareRootConsumer.sol` contract.
 
 #### Testing an App Server
 

@@ -21,4 +21,4 @@ Typically, we expect an onchain request to be triggered by user interaction with
 
 In the foundry template, you can write tests for the end-to-end flow of your app in Solidity similar to any other foundry tests. We have built a Solidity SDK within the foundry template which allows you to request and receive compute from InfinityVM within the foundry tests.
 
-One example of this is [`test_Consumer_RequestJob`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/2d10113f1e01ac314c7b9fb96b1a40d640d53a4b/contracts/test/SquareRootConsumer.t.sol#L26). You can run the test using `forge test -vvv --ffi`.
+One example of this is [`test_Consumer_RequestJob`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/contracts/test/SquareRootConsumer.t.sol#L26). You can run the test using `forge test -vvv --ffi`.

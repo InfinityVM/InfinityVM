@@ -1,5 +1,0 @@
-# Coprocessor contracts
-
-## Payments
-
-## Deployments
