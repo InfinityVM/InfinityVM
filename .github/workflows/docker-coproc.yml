@@ -7,9 +7,9 @@ on:
       - main
 
 env:
-  PROJECT_ID: ethos-artifacts
+  PROJECT_ID: infinityvm-core-artifacts
   REGION: us-west1
-  GAR_LOCATION: us-docker.pkg.dev/ethos-artifacts/docker
+  GAR_LOCATION: us-docker.pkg.dev/infinityvm-core-artifacts/docker
 
 jobs:
   docker-release:
@@ -54,7 +54,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            us-docker.pkg.dev/ethos-artifacts/docker/coproc
+            us-docker.pkg.dev/infinityvm-core-artifacts/docker/coproc
           tags: |
             type=semver,pattern={{version}}
             type=sha,enable=true,priority=100,prefix=,suffix=,format=long
