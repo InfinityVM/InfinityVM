@@ -177,87 +177,38 @@ impl Zkvm for Risc0 {
 #[cfg(test)]
 mod test {
     use crate::{Risc0, Zkvm};
-    use alloy::{rlp::Decodable, sol_types::SolType};
-    use vapenation_core::{VapeNationArg, VapeNationMetadata};
+    use alloy::sol_types::SolValue;
+    use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
 
-    const VAPENATION_ELF_PATH: &str =
-        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/vapenation-guest";
-
-    // TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
-    // const VAPENATION_ELF_SP1_PATH: &str =
-    //     "../../programs/sp1/vapenation/program/elf/riscv32im-succinct-zkvm-elf";
+    const MOCK_CONSUMER_ELF_PATH: &str =
+        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-guest";
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
-        let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
+        let elf = std::fs::read(MOCK_CONSUMER_ELF_PATH).unwrap();
 
-        let input = 2u64;
-        let raw_input = VapeNationArg::abi_encode(&input);
+        let input = mock_contract_input_addr();
+        let raw_input = input.abi_encode();
 
-        let max_cycles = 32 * 1024 * 1024;
         let raw_result =
-            &Risc0.execute_onchain_job(&vapenation_elf, &raw_input, max_cycles).unwrap();
+            &Risc0.execute_onchain_job(&elf, &raw_input, MOCK_CONSUMER_MAX_CYCLES).unwrap();
 
-        let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
-        let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
-
-        assert_eq!(metadata.nation_id, 352380);
-        assert_eq!(metadata.points, 5106);
-        assert_eq!(metadata.phrase, phrase);
+        assert_eq!(*raw_result, mock_raw_output());
     }
 
     #[test]
     fn risc0_is_correct_verifying_key() {
-        let vapenation_elf = std::fs::read(VAPENATION_ELF_PATH).unwrap();
-        let mut image_id =
-            risc0_binfmt::compute_image_id(&vapenation_elf).unwrap().as_bytes().to_vec();
+        let elf = std::fs::read(MOCK_CONSUMER_ELF_PATH).unwrap();
+        let mut image_id = risc0_binfmt::compute_image_id(&elf).unwrap().as_bytes().to_vec();
 
-        let correct = &Risc0.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
         assert!(correct);
 
         image_id.pop();
         image_id.push(255);
 
-        let correct = &Risc0.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
 
         assert!(!correct);
     }
-
-    // TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
-    // #[test]
-    // fn sp1_execute_can_correctly_execute_program() {
-    //     let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
-
-    //     let input = 2u64;
-    //     let raw_input = VapeNationArg::abi_encode(&input);
-
-    //     let max_cycles = 32 * 1024 * 1024;
-    //     let raw_result = &Sp1.execute(&vapenation_elf, &raw_input, max_cycles).unwrap();
-
-    //     let metadata = VapeNationMetadata::decode(&mut &raw_result[..]).unwrap();
-    //     let phrase = (0..2).map(|_| "NeverForget420".to_string()).collect::<Vec<_>>().join(" ");
-
-    //     assert_eq!(metadata.nation_id, 352380);
-    //     assert_eq!(metadata.points, 5106);
-    //     assert_eq!(metadata.phrase, phrase);
-    // }
-
-    // #[test]
-    // fn sp1_is_correct_verifying_key() {
-    //     let vapenation_elf = std::fs::read(VAPENATION_ELF_SP1_PATH).unwrap();
-    //     let client = sp1_sdk::ProverClient::new();
-
-    //     // setup
-    //     let (_, vk) = client.setup(vapenation_elf.as_slice());
-    //     let mut image_id = vk.hash_bytes().as_slice().to_vec();
-
-    //     let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
-    //     assert!(correct);
-
-    //     image_id.pop();
-    //     image_id.push(255);
-
-    //     let correct = &Sp1.is_correct_verifying_key(&vapenation_elf, &image_id).unwrap();
-    //     assert!(!correct);
-    // }
 }

@@ -21,3 +21,4 @@ risc0-binfmt = { workspace = true }
 [dev-dependencies]
 alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 vapenation-core = { path = "../../programs/common/vapenation-core" }
+mock-consumer = { workspace = true }

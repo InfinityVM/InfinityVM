@@ -7783,6 +7783,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "anyhow",
+ "mock-consumer",
  "risc0-binfmt",
  "risc0-zkvm",
  "thiserror",
