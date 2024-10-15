@@ -28,7 +28,7 @@ The following are some of the more important directories in the InfinityVM repos
 ├── crates                 // InfinityVM coprocessor
 │   ├── coprocessor-node   // Core logic of coprocessor
 │   ├── db                 // Database for coprocessor node
-│   ├── zkvm-executor      // zkVM service used by coprocessor
+│   ├── zkvm-executor      // zkVM interface used by coprocessor
 │   └── zkvm               // zkVM trait and implementations      
 ├── programs               // Sample zkVM programs
 ├── proto                  // Proto definitions
