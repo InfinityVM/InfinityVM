@@ -1,5 +1,7 @@
 # InfinityVM Book
 
+![infinityvm banner](./assets/infinityvm-banner.png)
+
 InfinityVM is a new blockchain architecture that integrates offchain compute. This book has details such as:
 
 - Building apps with InfinityVM
