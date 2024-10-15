@@ -16,6 +16,10 @@ abstract contract SingleOffchainSigner is OffchainRequester {
         return offchainSigner;
     }
 
+    function _updateOffchainSigner(address updatedSigner) internal {
+        offchainSigner = updatedSigner;
+    }
+
     // Included for EIP-1271. The JobManager calls this function to verify the signature on
     // an offchain job request.
     function isValidSignature(bytes32 messageHash, bytes memory signature) public view override returns (bytes4) {
