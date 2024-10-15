@@ -66,8 +66,8 @@ where
         let (response, post_state, diffs) = tick(request, state);
 
         // Persist: processed index, response, and new state.
-        // TODO: cloning entire state is not ideal, would be better to somehow just apply state
-        // diffs.
+        // TODO: https://github.com/InfinityVM/InfinityVM/issues/197
+        // cloning entire state is not ideal, would be better to somehow just apply state diffs.
         let post_state2 = post_state.clone();
         let response2 = response.clone();
         db.update(|tx| {

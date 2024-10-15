@@ -46,7 +46,7 @@ pub async fn run<P: AsRef<Path>>(
     clob_consumer_addr: [u8; 20],
     job_sync_start: BlockNumberOrTag,
 ) -> eyre::Result<()> {
-    let db = crate::db::init_db(db_dir).expect("todo");
+    let db = crate::db::init_db(db_dir)?;
     let db = Arc::new(db);
 
     let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(32);
