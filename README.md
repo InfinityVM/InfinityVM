@@ -1,6 +1,6 @@
 ![infinityvm banner](./book/src/assets/infinityvm-banner.png)
 
-## A new blockchain architecture that integrates offchain compute
+## A new blockchain architecture with native offchain compute
 
 InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications.
 
