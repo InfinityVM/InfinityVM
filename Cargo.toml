@@ -24,7 +24,6 @@ members = [
 	"test/e2e",
 	"test/load-test",
 	"programs/risc0/mock-consumer/methods",
-	"programs/risc0/vapenation/methods",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -174,7 +173,7 @@ serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
-# TODO: https://github.com/Ethos-Works/InfinityVM/issues/120
+# TODO: https://github.com/InfinityVM/InfinityVM/issues/120
 # sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["libm"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
 # sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
 # sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }

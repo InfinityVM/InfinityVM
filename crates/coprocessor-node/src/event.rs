@@ -58,7 +58,7 @@ where
     D: Database + 'static,
 {
     /// Create a new instance of [Self].
-    pub fn new(
+    pub const fn new(
         job_manager: Address,
         intake: IntakeHandlers<S, D>,
         from_block: BlockNumberOrTag,

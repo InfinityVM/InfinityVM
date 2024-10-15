@@ -77,7 +77,7 @@ contract JobManager is
 
     function cancelJob(bytes32 jobID) external override {
         JobMetadata memory job = jobIDToMetadata[jobID];
-        // We allow the JobManager owner to also cancel jobs so Ethos admin can veto any jobs
+        // We allow the JobManager owner to also cancel jobs so the admin can veto any jobs
         require(msg.sender == job.consumer || msg.sender == owner(), "JobManager.cancelJob: caller is not the job consumer or JobManager owner");
 
         require(job.status == JOB_STATE_PENDING, "JobManager.cancelJob: job is not in pending state");

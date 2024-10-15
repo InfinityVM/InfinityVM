@@ -36,7 +36,6 @@ pub enum Error {
 }
 
 /// The implementation of the `ZkvmExecutor` trait
-/// TODO(zeke): do we want to make this generic over executor?
 #[derive(Debug, Clone)]
 pub struct ZkvmExecutorService<S> {
     signer: S,
@@ -65,7 +64,7 @@ where
     fn vm(&self, vm_type: VmType) -> Result<Box<dyn Zkvm + Send>, Error> {
         let vm: Box<dyn Zkvm + Send> = match vm_type {
             VmType::Risc0 => Box::new(zkvm::Risc0),
-            VmType::Sp1 => unimplemented!("https://github.com/Ethos-Works/InfinityVM/issues/120"),
+            VmType::Sp1 => unimplemented!("https://github.com/InfinityVM/InfinityVM/issues/120"),
         };
 
         Ok(vm)
@@ -86,7 +85,7 @@ where
         let hex_program_id = hex::encode(program_id.as_slice());
         let vm = self.vm(vm_type)?;
 
-        if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
+        if !vm.is_correct_verifying_key(&elf, &program_id)? {
             return Err(Error::InvalidVerifyingKey(
                 format!("bad verifying key {}", hex_program_id,),
             ));
@@ -129,7 +128,7 @@ where
         let hex_program_id = hex::encode(&program_id);
         let vm = self.vm(vm_type)?;
 
-        if !vm.is_correct_verifying_key(&elf, &program_id).expect("todo") {
+        if !vm.is_correct_verifying_key(&elf, &program_id)? {
             return Err(Error::InvalidVerifyingKey(
                 format!("bad verifying key {}", hex_program_id,),
             ));
