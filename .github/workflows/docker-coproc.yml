@@ -44,9 +44,10 @@ jobs:
         id: diff
         with:
           PATTERNS: |
-            .github/workflows/docker-coproc.yml
             contracts/**
             crates/coprocessor-node/**
+          FILES:  |
+            .github/workflows/docker-coproc.yml
             Dockerfile.coprocessor-node
 
       - name: Docker Metadata Pull
