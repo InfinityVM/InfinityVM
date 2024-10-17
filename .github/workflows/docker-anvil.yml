@@ -8,7 +8,7 @@ on:
 
 env:
   PROJECT_ID: infinityvm-core-artifacts
-  REGION: us-west1
+  REGION: us
   GAR_LOCATION: us-docker.pkg.dev/infinityvm-core-artifacts/docker
 
 jobs:
@@ -31,23 +31,25 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           token_format: access_token
-          credentials_json: '${{ secrets.ARTIFACT_REGISTRY_CREDENTIALS }}'
+          workload_identity_provider: 'projects/454197732139/locations/global/workloadIdentityPools/github-pool/providers/github-actions-provider'
+          service_account: github-actions@infinityvm-core-artifacts.iam.gserviceaccount.com
       - name: Login to Artifact Registry
         uses: docker/login-action@v3
         with:
           registry: us-docker.pkg.dev
-          username: _json_key
-          password: '${{ secrets.ARTIFACT_REGISTRY_CREDENTIALS }}'
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       - uses: technote-space/get-diff-action@v6.1.2
         id: diff
         with:
-          PATTERNS: |
+          FILES: |
+            .github/workflows/docker-anvil.yml
             Dockerfile.anvil
 
       - name: Docker Metadata Pull
         id: meta
-        if: env.GIT_DIFF
+        if: env.GIT_DIFF || github.event_name == 'workflow_dispatch'
         uses: docker/metadata-action@v5
         with:
           images: |
@@ -62,7 +64,7 @@ jobs:
       - id: docker-push-anvil
         name: Tag Docker image and push to Google Artifact Registry
         uses: docker/build-push-action@v6
-        if: env.GIT_DIFF
+        if: env.GIT_DIFF || github.event_name == 'workflow_dispatch'
         with:
           context: .
           file: Dockerfile.anvil
