@@ -20,14 +20,14 @@ For each load test, Goose spawns multiple users, with a thread for each user.
 
 To run the load tests:
 ```
-cargo run --bin test-load --release
+cargo run --bin load-test --release
 ```
 
 To stop the load tests, use `ctrl+C` (or, you can use the `RUN_TIME` env var mentioned in the next section). The results of the load tests will be saved in a `report.html` file. This contains stats and graphs on number of requests, response time, errors, etc.
 
 ## Load test parameters
 
-We have a few parameters we can set in `test-load/.env` (an `example.env` is provided too):
+We have a few parameters we can set in `load-test/.env` (an `example.env` is provided too):
 
 1. `COPROCESSOR_GATEWAY_IP`: External IP of the coprocessor node REST gRPC gateway (defaults to localhost)
 2. `COPROCESSOR_GATEWAY_PORT`: Port of the coprocessor node REST gRPC gateway
@@ -43,10 +43,25 @@ We have a few parameters we can set in `test-load/.env` (an `example.env` is pro
 
 There are other parameters that we can modify, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 
+## Specifying guest program intensity
+
+The guest program supports different levels of computation intensity. You can specify the intensity by setting the `COMPUTATION_INTENSITY` environment variable in the `main.rs` guest program. 
+
+The available options are:
+- `light`: For quick, less intensive computations
+- `medium`: For balanced performance and complexity (default)
+- `heavy`: For more intensive, time-consuming computations
+- `all`: To run all intensity levels sequentially
+
+Each intensity level corresponds to different parameters for computation iterations and hash rounds:
+- `light`: 100 iterations, 10 hash rounds
+- `medium`: 1000 iterations, 100 hash rounds
+- `heavy`: 10000 iterations, 1000 hash rounds
+
 ## Measuring time until job is completed
 
 `LoadtestSubmitJob` only measures the response time between when a user sends a `SubmitJob` request and receives the `jobID` from the coprocessor node as a response. The coprocessor node then spawns a thread to actually execute the job.
 
 We want to also measure the time between when a user sends `SubmitJob` and when the job is actually completed. We haven't been able to figure out a way to record this in the Goose report (Goose or Locust don't seem to support custom metrics), but for now we have added the option of logging the time it takes until the job is completed. If we want, we can direct these logs to a log file and perform analysis using that.
 
-To enable this when running the load tests, set the `WAIT_UNTIL_JOB_COMPLETED` env var to `true` in `test-load/.env`.
+To enable this when running the load tests, set the `WAIT_UNTIL_JOB_COMPLETED` env var to `true` in `load-test/.env`.

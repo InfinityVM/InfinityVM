@@ -11,12 +11,18 @@ use load_test::{
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
 use std::{
-    sync::atomic::{AtomicU64, Ordering},
+    sync::{atomic::{AtomicU64, Ordering}, Mutex},
     time::{Duration, Instant},
+    path::PathBuf,
 };
 use tokio::sync::OnceCell;
+use std::fs::{OpenOptions, File};
+use std::io::{Write, BufWriter};
+use std::fs;
 
 static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
+static JOB_COMPLETION_TIMES: Lazy<Mutex<Vec<Duration>>> = Lazy::new(|| Mutex::new(Vec::new()));
+
 
 async fn initialize_global_nonce() -> AtomicU64 {
     let anvil_ip = anvil_ip();
@@ -36,6 +42,9 @@ async fn initialize_global_nonce() -> AtomicU64 {
 #[tokio::main]
 async fn main() -> Result<(), GooseError> {
     dotenv::from_filename("./test-load/.env").ok();
+
+    fs::create_dir_all("test/load-test/log").expect("Failed to create log directory");
+    reset_job_completion_times_log();
 
     // Initialize GLOBAL_NONCE
     GLOBAL_NONCE.get_or_init(initialize_global_nonce).await;
@@ -63,7 +72,24 @@ async fn main() -> Result<(), GooseError> {
         .execute()
         .await?;
 
+    let completion_times = JOB_COMPLETION_TIMES.lock().unwrap();
+    if !completion_times.is_empty() {
+        let total_duration: Duration = completion_times.iter().sum();
+        let average_duration = total_duration / completion_times.len() as u32;
+        log_job_completion_time(0, average_duration, true);
+        println!("Average job completion time: {:?}", average_duration);
+    } else {
+        println!("No jobs completed during the test.");
+    }
+
     Ok(())
+}
+
+fn reset_job_completion_times_log() {
+    let log_path = PathBuf::from("test/load-test/log/job_completion_times.log");
+    if let Err(e) = File::create(&log_path) {
+        eprintln!("Failed to reset log file: {:?} - Error: {}", log_path, e);
+    }
 }
 
 async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
@@ -86,9 +112,39 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     if should_wait_until_job_completed() {
         wait_until_job_completed(user, nonce).await;
         let total_duration = start_time.elapsed();
-        println!("Total duration until job completed: {:?}", total_duration);
+        println!("Job {} completed in {:?}", nonce, total_duration);
+        log_job_completion_time(nonce, total_duration, false);
+        JOB_COMPLETION_TIMES.lock().unwrap().push(total_duration);
     }
     Ok(())
+}
+
+fn log_job_completion_time(nonce: u64, duration: Duration, is_average: bool) {
+    let log_entry = if is_average {
+        format!("\nAverage job completion time: {:8.3?}", duration)
+    } else {
+        format!("Job {:5}: Completed in {:8.3?}\n", nonce, duration)
+    };
+    
+    let log_path = PathBuf::from("test/load-test/log/job_completion_times.log");
+    
+    let file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&log_path);
+
+    match file {
+        Ok(file) => {
+            let mut writer = BufWriter::new(file);
+            if let Err(e) = writer.write_all(log_entry.as_bytes()) {
+                eprintln!("Failed to write to log file: {}", e);
+            }
+            if let Err(e) = writer.flush() {
+                eprintln!("Failed to flush log file: {}", e);
+            }
+        },
+        Err(e) => eprintln!("Failed to open or create log file: {:?} - Error: {}", log_path, e),
+    }
 }
 
 async fn loadtest_get_result(user: &mut GooseUser) -> TransactionResult {

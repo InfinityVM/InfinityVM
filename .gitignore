@@ -12,7 +12,8 @@ contracts/broadcast/**
 # Dotenv file
 contracts/.env
 crates/scripts/.env
-test-load/.env
+test/load-test/.env
+test/load-test/log
 
 programs/**/methods/Cargo.lock
 programs/**/program/target
