@@ -30,8 +30,9 @@ jobs:
         name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
+          token_format: access_token
           workload_identity_provider: 'projects/454197732139/locations/global/workloadIdentityPools/github-pool/providers/github-actions-provider'
-          project_id: 'infinityvm-core-artifacts'
+          service_account: github-actions@infinityvm-core-artifacts.iam.gserviceaccount.com
       - name: Login to Artifact Registry
         uses: docker/login-action@v3
         with:
@@ -42,12 +43,13 @@ jobs:
       - uses: technote-space/get-diff-action@v6.1.2
         id: diff
         with:
-          PATTERNS: |
+          FILES: |
+            .github/workflows/docker-anvil.yml
             Dockerfile.anvil
 
       - name: Docker Metadata Pull
         id: meta
-        if: env.GIT_DIFF
+        if: env.GIT_DIFF || github.event_name == 'workflow_dispatch'
         uses: docker/metadata-action@v5
         with:
           images: |
@@ -62,7 +64,7 @@ jobs:
       - id: docker-push-anvil
         name: Tag Docker image and push to Google Artifact Registry
         uses: docker/build-push-action@v6
-        if: env.GIT_DIFF
+        if: env.GIT_DIFF || github.event_name == 'workflow_dispatch'
         with:
           context: .
           file: Dockerfile.anvil
