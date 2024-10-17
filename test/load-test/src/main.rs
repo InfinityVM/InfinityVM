@@ -10,10 +10,10 @@ use load_test::{
 };
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
-use std::fs;
-use std::fs::{File, OpenOptions};
-use std::io::{BufWriter, Write};
 use std::{
+    fs,
+    fs::{File, OpenOptions},
+    io::{BufWriter, Write},
     path::PathBuf,
     sync::{
         atomic::{AtomicU64, Ordering},
