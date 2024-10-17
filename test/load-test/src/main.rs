@@ -10,19 +10,21 @@ use load_test::{
 };
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
+use std::fs;
+use std::fs::{File, OpenOptions};
+use std::io::{BufWriter, Write};
 use std::{
-    sync::{atomic::{AtomicU64, Ordering}, Mutex},
-    time::{Duration, Instant},
     path::PathBuf,
+    sync::{
+        atomic::{AtomicU64, Ordering},
+        Mutex,
+    },
+    time::{Duration, Instant},
 };
 use tokio::sync::OnceCell;
-use std::fs::{OpenOptions, File};
-use std::io::{Write, BufWriter};
-use std::fs;
 
 static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
 static JOB_COMPLETION_TIMES: Lazy<Mutex<Vec<Duration>>> = Lazy::new(|| Mutex::new(Vec::new()));
-
 
 async fn initialize_global_nonce() -> AtomicU64 {
     let anvil_ip = anvil_ip();
@@ -125,13 +127,10 @@ fn log_job_completion_time(nonce: u64, duration: Duration, is_average: bool) {
     } else {
         format!("Job {:5}: Completed in {:8.3?}\n", nonce, duration)
     };
-    
+
     let log_path = PathBuf::from("test/load-test/log/job_completion_times.log");
-    
-    let file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&log_path);
+
+    let file = OpenOptions::new().create(true).append(true).open(&log_path);
 
     match file {
         Ok(file) => {
@@ -142,7 +141,7 @@ fn log_job_completion_time(nonce: u64, duration: Duration, is_average: bool) {
             if let Err(e) = writer.flush() {
                 eprintln!("Failed to flush log file: {}", e);
             }
-        },
+        }
         Err(e) => eprintln!("Failed to open or create log file: {:?} - Error: {}", log_path, e),
     }
 }
