@@ -43,6 +43,7 @@ abstract contract Consumer {
         return maxNonce + 1;
     }
 
+    // We have a single setter function here to improve gas efficiency
     function setInputsForJob(
         bytes32 jobID,
         bytes memory onchainInput,
