@@ -8,7 +8,7 @@ on:
 
 env:
   PROJECT_ID: infinityvm-core-artifacts
-  REGION: us-west1
+  REGION: us
   GAR_LOCATION: us-docker.pkg.dev/infinityvm-core-artifacts/docker
 
 jobs:
@@ -30,14 +30,14 @@ jobs:
         name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          token_format: access_token
-          credentials_json: '${{ secrets.ARTIFACT_REGISTRY_CREDENTIALS }}'
+          workload_identity_provider: 'projects/infinityvm-core-artifacts/locations/global/workloadIdentityPools/github_pool/providers/github-actions-provider'
+          project_id: 'infinityvm-core-artifacts'
       - name: Login to Artifact Registry
         uses: docker/login-action@v3
         with:
           registry: us-docker.pkg.dev
-          username: _json_key
-          password: '${{ secrets.ARTIFACT_REGISTRY_CREDENTIALS }}'
+          username: oauth2accesstoken
+          password: ${{ steps.auth.outputs.access_token }}
 
       - uses: technote-space/get-diff-action@v6.1.2
         id: diff
