@@ -12,7 +12,7 @@ abstract contract Consumer {
     JobManager internal _jobManager;
     uint64 public maxNonce;
     
-    mapping(bytes32 => JobInputs) internal jobIDToJobInputs;
+    mapping(bytes32 => JobInputs) internal jobIDToInputs;
 
     constructor(address __jobManager, uint64 _initialMaxNonce) {
         _jobManager = JobManager(__jobManager);
@@ -28,15 +28,15 @@ abstract contract Consumer {
     }
 
     function getOnchainInputForJob(bytes32 jobID) public view virtual returns (bytes memory) {
-        return jobIDToJobInputs[jobID].onchainInput;
+        return jobIDToInputs[jobID].onchainInput;
     }
 
     function getOffchainInputHashForJob(bytes32 jobID) public view virtual returns (bytes32) {
-        return jobIDToJobInputs[jobID].offchainInputHash;
+        return jobIDToInputs[jobID].offchainInputHash;
     }
 
     function getStateHashForJob(bytes32 jobID) public view virtual returns (bytes32) {
-        return jobIDToJobInputs[jobID].stateHash;
+        return jobIDToInputs[jobID].stateHash;
     }
 
     function getNextNonce() public view virtual returns (uint64) {
@@ -49,7 +49,7 @@ abstract contract Consumer {
         bytes32 offchainInputHash,
         bytes32 stateHash
     ) public virtual onlyJobManager() {
-        JobInputs storage jobInputs = jobIDToJobInputs[jobID];
+        JobInputs storage jobInputs = jobIDToInputs[jobID];
         jobInputs.onchainInput = onchainInput;
         jobInputs.offchainInputHash = offchainInputHash;
         jobInputs.stateHash = stateHash;
@@ -67,7 +67,7 @@ abstract contract Consumer {
         uint64 maxCycles
     ) internal virtual returns (bytes32) {
         bytes32 jobID = _jobManager.createJob(getNextNonce(), programID, onchainInput, maxCycles);
-        jobIDToJobInputs[jobID].onchainInput = onchainInput; // Set onchain input
+        jobIDToInputs[jobID].onchainInput = onchainInput; // Set onchain input
         return jobID;
     }
 
