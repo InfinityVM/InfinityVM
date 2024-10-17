@@ -47,7 +47,7 @@ jobs:
             .github/workflows/docker-coproc.yml
             contracts/**
             crates/coprocessor-node/**
-            Dockerfile.coproc-node
+            Dockerfile.coprocessor-node
 
       - name: Docker Metadata Pull
         id: meta
@@ -69,7 +69,7 @@ jobs:
         if: env.GIT_DIFF
         with:
           context: .
-          file: Dockerfile.coproc-node
+          file: Dockerfile.coprocessor-node
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
