@@ -44,7 +44,7 @@ jobs:
         id: diff
         with:
           PATTERNS: |            
-            .github/workflows/coproc.yml
+            .github/workflows/docker-coproc.yml
             contracts/**
             crates/coprocessor-node/**
             Dockerfile.coproc-node
