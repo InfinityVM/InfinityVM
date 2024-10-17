@@ -30,7 +30,7 @@ jobs:
         name: Authenticate with Google Cloud
         uses: google-github-actions/auth@v2
         with:
-          workload_identity_provider: 'projects/infinityvm-core-artifacts/locations/global/workloadIdentityPools/github-pool/providers/github-actions-provider'
+          workload_identity_provider: 'projects/454197732139/locations/global/workloadIdentityPools/github-pool/providers/github-actions-provider'
           project_id: 'infinityvm-core-artifacts'
       - name: Login to Artifact Registry
         uses: docker/login-action@v3
