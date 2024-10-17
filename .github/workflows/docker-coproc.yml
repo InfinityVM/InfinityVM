@@ -67,7 +67,7 @@ jobs:
       - id: docker-push-coproc
         name: Tag Docker image and push to Google Artifact Registry
         uses: docker/build-push-action@v6
-        if: env.GIT_DIFF
+        if: env.GIT_DIFF || github.event_name == 'workflow_dispatch'
         with:
           context: .
           file: Dockerfile.coprocessor-node
