@@ -83,5 +83,4 @@ abstract contract Consumer {
     // to decode the coprocessor result into any app-specific struct and
     // perform app-specific logic using the result
     function _receiveResult(bytes32 jobID, bytes memory result) internal virtual;
-
 }
