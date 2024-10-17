@@ -48,15 +48,9 @@ There are other parameters that we can modify, these are detailed in the [Goose 
 The guest program supports different levels of computation intensity. You can specify the intensity by setting the `COMPUTATION_INTENSITY` environment variable in the `main.rs` guest program. 
 
 The available options are:
-- `light`: For quick, less intensive computations
-- `medium`: For balanced performance and complexity (default)
-- `heavy`: For more intensive, time-consuming computations
-- `all`: To run all intensity levels sequentially
-
-Each intensity level corresponds to different parameters for computation iterations and hash rounds:
-- `light`: 100 iterations, 10 hash rounds
-- `medium`: 1000 iterations, 100 hash rounds
-- `heavy`: 10000 iterations, 1000 hash rounds
+- `light`: For quick, less intensive computations (100 iterations, 10 hash rounds)
+- `medium`: For balanced performance and complexity (default) (1000 iterations, 100 hash rounds)
+- `heavy`: For more intensive, time-consuming computations (10000 iterations, 1000 hash rounds)
 
 ## Measuring time until job is completed
 

@@ -6,7 +6,7 @@ use sha2::{Sha256, Digest};
 // - "light": for quick, less intensive computations
 // - "medium": for balanced performance and complexity
 // - "heavy": for more intensive, time-consuming computations
-const COMPUTATION_INTENSITY: &str = "light";
+const COMPUTATION_INTENSITY: &str = "medium";
 
 fn get_parameters(intensity: &str) -> Vec<(u32, u32)> {
     match intensity.to_lowercase().as_str() {
