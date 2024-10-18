@@ -297,7 +297,7 @@ pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> StatefulProgram
     let clob_result_deltas = ClobResultDeltas { order_deltas, withdraw_deltas, deposit_deltas };
 
     StatefulProgramResult {
-        next_state_hash: state.borsh_keccak256(),
+        state_output_hash: state.borsh_keccak256(),
         result: ClobResultDeltas::abi_encode(&clob_result_deltas).into(),
     }
 }

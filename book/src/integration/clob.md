@@ -68,7 +68,7 @@ message SubmitJobRequest {
   bytes request = 1; // ABI-encoded offchain job request
   bytes signature = 2;
   bytes offchain_input = 3;
-  bytes state = 4;
+  bytes state_input = 4;
 }
 
 struct OffchainJobRequest {
@@ -78,22 +78,22 @@ struct OffchainJobRequest {
     bytes programID;
     bytes onchainInput;
     bytes32 offchainInputHash;
-    bytes32 stateHash;
+    bytes32 stateInputHash;
 }
 ```
 
 The CLOB uses `offchain_input` since we need to pass in a large number of orders as input in each batch. This `offchain_input` contains the new batch of orders/cancels/deposits/withdraws.
 
-We also use `state` since the CLOB is a stateful app server, where the state contains all user balances in the CLOB along with the order book.
+We also use `state_input` since the CLOB is a stateful app server, where the state contains all user balances in the CLOB along with the order book.
 
-The `offchain_input` and `state` is borsh-encoded by the CLOB server before submitting to the coprocessor.
+The `offchain_input` and `state_input` is borsh-encoded by the CLOB server before submitting to the coprocessor.
 
 ## zkVM program
 
-The zkVM program takes in `state` and `offchain_input` as inputs. It does these things:
+The zkVM program takes in `state_input` and `offchain_input` as inputs. It does these things:
 
-1. Decodes `state` and `offchain_input`
-1. Runs the CLOB app's state transition function, which matches orders given the inputs from the batch in `offchain_input` and the existing order book + balances in `state`. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275).
+1. Decodes `state_input` and `offchain_input`
+1. Runs the CLOB app's state transition function, which matches orders given the inputs from the batch in `offchain_input` and the existing order book + balances in `state_input`. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/clob/core/src/lib.rs#L275).
 1. Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of balance updates which will be processed by the CLOB app contract.
 
 The list of state updates sent to the CLOB contract is structured like this:
@@ -108,7 +108,7 @@ struct ClobResultDeltas {
 
 The CLOB contract receives this list of state updates and processes it to update user balances.
 
-## Ensuring correctness of the `state`
+## Ensuring correctness of the `state_input`
 
 In [Stateful App Servers](./offchain.md#stateful-app-servers), we discussed the problem of ensuring the correctness of the state submitted by an app server to the coprocessor.
 

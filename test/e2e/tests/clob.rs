@@ -147,7 +147,7 @@ async fn state_job_submission_clob_consumer() {
             let offchain_input_hash = requests.borsh_keccak256();
             let offchain_input_borsh = borsh::to_vec(&requests).unwrap();
 
-            let previous_state_hash = init_state.borsh_keccak256();
+            let state_input_hash = init_state.borsh_keccak256();
             let state_borsh = borsh::to_vec(&init_state).unwrap();
 
             let params = JobParams {
@@ -156,7 +156,7 @@ async fn state_job_submission_clob_consumer() {
                 consumer_address: **clob.clob_consumer,
                 onchain_input: &[],
                 offchain_input_hash: offchain_input_hash.into(),
-                state_hash: *previous_state_hash,
+                state_input_hash: *state_input_hash,
                 program_id: &program_id,
             };
             let request = abi_encode_offchain_job_request(params.clone());
@@ -194,7 +194,7 @@ async fn state_job_submission_clob_consumer() {
 
             {
                 let clob_output = StatefulProgramResult::abi_decode(&raw_output, true).unwrap();
-                assert_eq!(clob_output.next_state_hash, next_state.borsh_keccak256());
+                assert_eq!(clob_output.state_output_hash, next_state.borsh_keccak256());
             }
 
             nonce += 1;

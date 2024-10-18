@@ -105,14 +105,14 @@ where
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
         let offchain_input_hash = keccak256(&requests_borsh);
         let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
-        let previous_state_hash = keccak256(&state_borsh);
+        let state_input_hash = keccak256(&state_borsh);
 
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
             onchain_input: &[],
             offchain_input_hash: offchain_input_hash.into(),
-            state_hash: previous_state_hash.into(),
+            state_input_hash: state_input_hash.into(),
             program_id: &program_id,
             consumer_address: clob_consumer_addr,
         };

@@ -32,7 +32,7 @@ mod tests {
         ];
         let clob_state1 = next_state(requests1.clone(), clob_state0.clone());
         let clob_out = execute(requests1.clone(), clob_state0.clone());
-        assert_eq!(clob_out.next_state_hash, clob_state1.borsh_keccak256());
+        assert_eq!(clob_out.state_output_hash, clob_state1.borsh_keccak256());
         let clob_result_deltas =
             ClobResultDeltas::abi_decode(clob_out.result.as_ref(), false).unwrap();
         assert!(clob_result_deltas.withdraw_deltas.is_empty());
@@ -70,7 +70,7 @@ mod tests {
         ];
         let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
         let clob_out = execute(requests2.clone(), clob_state1.clone());
-        assert_eq!(clob_out.next_state_hash, clob_state2.borsh_keccak256());
+        assert_eq!(clob_out.state_output_hash, clob_state2.borsh_keccak256());
         let clob_result_deltas =
             ClobResultDeltas::abi_decode(clob_out.result.as_ref(), false).unwrap();
         assert!(clob_result_deltas.withdraw_deltas.is_empty());
@@ -98,7 +98,7 @@ mod tests {
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
         let clob_out = execute(requests3.clone(), clob_state2.clone());
-        assert_eq!(clob_out.next_state_hash, clob_state3.borsh_keccak256());
+        assert_eq!(clob_out.state_output_hash, clob_state3.borsh_keccak256());
         let clob_result_deltas =
             ClobResultDeltas::abi_decode(clob_out.result.as_ref(), false).unwrap();
         assert!(clob_result_deltas.deposit_deltas.is_empty());

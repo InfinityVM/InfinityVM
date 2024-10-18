@@ -78,8 +78,8 @@ struct JobRequest {
     onchain_input: Vec<u8>,
     offchain_input: Vec<u8>,
     offchain_input_hash: Vec<u8>,
-    state: Vec<u8>,
-    state_hash: Vec<u8>,
+    state_input: Vec<u8>,
+    state_input_hash: Vec<u8>,
 }
 ```
 
@@ -87,12 +87,12 @@ struct JobRequest {
 - the new batch of orders/cancels/deposits/withdraws
 - user signature for each order in the batch
 
-The `offchain_input` and `state` will be borsh-encoded before submitting to the coprocessor.
+The `offchain_input` and `state_input` will be borsh-encoded before submitting to the coprocessor.
 
 ### zkVM program
 
-The zkVM program takes in `state` and `offchain_input` as inputs. It does these things:
-- Decodes `state` and `offchain_input`
+The zkVM program takes in `statstate_inpute` and `offchain_input` as inputs. It does these things:
+- Decodes `state_input` and `offchain_input`
 - Verifies that the signature on every order in the batch is valid
 - Runs the CLOB matching function, which takes in the batch and the existing order book as inputs. We won't explain this function in detail here, but the code for this is in `zkvm_stf` in `clob/core/src/lib.rs` in the `InfinityVM` monorepo.
 - Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of state updates which will be processed by the CLOB contract.
@@ -130,9 +130,9 @@ struct WithdrawDelta {
 
 The CLOB contract receives this list of state updates and processes it to update user balances. `DepositDelta` is used to update a user's `depositedBalance` and `freeBalance` due to deposits. `OrderDelta` is used to update a user's `freeBalance` and/or `lockedBalance` due to orders being placed, filled, and/or cancelled. `WithdrawDelta` is used to update a user's `freeBalance` and transfer funds to the user due to withdrawals.
 
-### Ensuring correctness of the state passed as input
+### Ensuring correctness of the `state_input`
 
-The coprocessor verifies that the `state` hashes to the same value as `state_hash` signed by the CLOB server in the job request. But, this is still not fully secure since the CLOB server can provide any arbitrary value for `state` and just include the corresponding hash for this arbitrary state in `state_hash`.
+The coprocessor verifies that the `state_input` hashes to the same value as `state_input_hash` signed by the CLOB server in the job request. But, this is still not fully secure since the CLOB server can provide any arbitrary value for `state_input` and just include the corresponding hash for this arbitrary state in `state_input_hash`.
 
 To solve this, we add logic in the `StatefulConsumer` interface to keep track of the state hash for each batch, and make the CLOB implement this:
 ```solidity=
@@ -142,7 +142,7 @@ abstract contract StatefulConsumer {
     function receiveResult(bytes32 jobID, bytes result) {
         bytes32 stateInputHash = getStateInputHashForJob(jobID);
         
-        // Check that state_hash passed by CLOB 
+        // Check that state_input_hash passed by CLOB 
         // server matches the most recent state hash
         require(stateInputHash == latestStateOutputHash);
         
@@ -151,7 +151,7 @@ abstract contract StatefulConsumer {
     }
 }
 ```
-By verifying that `state_hash` matches the state from the most recent batch, this logic ensures that the CLOB server can only submit valid state to the InfinityVM coprocessor.
+By verifying that `state_input_hash` matches the state from the most recent batch, this logic ensures that the CLOB server can only submit valid state input to the InfinityVM coprocessor.
 
 ### Future improvements
 

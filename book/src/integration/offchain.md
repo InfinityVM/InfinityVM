@@ -29,11 +29,11 @@ message SubmitJobRequest {
   bytes request = 1; // ABI-encoded offchain job request
   bytes signature = 2; // Signature on ABI-encoded offchain job request
   bytes offchain_input = 3; // Value of offchain input passed into program (this isn't signed over)
-  bytes state = 4; // Value of state passed into program (this isn't signed over)
+  bytes state_input = 4; // Value of state input passed into program (this isn't signed over)
 }
 ```
 
-This includes the actual job request (ABI-encoded), a signature over the request, and `offchain_input` and `state` (we explain `offchain_input` and `state` later in [Offchain Inputs](./offchain.md#offchain-inputs) and [Stateful App Servers](./offchain.md#stateful-app-servers) in this doc). The job request is an ABI-encoded version of this:
+This includes the actual job request (ABI-encoded), a signature over the request, and `offchain_input` and `state_input` (we explain `offchain_input` and `state_input` later in [Offchain Inputs](./offchain.md#offchain-inputs) and [Stateful App Servers](./offchain.md#stateful-app-servers) in this doc). The job request is an ABI-encoded version of this:
 ```rust,ignore
 struct OffchainJobRequest {
     uint64 nonce;
@@ -42,7 +42,7 @@ struct OffchainJobRequest {
     bytes programID;
     bytes onchainInput;
     bytes32 offchainInputHash;
-    bytes32 stateHash;
+    bytes32 stateInputHash;
 }
 ```
 A few notes:
@@ -92,9 +92,9 @@ Some app servers might be "stateful", i.e. they maintain some state, which is pa
 
 ![stateful app server](../assets/stateful-app-server.png)
 
-This is why we have the `state` field in `SubmitJobRequest`, which apps can use to submit their state along with a job request.
+This is why we have the `state_input` field in `SubmitJobRequest`, which apps can use to submit their state along with a job request.
 
-This raises an interesting problem: how do we ensure that app servers submit the correct state to the coprocessor? For example, if the latest state on the app contract is `X` but the app server submits `Y` as the `state` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state input hash submitted by the app server in the job request matches the most recent state output hash in the app contract.
+This raises an interesting problem: how do we ensure that app servers submit the correct state input to the coprocessor? For example, if the latest state on the app contract is `X` but the app server submits `Y` as the `state_input` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state input hash submitted by the app server in the job request matches the most recent state output hash in the app contract.
 
 ## Writing your app contract
 

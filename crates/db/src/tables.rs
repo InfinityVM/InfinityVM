@@ -82,7 +82,7 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
         let consumer_address =
             job.consumer_address.clone().try_into().map_err(|_| Error::InvalidAddressLength)?;
         let offchain_input_hash = keccak256(&job.offchain_input);
-        let state_hash = keccak256(&job.state);
+        let state_input_hash = keccak256(&job.state);
 
         Ok(JobParams {
             nonce: job.nonce,
@@ -90,7 +90,7 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
             consumer_address,
             onchain_input: &job.onchain_input,
             offchain_input_hash: offchain_input_hash.into(),
-            state_hash: state_hash.into(),
+            state_input_hash: state_input_hash.into(),
             program_id: &job.program_id,
         })
     }

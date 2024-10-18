@@ -37,8 +37,8 @@ message JobResult {
   bytes onchain_input = 6;
   // Hash of execution input posted offchain (DA)
   bytes offchain_input_hash = 7;
-  // Hash of program state
-  bytes state_hash = 8;
+  // Hash of program state input posted offchain (DA)
+  bytes state_input_hash = 8;
   // Signature on the offchain job request
   bytes request_signature = 9;
   // ABI-encoded result of job execution with metadata

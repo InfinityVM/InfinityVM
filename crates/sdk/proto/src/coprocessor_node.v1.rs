@@ -53,10 +53,10 @@ pub struct JobResult {
     #[prost(bytes = "vec", tag = "7")]
     #[serde_as(as = "Hex")]
     pub offchain_input_hash: ::prost::alloc::vec::Vec<u8>,
-    /// Hash of program state
+    /// Hash of program state input posted offchain (DA)
     #[prost(bytes = "vec", tag = "8")]
     #[serde_as(as = "Hex")]
-    pub state_hash: ::prost::alloc::vec::Vec<u8>,
+    pub state_input_hash: ::prost::alloc::vec::Vec<u8>,
     /// Signature on the offchain job request
     #[prost(bytes = "vec", tag = "9")]
     #[serde_as(as = "Hex")]

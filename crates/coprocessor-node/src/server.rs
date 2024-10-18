@@ -50,7 +50,7 @@ where
             consumer,
             program_id,
             onchain_input,
-            state_hash: state_hash_in_request,
+            state_input_hash: state_input_hash_in_request,
             offchain_input_hash: offchain_input_hash_in_request,
         } = OffchainJobRequest::abi_decode(&req.request, false)
             .map_err(|_| Status::invalid_argument("invalid ABI-encoding of job request"))?;
@@ -77,8 +77,8 @@ where
             return Err(Status::invalid_argument("offchain input hash does not match"));
         }
 
-        let state_hash = keccak256(&req.state);
-        if state_hash_in_request != state_hash {
+        let state_input_hash = keccak256(&req.state);
+        if state_input_hash_in_request != state_input_hash {
             return Err(Status::invalid_argument("state input hash does not match"));
         }
 
@@ -149,7 +149,7 @@ where
                     program_id: job.program_id,
                     onchain_input: job.onchain_input,
                     offchain_input_hash: keccak256(&job.offchain_input).as_slice().to_vec(),
-                    state_hash: keccak256(&job.state).as_slice().to_vec(),
+                    state_input_hash: keccak256(&job.state).as_slice().to_vec(),
                     consumer_address: job.consumer_address,
                     max_cycles: job.max_cycles,
                     request_signature,
