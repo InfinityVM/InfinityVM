@@ -62,7 +62,7 @@ pub struct JobResult {
     #[serde_as(as = "Hex")]
     pub request_signature: ::prost::alloc::vec::Vec<u8>,
     /// ABI-encoded result of job execution with metadata
-    /// tuple(JobID,OnchainInputHash,StateHash,MaxCycles,ProgramID,RawOutput)
+    /// tuple(JobID,OnchainInputHash,OffchainInputHash,StateInputHash,MaxCycles,ProgramID,RawOutput)
     #[prost(bytes = "vec", tag = "10")]
     #[serde_as(as = "Hex")]
     pub result_with_metadata: ::prost::alloc::vec::Vec<u8>,

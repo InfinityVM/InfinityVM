@@ -94,7 +94,7 @@ Some app servers might be "stateful", i.e. they maintain some state, which is pa
 
 This is why we have the `state` field in `SubmitJobRequest`, which apps can use to submit their state along with a job request.
 
-This raises an interesting problem: how do we ensure that app servers submit the correct state to the coprocessor? For example, if the latest state on the app contract is `X` but the app server submits `Y` as the `state` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state hash submitted by the app server in the job request matches the most recent state hash in the app contract.
+This raises an interesting problem: how do we ensure that app servers submit the correct state to the coprocessor? For example, if the latest state on the app contract is `X` but the app server submits `Y` as the `state` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state input hash submitted by the app server in the job request matches the most recent state output hash in the app contract.
 
 ## Writing your app contract
 

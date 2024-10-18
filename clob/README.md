@@ -134,20 +134,20 @@ The CLOB contract receives this list of state updates and processes it to update
 
 The coprocessor verifies that the `state` hashes to the same value as `state_hash` signed by the CLOB server in the job request. But, this is still not fully secure since the CLOB server can provide any arbitrary value for `state` and just include the corresponding hash for this arbitrary state in `state_hash`.
 
-To solve this, we add logic in the CLOB contract to keep track of the state hash for each batch:
+To solve this, we add logic in the `StatefulConsumer` interface to keep track of the state hash for each batch, and make the CLOB implement this:
 ```solidity=
-contract ClobConsumer {
-    bytes32 latestStateHash;
+abstract contract StatefulConsumer {
+    bytes32 latestStateOutputHash;
     
     function receiveResult(bytes32 jobID, bytes result) {
-        bytes32 stateHash = getStateHashForJob(jobID);
+        bytes32 stateInputHash = getStateInputHashForJob(jobID);
         
         // Check that state_hash passed by CLOB 
         // server matches the most recent state hash
-        require(stateHash == latestStateHash);
+        require(stateInputHash == latestStateOutputHash);
         
         // Update the most recent state hash with the new state
-        latestStateHash = abi.decode(result).nextStateHash;
+        latestStateOutputHash = abi.decode(result).stateOutputHash;
     }
 }
 ```

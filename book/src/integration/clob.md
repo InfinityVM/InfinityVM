@@ -112,4 +112,4 @@ The CLOB contract receives this list of state updates and processes it to update
 
 In [Stateful App Servers](./offchain.md#stateful-app-servers), we discussed the problem of ensuring the correctness of the state submitted by an app server to the coprocessor.
 
-The `ClobConsumer` contract implements the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface, to verify that the state hash submitted by the CLOB server in the job request is correct.
+The `ClobConsumer` contract implements the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface, to verify that the state input hash submitted by the CLOB server in the job request is correct.

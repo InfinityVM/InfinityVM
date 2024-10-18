@@ -32,7 +32,7 @@ interface IJobManager {
         bytes32 jobID;
         bytes32 onchainInputHash;
         bytes32 offchainInputHash;
-        bytes32 stateHash;
+        bytes32 stateInputHash;
         uint64 maxCycles;
         bytes programID;
         bytes result;
@@ -45,7 +45,7 @@ interface IJobManager {
         bytes programID;
         bytes onchainInput;
         bytes32 offchainInputHash;
-        bytes32 stateHash;
+        bytes32 stateInputHash;
     }
 
     // FUNCTIONS

@@ -79,7 +79,7 @@ where
 
         let state_hash = keccak256(&req.state);
         if state_hash_in_request != state_hash {
-            return Err(Status::invalid_argument("state hash does not match"));
+            return Err(Status::invalid_argument("state input hash does not match"));
         }
 
         let job_id = get_job_id(nonce, consumer);
