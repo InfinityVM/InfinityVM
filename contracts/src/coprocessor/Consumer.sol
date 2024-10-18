@@ -43,6 +43,7 @@ abstract contract Consumer {
         return maxNonce + 1;
     }
 
+    // We have a single setter function here to improve gas efficiency
     function setInputsForJob(
         bytes32 jobID,
         bytes memory onchainInput,
@@ -67,7 +68,8 @@ abstract contract Consumer {
         uint64 maxCycles
     ) internal virtual returns (bytes32) {
         bytes32 jobID = _jobManager.createJob(getNextNonce(), programID, onchainInput, maxCycles);
-        jobIDToInputs[jobID].onchainInput = onchainInput; // Set onchain input
+        // Set onchain input
+        jobIDToInputs[jobID].onchainInput = onchainInput;
         return jobID;
     }
 
