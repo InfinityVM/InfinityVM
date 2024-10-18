@@ -24,7 +24,7 @@ contract ClobConsumerTest is Test, CoprocessorDeployer, ClobDeployer {
     function setUp() public {
         uint64 initialMaxNonce = 0;
         deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, true);
-        deployClobContracts(OFFCHAIN_REQUEST_SIGNER, initialMaxNonce, true);
+        deployClobContracts(OFFCHAIN_REQUEST_SIGNER, initialMaxNonce, false);
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
 
         baseToken.mint(alice, 1000);
@@ -59,7 +59,7 @@ contract ClobConsumerTest is Test, CoprocessorDeployer, ClobDeployer {
         test_ClobConsumer_DepositInitiated();
 
         vm.prank(address(jobManager));
-        consumer.setOnchainInputForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""));
+        consumer.setInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""), 0x0, 0x0);
     
         ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](2);
         depositDeltas[0] = ClobConsumer.DepositDelta({

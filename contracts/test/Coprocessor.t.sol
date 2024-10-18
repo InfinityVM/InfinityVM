@@ -23,7 +23,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
     function setUp() public {
         uint64 initialMaxNonce = 0;
         deployCoprocessorContracts(RELAYER, COPROCESSOR_OPERATOR, true);
-        deployMockConsumerContracts(OFFCHAIN_SIGNER, initialMaxNonce, true);
+        deployMockConsumerContracts(OFFCHAIN_SIGNER, initialMaxNonce, false);
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }
 
