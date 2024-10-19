@@ -86,10 +86,9 @@ where
         let vm = self.vm(vm_type)?;
 
         if !vm.is_correct_verifying_key(&elf, &program_id)? {
-            return Err(Error::InvalidVerifyingKey(format!(
-                "bad verifying key {}",
-                hex_program_id,
-            )));
+            return Err(Error::InvalidVerifyingKey(
+                format!("bad verifying key {}", hex_program_id,),
+            ));
         }
 
         let onchain_input_hash = keccak256(&onchain_input);
@@ -130,10 +129,9 @@ where
         let vm = self.vm(vm_type)?;
 
         if !vm.is_correct_verifying_key(&elf, &program_id)? {
-            return Err(Error::InvalidVerifyingKey(format!(
-                "bad verifying key {}",
-                hex_program_id,
-            )));
+            return Err(Error::InvalidVerifyingKey(
+                format!("bad verifying key {}", hex_program_id,),
+            ));
         }
 
         let onchain_input_hash = keccak256(&onchain_input);
