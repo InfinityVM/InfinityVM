@@ -15,7 +15,7 @@ There are two load test scenarios we run:
 
 1. `LoadtestSubmitJob`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `MockConsumer` job, with a wait time of 1-3 secs between each job submission for a user.
 2. `LoadtestGetResult`: Starts by submitting an offchain `MockConsumer` job with nonce `1` and then each user keeps sending `GetResult` requests (no wait time between requests).
-
+3. `LoadtestIntensityTest`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `IntensityTest` job, using a specified intensity level. The job submission includes a nonce and intensity parameters, with an option to wait for job completion. The intensity parameters are defined by the `INTENSITY_ITERATIONS` and `INTENSITY_WORK_PER_ITERATION` CLI vars. 
 For each load test, Goose spawns multiple users, with a thread for each user.
 
 To run the load tests:
@@ -43,14 +43,11 @@ We have a few parameters we can set in `load-test/.env` (an `example.env` is pro
 
 There are other parameters that we can modify, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 
-## Specifying guest program intensity
+## Specifying load-test program intensity
 
-The guest program supports different levels of computation intensity. You can specify the intensity by setting the `COMPUTATION_INTENSITY` environment variable in the `main.rs` guest program. 
+The guest program supports different levels of computation intensity. You can specify the intensity by setting the `COMPUTATION_INTENSITY` environment variable in the CLI by running:
 
-The available options are:
-- `light`: For quick, less intensive computations (100 iterations, 10 hash rounds)
-- `medium`: For balanced performance and complexity (default) (1000 iterations, 100 hash rounds)
-- `heavy`: For more intensive, time-consuming computations (10000 iterations, 1000 hash rounds)
+`INTENSITY_ITERATIONS=100 INTENSITY_WORK_PER_ITERATION=10 cargo run --bin load-test -- --scenarios LoadtestIntensityTest`
 
 ## Measuring time until job is completed
 

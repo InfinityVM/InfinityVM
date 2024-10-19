@@ -13,7 +13,6 @@ contracts/broadcast/**
 contracts/.env
 crates/scripts/.env
 test/load-test/.env
-test/load-test/log
 
 programs/**/methods/Cargo.lock
 programs/**/program/target
