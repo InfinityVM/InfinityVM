@@ -12,7 +12,6 @@ use load_test::{
 };
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
-use std::sync::Mutex;
 use std::{
     sync::{
         atomic::{AtomicU64, Ordering},
