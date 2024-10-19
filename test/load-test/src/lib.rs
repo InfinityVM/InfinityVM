@@ -1,15 +1,19 @@
 //! Load testing for the coprocessor node
-use abi::{get_job_id, JobParams, abi_encode_offchain_job_request};
-use alloy::{primitives::{Address, keccak256}, sol_types::SolValue, signers::Signer};
+use abi::{abi_encode_offchain_job_request, get_job_id, JobParams};
+use alloy::{
+    primitives::{keccak256, Address},
+    signers::Signer,
+    sol_types::SolValue,
+};
 use contracts::get_default_deploy_info;
 use goose::prelude::*;
+use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use proto::{GetResultRequest, GetResultResponse};
+use risc0_binfmt::compute_image_id;
 use std::env;
 use test_utils::{create_and_sign_offchain_request, get_signers};
-use risc0_binfmt::compute_image_id;
-use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
 
 /// Get the Anvil IP address env var.
 pub fn anvil_ip() -> String {
@@ -141,17 +145,21 @@ async fn get_result_status(
 }
 
 /// Creates and signs an offchain request for the intensity test.
-pub async fn get_offchain_request_for_intensity_test(nonce: u64, encoded_intensity: &[u8]) -> (Vec<u8>, Vec<u8>) {
+pub async fn get_offchain_request_for_intensity_test(
+    nonce: u64,
+    encoded_intensity: &[u8],
+) -> (Vec<u8>, Vec<u8>) {
     let program_id = compute_image_id(INTENSITY_TEST_GUEST_ELF).unwrap().as_bytes().to_vec();
-    let consumer_address = Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
+    let consumer_address =
+        Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
 
     let params = JobParams {
         nonce,
         max_cycles: max_cycles(),
         consumer_address: consumer_address.into(),
         onchain_input: encoded_intensity,
-        offchain_input_hash: keccak256(&[]).into(),
-        state_hash: keccak256(&[]).into(),
+        offchain_input_hash: keccak256([]).into(),
+        state_hash: keccak256([]).into(),
         program_id: &program_id,
     };
 
@@ -163,16 +171,10 @@ pub async fn get_offchain_request_for_intensity_test(nonce: u64, encoded_intensi
 
 /// Retrieves the number of iterations for the intensity test from the environment variable.
 pub fn intensity_iterations() -> u32 {
-    env::var("INTENSITY_ITERATIONS")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(1000)
+    env::var("INTENSITY_ITERATIONS").ok().and_then(|v| v.parse().ok()).unwrap_or(1000)
 }
 
 /// Retrieves the amount of work per iteration for the intensity test from the environment variable.
 pub fn intensity_work_per_iteration() -> u32 {
-    env::var("INTENSITY_WORK_PER_ITERATION")
-        .ok()
-        .and_then(|v| v.parse().ok())
-        .unwrap_or(100)
+    env::var("INTENSITY_WORK_PER_ITERATION").ok().and_then(|v| v.parse().ok()).unwrap_or(100)
 }

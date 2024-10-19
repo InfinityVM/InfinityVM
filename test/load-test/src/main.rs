@@ -1,24 +1,22 @@
 //! Load testing for the coprocessor node
 use abi::get_job_id;
 use alloy::{primitives::Address, providers::ProviderBuilder};
+use borsh::{BorshDeserialize, BorshSerialize};
 use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
-    get_offchain_request, get_offchain_request_for_intensity_test, num_users, report_file_name, run_time, should_wait_until_job_completed,
-    startup_time, wait_until_job_completed, intensity_iterations, intensity_work_per_iteration
+    get_offchain_request, get_offchain_request_for_intensity_test, intensity_iterations,
+    intensity_work_per_iteration, num_users, report_file_name, run_time,
+    should_wait_until_job_completed, startup_time, wait_until_job_completed,
 };
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
 use std::{
-    fs,
-    sync::{
-        atomic::{AtomicU64, Ordering}
-    },
+    sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
 };
 use tokio::sync::OnceCell;
-use borsh::{BorshSerialize, BorshDeserialize};
 
 static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
 
@@ -39,9 +37,7 @@ async fn initialize_global_nonce() -> AtomicU64 {
 
 #[tokio::main]
 async fn main() -> Result<(), GooseError> {
-    dotenv::from_filename("./test-load/.env").ok();
-
-    fs::create_dir_all("test/load-test/log").expect("Failed to create log directory");
+    dotenv::from_filename("./load-test/.env").ok();
 
     // Initialize GLOBAL_NONCE
     GLOBAL_NONCE.get_or_init(initialize_global_nonce).await;
@@ -166,7 +162,8 @@ async fn loadtest_intensity_test(user: &mut GooseUser) -> TransactionResult {
     };
     let encoded_intensity = borsh::to_vec(&intensity_input).unwrap();
 
-    let (encoded_job_request, signature) = get_offchain_request_for_intensity_test(nonce, &encoded_intensity).await;
+    let (encoded_job_request, signature) =
+        get_offchain_request_for_intensity_test(nonce, &encoded_intensity).await;
 
     let submit_job_request = SubmitJobRequest {
         request: encoded_job_request,
