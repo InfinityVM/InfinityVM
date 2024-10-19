@@ -122,9 +122,7 @@ contract JobManager is
 
         // Create a job without emitting an event and set onchain input, offchain input hash, and state hash on consumer
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
-        Consumer(request.consumer).setOnchainInputForJob(jobID, request.onchainInput);
-        Consumer(request.consumer).setOffchainInputHashForJob(jobID, request.offchainInputHash);
-        Consumer(request.consumer).setStateHashForJob(jobID, request.stateHash);
+        Consumer(request.consumer).setInputsForJob(jobID, request.onchainInput, request.offchainInputHash, request.stateHash);
 
         // Decode the result using abi.decode
         OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
