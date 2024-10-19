@@ -169,12 +169,44 @@ pub async fn get_offchain_request_for_intensity_test(
     (request, signature)
 }
 
-/// Retrieves the number of iterations for the intensity test from the environment variable.
-pub fn intensity_iterations() -> u32 {
-    env::var("INTENSITY_ITERATIONS").ok().and_then(|v| v.parse().ok()).unwrap_or(1000)
+/// Intensity level for the intensity test.
+#[derive(Debug)]
+pub enum IntensityLevel {
+    /// Light intensity: 100 iterations, 10 hashes per iteration
+    Light,
+    /// Medium intensity: 500 iterations, 50 hashes per iteration
+    Medium,
+    /// Heavy intensity: 1000 iterations, 100 hashes per iteration
+    Heavy,
 }
 
-/// Retrieves the amount of work per iteration for the intensity test from the environment variable.
+/// Defaults to Medium if not set or if an invalid value is provided.
+pub fn get_intensity_level() -> IntensityLevel {
+    match env::var("INTENSITY_LEVEL")
+        .unwrap_or_else(|_| "medium".to_string())
+        .to_lowercase()
+        .as_str()
+    {
+        "light" => IntensityLevel::Light,
+        "heavy" => IntensityLevel::Heavy,
+        _ => IntensityLevel::Medium,
+    }
+}
+
+/// Get the number of iterations for the current intensity level.
+pub fn intensity_iterations() -> u32 {
+    match get_intensity_level() {
+        IntensityLevel::Light => 10,
+        IntensityLevel::Medium => 50,
+        IntensityLevel::Heavy => 200,
+    }
+}
+
+/// Get the amount of work per iteration for the current intensity level.
 pub fn intensity_work_per_iteration() -> u32 {
-    env::var("INTENSITY_WORK_PER_ITERATION").ok().and_then(|v| v.parse().ok()).unwrap_or(100)
+    match get_intensity_level() {
+        IntensityLevel::Light => 5,
+        IntensityLevel::Medium => 25,
+        IntensityLevel::Heavy => 100,
+    }
 }

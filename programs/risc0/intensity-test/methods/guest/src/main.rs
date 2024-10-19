@@ -2,6 +2,7 @@ use risc0_zkvm::guest::env;
 use alloy::primitives::{Address, U256};
 use alloy::sol_types::SolValue;
 use borsh::{BorshDeserialize, BorshSerialize};
+use sha2::{Sha256, Digest};
 
 #[derive(BorshDeserialize, BorshSerialize)]
 struct IntensityInput {
@@ -10,12 +11,21 @@ struct IntensityInput {
 }
 
 fn do_some_work(intensity: IntensityInput) -> U256 {
-    let mut result = U256::from(0);
+    let mut result = U256::ZERO;
+    let mut hasher = Sha256::new();
+    
     for _ in 0..intensity.iterations {
+        hasher.update(result.to_be_bytes::<32>());
+        let hash = hasher.finalize_reset();
+        
         for _ in 0..intensity.work_per_iteration {
-            result = result.overflowing_add(U256::from(1)).0;
+            result = result.overflowing_add(U256::from_be_slice(&hash)).0;
+            hasher.update(result.to_be_bytes::<32>());
+            let intermediate_hash = hasher.finalize_reset();
+            result = result ^ U256::from_be_slice(&intermediate_hash);
         }
     }
+    
     result
 }
 

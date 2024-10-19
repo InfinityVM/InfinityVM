@@ -686,6 +686,7 @@ dependencies = [
  "alloy",
  "borsh 0.10.4",
  "risc0-zkvm",
+ "sha2",
 ]
 
 [[package]]

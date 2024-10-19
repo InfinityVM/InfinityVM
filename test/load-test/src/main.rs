@@ -6,12 +6,13 @@ use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
-    get_offchain_request, get_offchain_request_for_intensity_test, intensity_iterations,
-    intensity_work_per_iteration, num_users, report_file_name, run_time,
+    get_intensity_level, get_offchain_request, get_offchain_request_for_intensity_test,
+    intensity_iterations, intensity_work_per_iteration, num_users, report_file_name, run_time,
     should_wait_until_job_completed, startup_time, wait_until_job_completed,
 };
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
+use std::sync::Mutex;
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::{Duration, Instant},
@@ -19,6 +20,7 @@ use std::{
 use tokio::sync::OnceCell;
 
 static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
+static JOB_COMPLETION_TIMES: Lazy<Mutex<Vec<Duration>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 async fn initialize_global_nonce() -> AtomicU64 {
     let anvil_ip = anvil_ip();
@@ -70,7 +72,24 @@ async fn main() -> Result<(), GooseError> {
         .execute()
         .await?;
 
-    println!("No jobs completed during the test.");
+    println!("Load test completed.");
+    println!("Intensity test information:");
+    println!("Running intensity test with level: {:?}", get_intensity_level());
+    println!(
+        "Iterations: {}, Hashes per iteration: {}",
+        intensity_iterations(),
+        intensity_work_per_iteration()
+    );
+
+    // Calculate and print average job completion time
+    let job_completion_times = JOB_COMPLETION_TIMES.lock().unwrap();
+    if !job_completion_times.is_empty() {
+        let average_completion_time: Duration =
+            job_completion_times.iter().sum::<Duration>() / job_completion_times.len() as u32;
+        println!("Average job completion time: {:?}", average_completion_time);
+    } else {
+        println!("No jobs completed during the test.");
+    }
 
     Ok(())
 }
@@ -96,6 +115,8 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
         wait_until_job_completed(user, nonce).await;
         let total_duration = start_time.elapsed();
         println!("Job {} completed in {:?}", nonce, total_duration);
+        // Add the job completion time to the vector
+        JOB_COMPLETION_TIMES.lock().unwrap().push(total_duration);
     }
     Ok(())
 }
@@ -178,6 +199,8 @@ async fn loadtest_intensity_test(user: &mut GooseUser) -> TransactionResult {
         wait_until_job_completed(user, nonce).await;
         let total_duration = start_time.elapsed();
         println!("Intensity test job {} completed in {:?}", nonce, total_duration);
+        // Add the job completion time to the vector
+        JOB_COMPLETION_TIMES.lock().unwrap().push(total_duration);
     }
     Ok(())
 }

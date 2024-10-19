@@ -574,7 +574,6 @@ version = "0.1.0"
 dependencies = [
  "alloy",
  "risc0-zkvm",
- "sha2",
 ]
 
 [[package]]
