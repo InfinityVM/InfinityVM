@@ -21,6 +21,10 @@ members = [
 	"clob/programs",
 	"clob/node",
 	"clob/test-utils",
+	"simple/core",
+	"simple/contracts",
+	"simple/programs",
+	"simple/node",
 	"test/e2e",
 	"test/load-test",
 	"programs/risc0/mock-consumer/methods",
@@ -217,6 +221,10 @@ db = { path = "crates/db" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 proto = { path = "crates/sdk/proto" }
+simple-contracts ={ path = "simple/contracts" }
+simple-core = { path = "simple/core" }
+simple-node = { path = "simple/node" }
+simple-programs = { path = "simple/programs" }
 test-utils = { path = "crates/sdk/test-utils" }
 zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
