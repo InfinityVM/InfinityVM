@@ -43,6 +43,6 @@ fn main() {
     let output = (mock_user_address, result);
     let abi_encoded_output = output.abi_encode();
 
-    // Output single number for results
+    // Write the encoded output back to the host
     env::commit_slice(&abi_encoded_output);
 }
