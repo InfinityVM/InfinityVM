@@ -6329,10 +6329,9 @@ dependencies = [
  "abi",
  "alloy",
  "borsh",
- "clob-core",
- "clob-test-utils",
  "risc0-build",
  "risc0-zkvm",
+ "simple-core",
  "zkvm",
 ]
 
