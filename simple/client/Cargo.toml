@@ -1,0 +1,23 @@
+[package]
+name = "simple-client"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+borsh = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+eyre = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+
+# local deps
+simple-core = { workspace = true }
+simple-node = { workspace = true }
+test-utils = { workspace = true }
+simple-contracts = { workspace = true }
+contracts = { workspace = true }

@@ -4,8 +4,9 @@ use alloy::{
     eips::BlockNumberOrTag,
     signers::{k256::ecdsa::SigningKey, local::LocalSigner},
 };
+use simple_core::SimpleState;
 use std::{path::Path, sync::Arc};
-use tokio::task::JoinHandle;
+use tokio::{sync::RwLock, task::JoinHandle};
 
 pub mod app;
 pub mod batcher;
@@ -36,6 +37,7 @@ pub type K256LocalSigner = LocalSigner<SigningKey>;
 #[allow(clippy::too_many_arguments)]
 pub async fn run(
     // db_dir: P,
+    simple_state: SimpleState,
     listen_addr: String,
     batcher_duration_ms: u64,
     operator_signer: K256LocalSigner,
@@ -44,19 +46,26 @@ pub async fn run(
     clob_consumer_addr: [u8; 20],
     job_sync_start: BlockNumberOrTag,
 ) -> eyre::Result<()> {
-    // let db = crate::db::init_db(db_dir)?;
-    // let db = Arc::new(db);
+    let shared_state = Arc::new(RwLock::new(simple_state));
 
     let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(32);
     // let db2 = Arc::clone(&db);
     let engine_sender_2 = engine_sender.clone();
-    let server_handle = tokio::spawn(async move {
-        let server_state = app::AppState::new(engine_sender_2);
-        app::http_listen(server_state, &listen_addr).await
+    let server_handle = tokio::spawn({
+        let shared_state = Arc::clone(&shared_state);
+        async move {
+            let server_state = app::AppState::new(shared_state, engine_sender_2);
+            app::http_listen(server_state, &listen_addr).await
+        }
     });
 
     // let db2 = Arc::clone(&db);
-    let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver).await });
+    let engine_handle = tokio::spawn({
+        let shared_state = Arc::clone(&shared_state);
+        async move { 
+            engine::run_engine(shared_state, engine_receiver).await 
+        }
+    });
 
     // let db2 = Arc::clone(&db);
     // let deposit_event_listener_handle = tokio::spawn(async move {

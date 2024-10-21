@@ -21,6 +21,7 @@ members = [
 	"clob/programs",
 	"clob/node",
 	"clob/test-utils",
+	"simple/client",
 	"simple/core",
 	"simple/contracts",
 	"simple/programs",
@@ -221,6 +222,7 @@ db = { path = "crates/db" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 proto = { path = "crates/sdk/proto" }
+simple-client ={ path = "simple/client" }
 simple-contracts ={ path = "simple/contracts" }
 simple-core = { path = "simple/core" }
 simple-node = { path = "simple/node" }

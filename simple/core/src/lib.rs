@@ -1,6 +1,9 @@
 //! Core Simple logic.
 //! 
 
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
 use abi::StatefulProgramResult;
 use alloy::{primitives::{keccak256, FixedBytes}, sol_types::SolValue};
 use serde::{Deserialize, Serialize};
@@ -17,9 +20,9 @@ pub mod api;
 )]
 pub struct SimpleState {
     // The number of batches posted onchain.
-    batch_num: u64,
+    pub batch_num: u64,
     // The latest value set via offchain requests.
-    latest_value: String,
+    pub latest_value: String,
 }
 
 impl SimpleState {
@@ -43,11 +46,15 @@ impl SimpleState {
 }
 
 /// Sets the latest value in state
-pub fn set_latest_value(req: SetValueRequest, mut state: SimpleState) -> (SetValueResponse, SimpleState) {
-    state.latest_value = req.value;
+pub fn set_latest_value(req: SetValueRequest, state: Arc<RwLock<SimpleState>>) -> (SetValueResponse, SimpleState) {
+    let mut write = state.try_write().unwrap(); // HACKY, cannot block or await here
+    write.latest_value = req.value.clone();
     (SetValueResponse {
         success: true
-    }, state)
+    }, SimpleState {
+        batch_num: 0,
+        latest_value: req.value,
+    })
 }
 
 
@@ -61,7 +68,7 @@ alloy::sol! {
 }
 
 /// A tick will execute a single request against the CLOB state.
-pub fn tick(request: Request, state: SimpleState) -> (Response, SimpleState) {
+pub fn tick(request: Request, state: Arc<RwLock<SimpleState>>) -> (Response, SimpleState) {
     match request {
         Request::SetValue(req) => {
             let (resp, state) = set_latest_value(req, state);
@@ -75,7 +82,8 @@ pub fn tick(request: Request, state: SimpleState) -> (Response, SimpleState) {
 pub fn zkvm_stf(requests: Vec<Request>, mut state: SimpleState) -> StatefulProgramResult {
 
     for req in requests {
-        let (_, next_state) = tick(req, state);
+        let safe_state = Arc::new(RwLock::new(state));
+        let (_, next_state) = tick(req, safe_state);
         state = next_state;
     }
 

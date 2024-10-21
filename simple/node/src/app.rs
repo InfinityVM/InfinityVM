@@ -9,22 +9,36 @@ use axum::{
     response::{IntoResponse, Response},
     Json, Router,
 };
-use simple_core::api::{
-    SetValueRequest, SetValueResponse, ApiResponse, Request
-};
+use simple_core::{api::{
+    ApiResponse, Request, SetValueRequest, SetValueResponse
+}, SimpleState};
 use eyre::{eyre, WrapErr};
 use reth_db::{transaction::DbTx, Database, DatabaseEnv};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tokio::sync::{mpsc::Sender, oneshot};
+use tokio::sync::{mpsc::Sender, oneshot, RwLock};
 use tracing::{info, instrument};
 
 /// SetValue URI.
 pub const SET_VALUE: &str = "/set-value";
 
+/// Simple state URI
+pub const SIMPLE_STATE: &str = "/state";
+
+/// Response to the simple state endpoint. This is just a temp hack until we have better view
+/// endpoints.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SimpleStateResponse {
+    /// Hex encoded borsh bytes.
+    pub value: String,
+}
+
 /// Stateful parts of REST server.
 #[derive(Debug, Clone)]
 pub struct AppState {
+    /// Simple State reference
+    state: Arc<RwLock<SimpleState>>,
     /// Engine send channel handle.
     engine_sender: Sender<(Request, oneshot::Sender<ApiResponse>)>,
 }
@@ -32,15 +46,17 @@ pub struct AppState {
 impl AppState {
     /// Create a new instance of [Self].
     pub const fn new(
+        simple_state: Arc<RwLock<SimpleState>>,
         engine_sender: Sender<(Request, oneshot::Sender<ApiResponse>)>,
     ) -> Self {
-        Self { engine_sender }
+        Self { state: simple_state, engine_sender }
     }
 }
 
 fn app(state: AppState) -> Router {
     axum::Router::new()
         .route(SET_VALUE, axum::routing::post(set_value))
+        .route(SIMPLE_STATE, axum::routing::get(get_state))
         .with_state(state)
 }
 
@@ -49,6 +65,7 @@ pub async fn http_listen(state: AppState, listen_address: &str) -> eyre::Result<
     let app = app(state);
 
     let listener = tokio::net::TcpListener::bind(listen_address).await?;
+    println!("Listening at {:?}", listen_address);
     axum::serve(listener, app).await.map_err(Into::into)
 }
 
@@ -70,6 +87,20 @@ async fn set_value(
     // TODO: write to batch?
 
     Ok(AppResponse::Success(resp))
+}
+
+#[instrument(skip_all)]
+async fn get_state(
+    ExtractState(state): ExtractState<AppState>,
+) -> Result<Json<SimpleStateResponse>, AppResponse> {
+    println!("Getting state!");
+    let read = state.state.read().await;
+    let value = read.latest_value();
+    println!("Found value {:?}", value);
+
+    let response = SimpleStateResponse { value };
+
+    Ok(Json(response))
 }
 
 /// Response type from most app endpoints. `eyre` Errors are automatically converted to

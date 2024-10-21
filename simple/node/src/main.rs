@@ -1,6 +1,7 @@
 //! The Infinity CLOB node binary.
 
 use alloy::{eips::BlockNumberOrTag, hex};
+use simple_core::SimpleState;
 use simple_node::K256LocalSigner;
 use std::env;
 
@@ -46,8 +47,11 @@ async fn main() -> eyre::Result<()> {
         bytes.try_into().unwrap()
     };
 
+    let simple_state = SimpleState::default();
+
     simple_node::run(
         // db_dir,
+        simple_state,
         listen_addr,
         batcher_duration_ms,
         operator_signer,

@@ -10,7 +10,7 @@ use reth_db::{
     Database,
 };
 use std::sync::Arc;
-use tokio::sync::{mpsc::Receiver, oneshot};
+use tokio::sync::{mpsc::Receiver, oneshot, RwLock};
 use tracing::instrument;
 
 /// The zero index only contains the default state, but no requests.
@@ -19,12 +19,12 @@ pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
 /// Run the CLOB execution engine
 #[instrument(skip_all)]
 pub async fn run_engine(
+    mut simple_state: Arc<RwLock<SimpleState>>,
     mut receiver: Receiver<(Request, oneshot::Sender<ApiResponse>)>,
 ) -> eyre::Result<()>
 {
 
     let mut global_index = 0;
-    let mut state = SimpleState::default();
 
     loop {
         global_index += 1;
@@ -35,7 +35,7 @@ pub async fn run_engine(
         let request2 = request.clone();
 
 
-        let (response, post_state) = tick(request, state);
+        let (response, post_state) = tick(request, simple_state.clone());
 
         // Persist: processed index, response, and new state.
         // TODO: https://github.com/InfinityVM/InfinityVM/issues/197
@@ -49,6 +49,5 @@ pub async fn run_engine(
             .send(api_response)
             .map_err(|_| eyre!("engine oneshot unexpectedly dropped {global_index}"))?;
 
-        state = post_state;
     }
 }
