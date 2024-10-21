@@ -15,7 +15,6 @@ pub struct JobParams<'a> {
     pub onchain_input: &'a [u8],
     pub program_id: &'a [u8],
     pub offchain_input_hash: [u8; 32],
-    pub state_hash: [u8; 32],
 }
 
 sol! {

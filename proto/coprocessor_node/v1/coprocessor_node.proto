@@ -32,8 +32,6 @@ message SubmitJobRequest {
   bytes signature = 2;
   // Value of offchain input passed into program (this isn't signed over)
   bytes offchain_input = 3;
-  // Value of state passed into program (this isn't signed over)
-  bytes state = 4;
 }
 
 // SubmitJobResponse defines the response structure to submit a job to the

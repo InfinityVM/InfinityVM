@@ -58,8 +58,6 @@ pub struct Job {
     pub onchain_input: Vec<u8>,
     /// Offchain input (posted to some DA layer instead of onchain)
     pub offchain_input: Vec<u8>,
-    /// State
-    pub state: Vec<u8>,
     /// Contains signature on the offchain job request
     pub request_type: RequestType,
     /// ABI-encoded result of job execution with metadata (can be `ResultWithMetadata` or
@@ -82,7 +80,6 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
         let consumer_address =
             job.consumer_address.clone().try_into().map_err(|_| Error::InvalidAddressLength)?;
         let offchain_input_hash = keccak256(&job.offchain_input);
-        let state_hash = keccak256(&job.state);
 
         Ok(JobParams {
             nonce: job.nonce,

@@ -136,7 +136,6 @@ where
 
         let onchain_input_hash = keccak256(&onchain_input);
         let offchain_input_hash = keccak256(&offchain_input);
-        let state_hash = keccak256(&state);
         let raw_output = tokio::task::spawn_blocking(move || {
             vm.execute_offchain_job(&elf, &onchain_input, &offchain_input, &state, max_cycles)
                 .map_err(Error::ZkvmExecuteFailed)
@@ -148,7 +147,6 @@ where
             job_id,
             onchain_input_hash,
             offchain_input_hash,
-            state_hash,
             max_cycles,
             &program_id,
             &raw_output,
@@ -195,7 +193,7 @@ sol! {
     }
 
     /// The payload that gets signed to signify that the zkvm executor has faithfully
-    /// executed the offchian job. Also the result payload the job manager contract expects.
+    /// executed the offchain job. Also the result payload the job manager contract expects.
     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct OffchainResultWithMetadata {
         /// Job ID.
@@ -204,8 +202,6 @@ sol! {
         bytes32 onchain_input_hash;
         /// Hash of offchain input passed to zkVM program for this job.
         bytes32 offchain_input_hash;
-        /// Hash of state passed to zkVM program for this job.
-        bytes32 state_hash;
         /// Max cycles for the job.
         uint64 max_cycles;
         /// Program ID of program being executed.
@@ -240,7 +236,6 @@ pub fn abi_encode_offchain_result_with_metadata(
     job_id: [u8; 32],
     onchain_input_hash: FixedBytes<32>,
     offchain_input_hash: FixedBytes<32>,
-    state_hash: FixedBytes<32>,
     max_cycles: u64,
     program_id: &[u8],
     raw_output: &[u8],
@@ -249,7 +244,6 @@ pub fn abi_encode_offchain_result_with_metadata(
         job_id: job_id.into(),
         onchain_input_hash,
         offchain_input_hash,
-        state_hash,
         max_cycles,
         program_id: program_id.to_vec().into(),
         raw_output: raw_output.to_vec().into(),

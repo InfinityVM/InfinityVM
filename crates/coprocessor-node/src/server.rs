@@ -77,11 +77,6 @@ where
             return Err(Status::invalid_argument("offchain input hash does not match"));
         }
 
-        let state_hash = keccak256(&req.state);
-        if state_hash_in_request != state_hash {
-            return Err(Status::invalid_argument("state hash does not match"));
-        }
-
         let job_id = get_job_id(nonce, consumer);
 
         // TODO: Make contract calls to verify nonce, signature, etc. on job request
@@ -97,7 +92,6 @@ where
             program_id: program_id.to_vec(),
             onchain_input: onchain_input.to_vec(),
             offchain_input: req.offchain_input,
-            state: req.state,
             request_type: RequestType::Offchain(req.signature),
             result_with_metadata: vec![],
             zkvm_operator_signature: vec![],
