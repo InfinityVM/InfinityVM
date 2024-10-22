@@ -2628,6 +2628,7 @@ name = "eip4844"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "c-kzg",
  "thiserror",
 ]
 

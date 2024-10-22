@@ -8,5 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["consensus"] }
+alloy = { workspace = true, features = ["consensus", "kzg"] }
+c-kzg = "1.0.0"
 thiserror = { workspace = true }
+
