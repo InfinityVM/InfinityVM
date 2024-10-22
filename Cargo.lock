@@ -2624,6 +2624,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "eip4844"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "thiserror",
+]
+
+[[package]]
 name = "either"
 version = "1.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
