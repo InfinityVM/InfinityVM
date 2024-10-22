@@ -112,7 +112,6 @@ where
             max_cycles: MAX_CYCLES,
             onchain_input: &[],
             offchain_input_hash: offchain_input_hash.into(),
-            state_hash: previous_state_hash.into(),
             program_id: &program_id,
             consumer_address: clob_consumer_addr,
         };
@@ -122,7 +121,6 @@ where
             request,
             signature,
             offchain_input: requests_borsh,
-            state: state_borsh,
         };
 
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;

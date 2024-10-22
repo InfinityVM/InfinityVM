@@ -87,7 +87,6 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
             consumer_address,
             onchain_input: &job.onchain_input,
             offchain_input_hash: offchain_input_hash.into(),
-            state_hash: state_hash.into(),
             program_id: &job.program_id,
         })
     }

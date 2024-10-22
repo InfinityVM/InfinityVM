@@ -5,7 +5,7 @@ use clob_core::{
     api::Request,
     zkvm_stf, ClobState,
 };
-use abi::StatefulProgramResult;
+use abi::StatefulAppResult;
 use risc0_zkvm::guest::env;
 
 fn main() {
@@ -26,7 +26,7 @@ fn main() {
         .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
 
     let clob_program_output = zkvm_stf(requests, state);
-    let abi_encoded = StatefulProgramResult::abi_encode(&clob_program_output);
+    let abi_encoded = StatefulAppResult::abi_encode(&clob_program_output);
 
     env::commit_slice(&abi_encoded);
 }

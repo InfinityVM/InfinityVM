@@ -121,7 +121,6 @@ where
         program_id: Vec<u8>,
         onchain_input: Vec<u8>,
         offchain_input: Vec<u8>,
-        state: Vec<u8>,
         elf: Vec<u8>,
         vm_type: VmType,
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
@@ -137,7 +136,7 @@ where
         let onchain_input_hash = keccak256(&onchain_input);
         let offchain_input_hash = keccak256(&offchain_input);
         let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute_offchain_job(&elf, &onchain_input, &offchain_input, &state, max_cycles)
+            vm.execute_offchain_job(&elf, &onchain_input, &offchain_input, max_cycles)
                 .map_err(Error::ZkvmExecuteFailed)
         })
         .await
@@ -193,7 +192,7 @@ sol! {
     }
 
     /// The payload that gets signed to signify that the zkvm executor has faithfully
-    /// executed the offchain job. Also the result payload the job manager contract expects.
+    /// executed the offchian job. Also the result payload the job manager contract expects.
     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct OffchainResultWithMetadata {
         /// Job ID.

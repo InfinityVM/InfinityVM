@@ -87,8 +87,6 @@ pub struct JobResult {
     pub onchain_input: Vec<u8>,
     /// Hash of execution input posted offchain (DA)
     pub offchain_input_hash: Vec<u8>,
-    /// Hash of program state
-    pub state_hash: Vec<u8>,
     /// Signature on the offchain job request
     pub request_signature: Vec<u8>,
     /// ABI-encoded result of job execution with metadata

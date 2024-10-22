@@ -95,7 +95,6 @@ async fn main() {
         request: encoded_job_request,
         signature,
         offchain_input: Vec::new(),
-        state: Vec::new(),
     };
 
     let submit_job_response = coproc_client.submit_job(submit_job_request).await.unwrap();

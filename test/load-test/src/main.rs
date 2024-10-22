@@ -78,7 +78,6 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
         request: encoded_job_request,
         signature,
         offchain_input: Vec::new(),
-        state: Vec::new(),
     };
     let _goose_metrics =
         user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;
@@ -116,7 +115,6 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
             request: encoded_job_request,
             signature,
             offchain_input: Vec::new(),
-            state: Vec::new(),
         };
 
         let client = reqwest::Client::new();
