@@ -108,6 +108,7 @@ where
 
         // TODO (Maanav): add state root to onchain input and add state merkle proofs to offchain
         // input
+        // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
