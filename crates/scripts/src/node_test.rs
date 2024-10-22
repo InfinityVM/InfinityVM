@@ -86,7 +86,6 @@ async fn main() {
         &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
         offchain_signer.clone(),
         &[],
-        &[],
     )
     .await;
 

@@ -219,7 +219,6 @@ pub async fn create_and_sign_offchain_request(
     program_id: &[u8],
     offchain_signer: LocalSigner<SigningKey>,
     offchain_input: &[u8],
-    state: &[u8],
 ) -> (Vec<u8>, Vec<u8>) {
     let job_params = JobParams {
         nonce,

@@ -95,7 +95,6 @@ pub async fn get_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
         &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
         offchain_signer,
         &[],
-        &[],
     )
     .await
 }

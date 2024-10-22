@@ -34,8 +34,6 @@ pub struct SubmitJobRequest {
     pub signature: Vec<u8>,
     /// Value of offchain input passed into program (this isn't signed over)
     pub offchain_input: Vec<u8>,
-    /// Value of state passed into program (this isn't signed over)
-    pub state: Vec<u8>,
 }
 ```
 

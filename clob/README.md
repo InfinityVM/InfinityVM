@@ -78,8 +78,6 @@ struct JobRequest {
     onchain_input: Vec<u8>,
     offchain_input: Vec<u8>,
     offchain_input_hash: Vec<u8>,
-    state: Vec<u8>,
-    state_hash: Vec<u8>,
 }
 ```
 

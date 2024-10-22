@@ -75,6 +75,7 @@ pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> Anv
         .address();
 
     let clob_state0 = ClobState::default();
+    // TODO (Maanav): change this from state hash to state root
     let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
 
     // Deploy the clob consumer

@@ -100,7 +100,6 @@ impl RequestAndResultSigner {
             PROGRAM_ID,
             signer,
             &[],
-            &[],
         )
         .await;
 
