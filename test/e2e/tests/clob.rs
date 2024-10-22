@@ -45,8 +45,8 @@ async fn state_job_submission_clob_consumer() {
 
         // // Seed coprocessor-node with ELF
         // let submit_program_request =
-        //     SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
-        // let submit_program_response = args
+        //     SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into()
+        // }; let submit_program_response = args
         //     .coprocessor_node
         //     .submit_program(submit_program_request)
         //     .await
@@ -132,8 +132,8 @@ async fn state_job_submission_clob_consumer() {
         // let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
 
         // let requests3 = vec![
-        //     Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 }),
-        //     Request::CancelOrder(CancelOrderRequest { oid: 1 }),
+        //     Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400
+        // }),     Request::CancelOrder(CancelOrderRequest { oid: 1 }),
         //     Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 }),
         // ];
         // let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
@@ -236,8 +236,8 @@ async fn clob_node_e2e() {
 
         // // Seed coprocessor-node with ELF
         // let submit_program_request =
-        //     SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
-        // let submit_program_response = args
+        //     SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into()
+        // }; let submit_program_response = args
         //     .coprocessor_node
         //     .submit_program(submit_program_request)
         //     .await
@@ -324,8 +324,8 @@ async fn clob_node_e2e() {
         //     }
         // );
 
-        // let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100 };
-        // let (r, i) = client.order(bob_limit1).await.unwrap();
+        // let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100
+        // }; let (r, i) = client.order(bob_limit1).await.unwrap();
         // assert_eq!(i, 4);
         // assert_eq!(
         //     r,
@@ -341,8 +341,8 @@ async fn clob_node_e2e() {
         //     }
         // );
 
-        // let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100 };
-        // let (r, i) = client.order(bob_limit2).await.unwrap();
+        // let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100
+        // }; let (r, i) = client.order(bob_limit2).await.unwrap();
         // assert_eq!(i, 5);
         // assert_eq!(
         //     r,
@@ -386,7 +386,8 @@ async fn clob_node_e2e() {
         // interval.tick().await;
 
         // // Check that balances have been updated on chain from the batch.
-        // let bob_free_base = consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
+        // let bob_free_base =
+        // consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
         // assert_eq!(bob_free_base, U256::from(100));
         // let bob_free_quote =
         //     consumer_contract.freeBalanceQuote(bob.into()).call().await.unwrap()._0;
@@ -492,8 +493,8 @@ async fn cancel_works() {
         //             oid: 1,
         //             size: 2,
         //             address: [
-        //                 160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47, 32,
-        //                 167, 151, 32
+        //                 160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47,
+        // 32,                 167, 151, 32
         //             ],
         //             filled_size: 1,
         //             fills: vec![OrderFill {
@@ -502,12 +503,12 @@ async fn cancel_works() {
         //                 size: 1,
         //                 price: 5,
         //                 buyer: [
-        //                     160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47,
-        //                     32, 167, 151, 32
+        //                     160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97,
+        // 47,                     32, 167, 151, 32
         //                 ],
         //                 seller: [
-        //                     160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47,
-        //                     32, 167, 151, 32
+        //                     160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97,
+        // 47,                     32, 167, 151, 32
         //                 ]
         //             }]
         //         })
@@ -527,15 +528,17 @@ async fn cancel_works() {
         // let withdraw = WithdrawRequest { address: bob, base_free: 150, quote_free: 293 };
         // let (_r, _i) = client.withdraw(withdraw).await.unwrap();
         // let state = client.clob_state().await.unwrap();
-        // assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0 });
-        // assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 7 });
+        // assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0
+        // }); assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free:
+        // 0, locked: 7 });
 
         // // Cancel the partially filled order
         // let cancel = CancelOrderRequest { oid: 1 };
         // let (_r, _i) = client.cancel(cancel).await.unwrap();
         // let state = client.clob_state().await.unwrap();
-        // assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0 });
-        // assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free: 7, locked: 0 });
+        // assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0
+        // }); assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free:
+        // 7, locked: 0 });
     }
     E2E::new().clob().run(test).await;
 }

@@ -40,9 +40,9 @@ mod tests {
         // assert_eq!(
         //     clob_result_deltas.deposit_deltas,
         //     vec![
-        //         DepositDelta { account: alice.into(), base: U256::from(200), quote: U256::from(0) },
-        //         DepositDelta { account: bob.into(), base: U256::from(0), quote: U256::from(800) },
-        //     ]
+        //         DepositDelta { account: alice.into(), base: U256::from(200), quote: U256::from(0)
+        // },         DepositDelta { account: bob.into(), base: U256::from(0), quote:
+        // U256::from(800) },     ]
         // );
 
         // let requests2 = vec![
@@ -92,8 +92,8 @@ mod tests {
         // assert_eq!(clob_result_deltas.order_deltas, vec![a, b]);
 
         // let requests3 = vec![
-        //     Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 }),
-        //     Request::CancelOrder(CancelOrderRequest { oid: 1 }),
+        //     Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400
+        // }),     Request::CancelOrder(CancelOrderRequest { oid: 1 }),
         //     Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 }),
         // ];
         // let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
@@ -111,8 +111,8 @@ mod tests {
         // };
         // assert_eq!(clob_result_deltas.order_deltas, vec![a]);
         // let a =
-        //     WithdrawDelta { account: alice.into(), base: U256::from(100), quote: U256::from(400) };
-        // let b =
+        //     WithdrawDelta { account: alice.into(), base: U256::from(100), quote: U256::from(400)
+        // }; let b =
         //     WithdrawDelta { account: bob.into(), base: U256::from(100), quote: U256::from(400) };
         // assert_eq!(clob_result_deltas.withdraw_deltas, vec![a, b]);
     }
@@ -124,11 +124,10 @@ mod tests {
                 super::CLOB_ELF,
                 &[],
                 &borsh::to_vec(&txns).expect("type is borsh serializable. qed."),
-                // &state_borsh,
                 32 * 1000 * 1000,
             )
             .unwrap();
 
-            StatefulAppResult::abi_decode(&out_bytes, true).unwrap()
+        StatefulAppResult::abi_decode(&out_bytes, true).unwrap()
     }
 }

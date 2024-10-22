@@ -117,11 +117,7 @@ where
         };
         let request = abi_encode_offchain_job_request(job_params);
         let signature = signer.sign_message(&request).await?.as_bytes().to_vec();
-        let job_request = SubmitJobRequest {
-            request,
-            signature,
-            offchain_input: requests_borsh,
-        };
+        let job_request = SubmitJobRequest { request, signature, offchain_input: requests_borsh };
 
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
