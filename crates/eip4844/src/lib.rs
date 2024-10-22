@@ -16,16 +16,42 @@ pub enum Error {
     CommitmentGen(c_kzg::Error),
 }
 
+/// Blob with it's commitment and proof.
 pub struct BlobMeta {
     commitment: c_kzg::KzgCommitment,
     blob: c_kzg::Blob,
     proof: c_kzg::KzgProof,
 }
 
-/// Given a slice of bytes, convert them into blobs. Each blob must contain exactly
-/// `c_kzg::BYTES_PER_BLOB` bytes. If the `bytes % c_kzg::BYTES_PER_BLOB` is non-zero, the data in
-/// the last blob will be right padded with zeros.
-pub fn generate_blobs_from_bytes(
+impl std::fmt::Debug for BlobMeta {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BlobMeta").finish()
+    }
+}
+
+/// Eip4844 blob generation
+#[derive(Debug)]
+pub struct Blobs {
+    kzg_settings: EnvKzgSettings,
+}
+
+impl Blobs {
+    /// Create a new instance of [`Self`].
+    pub fn new(kzg_settings: EnvKzgSettings) -> Self {
+        Self { kzg_settings }
+    }
+
+    /// Given a slice of bytes, convert them into blobs.
+    ///
+    /// Each blob must contain exactly `c_kzg::BYTES_PER_BLOB` bytes. If the `bytes %
+    /// c_kzg::BYTES_PER_BLOB` is non-zero, the data in the last blob will be right padded with
+    /// zeros.
+    pub fn generate_blobs_from_bytes(&self, bytes: &[u8]) -> Result<Vec<BlobMeta>, Error> {
+        generate_blobs_from_bytes(bytes, self.kzg_settings.get())
+    }
+}
+
+fn generate_blobs_from_bytes(
     bytes: &[u8],
     settings: &c_kzg::KzgSettings,
 ) -> Result<Vec<BlobMeta>, Error> {
