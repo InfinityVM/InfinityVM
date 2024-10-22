@@ -13,8 +13,8 @@ cargo run --bin local
 
 There are two load test scenarios we run:
 
-2. `LoadtestGetResult`: Starts by submitting an offchain `MockConsumer` job with nonce `1` and then each user keeps sending `GetResult` requests (no wait time between requests).
-3. `LoadtestIntensityTest`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `IntensityTest` job, using a specified intensity level. The job submission includes a nonce and intensity parameters, with an option to wait for job completion. The intensity parameters is defined by `INTENSITY_LEVEL`. See more details below.  
+1. `LoadtestGetResult`: Starts by submitting an offchain `MockConsumer` job with nonce `1` and then each user keeps sending `GetResult` requests (no wait time between requests).
+2. `LoadtestIntensityTest`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `IntensityTest` job, using a specified intensity level. The job submission includes a nonce and intensity parameters, with an option to wait for job completion. The intensity parameters is defined by `INTENSITY_LEVEL`. See more details below.  
 
 For each load test, Goose spawns multiple users, with a thread for each user.
 

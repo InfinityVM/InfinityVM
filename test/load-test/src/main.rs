@@ -67,11 +67,6 @@ async fn main() -> Result<(), GooseError> {
         .execute()
         .await?;
 
-    println!("Load test completed.");
-    println!("Intensity test information:");
-    println!("Running intensity test with level: {:?}", get_intensity_level());
-    println!("Number of hash rounds: {}", intensity_hash_rounds());
-
     Ok(())
 }
 
