@@ -7,7 +7,7 @@ abstract contract StatefulConsumer is Consumer {
     // Struct passed to zkVM program as onchain input
     struct StatefulAppOnchainInput {
         bytes32 inputStateRoot;
-        bytes result;
+        bytes onchainInput;
     }
 
     // Struct returned by zkVM program as the result

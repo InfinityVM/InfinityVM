@@ -35,6 +35,12 @@ sol! {
         bytes32 offchain_input_hash;
     }
 
+    /// Onchain input passed to zkVM program for stateful jobs
+    struct StatefulAppOnchainInput {
+        bytes32 input_state_root;
+        bytes onchain_input;
+    }
+
     /// Returned by zkVM program as the result for stateful jobs
     #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct StatefulAppResult {

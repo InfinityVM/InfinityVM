@@ -106,7 +106,8 @@ where
         let offchain_input_hash = keccak256(&requests_borsh);
         let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
 
-        // TODO (Maanav): add state root to onchain input and add state merkle proofs to offchain input
+        // TODO (Maanav): add state root to onchain input and add state merkle proofs to offchain
+        // input
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,

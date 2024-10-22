@@ -94,6 +94,22 @@ An app can store its state in a merkleized form. It can pass this state to its z
 
 This raises an interesting problem: how do we ensure that app servers submit the correct state root to the coprocessor? For example, if the latest state root on the app contract is `X` but the app server submits `Y` as the state root in `onchain_input` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state root submitted by the app server in the job request matches the most recent state root in the app contract.
 
+If your app implements `StatefulConsumer`, it should structure its `onchain_input` and output from the zkVM program like this:
+```rust,ignore
+/// Onchain input passed to zkVM program for stateful jobs
+struct StatefulAppOnchainInput {
+    bytes32 input_state_root; // State root provided to zkVM program as input
+    bytes onchain_input; // The rest of the onchain input
+}
+
+/// Returned by zkVM program as the result for stateful jobs
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
+struct StatefulAppResult {
+    bytes32 output_state_root; // New state root calculated by running the zkVM program
+    bytes result; // The rest of the result from the program
+}
+```
+
 ## Writing your app contract
 
 Similar to onchain jobs, any app contract building with InfinityVM needs to inherit the [`Consumer`](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/contracts/src/coprocessor/Consumer.sol) interface. To build an app, you don't need to read how `Consumer` or any of the other contracts in [`contracts/src/coprocessor`](https://github.com/InfinityVM/infinityVM-foundry-template/tree/main/contracts/src/coprocessor) are implemented; you can just focus on your app.
