@@ -1,17 +1,10 @@
 //! Load testing for the coprocessor node
-use abi::{abi_encode_offchain_job_request, get_job_id, JobParams};
-use alloy::{
-    primitives::{keccak256, Address},
-    signers::Signer,
-    sol_types::SolValue,
-};
+use abi::get_job_id;
+use alloy::primitives::Address;
 use contracts::get_default_deploy_info;
 use goose::prelude::*;
-use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use proto::{GetResultRequest, GetResultResponse};
-use risc0_binfmt::compute_image_id;
 use std::env;
 use test_utils::{create_and_sign_offchain_request, get_signers};
 
@@ -87,8 +80,12 @@ pub fn run_time() -> usize {
     env::var("RUN_TIME").ok().and_then(|v| v.parse().ok()).unwrap_or(20)
 }
 
-/// Create and sign an ABI-encoded offchain request for a given nonce.
-pub async fn get_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
+/// Create and sign an ABI-encoded offchain request for a given nonce and program ID.
+pub async fn get_offchain_request(
+    nonce: u64,
+    program_id: &[u8],
+    onchain_input: &[u8],
+) -> (Vec<u8>, Vec<u8>) {
     let consumer_addr = Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
     let signers = get_signers(6);
     let offchain_signer = signers[5].clone();
@@ -97,8 +94,8 @@ pub async fn get_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
         nonce,
         max_cycles(),
         consumer_addr,
-        Address::abi_encode(&consumer_addr).as_slice(),
-        &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
+        onchain_input,
+        program_id,
         offchain_signer,
         &[],
         &[],
@@ -144,39 +141,14 @@ async fn get_result_status(
     }
 }
 
-/// Creates and signs an offchain request for the intensity test.
-pub async fn get_offchain_request_for_intensity_test(
-    nonce: u64,
-    encoded_intensity: &[u8],
-) -> (Vec<u8>, Vec<u8>) {
-    let program_id = compute_image_id(INTENSITY_TEST_GUEST_ELF).unwrap().as_bytes().to_vec();
-    let consumer_address =
-        Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
-
-    let params = JobParams {
-        nonce,
-        max_cycles: max_cycles(),
-        consumer_address: consumer_address.into(),
-        onchain_input: encoded_intensity,
-        offchain_input_hash: keccak256([]).into(),
-        state_hash: keccak256([]).into(),
-        program_id: &program_id,
-    };
-
-    let request = abi_encode_offchain_job_request(params);
-    let signature = get_signers(1)[0].sign_message(&request).await.unwrap().as_bytes().to_vec();
-
-    (request, signature)
-}
-
 /// Intensity level for the intensity test.
 #[derive(Debug)]
 pub enum IntensityLevel {
-    /// Light intensity: 100 iterations, 10 hashes per iteration
+    /// Light intensity: 10 hash rounds
     Light,
-    /// Medium intensity: 500 iterations, 50 hashes per iteration
+    /// Medium intensity: 50 hash rounds
     Medium,
-    /// Heavy intensity: 1000 iterations, 100 hashes per iteration
+    /// Heavy intensity: 500 hash rounds
     Heavy,
 }
 
@@ -193,20 +165,11 @@ pub fn get_intensity_level() -> IntensityLevel {
     }
 }
 
-/// Get the number of iterations for the current intensity level.
-pub fn intensity_iterations() -> u32 {
+/// Get the number of hash rounds for the current intensity level.
+pub fn intensity_hash_rounds() -> u32 {
     match get_intensity_level() {
         IntensityLevel::Light => 10,
         IntensityLevel::Medium => 50,
-        IntensityLevel::Heavy => 200,
-    }
-}
-
-/// Get the amount of work per iteration for the current intensity level.
-pub fn intensity_work_per_iteration() -> u32 {
-    match get_intensity_level() {
-        IntensityLevel::Light => 5,
-        IntensityLevel::Medium => 25,
-        IntensityLevel::Heavy => 100,
+        IntensityLevel::Heavy => 500,
     }
 }

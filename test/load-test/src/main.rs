@@ -1,28 +1,26 @@
 //! Load testing for the coprocessor node
 use abi::get_job_id;
-use alloy::{primitives::Address, providers::ProviderBuilder};
+use alloy::{primitives::Address, providers::ProviderBuilder, sol_types::SolValue};
 use borsh::{BorshDeserialize, BorshSerialize};
 use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
+use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
-    get_intensity_level, get_offchain_request, get_offchain_request_for_intensity_test,
-    intensity_iterations, intensity_work_per_iteration, num_users, report_file_name, run_time,
-    should_wait_until_job_completed, startup_time, wait_until_job_completed,
+    get_intensity_level, get_offchain_request, intensity_hash_rounds, num_users, report_file_name,
+    run_time, should_wait_until_job_completed, startup_time, wait_until_job_completed,
 };
+use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
+use risc0_binfmt::compute_image_id;
 use std::{
-    sync::{
-        atomic::{AtomicU64, Ordering},
-        Mutex,
-    },
-    time::{Duration, Instant},
+    sync::atomic::{AtomicU64, Ordering},
+    time::Duration,
 };
 use tokio::sync::OnceCell;
 
 static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
-static JOB_COMPLETION_TIMES: Lazy<Mutex<Vec<Duration>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 async fn initialize_global_nonce() -> AtomicU64 {
     let anvil_ip = anvil_ip();
@@ -51,11 +49,6 @@ async fn main() -> Result<(), GooseError> {
 
     GooseAttack::initialize()?
         .register_scenario(
-            scenario!("LoadtestSubmitJob")
-                .set_wait_time(Duration::from_secs(1), Duration::from_secs(3))?
-                .register_transaction(transaction!(loadtest_submit_job)),
-        )
-        .register_scenario(
             scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
         )
         .register_scenario(
@@ -77,49 +70,8 @@ async fn main() -> Result<(), GooseError> {
     println!("Load test completed.");
     println!("Intensity test information:");
     println!("Running intensity test with level: {:?}", get_intensity_level());
-    println!(
-        "Iterations: {}, Hashes per iteration: {}",
-        intensity_iterations(),
-        intensity_work_per_iteration()
-    );
+    println!("Number of hash rounds: {}", intensity_hash_rounds());
 
-    // Calculate and print average job completion time
-    let job_completion_times = JOB_COMPLETION_TIMES.lock().unwrap();
-    if !job_completion_times.is_empty() {
-        let average_completion_time: Duration =
-            job_completion_times.iter().sum::<Duration>() / job_completion_times.len() as u32;
-        println!("Average job completion time: {:?}", average_completion_time);
-    } else {
-        println!("No jobs completed during the test.");
-    }
-
-    Ok(())
-}
-
-async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
-    let start_time = Instant::now();
-
-    // Get the current nonce and increment it
-    let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
-
-    let (encoded_job_request, signature) = get_offchain_request(nonce).await;
-
-    let submit_job_request = SubmitJobRequest {
-        request: encoded_job_request,
-        signature,
-        offchain_input: Vec::new(),
-        state: Vec::new(),
-    };
-    let _goose_metrics =
-        user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;
-
-    if should_wait_until_job_completed() {
-        wait_until_job_completed(user, nonce).await;
-        let total_duration = start_time.elapsed();
-        println!("Job {} completed in {:?}", nonce, total_duration);
-        // Add the job completion time to the vector
-        JOB_COMPLETION_TIMES.lock().unwrap().push(total_duration);
-    }
     Ok(())
 }
 
@@ -142,7 +94,14 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
     let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
 
     if nonce == 1 {
-        let (encoded_job_request, signature) = get_offchain_request(nonce).await;
+        let consumer_addr =
+            Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
+        let (encoded_job_request, signature) = get_offchain_request(
+            nonce,
+            &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
+            Address::abi_encode(&consumer_addr).as_slice(),
+        )
+        .await;
 
         let submit_job_request = SubmitJobRequest {
             request: encoded_job_request,
@@ -170,23 +129,19 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
 
 #[derive(BorshSerialize, BorshDeserialize)]
 struct IntensityInput {
-    iterations: u32,
-    work_per_iteration: u32,
+    hash_rounds: u32,
 }
 
 async fn loadtest_intensity_test(user: &mut GooseUser) -> TransactionResult {
-    let start_time = Instant::now();
-
     let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
 
-    let intensity_input = IntensityInput {
-        iterations: intensity_iterations(),
-        work_per_iteration: intensity_work_per_iteration(),
-    };
+    let intensity_input = IntensityInput { hash_rounds: intensity_hash_rounds() };
     let encoded_intensity = borsh::to_vec(&intensity_input).unwrap();
 
+    let program_id = compute_image_id(INTENSITY_TEST_GUEST_ELF).unwrap().as_bytes().to_vec();
+
     let (encoded_job_request, signature) =
-        get_offchain_request_for_intensity_test(nonce, &encoded_intensity).await;
+        get_offchain_request(nonce, &program_id, &encoded_intensity).await;
 
     let submit_job_request = SubmitJobRequest {
         request: encoded_job_request,
@@ -199,10 +154,6 @@ async fn loadtest_intensity_test(user: &mut GooseUser) -> TransactionResult {
 
     if should_wait_until_job_completed() {
         wait_until_job_completed(user, nonce).await;
-        let total_duration = start_time.elapsed();
-        println!("Intensity test job {} completed in {:?}", nonce, total_duration);
-        // Add the job completion time to the vector
-        JOB_COMPLETION_TIMES.lock().unwrap().push(total_duration);
     }
     Ok(())
 }

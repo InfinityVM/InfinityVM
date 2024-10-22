@@ -6,24 +6,17 @@ use sha2::{Sha256, Digest};
 
 #[derive(BorshDeserialize, BorshSerialize)]
 struct IntensityInput {
-    iterations: u32,
-    work_per_iteration: u32,
+    hash_rounds: u32,
 }
 
 fn do_some_work(intensity: IntensityInput) -> U256 {
     let mut result = U256::ZERO;
     let mut hasher = Sha256::new();
     
-    for _ in 0..intensity.iterations {
+    for _ in 0..intensity.hash_rounds {
         hasher.update(result.to_be_bytes::<32>());
         let hash = hasher.finalize_reset();
-        
-        for _ in 0..intensity.work_per_iteration {
-            result = result.overflowing_add(U256::from_be_slice(&hash)).0;
-            hasher.update(result.to_be_bytes::<32>());
-            let intermediate_hash = hasher.finalize_reset();
-            result = result ^ U256::from_be_slice(&intermediate_hash);
-        }
+        result = result.overflowing_add(U256::from_be_slice(&hash)).0;
     }
     
     result

@@ -13,9 +13,9 @@ cargo run --bin local
 
 There are two load test scenarios we run:
 
-1. `LoadtestSubmitJob`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `MockConsumer` job, with a wait time of 1-3 secs between each job submission for a user.
 2. `LoadtestGetResult`: Starts by submitting an offchain `MockConsumer` job with nonce `1` and then each user keeps sending `GetResult` requests (no wait time between requests).
-3. `LoadtestIntensityTest`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `IntensityTest` job, using a specified intensity level. The job submission includes a nonce and intensity parameters, with an option to wait for job completion. The intensity parameters are defined by `INTENSITY_ITERATIONS` and `INTENSITY_WORK_PER_ITERATION` (more below). 
+3. `LoadtestIntensityTest`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `IntensityTest` job, using a specified intensity level. The job submission includes a nonce and intensity parameters, with an option to wait for job completion. The intensity parameters is defined by `INTENSITY_LEVEL`. See more details below.  
+
 For each load test, Goose spawns multiple users, with a thread for each user.
 
 To run the load tests:
@@ -47,16 +47,16 @@ There are other parameters that we can modify, these are detailed in the [Goose 
 
 The guest program supports different levels of computation intensity. You can specify the intensity by setting the `INTENSITY_LEVEL` environment variable in the CLI by running:
 
-`INTENSITY_LEVEL=medium cargo run --bin load-test -- --scenarios LoadtestIntensityTest`
+`INTENSITY_LEVEL=light cargo run --bin load-test -- --scenarios LoadtestIntensityTest`
 
 
-- `light`: 10 iterations, 5 hashes 
+- `light`: 10 hashes 
   
-- `medium`: 50 iterations, 25 hashes
+- `medium`: 50 hashes
 
-- `heavy`: 200 iterations, 100 hashes
+- `heavy`: 500 hashes
 
-The parameters `iterations` and `work_per_iteration` are defined in the `IntensityInput` struct, which is serialized and deserialized using the Borsh library. The `do_some_work` function utilizes these parameters to control the nested loop structure, performing cryptographic hashing and XOR operations to simulate a heavy computational workload. If not specified, the default intensity level is `medium`.
+For each iteration, the program will do the specified number of hashes. The default intensity level is `medium`.
 
 ## Measuring time until job is completed
 
