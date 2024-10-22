@@ -20,6 +20,9 @@ mod tests {
     use abi::StatefulAppResult;
     use zkvm::Zkvm;
 
+    // TODO: Uncomment this test after updating CLOB to pass in state root + merkle proofs
+    // to coprocessor instead of the entire state.
+    // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
     #[test]
     fn deposit_create_cancel_withdraw() {
         // let clob_state0 = ClobState::default();

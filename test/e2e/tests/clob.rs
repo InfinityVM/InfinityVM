@@ -29,6 +29,9 @@ fn program_id() -> Vec<u8> {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn state_job_submission_clob_consumer() {
+    // TODO: Uncomment this test after updating CLOB to pass in state root + merkle proofs
+    // to coprocessor instead of the entire state.
+    // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
     async fn test(mut args: Args) {
         // let anvil = args.anvil;
         // let clob = args.clob_consumer.unwrap();
@@ -214,6 +217,9 @@ async fn state_job_submission_clob_consumer() {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn clob_node_e2e() {
+    // TODO: Uncomment this test after updating CLOB to pass in state root + merkle proofs
+    // to coprocessor instead of the entire state.
+    // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
     async fn test(mut args: Args) {
         // let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
         // interval.tick().await; // First tick processes immediately
@@ -437,6 +443,9 @@ async fn clob_node_e2e() {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn cancel_works() {
+    // TODO: Uncomment this test after updating CLOB to pass in state root + merkle proofs
+    // to coprocessor instead of the entire state.
+    // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
     async fn test(args: Args) {
         // let clob = args.clob_consumer.unwrap();
         // let anvil = args.anvil;

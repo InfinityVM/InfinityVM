@@ -8,6 +8,8 @@ use clob_core::{
 use abi::StatefulAppResult;
 use risc0_zkvm::guest::env;
 
+// TODO: Update the CLOB zkVM program to use state root + merkle proofs instead of the entire state
+// [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
 fn main() {
     let onchain_input_len: u32 = env::read();
     let mut onchain_input_buf = vec![0; onchain_input_len as usize];
