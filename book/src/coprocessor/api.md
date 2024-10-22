@@ -88,7 +88,7 @@ pub struct JobResult {
     /// Signature on the offchain job request
     pub request_signature: Vec<u8>,
     /// ABI-encoded result of job execution with metadata
-    /// tuple(JobID,OnchainInputHash,StateHash,MaxCycles,ProgramID,RawOutput)
+    /// tuple(JobID,OnchainInputHash,OffchainInputHash,MaxCycles,ProgramID,RawOutput)
     pub result_with_metadata: Vec<u8>,
     /// The signature of the operator that executed the job
     pub zkvm_operator_signature: Vec<u8>,
