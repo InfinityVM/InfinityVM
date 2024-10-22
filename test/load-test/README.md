@@ -14,7 +14,7 @@ cargo run --bin local
 There are two load test scenarios we run:
 
 1. `LoadtestGetResult`: Starts by submitting an offchain `MockConsumer` job with nonce `1` and then each user keeps sending `GetResult` requests (no wait time between requests).
-2. `LoadtestIntensityTest`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `IntensityTest` job, using a specified intensity level. The job submission includes a nonce and intensity parameters, with an option to wait for job completion. The intensity parameters is defined by `INTENSITY_LEVEL`. See more details below.  
+2. `LoadtestSubmitJob`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `IntensityTest` job, using a specified intensity level. The job submission includes a nonce and intensity parameters, with an option to wait for job completion. The intensity parameters is defined by `INTENSITY_LEVEL`. See more details below.  
 
 For each load test, Goose spawns multiple users, with a thread for each user.
 
@@ -47,7 +47,7 @@ There are other parameters that we can modify, these are detailed in the [Goose 
 
 The guest program supports different levels of computation intensity. You can specify the intensity by setting the `INTENSITY_LEVEL` environment variable in the CLI by running:
 
-`INTENSITY_LEVEL=light cargo run --bin load-test -- --scenarios LoadtestIntensityTest`
+`INTENSITY_LEVEL=light cargo run --bin load-test -- --scenarios LoadtestSubmitJob`
 
 
 - `light`: 10 hashes 

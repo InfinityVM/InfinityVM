@@ -4,16 +4,14 @@ use alloy::{primitives::Address, providers::ProviderBuilder, sol_types::SolValue
 use borsh::{BorshDeserialize, BorshSerialize};
 use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
-use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
+use intensity_test_methods::INTENSITY_TEST_GUEST_ID;
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
-    get_intensity_level, get_offchain_request, intensity_hash_rounds, num_users, report_file_name,
-    run_time, should_wait_until_job_completed, startup_time, wait_until_job_completed,
+    get_offchain_request, intensity_hash_rounds, num_users, report_file_name, run_time,
+    should_wait_until_job_completed, startup_time, wait_until_job_completed,
 };
-use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use once_cell::sync::Lazy;
 use proto::{GetResultRequest, SubmitJobRequest};
-use risc0_binfmt::compute_image_id;
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::Duration,
@@ -52,7 +50,7 @@ async fn main() -> Result<(), GooseError> {
             scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
         )
         .register_scenario(
-            scenario!("LoadtestIntensityTest")
+            scenario!("LoadtestSubmitJob")
                 .set_wait_time(Duration::from_secs(1), Duration::from_secs(3))?
                 .register_transaction(transaction!(loadtest_intensity_test)),
         )
@@ -93,7 +91,7 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
             Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
         let (encoded_job_request, signature) = get_offchain_request(
             nonce,
-            &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
+            &INTENSITY_TEST_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
             Address::abi_encode(&consumer_addr).as_slice(),
         )
         .await;
@@ -133,7 +131,8 @@ async fn loadtest_intensity_test(user: &mut GooseUser) -> TransactionResult {
     let intensity_input = IntensityInput { hash_rounds: intensity_hash_rounds() };
     let encoded_intensity = borsh::to_vec(&intensity_input).unwrap();
 
-    let program_id = compute_image_id(INTENSITY_TEST_GUEST_ELF).unwrap().as_bytes().to_vec();
+    let program_id =
+        INTENSITY_TEST_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>();
 
     let (encoded_job_request, signature) =
         get_offchain_request(nonce, &program_id, &encoded_intensity).await;
