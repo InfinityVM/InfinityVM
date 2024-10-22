@@ -120,7 +120,7 @@ mod tests {
     fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulAppResult {
         let state_borsh = borsh::to_vec(&init_state).unwrap();
         let out_bytes = zkvm::Risc0 {}
-            .execute_offchain_job(
+            .execute(
                 super::CLOB_ELF,
                 &[],
                 &borsh::to_vec(&txns).expect("type is borsh serializable. qed."),

@@ -93,8 +93,7 @@ where
 
         let onchain_input_hash = keccak256(&onchain_input);
         let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute_onchain_job(&elf, &onchain_input, max_cycles)
-                .map_err(Error::ZkvmExecuteFailed)
+            vm.execute(&elf, &onchain_input, &[], max_cycles).map_err(Error::ZkvmExecuteFailed)
         })
         .await
         .expect("spawn blocking join handle is infallible. qed.")?;
@@ -136,7 +135,7 @@ where
         let onchain_input_hash = keccak256(&onchain_input);
         let offchain_input_hash = keccak256(&offchain_input);
         let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute_offchain_job(&elf, &onchain_input, &offchain_input, max_cycles)
+            vm.execute(&elf, &onchain_input, &offchain_input, max_cycles)
                 .map_err(Error::ZkvmExecuteFailed)
         })
         .await

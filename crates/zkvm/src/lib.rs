@@ -31,18 +31,10 @@ pub trait Zkvm {
     /// Derive the verifying key from an elf
     fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
 
-    /// Execute the program for an onchain job and return the raw output.
+    /// Execute the program and return the raw output.
     ///
     /// This does _not_ check that the verifying key is correct.
-    fn execute_onchain_job(
-        &self,
-        program_elf: &[u8],
-        onchain_input: &[u8],
-        max_cycles: u64,
-    ) -> Result<Vec<u8>, Error>;
-
-    /// Execute the program for an offchain job and return the raw output.
-    fn execute_offchain_job(
+    fn execute(
         &self,
         program_elf: &[u8],
         onchain_input: &[u8],
@@ -80,35 +72,7 @@ impl Zkvm for Risc0 {
         Ok(image_id)
     }
 
-    fn execute_onchain_job(
-        &self,
-        program_elf: &[u8],
-        onchain_input: &[u8],
-        max_cycles: u64,
-    ) -> Result<Vec<u8>, Error> {
-        let onchain_input_len = onchain_input.len() as u32;
-
-        let env = ExecutorEnv::builder()
-            .session_limit(Some(max_cycles))
-            .write(&onchain_input_len)
-            .map_err(|source| Error::Risc0 { source })?
-            .write_slice(onchain_input)
-            .build()
-            .map_err(|source| Error::Risc0 { source })?;
-
-        let prover = LocalProver::new("locals only");
-
-        let prove_info = prover.execute(env, program_elf).map_err(|source| {
-            match source.downcast_ref::<&str>() {
-                Some(&"Session limit exceeded") => Error::CycleLimitExceeded,
-                _ => Error::Risc0 { source },
-            }
-        })?;
-
-        Ok(prove_info.journal.bytes)
-    }
-
-    fn execute_offchain_job(
+    fn execute(
         &self,
         program_elf: &[u8],
         onchain_input: &[u8],
@@ -184,8 +148,7 @@ mod test {
         let input = mock_contract_input_addr();
         let raw_input = input.abi_encode();
 
-        let raw_result =
-            &Risc0.execute_onchain_job(&elf, &raw_input, MOCK_CONSUMER_MAX_CYCLES).unwrap();
+        let raw_result = &Risc0.execute(&elf, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES).unwrap();
 
         assert_eq!(*raw_result, mock_raw_output());
     }
