@@ -40,7 +40,3 @@ The following are some of the more important directories in the InfinityVM repos
 InfinityVM Litepaper: https://infinityvm.xyz/infinityvm_litepaper.pdf
 
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/infinity_vm.svg?style=social&label=Follow%20%40infinity_vm)](https://twitter.com/infinity_vm)
-
-## License and Terms
-
-TODO
