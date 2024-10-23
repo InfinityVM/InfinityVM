@@ -4,8 +4,8 @@ use crate::db::{
     tables::{ClobStateTable, GlobalIndexTable, RequestTable},
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
-use abi::{abi_encode_offchain_job_request, JobParams};
-use alloy::{primitives::utils::keccak256, signers::Signer};
+use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
+use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use clob_programs::CLOB_ID;
 use eyre::OptionExt;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
@@ -88,7 +88,7 @@ where
         info!("creating batch {start_index}..={end_index}");
 
         let prev_state_index = start_index - 1;
-        let _start_state =
+        let start_state =
             db.view(|tx| tx.get::<ClobStateTable>(prev_state_index))??.ok_or_eyre("start_state")?.0;
         tokio::task::yield_now().await;
 
@@ -103,7 +103,20 @@ where
         }
 
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
-        let offchain_input_hash = keccak256(&requests_borsh);
+        let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
+
+        // Combine requests_borsh and state_borsh
+        let mut combined_offchain_input = Vec::new();
+        combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
+        combined_offchain_input.extend_from_slice(&requests_borsh);
+        combined_offchain_input.extend_from_slice(&state_borsh);
+
+        let offchain_input_hash = keccak256(&combined_offchain_input);
+        let state_hash = keccak256(&state_borsh);
+
+        let onchain_input =
+            StatefulAppOnchainInput { input_state_root: state_hash, onchain_input: (&[]).into() };
+        let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
         // TODO (Maanav): add state root to onchain input and add state merkle proofs to offchain
         // input
@@ -111,14 +124,15 @@ where
         let job_params = JobParams {
             nonce: job_nonce,
             max_cycles: MAX_CYCLES,
-            onchain_input: &[],
+            onchain_input: onchain_input_abi_encoded.as_slice(),
             offchain_input_hash: offchain_input_hash.into(),
             program_id: &program_id,
             consumer_address: clob_consumer_addr,
         };
         let request = abi_encode_offchain_job_request(job_params);
         let signature = signer.sign_message(&request).await?.as_bytes().to_vec();
-        let job_request = SubmitJobRequest { request, signature, offchain_input: requests_borsh };
+        let job_request =
+            SubmitJobRequest { request, signature, offchain_input: combined_offchain_input };
 
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
