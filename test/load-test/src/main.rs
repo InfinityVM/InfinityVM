@@ -52,7 +52,7 @@ async fn main() -> Result<(), GooseError> {
         .register_scenario(
             scenario!("LoadtestSubmitJob")
                 .set_wait_time(Duration::from_secs(1), Duration::from_secs(3))?
-                .register_transaction(transaction!(loadtest_intensity_test)),
+                .register_transaction(transaction!(loadtest_submit_job)),
         )
         .set_default(
             GooseDefault::Host,
@@ -125,7 +125,7 @@ struct IntensityInput {
     hash_rounds: u32,
 }
 
-async fn loadtest_intensity_test(user: &mut GooseUser) -> TransactionResult {
+async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let nonce = GLOBAL_NONCE.get().unwrap().fetch_add(1, Ordering::SeqCst);
 
     let intensity_input = IntensityInput { hash_rounds: intensity_hash_rounds() };
