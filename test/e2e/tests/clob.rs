@@ -29,7 +29,7 @@ fn program_id() -> Vec<u8> {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn state_job_submission_clob_consumer() {
-    async fn test(mut _args: Args) {
+    async fn test(mut args: Args) {
         let anvil = args.anvil;
         let clob = args.clob_consumer.unwrap();
         let program_id = program_id();
@@ -214,7 +214,7 @@ async fn state_job_submission_clob_consumer() {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn clob_node_e2e() {
-    async fn test(mut _args: Args) {
+    async fn test(mut args: Args) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
         interval.tick().await; // First tick processes immediately
 
@@ -437,7 +437,7 @@ async fn clob_node_e2e() {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn cancel_works() {
-    async fn test(_args: Args) {
+    async fn test(args: Args) {
         let clob = args.clob_consumer.unwrap();
         let anvil = args.anvil;
 

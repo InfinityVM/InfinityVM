@@ -32,3 +32,4 @@ fn main() {
 
     env::commit_slice(&abi_encoded);
 }
+
