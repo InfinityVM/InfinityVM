@@ -19,5 +19,6 @@ abi = { workspace = true }
 proto = { workspace = true }
 test-utils = { workspace = true }
 mock-consumer = { workspace = true }
-mock-consumer-methods = { workspace = true }
 contracts = { workspace = true }
+borsh = { workspace = true }
+intensity-test-methods = { workspace = true }
