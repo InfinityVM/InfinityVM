@@ -88,7 +88,7 @@ where
         info!("creating batch {start_index}..={end_index}");
 
         let prev_state_index = start_index - 1;
-        let start_state =
+        let _start_state =
             db.view(|tx| tx.get::<ClobStateTable>(prev_state_index))??.ok_or_eyre("start_state")?.0;
         tokio::task::yield_now().await;
 
@@ -104,7 +104,6 @@ where
 
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
         let offchain_input_hash = keccak256(&requests_borsh);
-        let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
 
         // TODO (Maanav): add state root to onchain input and add state merkle proofs to offchain
         // input

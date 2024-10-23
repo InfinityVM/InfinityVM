@@ -4,6 +4,10 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
 #[cfg(test)]
 mod tests {
+    // TODO: Remove unused_imports after uncommenting tests.
+    // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
+    #![allow(unused_imports)]
+
     use alloy::{
         primitives::{I256, U256},
         sol_types::SolValue,
@@ -20,9 +24,6 @@ mod tests {
     use abi::StatefulAppResult;
     use zkvm::Zkvm;
 
-    // TODO: Uncomment this test after updating CLOB to pass in state root + merkle proofs
-    // to coprocessor instead of the entire state.
-    // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
     #[test]
     fn deposit_create_cancel_withdraw() {
         // let clob_state0 = ClobState::default();
@@ -120,8 +121,11 @@ mod tests {
         // assert_eq!(clob_result_deltas.withdraw_deltas, vec![a, b]);
     }
 
-    fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulAppResult {
-        let state_borsh = borsh::to_vec(&init_state).unwrap();
+    // TODO: Update CLOB to pass in state root + merkle proofs to the coprocessor instead of the
+    // entire state. Remove dead_code after implementing this and uncommenting tests.
+    // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
+    #[allow(dead_code)]
+    fn execute(txns: Vec<Request>, _init_state: ClobState) -> StatefulAppResult {
         let out_bytes = zkvm::Risc0 {}
             .execute(
                 super::CLOB_ELF,

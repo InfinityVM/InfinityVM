@@ -1,3 +1,7 @@
+// TODO: Remove unused_imports after uncommenting tests.
+// [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
+#![allow(unused_imports)]
+
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppResult};
 use alloy::{
     network::EthereumWallet,
@@ -22,6 +26,9 @@ use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
 use zkvm_executor::service::OffchainResultWithMetadata;
 
+// TODO: Remove dead_code after uncommenting tests.
+// [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
+#[allow(dead_code)]
 fn program_id() -> Vec<u8> {
     compute_image_id(CLOB_ELF).unwrap().as_bytes().to_vec()
 }
@@ -32,7 +39,7 @@ async fn state_job_submission_clob_consumer() {
     // TODO: Uncomment this test after updating CLOB to pass in state root + merkle proofs
     // to coprocessor instead of the entire state.
     // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
-    async fn test(mut args: Args) {
+    async fn test(mut _args: Args) {
         // let anvil = args.anvil;
         // let clob = args.clob_consumer.unwrap();
         // let program_id = program_id();
@@ -220,7 +227,7 @@ async fn clob_node_e2e() {
     // TODO: Uncomment this test after updating CLOB to pass in state root + merkle proofs
     // to coprocessor instead of the entire state.
     // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
-    async fn test(mut args: Args) {
+    async fn test(mut _args: Args) {
         // let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
         // interval.tick().await; // First tick processes immediately
 
@@ -446,7 +453,7 @@ async fn cancel_works() {
     // TODO: Uncomment this test after updating CLOB to pass in state root + merkle proofs
     // to coprocessor instead of the entire state.
     // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
-    async fn test(args: Args) {
+    async fn test(_args: Args) {
         // let clob = args.clob_consumer.unwrap();
         // let anvil = args.anvil;
 
