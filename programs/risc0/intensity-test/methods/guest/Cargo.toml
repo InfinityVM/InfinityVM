@@ -1,0 +1,12 @@
+[package]
+name = "intensity-test-guest"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[dependencies]
+risc0-zkvm = { version = "1", default-features = false, features = ['std'] }
+alloy = { version = "0", features = ["sol-types"], default-features = false }
+borsh = { version = "1", default-features = false }
+sha2 = { version = "0.10.6", default-features = false }

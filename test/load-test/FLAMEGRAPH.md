@@ -26,11 +26,11 @@ coproc-node process ID: <PID>
 
 3. Start the load tests to generate realistic load.
 
-To keep the data focused on job execution, we opt out of polling for job result and just run the scenario `loadtestsubmitjob`.
+To keep the data focused on job execution, we opt out of polling for job result and just run the scenario `LoadtestSubmitJobb`.
 
 ```sh
 export WAIT_UNTIL_JOB_COMPLETED=false
-cargo run --bin test-load --release -- --scenarios loadtestsubmitjob
+cargo run --bin test-load --release -- --scenarios LoadtestSubmitJobb
 ```
 
 4. Run flamegraph. To create the graph, hit ctrl+c after the desired amount of time

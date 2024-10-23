@@ -8,6 +8,7 @@ use clob_node::{
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
 use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
+use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
 use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
@@ -134,10 +135,16 @@ async fn main() {
             SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
-        // We submit the MockConsumer ELF to the coprocessor node for load testing.
         info!("Submitting MockConsumer ELF to coprocessor node");
         let submit_program_request = SubmitProgramRequest {
             program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
+            vm_type: VmType::Risc0.into(),
+        };
+        coproc_client.submit_program(submit_program_request).await.unwrap();
+
+        info!("Submitting IntensityTest ELF to coprocessor node");
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: INTENSITY_TEST_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();
