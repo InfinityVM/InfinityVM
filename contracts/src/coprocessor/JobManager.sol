@@ -28,6 +28,8 @@ contract JobManager is
 
     // Mapping from job ID --> job metadata
     mapping(bytes32 => JobMetadata) public jobIDToMetadata;
+    // Mapping from job ID --> versioned blob hashes
+    mapping(bytes32 => bytes32[]) public jobIDToBlobhashes;
     // storage gap for upgradeability
     uint256[50] private __GAP;
 
@@ -106,7 +108,8 @@ contract JobManager is
         bytes calldata offchainResultWithMetadata,
         bytes calldata signatureOnResult,
         bytes calldata jobRequest,
-        bytes calldata signatureOnRequest
+        bytes calldata signatureOnRequest,
+        uint32 calldata blobCount
     ) public override {
         // Decode the job request using abi.decode
         OffchainJobRequest memory request = abi.decode(jobRequest, (OffchainJobRequest));
@@ -120,6 +123,16 @@ contract JobManager is
         bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
+        // Extract the blob hashes
+        bytes32[] blobhashes = bytes32[blobCount];
+        for (uint256 i = 0; i < blobCount; i++) {
+            bytes32 versionedHash = _getBlobHash(i);
+            require(bytes32 != 0, "JobManager.submitResultForOffchainJob: missing blob");
+            blobhashes[i] = versionedHash;
+        }
+        jobIDToBlobhashes[jobID] = blobhashes;
+
+
         // Create a job without emitting an event and set onchain input, offchain input hash, and state hash on consumer
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
         Consumer(request.consumer).setInputsForJob(jobID, request.onchainInput, request.offchainInputHash, request.stateHash);
@@ -130,6 +143,12 @@ contract JobManager is
         require(request.offchainInputHash == result.offchainInputHash, "JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
         require(request.stateHash == result.stateHash, "JobManager.submitResultForOffchainJob: state hash signed by coprocessor doesn't match state hash of job request");
         _submitResult(jobID, result.maxCycles, result.onchainInputHash, result.programID, result.result);
+    }
+
+    function _getBlobHash(uint256 index) internal view virtual returns (bytes32) {
+        assembly {
+            versionedHash := blobhash(index)
+        }
     }
 
     function _submitResult(

@@ -31,9 +31,7 @@ type RelayerProvider = alloy::providers::fillers::FillProvider<
 type JobManagerContract = IJobManager::IJobManagerInstance<ReqwestTransport, RelayerProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
-const BLOB_TX_INCLUSION_ERROR: &str = "relay_error_blob_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
-const BLOB_BROADCAST_ERROR: &str = "relay_error_blob_broadcast_failure";
 
 /// Relayer errors
 #[derive(thiserror::Error, Debug)]
@@ -47,9 +45,12 @@ pub enum Error {
     /// rpc transport error
     #[error(transparent)]
     Rpc(#[from] alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    /// tx sending error
-    #[error(transparent)]
-    Send(#[from] SendError),
+    /// error while waiting for tx inclusion
+    #[error("error while broadcasting tx: {0}")]
+    TxBroadcast(alloy::contract::Error),
+    /// error while waiting for tx inclusion
+    #[error("error while waiting for tx inclusion: {0}")]
+    TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     /// must call [`JobRelayerBuilder::signer`] before building
     #[error("must call JobRelayerBuilder::signer before building")]
     MissingSigner,
@@ -62,23 +63,6 @@ pub enum Error {
     /// c-kzg logic had an error.
     #[error("c-kzg: {0}")]
     Kzg(#[from] eip4844::CKzgError),
-}
-
-/// Errors while sending a transaction
-#[derive(thiserror::Error, Debug)]
-pub enum SendError {
-    /// error while waiting for tx inclusion
-    #[error("error while broadcasting tx: {0}")]
-    TxBroadcast(alloy::contract::Error),
-    /// error while broadcasting for blob tx for inclusion
-    #[error("error while broadcasting blob tx: {0}")]
-    BlobBroadcast(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    /// error while waiting for tx inclusion
-    #[error("error while waiting for tx inclusion: {0}")]
-    TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    /// error while waiting for blob tx inclusion
-    #[error("error while waiting for blob tx inclusion: {0}")]
-    BlobInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
@@ -153,7 +137,7 @@ impl JobRelayer {
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, ?job.id, "tx broadcast failure");
             self.metrics.incr_relay_err(BROADCAST_ERROR);
-            Error::Send(SendError::TxBroadcast(error))
+            Error::TxBroadcast(error)
         })?;
 
         let receipt = pending_tx
@@ -163,7 +147,7 @@ impl JobRelayer {
             .map_err(|error| {
                 error!(?error, ?job.id, "tx inclusion failed");
                 self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
-                Error::Send(SendError::TxInclusion(error))
+                Error::TxInclusion(error)
             })?;
 
         info!(
@@ -209,7 +193,7 @@ impl JobRelayer {
                     hex::encode(&job.consumer_address)
                 );
                 self.metrics.incr_relay_err(BROADCAST_ERROR);
-                Error::Send(SendError::TxBroadcast(error))
+                Error::TxBroadcast(error)
             })?;
 
             let receipt =
@@ -221,7 +205,7 @@ impl JobRelayer {
                         hex::encode(&job.consumer_address)
                     );
                     self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
-                    Error::Send(SendError::TxInclusion(error))
+                    Error::TxInclusion(error)
                 })?;
 
             info!(
@@ -239,43 +223,6 @@ impl JobRelayer {
             Err(Error::InvalidJobRequestType)
         }
     }
-
-    // async fn relay_blobs(
-    //     &self,
-    //     offchain_input: &[u8],
-    //     id: [u8; 32],
-    // ) -> Result<TransactionReceipt, Error> {
-    //     let sidecar_builder: SidecarBuilder<SimpleCoder> = [offchain_input].iter().collect();
-    //     let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
-
-    //     let gas_price = self.job_manager.provider().get_gas_price().await?;
-    //     let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
-    //     let blob_tx = TransactionRequest::default()
-    //         .with_to(*self.job_manager.address())
-    //         .with_nonce(0)
-    //         .with_max_fee_per_blob_gas(gas_price)
-    //         .with_max_fee_per_gas(eip1559_est.max_fee_per_gas)
-    //         .with_max_priority_fee_per_gas(eip1559_est.max_priority_fee_per_gas)
-    //         .with_blob_sidecar(sidecar)
-    //         .
-
-    //     let blob_pending_tx =
-    //         self.job_manager.provider().send_transaction(blob_tx).await.map_err(|error| {
-    //             error!(?error, id = hex::encode(id), "blob tx broadcast failure",);
-    //             self.metrics.incr_relay_err(BLOB_BROADCAST_ERROR);
-    //             Error::Send(SendError::BlobBroadcast(error))
-    //         })?;
-
-    //     let receipt = blob_pending_tx.with_required_confirmations(1).get_receipt().await.map_err(
-    //         |error| {
-    //             error!(?error, id = hex::encode(id), "blob tx inclusion failure");
-    //             self.metrics.incr_relay_err(BLOB_TX_INCLUSION_ERROR);
-    //             Error::Send(SendError::BlobInclusion(error))
-    //         },
-    //     )?;
-
-    //     Ok(receipt)
-    // }
 }
 
 #[cfg(test)]
