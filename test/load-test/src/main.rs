@@ -136,11 +136,8 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let (encoded_job_request, signature) =
         get_offchain_request(nonce, &program_id, &encoded_intensity).await;
 
-    let submit_job_request = SubmitJobRequest {
-        request: encoded_job_request,
-        signature,
-        offchain_input: Vec::new(),
-    };
+    let submit_job_request =
+        SubmitJobRequest { request: encoded_job_request, signature, offchain_input: Vec::new() };
     let _goose_metrics =
         user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;
 
