@@ -4,8 +4,6 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
 #[cfg(test)]
 mod tests {
-    #![allow(unused_imports)]
-
     use alloy::{
         primitives::{keccak256, I256, U256},
         sol_types::SolValue,

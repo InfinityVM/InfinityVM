@@ -81,7 +81,6 @@ impl Zkvm for Risc0 {
     ) -> Result<Vec<u8>, Error> {
         let onchain_input_len = onchain_input.len() as u32;
         let offchain_input_len = offchain_input.len() as u32;
-
         let env = ExecutorEnv::builder()
             .session_limit(Some(max_cycles))
             .write(&onchain_input_len)
