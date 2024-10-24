@@ -3825,6 +3825,38 @@ dependencies = [
 ]
 
 [[package]]
+name = "matching-game-contracts"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+]
+
+[[package]]
+name = "matching-game-core"
+version = "0.1.0"
+dependencies = [
+ "abi",
+ "alloy",
+ "borsh",
+ "serde",
+ "sha2",
+]
+
+[[package]]
+name = "matching-game-programs"
+version = "0.1.0"
+dependencies = [
+ "abi",
+ "alloy",
+ "borsh",
+ "clob-core",
+ "clob-test-utils",
+ "risc0-build",
+ "risc0-zkvm",
+ "zkvm",
+]
+
+[[package]]
 name = "matchit"
 version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
