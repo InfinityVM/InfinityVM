@@ -184,14 +184,23 @@ impl JobRelayer {
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
         if let RequestType::Offchain(request_signature) = job.request_type {
-            let _blob_receipt = self.relay_blobs(&job.offchain_input, job.id).await?;
+            let sidecar_builder: SidecarBuilder<SimpleCoder> =
+                [job.offchain_input].iter().collect();
+            let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
 
-            let call_builder = self.job_manager.submitResultForOffchainJob(
-                job.result_with_metadata.into(),
-                job.zkvm_operator_signature.into(),
-                job_request_payload.into(),
-                request_signature.into(),
-            );
+            let gas_price = self.job_manager.provider().get_gas_price().await?;
+            // let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
+            let call_builder = self
+                .job_manager
+                .submitResultForOffchainJob(
+                    job.result_with_metadata.into(),
+                    job.zkvm_operator_signature.into(),
+                    job_request_payload.into(),
+                    request_signature.into(),
+                )
+                .sidecar(sidecar)
+                .max_fee_per_blob_gas(gas_price);
+
             let pending_tx = call_builder.send().await.map_err(|error| {
                 error!(
                     ?error,
@@ -231,41 +240,42 @@ impl JobRelayer {
         }
     }
 
-    async fn relay_blobs(
-        &self,
-        offchain_input: &[u8],
-        id: [u8; 32],
-    ) -> Result<TransactionReceipt, Error> {
-        let sidecar_builder: SidecarBuilder<SimpleCoder> = [offchain_input].iter().collect();
-        let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
+    // async fn relay_blobs(
+    //     &self,
+    //     offchain_input: &[u8],
+    //     id: [u8; 32],
+    // ) -> Result<TransactionReceipt, Error> {
+    //     let sidecar_builder: SidecarBuilder<SimpleCoder> = [offchain_input].iter().collect();
+    //     let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
 
-        let gas_price = self.job_manager.provider().get_gas_price().await?;
-        let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
-        let blob_tx = TransactionRequest::default()
-            .with_to(*self.job_manager.address())
-            .with_nonce(0)
-            .with_max_fee_per_blob_gas(gas_price)
-            .with_max_fee_per_gas(eip1559_est.max_fee_per_gas)
-            .with_max_priority_fee_per_gas(eip1559_est.max_priority_fee_per_gas)
-            .with_blob_sidecar(sidecar);
+    //     let gas_price = self.job_manager.provider().get_gas_price().await?;
+    //     let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
+    //     let blob_tx = TransactionRequest::default()
+    //         .with_to(*self.job_manager.address())
+    //         .with_nonce(0)
+    //         .with_max_fee_per_blob_gas(gas_price)
+    //         .with_max_fee_per_gas(eip1559_est.max_fee_per_gas)
+    //         .with_max_priority_fee_per_gas(eip1559_est.max_priority_fee_per_gas)
+    //         .with_blob_sidecar(sidecar)
+    //         .
 
-        let blob_pending_tx =
-            self.job_manager.provider().send_transaction(blob_tx).await.map_err(|error| {
-                error!(?error, id = hex::encode(id), "blob tx broadcast failure",);
-                self.metrics.incr_relay_err(BLOB_BROADCAST_ERROR);
-                Error::Send(SendError::BlobBroadcast(error))
-            })?;
+    //     let blob_pending_tx =
+    //         self.job_manager.provider().send_transaction(blob_tx).await.map_err(|error| {
+    //             error!(?error, id = hex::encode(id), "blob tx broadcast failure",);
+    //             self.metrics.incr_relay_err(BLOB_BROADCAST_ERROR);
+    //             Error::Send(SendError::BlobBroadcast(error))
+    //         })?;
 
-        let receipt = blob_pending_tx.with_required_confirmations(1).get_receipt().await.map_err(
-            |error| {
-                error!(?error, id = hex::encode(id), "blob tx inclusion failure");
-                self.metrics.incr_relay_err(BLOB_TX_INCLUSION_ERROR);
-                Error::Send(SendError::BlobInclusion(error))
-            },
-        )?;
+    //     let receipt = blob_pending_tx.with_required_confirmations(1).get_receipt().await.map_err(
+    //         |error| {
+    //             error!(?error, id = hex::encode(id), "blob tx inclusion failure");
+    //             self.metrics.incr_relay_err(BLOB_TX_INCLUSION_ERROR);
+    //             Error::Send(SendError::BlobInclusion(error))
+    //         },
+    //     )?;
 
-        Ok(receipt)
-    }
+    //     Ok(receipt)
+    // }
 }
 
 #[cfg(test)]
