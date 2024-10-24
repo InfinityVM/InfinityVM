@@ -181,6 +181,7 @@ impl JobRelayer {
                     job.zkvm_operator_signature.into(),
                     job_request_payload.into(),
                     request_signature.into(),
+                    sidecar.blobs.len().into(),
                 )
                 .sidecar(sidecar)
                 .max_fee_per_blob_gas(gas_price);

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.28;
 
 import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED} from "./IJobManager.sol";
 import {Consumer} from "./Consumer.sol";
@@ -109,7 +109,7 @@ contract JobManager is
         bytes calldata signatureOnResult,
         bytes calldata jobRequest,
         bytes calldata signatureOnRequest,
-        uint32 calldata blobCount
+        uint32 blobCount
     ) public override {
         // Decode the job request using abi.decode
         OffchainJobRequest memory request = abi.decode(jobRequest, (OffchainJobRequest));
@@ -124,10 +124,12 @@ contract JobManager is
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
         // Extract the blob hashes
-        bytes32[] blobhashes = bytes32[blobCount];
+        bytes32[] memory blobhashes = new bytes32[](blobCount);
         for (uint256 i = 0; i < blobCount; i++) {
-            bytes32 versionedHash = _getBlobHash(i);
-            require(bytes32 != 0, "JobManager.submitResultForOffchainJob: missing blob");
+            // blobhash added in solidity 0.8.24
+            // bytes32 versionedHash = _getBlobHash(i);
+            bytes32 versionedHash = blobhash(i);
+            require(versionedHash != 0, "JobManager.submitResultForOffchainJob: missing blob");
             blobhashes[i] = versionedHash;
         }
         jobIDToBlobhashes[jobID] = blobhashes;
@@ -145,11 +147,11 @@ contract JobManager is
         _submitResult(jobID, result.maxCycles, result.onchainInputHash, result.programID, result.result);
     }
 
-    function _getBlobHash(uint256 index) internal view virtual returns (bytes32) {
-        assembly {
-            versionedHash := blobhash(index)
-        }
-    }
+    // function _getBlobHash(uint256 _index) internal view virtual returns (bytes32 versionedHash) {
+    //     assembly {
+    //         versionedHash := blobhash(_index)
+    //     }
+    // }
 
     function _submitResult(
         bytes32 jobID,
