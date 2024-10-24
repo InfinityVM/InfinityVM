@@ -112,10 +112,10 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
     // Ensure the anvil instance will not collide with anything already running on the OS
     // Set block time to 0.01 seconds - I WANNA GO FAST MOM
     let anvil = Anvil::new()
-        .block_time_f64(0.01)
+        .block_time_f64(1.0)
         .port(port)
         // 1000 dev accounts generated and configured
-        .args(["-a", "1000"])
+        .args(["-a", "1000", "--hardfork", "cancun"])
         .try_spawn()
         .unwrap();
 
