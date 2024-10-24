@@ -120,7 +120,6 @@ mod tests {
     // TODO: Update CLOB to pass in state root + merkle proofs to the coprocessor instead of the
     // entire state.
     // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
-    #[allow(dead_code)]
     fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulAppResult {
         let requests_borsh = borsh::to_vec(&txns).expect("borsh works. qed.");
         let state_borsh = borsh::to_vec(&init_state).expect("borsh works. qed.");
