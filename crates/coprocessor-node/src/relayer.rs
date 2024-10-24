@@ -5,11 +5,12 @@ use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
-    providers::{fillers::RecommendedFiller, ProviderBuilder},
-    rpc::types::TransactionReceipt,
+    providers::{fillers::RecommendedFiller, Provider, ProviderBuilder},
+    rpc::types::{TransactionReceipt, TransactionRequest},
     signers::Signature,
     transports::http::reqwest,
 };
+use alloy::network::TransactionBuilder;
 use contracts::i_job_manager::IJobManager;
 use db::tables::{Job, RequestType};
 use eip4844::{SidecarBuilder, SimpleCoder};
@@ -31,7 +32,9 @@ type RelayerProvider = alloy::providers::fillers::FillProvider<
 type JobManagerContract = IJobManager::IJobManagerInstance<ReqwestTransport, RelayerProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
+const BLOB_TX_INCLUSION_ERROR: &str = "relay_error_blob_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
+const BLOB_BROADCAST_ERROR: &str = "relay_error_blob_broadcast_failure";
 
 /// Relayer errors
 #[derive(thiserror::Error, Debug)]
@@ -48,6 +51,9 @@ pub enum Error {
     /// error while waiting for tx inclusion
     #[error("error while broadcasting tx: {0}")]
     TxBroadcast(alloy::contract::Error),
+    /// error while broadcasting for blob tx for inclusion
+    #[error("error while broadcasting blob tx: {0}")]
+    BlobBroadcast(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
     /// error while waiting for tx inclusion
     #[error("error while waiting for tx inclusion: {0}")]
     TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
@@ -168,17 +174,48 @@ impl JobRelayer {
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
         if let RequestType::Offchain(request_signature) = job.request_type {
-            let call_builder = self.job_manager.submitResultForOffchainJob(
+            let sidecar_builder: SidecarBuilder<SimpleCoder> =
+                [job.offchain_input].iter().collect();
+            let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
+
+            let gas_price = self.job_manager.provider().get_gas_price().await?;
+            let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
+            let blob_tx = TransactionRequest::default()
+                .with_to(*self.job_manager.address())
+                .with_nonce(0)
+                .with_max_fee_per_blob_gas(gas_price)
+                .with_max_fee_per_gas(eip1559_est.max_fee_per_gas)
+                .with_max_priority_fee_per_gas(eip1559_est.max_priority_fee_per_gas)
+                .with_blob_sidecar(sidecar);
+
+            let blob_pending_tx = self.job_manager.provider().send_transaction(blob_tx).await.map_err(|error| {
+                error!(
+                    ?error,
+                    job.nonce,
+                    "blob tx broadcast failure: contract_address = {}",
+                    hex::encode(&job.consumer_address)
+                );
+                self.metrics.incr_relay_err(BLOB_BROADCAST_ERROR);
+                Error::BlobBroadcast(error)
+            })?;
+
+            let receipt = blob_pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+                    error!(
+                        ?error,
+                        job.nonce,
+                        "blob tx inclusion failed: contract_address = {}",
+                        hex::encode(&job.consumer_address)
+                    );
+                    self.metrics.incr_relay_err(BLOB_TX_INCLUSION_ERROR);
+                    Error::TxInclusion(error)
+                })?;
+
+            let  call_builder = self.job_manager.submitResultForOffchainJob(
                 job.result_with_metadata.into(),
                 job.zkvm_operator_signature.into(),
                 job_request_payload.into(),
                 request_signature.into(),
             );
-
-            let sidecar_builder: SidecarBuilder<SimpleCoder> =
-                [job.offchain_input].iter().collect();
-            let sidecars = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
-
             let pending_tx = call_builder.send().await.map_err(|error| {
                 error!(
                     ?error,
