@@ -6,6 +6,7 @@
 
 use std::sync::Arc;
 
+use crate::{metrics::Metrics, MAX_DA_PER_JOB};
 use alloy::{hex, primitives::Signature, signers::Signer};
 use db::{get_elf, get_job, put_elf, put_job, tables::Job};
 use proto::{JobStatus, JobStatusType, VmType};
@@ -52,6 +53,7 @@ pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
     exec_queue_sender: async_channel::Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
+    max_da_per_job: usize,
 }
 
 impl<S, D> IntakeHandlers<S, D>
@@ -64,13 +66,14 @@ where
         db: Arc<D>,
         exec_queue_sender: async_channel::Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
+        max_da_per_job: usize,
     ) -> Self {
-        Self { db, exec_queue_sender, zk_executor }
+        Self { db, exec_queue_sender, zk_executor, max_da_per_job }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        if job.offchain_input >  MAX_DA_PER_JOB {
+        if job.offchain_input.len() > self.max_da_per_job {
             return Err(Error::OffchainInputOverMaxDAPerJob)
         };
 

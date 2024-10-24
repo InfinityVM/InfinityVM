@@ -3,6 +3,7 @@
 use crate::{
     job_processor::JobProcessorConfig,
     node::{self, NodeConfig, WsConfig},
+    MAX_DA_PER_JOB,
 };
 use alloy::{
     eips::BlockNumberOrTag,
@@ -173,6 +174,11 @@ struct Opts {
     /// Required confirmations for tx
     #[arg(long, default_value_t = 1)]
     confirmations: u64,
+
+    /// The max bytes of DA allowed per job. Defaults to the max amount of DA we can fit into a CL
+    /// block.
+    #[arg(long, default_value_t = MAX_DA_PER_JOB)]
+    max_da_per_job: usize,
 }
 
 impl Opts {
@@ -246,6 +252,7 @@ impl Cli {
                 backoff_multiplier_ms: opts.ws_backoff_multiplier_ms,
             },
             job_sync_start: opts.job_sync_start,
+            max_da_per_job: opts.max_da_per_job,
         };
 
         node::run(config).await.map_err(Into::into)

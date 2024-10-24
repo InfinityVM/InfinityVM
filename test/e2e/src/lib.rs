@@ -4,6 +4,7 @@ use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
 use coprocessor_node::{
     job_processor::JobProcessorConfig,
     node::{NodeConfig, WsConfig},
+    MAX_DA_PER_JOB,
 };
 use futures::future::FutureExt;
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
@@ -108,6 +109,7 @@ impl E2E {
                 backoff_multiplier_ms: 3,
             },
             job_sync_start: BlockNumberOrTag::Earliest,
+            max_da_per_job: MAX_DA_PER_JOB,
         };
         tokio::spawn(async move { coprocessor_node::node::run(config).await });
         sleep_until_bound(coprocessor_node_port).await;

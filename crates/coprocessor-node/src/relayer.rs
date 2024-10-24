@@ -1,5 +1,6 @@
 //! Logic to broadcast job result onchain.
 
+use crate::{metrics::Metrics, MAX_DA_PER_JOB};
 use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
@@ -9,12 +10,11 @@ use alloy::{
     signers::Signature,
     transports::http::reqwest,
 };
-use std::sync::Arc;
-use tracing::{error, info, instrument};
-
-use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
 use db::tables::{Job, RequestType};
+use eip4844::{SidecarBuilder, SimpleCoder};
+use std::sync::Arc;
+use tracing::{error, info, instrument};
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
 
@@ -57,6 +57,12 @@ pub enum Error {
     /// invalid job request type
     #[error("invalid job request type")]
     InvalidJobRequestType,
+    /// tokio task returned an error
+    #[error("tokio task: {0}")]
+    TokioTask(#[from] tokio::task::JoinError),
+    /// c-kzg logic had an error.
+    #[error("c-kzg: {0}")]
+    Kzg(#[from] eip4844::CKzgError),
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
@@ -161,7 +167,7 @@ impl JobRelayer {
         job: Job,
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
-        if let RequestType::Offchain(request_signature) = job.request_type {NCT
+        if let RequestType::Offchain(request_signature) = job.request_type {
             let call_builder = self.job_manager.submitResultForOffchainJob(
                 job.result_with_metadata.into(),
                 job.zkvm_operator_signature.into(),
@@ -169,8 +175,9 @@ impl JobRelayer {
                 request_signature.into(),
             );
 
-            let sidecar_builder: SidecarBuilder<SimpleCoder> = [job.offchain_input].iter().collect();
-            let sidecars = sidecar_builder.build();
+            let sidecar_builder: SidecarBuilder<SimpleCoder> =
+                [job.offchain_input].iter().collect();
+            let sidecars = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
 
             let pending_tx = call_builder.send().await.map_err(|error| {
                 error!(

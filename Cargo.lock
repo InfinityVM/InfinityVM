@@ -2088,6 +2088,7 @@ dependencies = [
  "clap",
  "contracts",
  "db",
+ "eip4844",
  "home",
  "k256",
  "mock-consumer",
