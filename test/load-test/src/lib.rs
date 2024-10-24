@@ -98,7 +98,6 @@ pub async fn get_offchain_request(
         program_id,
         offchain_signer,
         &[],
-        &[],
     )
     .await
 }

@@ -10,6 +10,7 @@ contracts/data/
 contracts/broadcast/**
 
 # Dotenv file
+.env
 contracts/.env
 crates/scripts/.env
 test/load-test/.env

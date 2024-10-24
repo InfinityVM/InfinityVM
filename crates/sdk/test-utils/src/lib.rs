@@ -110,9 +110,9 @@ pub struct AnvilJobManager {
 /// Spin up anvil instance with job manager contracts.
 pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
     // Ensure the anvil instance will not collide with anything already running on the OS
-    // Set block time to 0.01 seconds - I WANNA GO FAST MOM
+    // Set block time to 1.0 seconds because anvil doesn't accept 0.01 anymore
     let anvil = Anvil::new()
-        .block_time_f64(0.01)
+        .block_time_f64(1.0)
         .port(port)
         // 1000 dev accounts generated and configured
         .args(["-a", "1000"])
@@ -219,7 +219,6 @@ pub async fn create_and_sign_offchain_request(
     program_id: &[u8],
     offchain_signer: LocalSigner<SigningKey>,
     offchain_input: &[u8],
-    state: &[u8],
 ) -> (Vec<u8>, Vec<u8>) {
     let job_params = JobParams {
         nonce,
@@ -232,7 +231,6 @@ pub async fn create_and_sign_offchain_request(
         onchain_input,
         program_id,
         offchain_input_hash: *keccak256(offchain_input),
-        state_hash: *keccak256(state),
     };
 
     let encoded_job_request = abi_encode_offchain_job_request(job_params);

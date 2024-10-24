@@ -29,11 +29,10 @@ message SubmitJobRequest {
   bytes request = 1; // ABI-encoded offchain job request
   bytes signature = 2; // Signature on ABI-encoded offchain job request
   bytes offchain_input = 3; // Value of offchain input passed into program (this isn't signed over)
-  bytes state = 4; // Value of state passed into program (this isn't signed over)
 }
 ```
 
-This includes the actual job request (ABI-encoded), a signature over the request, and `offchain_input` and `state` (we explain `offchain_input` and `state` later in [Offchain Inputs](./offchain.md#offchain-inputs) and [Stateful App Servers](./offchain.md#stateful-app-servers) in this doc). The job request is an ABI-encoded version of this:
+This includes the actual job request (ABI-encoded), a signature over the request, and `offchain_input` (we explain `offchain_input` later in [Offchain Inputs](./offchain.md#offchain-inputs) in this doc). The job request is an ABI-encoded version of this:
 ```rust,ignore
 struct OffchainJobRequest {
     uint64 nonce;
@@ -42,7 +41,6 @@ struct OffchainJobRequest {
     bytes programID;
     bytes onchainInput;
     bytes32 offchainInputHash;
-    bytes32 stateHash;
 }
 ```
 A few notes:
@@ -92,9 +90,25 @@ Some app servers might be "stateful", i.e. they maintain some state, which is pa
 
 ![stateful app server](../assets/stateful-app-server.png)
 
-This is why we have the `state` field in `SubmitJobRequest`, which apps can use to submit their state along with a job request.
+An app can store its state in a merkleized form. It can pass this state to its zkVM program by submitting the state root in `onchain_input` and merkle proofs against this state root in `offchain_input` for the relevant state values used in the zkVM program (Example of this coming soon...).
 
-This raises an interesting problem: how do we ensure that app servers submit the correct state to the coprocessor? For example, if the latest state on the app contract is `X` but the app server submits `Y` as the `state` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state hash submitted by the app server in the job request matches the most recent state hash in the app contract.
+This raises an interesting problem: how do we ensure that app servers submit the correct state root to the coprocessor? For example, if the latest state root on the app contract is `X` but the app server submits `Y` as the state root in `onchain_input` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state root submitted by the app server in the job request matches the most recent state root in the app contract.
+
+If your app implements `StatefulConsumer`, it should structure its `onchain_input` and output from the zkVM program like this:
+```rust,ignore
+/// Onchain input passed to zkVM program for stateful jobs
+struct StatefulAppOnchainInput {
+    bytes32 input_state_root; // State root provided to zkVM program as input
+    bytes onchain_input; // The rest of the onchain input
+}
+
+/// Returned by zkVM program as the result for stateful jobs
+#[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
+struct StatefulAppResult {
+    bytes32 output_state_root; // New state root calculated by running the zkVM program
+    bytes result; // The rest of the result from the program
+}
+```
 
 ## Writing your app contract
 

@@ -30,7 +30,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .field_attribute("program_id", SERDE_BYTES_HEX)
         .field_attribute("onchain_input", SERDE_BYTES_HEX)
         .field_attribute("offchain_input_hash", SERDE_BYTES_HEX)
-        .field_attribute("state_hash", SERDE_BYTES_HEX)
         .field_attribute("request_signature", SERDE_BYTES_HEX)
         .field_attribute("result_with_metadata", SERDE_BYTES_HEX)
         .field_attribute("zkvm_operator_signature", SERDE_BYTES_HEX)

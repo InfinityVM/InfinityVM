@@ -1,7 +1,7 @@
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulProgramResult};
+use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
 use alloy::{
     network::EthereumWallet,
-    primitives::U256,
+    primitives::{keccak256, U256},
     providers::ProviderBuilder,
     signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
@@ -144,30 +144,38 @@ async fn state_job_submission_clob_consumer() {
         for (requests, init_state, next_state) in
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
         {
-            let offchain_input_hash = requests.borsh_keccak256();
-            let offchain_input_borsh = borsh::to_vec(&requests).unwrap();
+            let requests_borsh = borsh::to_vec(&requests).unwrap();
 
             let previous_state_hash = init_state.borsh_keccak256();
             let state_borsh = borsh::to_vec(&init_state).unwrap();
+
+            // Combine requests_borsh and state_borsh
+            let mut combined_offchain_input = Vec::new();
+            combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
+            combined_offchain_input.extend_from_slice(&requests_borsh);
+            combined_offchain_input.extend_from_slice(&state_borsh);
+
+            let offchain_input_hash = keccak256(&combined_offchain_input);
+
+            let onchain_input = StatefulAppOnchainInput {
+                input_state_root: previous_state_hash,
+                onchain_input: (&[]).into(),
+            };
+            let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
             let params = JobParams {
                 nonce,
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **clob.clob_consumer,
-                onchain_input: &[],
+                onchain_input: onchain_input_abi_encoded.as_slice(),
                 offchain_input_hash: offchain_input_hash.into(),
-                state_hash: *previous_state_hash,
                 program_id: &program_id,
             };
             let request = abi_encode_offchain_job_request(params.clone());
             let signature =
                 clob.clob_signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
-            let job_request = SubmitJobRequest {
-                request,
-                signature,
-                offchain_input: offchain_input_borsh,
-                state: state_borsh,
-            };
+            let job_request =
+                SubmitJobRequest { request, signature, offchain_input: combined_offchain_input };
             let submit_job_response =
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
@@ -193,8 +201,8 @@ async fn state_job_submission_clob_consumer() {
             };
 
             {
-                let clob_output = StatefulProgramResult::abi_decode(&raw_output, true).unwrap();
-                assert_eq!(clob_output.next_state_hash, next_state.borsh_keccak256());
+                let clob_output = StatefulAppResult::abi_decode(&raw_output, true).unwrap();
+                assert_eq!(clob_output.output_state_root, next_state.borsh_keccak256());
             }
 
             nonce += 1;

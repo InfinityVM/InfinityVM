@@ -18,7 +18,7 @@ type K256LocalSigner = LocalSigner<SigningKey>;
 const MAX_CYCLES: u64 = 1_000_000;
 const PROGRAM_ID: &[u8] = b"programID";
 const NONCE: u64 = 1;
-const CONSUMER_ADDR: &str = "0xDB8cFf278adCCF9E9b5da745B44E754fC4EE3C76";
+const CONSUMER_ADDR: &str = "0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3";
 
 /// Script to generate ABI-encoded responses + signatures for the coprocessor contract tests
 #[derive(Debug)]
@@ -30,7 +30,6 @@ impl RequestAndResultSigner {
         dotenv().ok();
 
         let zero_addr: Address = Address::ZERO;
-
         // Encode the result with metadata
         let raw_output = abi_encode_address_with_balance(zero_addr, Uint::from(10));
         let encoded_result = abi_encode_result_with_metadata(
@@ -63,7 +62,6 @@ impl RequestAndResultSigner {
         let encoded_result = abi_encode_offchain_result_with_metadata(
             get_job_id(NONCE, Address::parse_checksummed(CONSUMER_ADDR, None).unwrap()),
             keccak256(Address::abi_encode(&zero_addr)),
-            keccak256(vec![]),
             keccak256(vec![]),
             MAX_CYCLES,
             PROGRAM_ID,
@@ -100,7 +98,6 @@ impl RequestAndResultSigner {
             Address::abi_encode(&zero_addr).as_slice(),
             PROGRAM_ID,
             signer,
-            &[],
             &[],
         )
         .await;

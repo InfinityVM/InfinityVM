@@ -86,17 +86,12 @@ async fn main() {
         &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
         offchain_signer.clone(),
         &[],
-        &[],
     )
     .await;
 
     // Submit a job to the coprocessor node
-    let submit_job_request = SubmitJobRequest {
-        request: encoded_job_request,
-        signature,
-        offchain_input: Vec::new(),
-        state: Vec::new(),
-    };
+    let submit_job_request =
+        SubmitJobRequest { request: encoded_job_request, signature, offchain_input: Vec::new() };
 
     let submit_job_response = coproc_client.submit_job(submit_job_request).await.unwrap();
     info!("Submitted job: {:?}", submit_job_response);

@@ -120,15 +120,14 @@ contract JobManager is
         bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
-        // Create a job without emitting an event and set onchain input, offchain input hash, and state hash on consumer
+        // Create a job without emitting an event and set onchain input and offchain input hash on consumer
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
-        Consumer(request.consumer).setInputsForJob(jobID, request.onchainInput, request.offchainInputHash, request.stateHash);
+        Consumer(request.consumer).setInputsForJob(jobID, request.onchainInput, request.offchainInputHash);
 
         // Decode the result using abi.decode
         OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
         require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
         require(request.offchainInputHash == result.offchainInputHash, "JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
-        require(request.stateHash == result.stateHash, "JobManager.submitResultForOffchainJob: state hash signed by coprocessor doesn't match state hash of job request");
         _submitResult(jobID, result.maxCycles, result.onchainInputHash, result.programID, result.result);
     }
 

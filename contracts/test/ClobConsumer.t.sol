@@ -59,7 +59,7 @@ contract ClobConsumerTest is Test, CoprocessorDeployer, ClobDeployer {
         test_ClobConsumer_DepositInitiated();
 
         vm.prank(address(jobManager));
-        consumer.setInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""), 0x0, 0x0);
+        consumer.setInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""), 0x0);
     
         ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](2);
         depositDeltas[0] = ClobConsumer.DepositDelta({
@@ -82,8 +82,8 @@ contract ClobConsumerTest is Test, CoprocessorDeployer, ClobDeployer {
             withdrawDeltas: withdrawDeltas
         });
 
-        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
-            nextStateHash: 0x0,
+        StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
+            outputStateRoot: 0x0,
             result: abi.encode(deltas)
         });
 
@@ -127,8 +127,8 @@ contract ClobConsumerTest is Test, CoprocessorDeployer, ClobDeployer {
             withdrawDeltas: withdrawDeltas
         });
 
-        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
-            nextStateHash: 0x0,
+        StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
+            outputStateRoot: 0x0,
             result: abi.encode(deltas)
         });
 
@@ -167,8 +167,8 @@ contract ClobConsumerTest is Test, CoprocessorDeployer, ClobDeployer {
             withdrawDeltas: withdrawDeltas
         });
 
-        StatefulConsumer.StatefulProgramResult memory clobResult = StatefulConsumer.StatefulProgramResult({
-            nextStateHash: 0x0,
+        StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
+            outputStateRoot: 0x0,
             result: abi.encode(deltas)
         });
 

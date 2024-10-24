@@ -93,8 +93,7 @@ where
 
         let onchain_input_hash = keccak256(&onchain_input);
         let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute_onchain_job(&elf, &onchain_input, max_cycles)
-                .map_err(Error::ZkvmExecuteFailed)
+            vm.execute(&elf, &onchain_input, &[], max_cycles).map_err(Error::ZkvmExecuteFailed)
         })
         .await
         .expect("spawn blocking join handle is infallible. qed.")?;
@@ -121,7 +120,6 @@ where
         program_id: Vec<u8>,
         onchain_input: Vec<u8>,
         offchain_input: Vec<u8>,
-        state: Vec<u8>,
         elf: Vec<u8>,
         vm_type: VmType,
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
@@ -136,9 +134,8 @@ where
 
         let onchain_input_hash = keccak256(&onchain_input);
         let offchain_input_hash = keccak256(&offchain_input);
-        let state_hash = keccak256(&state);
         let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute_offchain_job(&elf, &onchain_input, &offchain_input, &state, max_cycles)
+            vm.execute(&elf, &onchain_input, &offchain_input, max_cycles)
                 .map_err(Error::ZkvmExecuteFailed)
         })
         .await
@@ -148,7 +145,6 @@ where
             job_id,
             onchain_input_hash,
             offchain_input_hash,
-            state_hash,
             max_cycles,
             &program_id,
             &raw_output,
@@ -204,8 +200,6 @@ sol! {
         bytes32 onchain_input_hash;
         /// Hash of offchain input passed to zkVM program for this job.
         bytes32 offchain_input_hash;
-        /// Hash of state passed to zkVM program for this job.
-        bytes32 state_hash;
         /// Max cycles for the job.
         uint64 max_cycles;
         /// Program ID of program being executed.
@@ -240,7 +234,6 @@ pub fn abi_encode_offchain_result_with_metadata(
     job_id: [u8; 32],
     onchain_input_hash: FixedBytes<32>,
     offchain_input_hash: FixedBytes<32>,
-    state_hash: FixedBytes<32>,
     max_cycles: u64,
     program_id: &[u8],
     raw_output: &[u8],
@@ -249,7 +242,6 @@ pub fn abi_encode_offchain_result_with_metadata(
         job_id: job_id.into(),
         onchain_input_hash,
         offchain_input_hash,
-        state_hash,
         max_cycles,
         program_id: program_id.to_vec().into(),
         raw_output: raw_output.to_vec().into(),

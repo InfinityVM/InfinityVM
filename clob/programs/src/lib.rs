@@ -5,7 +5,7 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 #[cfg(test)]
 mod tests {
     use alloy::{
-        primitives::{I256, U256},
+        primitives::{keccak256, I256, U256},
         sol_types::SolValue,
     };
     use clob_core::{
@@ -17,7 +17,7 @@ mod tests {
     };
     use clob_test_utils::next_state;
 
-    use abi::StatefulProgramResult;
+    use abi::{StatefulAppOnchainInput, StatefulAppResult};
     use zkvm::Zkvm;
 
     #[test]
@@ -32,7 +32,7 @@ mod tests {
         ];
         let clob_state1 = next_state(requests1.clone(), clob_state0.clone());
         let clob_out = execute(requests1.clone(), clob_state0.clone());
-        assert_eq!(clob_out.next_state_hash, clob_state1.borsh_keccak256());
+        assert_eq!(clob_out.output_state_root, clob_state1.borsh_keccak256());
         let clob_result_deltas =
             ClobResultDeltas::abi_decode(clob_out.result.as_ref(), false).unwrap();
         assert!(clob_result_deltas.withdraw_deltas.is_empty());
@@ -70,7 +70,7 @@ mod tests {
         ];
         let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
         let clob_out = execute(requests2.clone(), clob_state1.clone());
-        assert_eq!(clob_out.next_state_hash, clob_state2.borsh_keccak256());
+        assert_eq!(clob_out.output_state_root, clob_state2.borsh_keccak256());
         let clob_result_deltas =
             ClobResultDeltas::abi_decode(clob_out.result.as_ref(), false).unwrap();
         assert!(clob_result_deltas.withdraw_deltas.is_empty());
@@ -98,7 +98,7 @@ mod tests {
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
         let clob_out = execute(requests3.clone(), clob_state2.clone());
-        assert_eq!(clob_out.next_state_hash, clob_state3.borsh_keccak256());
+        assert_eq!(clob_out.output_state_root, clob_state3.borsh_keccak256());
         let clob_result_deltas =
             ClobResultDeltas::abi_decode(clob_out.result.as_ref(), false).unwrap();
         assert!(clob_result_deltas.deposit_deltas.is_empty());
@@ -117,18 +117,31 @@ mod tests {
         assert_eq!(clob_result_deltas.withdraw_deltas, vec![a, b]);
     }
 
-    fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulProgramResult {
-        let state_borsh = borsh::to_vec(&init_state).unwrap();
+    // TODO: Update CLOB to pass in state root + merkle proofs to the coprocessor instead of the
+    // entire state.
+    // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
+    fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulAppResult {
+        let requests_borsh = borsh::to_vec(&txns).expect("borsh works. qed.");
+        let state_borsh = borsh::to_vec(&init_state).expect("borsh works. qed.");
+
+        let mut combined_offchain_input = Vec::new();
+        combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
+        combined_offchain_input.extend_from_slice(&requests_borsh);
+        combined_offchain_input.extend_from_slice(&state_borsh);
+
+        let state_hash = keccak256(&state_borsh);
+        let onchain_input =
+            StatefulAppOnchainInput { input_state_root: state_hash, onchain_input: [0].into() };
+
         let out_bytes = zkvm::Risc0 {}
-            .execute_offchain_job(
+            .execute(
                 super::CLOB_ELF,
-                &[],
-                &borsh::to_vec(&txns).expect("type is borsh serializable. qed."),
-                &state_borsh,
+                StatefulAppOnchainInput::abi_encode(&onchain_input).as_slice(),
+                &combined_offchain_input,
                 32 * 1000 * 1000,
             )
             .unwrap();
 
-        StatefulProgramResult::abi_decode(&out_bytes, true).unwrap()
+        StatefulAppResult::abi_decode(&out_bytes, true).unwrap()
     }
 }
