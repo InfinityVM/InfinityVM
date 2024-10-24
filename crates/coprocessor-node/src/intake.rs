@@ -39,6 +39,9 @@ pub enum Error {
     /// Invalid VM type
     #[error("invalid VM type")]
     InvalidVmType,
+    /// Offchain input over max DA per job
+    #[error("offchain input over max DA per job")]
+    OffchainInputOverMaxDAPerJob,
 }
 
 /// Job and program intake handlers.
@@ -67,6 +70,10 @@ where
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
+        if job.offchain_input >  MAX_DA_PER_JOB {
+            return Err(Error::OffchainInputOverMaxDAPerJob)
+        };
+
         if get_job(self.db.clone(), job.id)?.is_some() {
             return Err(Error::JobAlreadyExists);
         }

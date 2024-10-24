@@ -161,13 +161,16 @@ impl JobRelayer {
         job: Job,
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
-        if let RequestType::Offchain(request_signature) = job.request_type {
+        if let RequestType::Offchain(request_signature) = job.request_type {NCT
             let call_builder = self.job_manager.submitResultForOffchainJob(
                 job.result_with_metadata.into(),
                 job.zkvm_operator_signature.into(),
                 job_request_payload.into(),
                 request_signature.into(),
             );
+
+            let sidecar_builder: SidecarBuilder<SimpleCoder> = [job.offchain_input].iter().collect();
+            let sidecars = sidecar_builder.build();
 
             let pending_tx = call_builder.send().await.map_err(|error| {
                 error!(
