@@ -335,7 +335,6 @@ where
             Ok(receipt) => receipt.transaction_hash,
             Err(e) => {
                 error!("report this error: failed to relay job {:?}: {:?}", id, e);
-                metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                 if let Err(e) = put_fail_relay_job(db.clone(), job) {
                     error!("report this error: failed to save relay err {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
@@ -428,7 +427,6 @@ where
                                 hex::encode(id),
                                 e
                             );
-                            metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.retries += 1;
                             if let Err(e) = put_fail_relay_job(db.clone(), job) {
                                 error!(
