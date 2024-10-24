@@ -363,5 +363,3 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 }
-
-
