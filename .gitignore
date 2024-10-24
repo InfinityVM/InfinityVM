@@ -10,9 +10,10 @@ contracts/data/
 contracts/broadcast/**
 
 # Dotenv file
+.env
 contracts/.env
 crates/scripts/.env
-test-load/.env
+test/load-test/.env
 
 programs/**/methods/Cargo.lock
 programs/**/program/target

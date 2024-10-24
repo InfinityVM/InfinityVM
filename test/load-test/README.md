@@ -13,21 +13,21 @@ cargo run --bin local
 
 There are two load test scenarios we run:
 
-1. `LoadtestSubmitJob`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `MockConsumer` job, with a wait time of 1-3 secs between each job submission for a user.
-2. `LoadtestGetResult`: Starts by submitting an offchain `MockConsumer` job with nonce `1` and then each user keeps sending `GetResult` requests (no wait time between requests).
+1. `LoadtestGetResult`: Starts by submitting an offchain `MockConsumer` job with nonce `1` and then each user keeps sending `GetResult` requests (no wait time between requests).
+2. `LoadtestSubmitJob`: Each user sends a `SubmitJob` request to the coprocessor for an offchain `IntensityTest` job, using a specified intensity level. The job submission includes a nonce and intensity parameters, with an option to wait for job completion. The intensity parameters is defined by `INTENSITY_LEVEL`. See more details below.  
 
 For each load test, Goose spawns multiple users, with a thread for each user.
 
 To run the load tests:
 ```
-cargo run --bin test-load --release
+cargo run --bin load-test --release
 ```
 
 To stop the load tests, use `ctrl+C` (or, you can use the `RUN_TIME` env var mentioned in the next section). The results of the load tests will be saved in a `report.html` file. This contains stats and graphs on number of requests, response time, errors, etc.
 
 ## Load test parameters
 
-We have a few parameters we can set in `test-load/.env` (an `example.env` is provided too):
+We have a few parameters we can set in `load-test/.env` (an `example.env` is provided too):
 
 1. `COPROCESSOR_GATEWAY_IP`: External IP of the coprocessor node REST gRPC gateway (defaults to localhost)
 2. `COPROCESSOR_GATEWAY_PORT`: Port of the coprocessor node REST gRPC gateway
@@ -43,10 +43,25 @@ We have a few parameters we can set in `test-load/.env` (an `example.env` is pro
 
 There are other parameters that we can modify, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 
+## Specifying load-test program intensity
+
+The guest program supports different levels of computation intensity. You can specify the intensity by setting the `INTENSITY_LEVEL` environment variable in the CLI by running:
+
+`INTENSITY_LEVEL=light cargo run --bin load-test -- --scenarios LoadtestSubmitJob`
+
+
+- `light`: 10 hashes 
+  
+- `medium`: 50 hashes
+
+- `heavy`: 500 hashes
+
+For each iteration, the program will do the specified number of hashes. The default intensity level is `medium`.
+
 ## Measuring time until job is completed
 
 `LoadtestSubmitJob` only measures the response time between when a user sends a `SubmitJob` request and receives the `jobID` from the coprocessor node as a response. The coprocessor node then spawns a thread to actually execute the job.
 
 We want to also measure the time between when a user sends `SubmitJob` and when the job is actually completed. We haven't been able to figure out a way to record this in the Goose report (Goose or Locust don't seem to support custom metrics), but for now we have added the option of logging the time it takes until the job is completed. If we want, we can direct these logs to a log file and perform analysis using that.
 
-To enable this when running the load tests, set the `WAIT_UNTIL_JOB_COMPLETED` env var to `true` in `test-load/.env`.
+To enable this when running the load tests, set the `WAIT_UNTIL_JOB_COMPLETED` env var to `true` in `load-test/.env`.

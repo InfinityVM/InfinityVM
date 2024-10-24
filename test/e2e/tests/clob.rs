@@ -1,7 +1,7 @@
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppResult};
+use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
 use alloy::{
     network::EthereumWallet,
-    primitives::U256,
+    primitives::{keccak256, U256},
     providers::ProviderBuilder,
     signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
@@ -29,7 +29,7 @@ fn program_id() -> Vec<u8> {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn state_job_submission_clob_consumer() {
-    async fn test(mut _args: Args) {
+    async fn test(mut args: Args) {
         let anvil = args.anvil;
         let clob = args.clob_consumer.unwrap();
         let program_id = program_id();
@@ -45,8 +45,8 @@ async fn state_job_submission_clob_consumer() {
 
         // Seed coprocessor-node with ELF
         let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into()
-        }; let submit_program_response = args
+            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
+        let submit_program_response = args
             .coprocessor_node
             .submit_program(submit_program_request)
             .await
@@ -132,8 +132,8 @@ async fn state_job_submission_clob_consumer() {
         let clob_state2 = next_state(requests2.clone(), clob_state1.clone());
 
         let requests3 = vec![
-            Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400
-        }),     Request::CancelOrder(CancelOrderRequest { oid: 1 }),
+            Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 }),
+            Request::CancelOrder(CancelOrderRequest { oid: 1 }),
             Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 }),
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
@@ -144,28 +144,38 @@ async fn state_job_submission_clob_consumer() {
         for (requests, init_state, next_state) in
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
         {
-            let offchain_input_hash = requests.borsh_keccak256();
-            let offchain_input_borsh = borsh::to_vec(&requests).unwrap();
+            let requests_borsh = borsh::to_vec(&requests).unwrap();
 
             let previous_state_hash = init_state.borsh_keccak256();
             let state_borsh = borsh::to_vec(&init_state).unwrap();
+
+            // Combine requests_borsh and state_borsh
+            let mut combined_offchain_input = Vec::new();
+            combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
+            combined_offchain_input.extend_from_slice(&requests_borsh);
+            combined_offchain_input.extend_from_slice(&state_borsh);
+
+            let offchain_input_hash = keccak256(&combined_offchain_input);
+
+            let onchain_input = StatefulAppOnchainInput {
+                input_state_root: previous_state_hash,
+                onchain_input: (&[]).into(),
+            };
+            let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
             let params = JobParams {
                 nonce,
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **clob.clob_consumer,
-                onchain_input: &[],
+                onchain_input: onchain_input_abi_encoded.as_slice(),
                 offchain_input_hash: offchain_input_hash.into(),
                 program_id: &program_id,
             };
             let request = abi_encode_offchain_job_request(params.clone());
             let signature =
                 clob.clob_signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
-            let job_request = SubmitJobRequest {
-                request,
-                signature,
-                offchain_input: offchain_input_borsh,
-            };
+            let job_request =
+                SubmitJobRequest { request, signature, offchain_input: combined_offchain_input };
             let submit_job_response =
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
@@ -214,7 +224,7 @@ async fn state_job_submission_clob_consumer() {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn clob_node_e2e() {
-    async fn test(mut _args: Args) {
+    async fn test(mut args: Args) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
         interval.tick().await; // First tick processes immediately
 
@@ -236,8 +246,8 @@ async fn clob_node_e2e() {
 
         // Seed coprocessor-node with ELF
         let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into()
-        }; let submit_program_response = args
+            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
+        let submit_program_response = args
             .coprocessor_node
             .submit_program(submit_program_request)
             .await
@@ -324,8 +334,8 @@ async fn clob_node_e2e() {
             }
         );
 
-        let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100
-        }; let (r, i) = client.order(bob_limit1).await.unwrap();
+        let bob_limit1 = AddOrderRequest { address: bob, is_buy: true, limit_price: 1, size: 100 };
+        let (r, i) = client.order(bob_limit1).await.unwrap();
         assert_eq!(i, 4);
         assert_eq!(
             r,
@@ -341,8 +351,8 @@ async fn clob_node_e2e() {
             }
         );
 
-        let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100
-        }; let (r, i) = client.order(bob_limit2).await.unwrap();
+        let bob_limit2 = AddOrderRequest { address: bob, is_buy: true, limit_price: 4, size: 100 };
+        let (r, i) = client.order(bob_limit2).await.unwrap();
         assert_eq!(i, 5);
         assert_eq!(
             r,
@@ -386,8 +396,7 @@ async fn clob_node_e2e() {
         interval.tick().await;
 
         // Check that balances have been updated on chain from the batch.
-        let bob_free_base =
-        consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
+        let bob_free_base = consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_free_base, U256::from(100));
         let bob_free_quote =
             consumer_contract.freeBalanceQuote(bob.into()).call().await.unwrap()._0;
@@ -437,7 +446,7 @@ async fn clob_node_e2e() {
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn cancel_works() {
-    async fn test(_args: Args) {
+    async fn test(args: Args) {
         let clob = args.clob_consumer.unwrap();
         let anvil = args.anvil;
 
@@ -493,8 +502,8 @@ async fn cancel_works() {
                     oid: 1,
                     size: 2,
                     address: [
-                        160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47,
-        32,                 167, 151, 32
+                        160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47, 32,
+                        167, 151, 32
                     ],
                     filled_size: 1,
                     fills: vec![OrderFill {
@@ -503,12 +512,12 @@ async fn cancel_works() {
                         size: 1,
                         price: 5,
                         buyer: [
-                            160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97,
-        47,                     32, 167, 151, 32
+                            160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47,
+                            32, 167, 151, 32
                         ],
                         seller: [
-                            160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97,
-        47,                     32, 167, 151, 32
+                            160, 238, 122, 20, 45, 38, 124, 31, 54, 113, 78, 74, 143, 117, 97, 47,
+                            32, 167, 151, 32
                         ]
                     }]
                 })
@@ -528,17 +537,15 @@ async fn cancel_works() {
         let withdraw = WithdrawRequest { address: bob, base_free: 150, quote_free: 293 };
         let (_r, _i) = client.withdraw(withdraw).await.unwrap();
         let state = client.clob_state().await.unwrap();
-        assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0
-        }); assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free:
-        0, locked: 7 });
+        assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0 });
+        assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 7 });
 
         // Cancel the partially filled order
         let cancel = CancelOrderRequest { oid: 1 };
         let (_r, _i) = client.cancel(cancel).await.unwrap();
         let state = client.clob_state().await.unwrap();
-        assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0
-        }); assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free:
-        7, locked: 0 });
+        assert_eq!(*state.base_balances().get(&bob).unwrap(), AssetBalance { free: 0, locked: 0 });
+        assert_eq!(*state.quote_balances().get(&bob).unwrap(), AssetBalance { free: 7, locked: 0 });
     }
     E2E::new().clob().run(test).await;
 }

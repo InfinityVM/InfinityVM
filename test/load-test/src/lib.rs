@@ -1,10 +1,9 @@
 //! Load testing for the coprocessor node
 use abi::get_job_id;
-use alloy::{primitives::Address, sol_types::SolValue};
+use alloy::primitives::Address;
 use contracts::get_default_deploy_info;
 use goose::prelude::*;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_methods::MOCK_CONSUMER_GUEST_ID;
 use proto::{GetResultRequest, GetResultResponse};
 use std::env;
 use test_utils::{create_and_sign_offchain_request, get_signers};
@@ -81,8 +80,12 @@ pub fn run_time() -> usize {
     env::var("RUN_TIME").ok().and_then(|v| v.parse().ok()).unwrap_or(20)
 }
 
-/// Create and sign an ABI-encoded offchain request for a given nonce.
-pub async fn get_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
+/// Create and sign an ABI-encoded offchain request for a given nonce and program ID.
+pub async fn get_offchain_request(
+    nonce: u64,
+    program_id: &[u8],
+    onchain_input: &[u8],
+) -> (Vec<u8>, Vec<u8>) {
     let consumer_addr = Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
     let signers = get_signers(6);
     let offchain_signer = signers[5].clone();
@@ -91,8 +94,8 @@ pub async fn get_offchain_request(nonce: u64) -> (Vec<u8>, Vec<u8>) {
         nonce,
         max_cycles(),
         consumer_addr,
-        Address::abi_encode(&consumer_addr).as_slice(),
-        &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
+        onchain_input,
+        program_id,
         offchain_signer,
         &[],
     )
@@ -134,5 +137,38 @@ async fn get_result_status(
             None => Ok(0),
         },
         None => Ok(0),
+    }
+}
+
+/// Intensity level for the intensity test.
+#[derive(Debug)]
+pub enum IntensityLevel {
+    /// Light intensity: 10 hash rounds
+    Light,
+    /// Medium intensity: 50 hash rounds
+    Medium,
+    /// Heavy intensity: 500 hash rounds
+    Heavy,
+}
+
+/// Defaults to Medium if not set or if an invalid value is provided.
+pub fn get_intensity_level() -> IntensityLevel {
+    match env::var("INTENSITY_LEVEL")
+        .unwrap_or_else(|_| "medium".to_string())
+        .to_lowercase()
+        .as_str()
+    {
+        "light" => IntensityLevel::Light,
+        "heavy" => IntensityLevel::Heavy,
+        _ => IntensityLevel::Medium,
+    }
+}
+
+/// Get the number of hash rounds for the current intensity level.
+pub fn intensity_hash_rounds() -> u32 {
+    match get_intensity_level() {
+        IntensityLevel::Light => 10,
+        IntensityLevel::Medium => 50,
+        IntensityLevel::Heavy => 500,
     }
 }

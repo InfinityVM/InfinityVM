@@ -7,7 +7,7 @@ mod tests {
     #![allow(unused_imports)]
 
     use alloy::{
-        primitives::{I256, U256},
+        primitives::{keccak256, I256, U256},
         sol_types::SolValue,
     };
     use clob_core::{
@@ -19,7 +19,7 @@ mod tests {
     };
     use clob_test_utils::next_state;
 
-    use abi::StatefulAppResult;
+    use abi::{StatefulAppOnchainInput, StatefulAppResult};
     use zkvm::Zkvm;
 
     #[test]
@@ -42,9 +42,9 @@ mod tests {
         assert_eq!(
             clob_result_deltas.deposit_deltas,
             vec![
-                DepositDelta { account: alice.into(), base: U256::from(200), quote: U256::from(0)
-        },         DepositDelta { account: bob.into(), base: U256::from(0), quote:
-        U256::from(800) },     ]
+                DepositDelta { account: alice.into(), base: U256::from(200), quote: U256::from(0) },
+                DepositDelta { account: bob.into(), base: U256::from(0), quote: U256::from(800) },
+            ]
         );
 
         let requests2 = vec![
@@ -94,8 +94,8 @@ mod tests {
         assert_eq!(clob_result_deltas.order_deltas, vec![a, b]);
 
         let requests3 = vec![
-            Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400
-        }),     Request::CancelOrder(CancelOrderRequest { oid: 1 }),
+            Request::Withdraw(WithdrawRequest { address: alice, base_free: 100, quote_free: 400 }),
+            Request::CancelOrder(CancelOrderRequest { oid: 1 }),
             Request::Withdraw(WithdrawRequest { address: bob, base_free: 100, quote_free: 400 }),
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
@@ -113,8 +113,8 @@ mod tests {
         };
         assert_eq!(clob_result_deltas.order_deltas, vec![a]);
         let a =
-            WithdrawDelta { account: alice.into(), base: U256::from(100), quote: U256::from(400)
-        }; let b =
+            WithdrawDelta { account: alice.into(), base: U256::from(100), quote: U256::from(400) };
+        let b =
             WithdrawDelta { account: bob.into(), base: U256::from(100), quote: U256::from(400) };
         assert_eq!(clob_result_deltas.withdraw_deltas, vec![a, b]);
     }
@@ -122,13 +122,24 @@ mod tests {
     // TODO: Update CLOB to pass in state root + merkle proofs to the coprocessor instead of the
     // entire state.
     // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
-    #[allow(dead_code)]
-    fn execute(txns: Vec<Request>, _init_state: ClobState) -> StatefulAppResult {
+    fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulAppResult {
+        let requests_borsh = borsh::to_vec(&txns).expect("borsh works. qed.");
+        let state_borsh = borsh::to_vec(&init_state).expect("borsh works. qed.");
+
+        let mut combined_offchain_input = Vec::new();
+        combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
+        combined_offchain_input.extend_from_slice(&requests_borsh);
+        combined_offchain_input.extend_from_slice(&state_borsh);
+
+        let state_hash = keccak256(&state_borsh);
+        let onchain_input =
+            StatefulAppOnchainInput { input_state_root: state_hash, onchain_input: [0].into() };
+
         let out_bytes = zkvm::Risc0 {}
             .execute(
                 super::CLOB_ELF,
-                &[],
-                &borsh::to_vec(&txns).expect("type is borsh serializable. qed."),
+                StatefulAppOnchainInput::abi_encode(&onchain_input).as_slice(),
+                &combined_offchain_input,
                 32 * 1000 * 1000,
             )
             .unwrap();
