@@ -3,14 +3,13 @@
 use crate::{metrics::Metrics, MAX_DA_PER_JOB};
 use alloy::{
     hex,
-    network::{Ethereum, EthereumWallet, TxSigner},
+    network::{Ethereum, EthereumWallet, TransactionBuilder, TxSigner},
     primitives::Address,
     providers::{fillers::RecommendedFiller, Provider, ProviderBuilder},
     rpc::types::{TransactionReceipt, TransactionRequest},
     signers::Signature,
     transports::http::reqwest,
 };
-use alloy::network::TransactionBuilder;
 use contracts::i_job_manager::IJobManager;
 use db::tables::{Job, RequestType};
 use eip4844::{SidecarBuilder, SimpleCoder};
@@ -48,15 +47,9 @@ pub enum Error {
     /// rpc transport error
     #[error(transparent)]
     Rpc(#[from] alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    /// error while waiting for tx inclusion
-    #[error("error while broadcasting tx: {0}")]
-    TxBroadcast(alloy::contract::Error),
-    /// error while broadcasting for blob tx for inclusion
-    #[error("error while broadcasting blob tx: {0}")]
-    BlobBroadcast(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
-    /// error while waiting for tx inclusion
-    #[error("error while waiting for tx inclusion: {0}")]
-    TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    /// tx sending error
+    #[error(transparent)]
+    Send(#[from] SendError),
     /// must call [`JobRelayerBuilder::signer`] before building
     #[error("must call JobRelayerBuilder::signer before building")]
     MissingSigner,
@@ -69,6 +62,23 @@ pub enum Error {
     /// c-kzg logic had an error.
     #[error("c-kzg: {0}")]
     Kzg(#[from] eip4844::CKzgError),
+}
+
+/// Errors while sending a transaction
+#[derive(thiserror::Error, Debug)]
+pub enum SendError {
+    /// error while waiting for tx inclusion
+    #[error("error while broadcasting tx: {0}")]
+    TxBroadcast(alloy::contract::Error),
+    /// error while broadcasting for blob tx for inclusion
+    #[error("error while broadcasting blob tx: {0}")]
+    BlobBroadcast(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    /// error while waiting for tx inclusion
+    #[error("error while waiting for tx inclusion: {0}")]
+    TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    /// error while waiting for blob tx inclusion
+    #[error("error while waiting for blob tx inclusion: {0}")]
+    BlobInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
@@ -143,7 +153,7 @@ impl JobRelayer {
         let pending_tx = call_builder.send().await.map_err(|error| {
             error!(?error, ?job.id, "tx broadcast failure");
             self.metrics.incr_relay_err(BROADCAST_ERROR);
-            Error::TxBroadcast(error)
+            Error::Send(SendError::TxBroadcast(error))
         })?;
 
         let receipt = pending_tx
@@ -153,7 +163,7 @@ impl JobRelayer {
             .map_err(|error| {
                 error!(?error, ?job.id, "tx inclusion failed");
                 self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
-                Error::TxInclusion(error)
+                Error::Send(SendError::TxInclusion(error))
             })?;
 
         info!(
@@ -174,43 +184,9 @@ impl JobRelayer {
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
         if let RequestType::Offchain(request_signature) = job.request_type {
-            let sidecar_builder: SidecarBuilder<SimpleCoder> =
-                [job.offchain_input].iter().collect();
-            let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
+            let _blob_receipt = self.relay_blobs(&job.offchain_input, job.id).await?;
 
-            let gas_price = self.job_manager.provider().get_gas_price().await?;
-            let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
-            let blob_tx = TransactionRequest::default()
-                .with_to(*self.job_manager.address())
-                .with_nonce(0)
-                .with_max_fee_per_blob_gas(gas_price)
-                .with_max_fee_per_gas(eip1559_est.max_fee_per_gas)
-                .with_max_priority_fee_per_gas(eip1559_est.max_priority_fee_per_gas)
-                .with_blob_sidecar(sidecar);
-
-            let blob_pending_tx = self.job_manager.provider().send_transaction(blob_tx).await.map_err(|error| {
-                error!(
-                    ?error,
-                    job.nonce,
-                    "blob tx broadcast failure: contract_address = {}",
-                    hex::encode(&job.consumer_address)
-                );
-                self.metrics.incr_relay_err(BLOB_BROADCAST_ERROR);
-                Error::BlobBroadcast(error)
-            })?;
-
-            let receipt = blob_pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
-                    error!(
-                        ?error,
-                        job.nonce,
-                        "blob tx inclusion failed: contract_address = {}",
-                        hex::encode(&job.consumer_address)
-                    );
-                    self.metrics.incr_relay_err(BLOB_TX_INCLUSION_ERROR);
-                    Error::TxInclusion(error)
-                })?;
-
-            let  call_builder = self.job_manager.submitResultForOffchainJob(
+            let call_builder = self.job_manager.submitResultForOffchainJob(
                 job.result_with_metadata.into(),
                 job.zkvm_operator_signature.into(),
                 job_request_payload.into(),
@@ -224,7 +200,7 @@ impl JobRelayer {
                     hex::encode(&job.consumer_address)
                 );
                 self.metrics.incr_relay_err(BROADCAST_ERROR);
-                Error::TxBroadcast(error)
+                Error::Send(SendError::TxBroadcast(error))
             })?;
 
             let receipt =
@@ -236,7 +212,7 @@ impl JobRelayer {
                         hex::encode(&job.consumer_address)
                     );
                     self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
-                    Error::TxInclusion(error)
+                    Error::Send(SendError::TxInclusion(error))
                 })?;
 
             info!(
@@ -253,6 +229,42 @@ impl JobRelayer {
             error!("not an offchain job request");
             Err(Error::InvalidJobRequestType)
         }
+    }
+
+    async fn relay_blobs(
+        &self,
+        offchain_input: &[u8],
+        id: [u8; 32],
+    ) -> Result<TransactionReceipt, Error> {
+        let sidecar_builder: SidecarBuilder<SimpleCoder> = [offchain_input].iter().collect();
+        let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
+
+        let gas_price = self.job_manager.provider().get_gas_price().await?;
+        let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
+        let blob_tx = TransactionRequest::default()
+            .with_to(*self.job_manager.address())
+            .with_nonce(0)
+            .with_max_fee_per_blob_gas(gas_price)
+            .with_max_fee_per_gas(eip1559_est.max_fee_per_gas)
+            .with_max_priority_fee_per_gas(eip1559_est.max_priority_fee_per_gas)
+            .with_blob_sidecar(sidecar);
+
+        let blob_pending_tx =
+            self.job_manager.provider().send_transaction(blob_tx).await.map_err(|error| {
+                error!(?error, id = hex::encode(id), "blob tx broadcast failure",);
+                self.metrics.incr_relay_err(BLOB_BROADCAST_ERROR);
+                Error::Send(SendError::BlobBroadcast(error))
+            })?;
+
+        let receipt = blob_pending_tx.with_required_confirmations(1).get_receipt().await.map_err(
+            |error| {
+                error!(?error, id = hex::encode(id), "blob tx inclusion failure");
+                self.metrics.incr_relay_err(BLOB_TX_INCLUSION_ERROR);
+                Error::Send(SendError::BlobInclusion(error))
+            },
+        )?;
+
+        Ok(receipt)
     }
 }
 
