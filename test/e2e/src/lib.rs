@@ -1,6 +1,7 @@
 //! E2E tests and helpers.
 use alloy::eips::BlockNumberOrTag;
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
+use matching_game_test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
 use coprocessor_node::{
     job_processor::JobProcessorConfig,
     node::{NodeConfig, WsConfig},
@@ -23,8 +24,12 @@ pub struct Args {
     pub mock_consumer: Option<AnvilMockConsumer>,
     /// `ClobConsumer` deployment.
     pub clob_consumer: Option<AnvilClob>,
+    /// `MatchingGameConsumer` deployment.
+    pub matching_game_consumer: Option<AnvilMatchingGame>,
     /// HTTP endpoint the clob node is listening on.
     pub clob_endpoint: Option<String>,
+    /// HTTP endpoint the matching game node is listening on.
+    pub matching_game_endpoint: Option<String>,
     /// Anvil setup with `JobManager`.
     pub anvil: AnvilJobManager,
     /// Coprocessor Node gRPC client.
@@ -37,18 +42,25 @@ pub struct Args {
 #[derive(Debug, Default)]
 pub struct E2E {
     clob: bool,
+    matching_game: bool,
     mock_consumer: bool,
 }
 
 impl E2E {
     /// Create a new [Self].
     pub const fn new() -> Self {
-        Self { clob: false, mock_consumer: false }
+        Self { clob: false, matching_game: false, mock_consumer: false }
     }
 
     /// Setup the clob consumer contracts and service.
     pub const fn clob(mut self) -> Self {
         self.clob = true;
+        self
+    }
+
+    /// Setup the matching game consumer contracts and service.
+    pub const fn matching_game(mut self) -> Self {
+        self.matching_game = true;
         self
     }
 
@@ -120,6 +132,8 @@ impl E2E {
             anvil,
             clob_consumer: None,
             clob_endpoint: None,
+            matching_game_consumer: None,
+            matching_game_endpoint: None,
             db,
         };
 
@@ -127,6 +141,8 @@ impl E2E {
             args.mock_consumer = Some(anvil_with_mock_consumer(&args.anvil).await)
         }
 
+        let cn_grpc_client_url2 = cn_grpc_client_url.clone();
+        let ws_rpc_url2 = ws_rpc_url.clone();
         if self.clob {
             let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
             let clob_db_dir = temp_dir().join(format!("infinity-clob-test-db-{}", test_num));
@@ -156,6 +172,28 @@ impl E2E {
             let clob_endpoint = format!("http://{listen_addr}");
             args.clob_endpoint = Some(clob_endpoint);
             args.clob_consumer = Some(clob_consumer);
+        }
+
+        if self.matching_game {
+            let matching_game_consumer = anvil_with_matching_game_consumer(&args.anvil).await;
+            let matching_game_db_dir = temp_dir().join(format!("infinity-matching-game-test-db-{}", test_num));
+            delete_dirs.push(matching_game_db_dir.clone());
+            let listen_port = get_localhost_port();
+            let listen_addr = format!("{LOCALHOST}:{listen_port}");
+            let batcher_duration_ms = 1000;
+
+            let matching_game_consumer_addr = matching_game_consumer.matching_game_consumer;
+            let listen_addr2 = listen_addr.clone();
+            let operator_signer = matching_game_consumer.matching_game_signer.clone();
+            tokio::spawn(async move {
+                matching_game_node::run(
+                    matching_game_db_dir, listen_addr2, batcher_duration_ms, operator_signer, cn_grpc_client_url2, ws_rpc_url2, **matching_game_consumer_addr, BlockNumberOrTag::Earliest).await
+            });
+            sleep_until_bound(listen_port).await;
+
+            let matching_game_endpoint = format!("http://{listen_addr}");
+            args.matching_game_endpoint = Some(matching_game_endpoint);
+            args.matching_game_consumer = Some(matching_game_consumer);
         }
 
         let test_result = AssertUnwindSafe(test_fn(args)).catch_unwind().await;

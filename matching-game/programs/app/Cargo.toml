@@ -15,7 +15,7 @@ rustdoc.all = "warn"
 
 [[bin]]
 name = "matching-game"
-path = "src/matching-game.rs"
+path = "src/matching_game.rs"
 
 [dependencies]
 alloy = { version = "0", features = ["sol-types"], default-features = false }

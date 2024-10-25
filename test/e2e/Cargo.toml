@@ -32,6 +32,12 @@ clob-core = { workspace = true }
 clob-client = { workspace = true }
 clob-node = { workspace = true }
 clob-test-utils = { workspace = true }
+matching-game-contracts = { workspace = true }
+matching-game-programs = { workspace = true }
+matching-game-core = { workspace = true }
+matching-game-client = { workspace = true }
+matching-game-node = { workspace = true }
+matching-game-test-utils = { workspace = true }
 mock-consumer = { workspace = true }
 
 [dev-dependencies]
