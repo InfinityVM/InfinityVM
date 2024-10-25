@@ -58,20 +58,6 @@ async fn state_job_submission_matching_game_consumer() {
             .wallet(matching_game_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
 
-        let alice_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .wallet(alice_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
-
-        let alice_contract = MatchingGameConsumer::new(matching_game.matching_game_consumer, &alice_provider);
-
-        let bob_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .wallet(bob_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
-
-        let bob_contract = MatchingGameConsumer::new(matching_game.matching_game_consumer, &bob_provider);
-
         let requests1 = vec![
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 }),
             Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
@@ -157,6 +143,12 @@ async fn state_job_submission_matching_game_consumer() {
 
             nonce += 1;
         }
+
+        let consumer_contract = MatchingGameConsumer::new(matching_game.matching_game_consumer, &consumer_provider);
+        let partner = consumer_contract.getPartner(alice.into()).call().await.unwrap()._0;
+        assert_eq!(partner, bob);
+        let partner = consumer_contract.getPartner(bob.into()).call().await.unwrap()._0;
+        assert_eq!(partner, alice);
     }
     E2E::new().matching_game().run(test).await;
 }
@@ -165,50 +157,42 @@ async fn state_job_submission_matching_game_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn matching_game_node_e2e() {
     async fn test(mut args: Args) {
-        // let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
-        // interval.tick().await; // First tick processes immediately
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
+        interval.tick().await; // First tick processes immediately
 
-        // let anvil = args.anvil;
-        // let clob = args.clob_consumer.unwrap();
-        // let program_id = program_id();
-        // let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
-        // let clob_endpoint = args.clob_endpoint.unwrap();
+        let anvil = args.anvil;
+        let matching_game = args.matching_game_consumer.unwrap();
+        let program_id = program_id();
+        let matching_game_signer_wallet = EthereumWallet::from(matching_game.matching_game_signer.clone());
+        let matching_game_endpoint = args.matching_game_endpoint.unwrap();
 
-        // let client = clob_client::Client::new(clob_endpoint);
+        let client = clob_client::Client::new(matching_game_endpoint);
 
-        // // Setup ready to use on chain accounts for Alice & Bob
-        // let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
-        // let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
-        // let alice: [u8; 20] = alice_key.address().into();
-        // let bob: [u8; 20] = bob_key.address().into();
-        // let alice_wallet = EthereumWallet::new(alice_key);
-        // let bob_wallet = EthereumWallet::new(bob_key);
+        // Setup ready to use on chain accounts for Alice & Bob
+        let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
+        let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
+        let alice: [u8; 20] = alice_key.address().into();
+        let bob: [u8; 20] = bob_key.address().into();
+        let alice_wallet = EthereumWallet::new(alice_key);
+        let bob_wallet = EthereumWallet::new(bob_key);
 
-        // // Seed coprocessor-node with ELF
-        // let submit_program_request =
-        //     SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
-        // let submit_program_response = args
-        //     .coprocessor_node
-        //     .submit_program(submit_program_request)
-        //     .await
-        //     .unwrap()
-        //     .into_inner();
-        // assert_eq!(submit_program_response.program_id, program_id);
+        // Seed coprocessor-node with ELF
+        let submit_program_request =
+            SubmitProgramRequest { program_elf: MATCHING_GAME_ELF.to_vec(), vm_type: VmType::Risc0.into() };
+        let submit_program_response = args
+            .coprocessor_node
+            .submit_program(submit_program_request)
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(submit_program_response.program_id, program_id);
 
-        // // Get chain state setup
-        // let consumer_provider = ProviderBuilder::new()
-        //     .with_recommended_fillers()
-        //     .wallet(clob_signer_wallet)
-        //     .on_http(anvil.anvil.endpoint().parse().unwrap());
-        // let consumer_contract = ClobConsumer::new(clob.clob_consumer, &consumer_provider);
-        // let base_contract = MockErc20::new(clob.base_erc20, &consumer_provider);
-        // let quote_contract = MockErc20::new(clob.quote_erc20, &consumer_provider);
-
-        // // Mint erc20 tokens to Alice and Bob so they have funds to deposit on the exchange
-        // let call = base_contract.mint(alice.into(), U256::from(1_000));
-        // let r1 = call.send().await.unwrap().get_receipt();
-        // let call = quote_contract.mint(bob.into(), U256::from(1_000));
-        // let r2 = call.send().await.unwrap().get_receipt();
+        // Get chain state setup
+        let consumer_provider = ProviderBuilder::new()
+            .with_recommended_fillers()
+            .wallet(matching_game_signer_wallet)
+            .on_http(anvil.anvil.endpoint().parse().unwrap());
+        let consumer_contract = MatchingGameConsumer::new(matching_game.matching_game_consumer, &consumer_provider);
 
         // // Alice and Bob both approve the ClobConsumer to move the ERC20 and then deposit
         // let alice_provider = ProviderBuilder::new()
