@@ -12,7 +12,7 @@ use alloy::{
 
 use abi::StatefulAppResult;
 use api::{
-    CancelNumberRequest, CancelNumberResponse, Request, Response, SubmitNumberRequest,
+    CancelNumberRequest, CancelNumberResponse, MatchPair, Request, Response, SubmitNumberRequest,
     SubmitNumberResponse,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
@@ -60,7 +60,7 @@ pub fn submit_number(
         // if the number is already submitted by other addresses, remove the first address in that
         // list and create a match pair
         let other_address = addresses.remove(0);
-        match_pair = Some(Match { user1: other_address.into(), user2: address.into() });
+        match_pair = Some(MatchPair { user1: other_address.into(), user2: address.into() });
     } else {
         // if not, add the submission
         state.number_to_addresses.entry(number).or_default().push(address);
@@ -114,7 +114,9 @@ pub fn zkvm_stf(requests: Vec<Request>, mut state: MatchingGameState) -> Statefu
         let (resp, next_state) = tick(req, state);
         if let Response::SubmitNumber(resp) = resp {
             if let Some(match_pair) = resp.match_pair {
-                matches.push(match_pair);
+                let match_struct =
+                    Match { user1: match_pair.user1.into(), user2: match_pair.user2.into() };
+                matches.push(match_struct);
             }
         }
 

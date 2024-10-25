@@ -220,6 +220,7 @@ coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
 matching-game-contracts = { path = "matching-game/contracts" }
 matching-game-core = { path = "matching-game/core" }
+matching-game-node = { path = "matching-game/node" }
 matching-game-programs = { path = "matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }

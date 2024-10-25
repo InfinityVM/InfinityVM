@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 alloy::sol! {
     /// Matching pair.
-    #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug, Serialize, Deserialize)]
+    #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
     struct Match {
         address user1;
         address user2;

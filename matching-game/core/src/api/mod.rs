@@ -16,7 +16,7 @@ pub enum Request {
 }
 
 /// All possible responses from the clob engine.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(rename_all = "camelCase")]
 pub enum Response {
     /// [`SubmitNumberResponse`]
@@ -49,14 +49,25 @@ pub struct CancelNumberRequest {
     pub number: u64,
 }
 
+#[derive(
+    Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
+)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchPair {
+    pub user1: [u8; 20],
+    pub user2: [u8; 20],
+}
+
 /// Response to [`SubmitNumberRequest`].
-#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[derive(
+    Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
+)]
 #[serde(rename_all = "camelCase")]
 pub struct SubmitNumberResponse {
     /// If the request was successfully processed.
     pub success: bool,
     /// The match that occurred.
-    pub match_pair: Option<Match>,
+    pub match_pair: Option<MatchPair>,
 }
 
 /// Response to [`CancelNumberRequest`].

@@ -21,4 +21,5 @@ path = "src/matching-game.rs"
 alloy = { version = "0", features = ["sol-types"], default-features = false }
 risc0-zkvm = { version = "1", default-features = false, features = ['std'] }
 borsh = { version = "1", default-features = false }
+matching-game-core = { path = "../../core" }
 abi = { path = "../../../crates/sdk/abi" }
