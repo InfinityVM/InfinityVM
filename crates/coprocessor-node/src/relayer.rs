@@ -1,12 +1,12 @@
 //! Logic to broadcast job result onchain.
 
-use crate::{metrics::Metrics, MAX_DA_PER_JOB};
+use crate::metrics::Metrics;
 use alloy::{
     hex,
-    network::{Ethereum, EthereumWallet, TransactionBuilder, TxSigner},
+    network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
     providers::{fillers::RecommendedFiller, Provider, ProviderBuilder},
-    rpc::types::{TransactionReceipt, TransactionRequest},
+    rpc::types::TransactionReceipt,
     signers::Signature,
     transports::http::reqwest,
 };
@@ -169,11 +169,12 @@ impl JobRelayer {
     ) -> Result<TransactionReceipt, Error> {
         if let RequestType::Offchain(request_signature) = job.request_type {
             let sidecar_builder: SidecarBuilder<SimpleCoder> =
-                [job.offchain_input].iter().collect();
+                std::iter::once(job.offchain_input).collect();
             let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
 
             let gas_price = self.job_manager.provider().get_gas_price().await?;
             // let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
+            let blob_count = sidecar.blobs.len() as u32;
             let call_builder = self
                 .job_manager
                 .submitResultForOffchainJob(
@@ -181,7 +182,7 @@ impl JobRelayer {
                     job.zkvm_operator_signature.into(),
                     job_request_payload.into(),
                     request_signature.into(),
-                    sidecar.blobs.len().into(),
+                    blob_count,
                 )
                 .sidecar(sidecar)
                 .max_fee_per_blob_gas(gas_price);

@@ -6,7 +6,6 @@
 
 use std::sync::Arc;
 
-use crate::{metrics::Metrics, MAX_DA_PER_JOB};
 use alloy::{hex, primitives::Signature, signers::Signer};
 use db::{get_elf, get_job, put_elf, put_job, tables::Job};
 use proto::{JobStatus, JobStatusType, VmType};

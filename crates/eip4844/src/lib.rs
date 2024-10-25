@@ -28,7 +28,7 @@ mod test {
         let len = USABLE_BYTES_PER_BLOB;
         let data: Vec<u8> = (0..len).map(|n| (n % u8::MAX as usize) as u8).collect();
 
-        let builder: SidecarBuilder<SimpleCoder> = vec![data].iter().collect();
+        let builder: SidecarBuilder<SimpleCoder> = [data].iter().collect();
         let built = builder.build().unwrap();
         assert_eq!(built.blobs.len(), 2);
     }
@@ -38,7 +38,7 @@ mod test {
         let len = SIMPLE_CODER_MAX_DATA_PER_BLOB;
         let data: Vec<u8> = (0..len).map(|n| (n % u8::MAX as usize) as u8).collect();
 
-        let builder: SidecarBuilder<SimpleCoder> = vec![data].iter().collect();
+        let builder: SidecarBuilder<SimpleCoder> = [data].iter().collect();
         let built = builder.build().unwrap();
         assert_eq!(built.blobs.len(), 1);
     }
@@ -48,7 +48,7 @@ mod test {
         let len = SIMPLE_CODER_MAX_DATA_PER_BLOB + 1;
         let data: Vec<u8> = (0..len).map(|n| (n % u8::MAX as usize) as u8).collect();
 
-        let builder: SidecarBuilder<SimpleCoder> = vec![data].iter().collect();
+        let builder: SidecarBuilder<SimpleCoder> = [data].iter().collect();
         let built = builder.build().unwrap();
         assert_eq!(built.blobs.len(), 2);
     }
@@ -58,7 +58,7 @@ mod test {
         let len = SIMPLE_CODER_MAX_DATA_PER_BLOB * 6;
         let data: Vec<u8> = (0..len).map(|n| (n % u8::MAX as usize) as u8).collect();
 
-        let builder: SidecarBuilder<SimpleCoder> = vec![data].iter().collect();
+        let builder: SidecarBuilder<SimpleCoder> = [data].iter().collect();
         let built = builder.build().unwrap();
         assert_eq!(built.blobs.len(), 6);
     }
@@ -68,7 +68,7 @@ mod test {
         let len = SIMPLE_CODER_MAX_DATA_PER_BLOB * 6 + 1;
         let data: Vec<u8> = (0..len).map(|n| (n % u8::MAX as usize) as u8).collect();
 
-        let builder: SidecarBuilder<SimpleCoder> = vec![data].iter().collect();
+        let builder: SidecarBuilder<SimpleCoder> = [data].iter().collect();
         let built = builder.build().unwrap();
         assert_eq!(built.blobs.len(), 7);
     }
