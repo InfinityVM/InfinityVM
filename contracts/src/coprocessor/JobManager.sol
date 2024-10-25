@@ -147,12 +147,6 @@ contract JobManager is
         _submitResult(jobID, result.maxCycles, result.onchainInputHash, result.programID, result.result);
     }
 
-    // function _getBlobHash(uint256 _index) internal view virtual returns (bytes32 versionedHash) {
-    //     assembly {
-    //         versionedHash := blobhash(_index)
-    //     }
-    // }
-
     function _submitResult(
         bytes32 jobID,
         uint64 maxCycles,

@@ -173,7 +173,6 @@ impl JobRelayer {
             let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
 
             let gas_price = self.job_manager.provider().get_gas_price().await?;
-            // let eip1559_est = self.job_manager.provider().estimate_eip1559_fees(None).await?;
             let blob_count = sidecar.blobs.len() as u32;
             let call_builder = self
                 .job_manager
