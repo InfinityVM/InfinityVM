@@ -126,8 +126,6 @@ contract JobManager is
         // Extract the blob hashes
         bytes32[] memory blobhashes = new bytes32[](blobCount);
         for (uint256 i = 0; i < blobCount; i++) {
-            // blobhash added in solidity 0.8.24
-            // bytes32 versionedHash = _getBlobHash(i);
             bytes32 versionedHash = blobhash(i);
             require(versionedHash != 0, "JobManager.submitResultForOffchainJob: missing blob");
             blobhashes[i] = versionedHash;
