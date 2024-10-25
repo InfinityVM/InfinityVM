@@ -21,7 +21,8 @@ By separating consensus and execution, **Infinity is able to rollback the execut
 To better understand the architecture of the Infinity L1 and the optimizations we have made, please read:
 
 - [<u>Block Lifecycle</u>](./lifecycle.md): Overview of the end-to-end lifecycle for proposing blocks, processing blocks, etc.
-- [<u>Optimistic Payload Building</u>](./optimistic-payload.md): Performance optimization to prematurely build execution payloads
-- [<u>Fork Choice</u>](./fork-choice.md): Enshrining offchain compute into the fork choice of the Infinity L1
+- [<u>Optimistic Payload Building</u>](./optimistic-payload.md): Performance optimization to prematurely build execution payloads.
+- [<u>Fork Choice</u>](./fork-choice.md): Enshrining offchain compute into the fork choice of the Infinity L1.
+- [<u>DA</u>](./da.md): Single slot finality DA in lockstep with Infinity L1 blocks to facilitate native coprocessing.
 
 **Note:** It isn't required to understand any of these sections to build with InfinityVM.
