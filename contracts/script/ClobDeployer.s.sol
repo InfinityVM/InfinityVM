@@ -29,8 +29,8 @@ contract ClobDeployer is Script, Utils {
         baseToken = new E2EMockERC20("Token A", "WETH");
         quoteToken = new E2EMockERC20("Token B", "USDC");
 
-        bytes32 initialLatestStateHash = 0x0;
-        consumer = new ClobConsumer(jobManager, offchainRequestSigner, initialMaxNonce, baseToken, quoteToken, initialLatestStateHash);
+        bytes32 initialLatestStateRoot = 0x0;
+        consumer = new ClobConsumer(jobManager, offchainRequestSigner, initialMaxNonce, baseToken, quoteToken, initialLatestStateRoot);
 
         if (writeJson) {
             // WRITE JSON DATA

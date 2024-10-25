@@ -3538,6 +3538,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "intensity-test-methods"
+version = "0.1.0"
+dependencies = [
+ "risc0-build",
+]
+
+[[package]]
 name = "interprocess"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3792,11 +3799,12 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
+ "borsh",
  "contracts",
  "dotenv",
  "goose",
+ "intensity-test-methods",
  "mock-consumer",
- "mock-consumer-methods",
  "once_cell",
  "proto",
  "reqwest 0.12.7",
@@ -5981,6 +5989,7 @@ dependencies = [
  "clob-test-utils",
  "contracts",
  "dotenv",
+ "intensity-test-methods",
  "k256",
  "mock-consumer",
  "mock-consumer-methods",

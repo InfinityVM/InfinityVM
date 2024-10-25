@@ -6,7 +6,6 @@ abstract contract Consumer {
     struct JobInputs {
         bytes onchainInput;
         bytes32 offchainInputHash;
-        bytes32 stateHash;
     }
     
     JobManager internal _jobManager;
@@ -35,10 +34,6 @@ abstract contract Consumer {
         return jobIDToInputs[jobID].offchainInputHash;
     }
 
-    function getStateHashForJob(bytes32 jobID) public view virtual returns (bytes32) {
-        return jobIDToInputs[jobID].stateHash;
-    }
-
     function getNextNonce() public view virtual returns (uint64) {
         return maxNonce + 1;
     }
@@ -47,13 +42,11 @@ abstract contract Consumer {
     function setInputsForJob(
         bytes32 jobID,
         bytes memory onchainInput,
-        bytes32 offchainInputHash,
-        bytes32 stateHash
+        bytes32 offchainInputHash
     ) public virtual onlyJobManager() {
         JobInputs storage jobInputs = jobIDToInputs[jobID];
         jobInputs.onchainInput = onchainInput;
         jobInputs.offchainInputHash = offchainInputHash;
-        jobInputs.stateHash = stateHash;
     }
 
     function updateLatestNonce(uint64 nonce) public virtual onlyJobManager() {

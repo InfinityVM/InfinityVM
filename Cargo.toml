@@ -26,6 +26,7 @@ members = [
 	"test/e2e",
 	"test/load-test",
 	"programs/risc0/mock-consumer/methods",
+	"programs/risc0/intensity-test/methods",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -219,6 +220,7 @@ db = { path = "crates/db" }
 eip4844 = { path = "crates/eip4844" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
+intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
 proto = { path = "crates/sdk/proto" }
 test-utils = { path = "crates/sdk/test-utils" }
 zkvm = { path = "crates/zkvm" }

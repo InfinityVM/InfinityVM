@@ -10,7 +10,7 @@ use alloy::{
     sol_types::SolType,
 };
 
-use abi::StatefulProgramResult;
+use abi::StatefulAppResult;
 use api::{
     AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobResultDeltas,
     DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,
@@ -272,7 +272,7 @@ pub fn tick(request: Request, state: ClobState) -> (Response, ClobState, Vec<Dif
 
 /// State transition function used in the ZKVM. It only outputs balance changes, which are abi
 /// encoded for contract consumption.
-pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> StatefulProgramResult {
+pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> StatefulAppResult {
     // At most 2 deltas for a request (fills have delta for buyer and seller)
     let mut orders = HashMap::<[u8; 20], OrderDelta>::with_capacity(requests.len() * 2);
     let mut deposits = HashMap::<[u8; 20], DepositDelta>::with_capacity(requests.len());
@@ -296,8 +296,8 @@ pub fn zkvm_stf(requests: Vec<Request>, mut state: ClobState) -> StatefulProgram
 
     let clob_result_deltas = ClobResultDeltas { order_deltas, withdraw_deltas, deposit_deltas };
 
-    StatefulProgramResult {
-        next_state_hash: state.borsh_keccak256(),
+    StatefulAppResult {
+        output_state_root: state.borsh_keccak256(),
         result: ClobResultDeltas::abi_encode(&clob_result_deltas).into(),
     }
 }

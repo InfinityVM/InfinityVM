@@ -53,28 +53,24 @@ pub struct JobResult {
     #[prost(bytes = "vec", tag = "7")]
     #[serde_as(as = "Hex")]
     pub offchain_input_hash: ::prost::alloc::vec::Vec<u8>,
-    /// Hash of program state
-    #[prost(bytes = "vec", tag = "8")]
-    #[serde_as(as = "Hex")]
-    pub state_hash: ::prost::alloc::vec::Vec<u8>,
     /// Signature on the offchain job request
-    #[prost(bytes = "vec", tag = "9")]
+    #[prost(bytes = "vec", tag = "8")]
     #[serde_as(as = "Hex")]
     pub request_signature: ::prost::alloc::vec::Vec<u8>,
     /// ABI-encoded result of job execution with metadata
-    /// tuple(JobID,OnchainInputHash,StateHash,MaxCycles,ProgramID,RawOutput)
-    #[prost(bytes = "vec", tag = "10")]
+    /// tuple(JobID,OnchainInputHash,MaxCycles,ProgramID,RawOutput)
+    #[prost(bytes = "vec", tag = "9")]
     #[serde_as(as = "Hex")]
     pub result_with_metadata: ::prost::alloc::vec::Vec<u8>,
     /// The signature of the operator that executed the job
-    #[prost(bytes = "vec", tag = "11")]
+    #[prost(bytes = "vec", tag = "10")]
     #[serde_as(as = "Hex")]
     pub zkvm_operator_signature: ::prost::alloc::vec::Vec<u8>,
     /// The status of the job.
-    #[prost(message, optional, tag = "12")]
+    #[prost(message, optional, tag = "11")]
     pub status: ::core::option::Option<JobStatus>,
     /// Tx hash of relayed result
-    #[prost(bytes = "vec", tag = "13")]
+    #[prost(bytes = "vec", tag = "12")]
     #[serde_as(as = "Hex")]
     pub relay_tx_hash: ::prost::alloc::vec::Vec<u8>,
 }
@@ -136,9 +132,6 @@ pub struct SubmitJobRequest {
     /// Value of offchain input passed into program (this isn't signed over)
     #[prost(bytes = "vec", tag = "3")]
     pub offchain_input: ::prost::alloc::vec::Vec<u8>,
-    /// Value of state passed into program (this isn't signed over)
-    #[prost(bytes = "vec", tag = "4")]
-    pub state: ::prost::alloc::vec::Vec<u8>,
 }
 /// SubmitJobResponse defines the response structure to submit a job to the
 /// coprocessing coprocessor_node.

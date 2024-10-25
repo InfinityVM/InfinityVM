@@ -79,7 +79,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             program_id: program_id.clone(),
             onchain_input: mock_user_address.abi_encode(),
             offchain_input: vec![],
-            state: vec![],
             // signature added to this job below
             request_type: RequestType::Offchain(vec![]),
             result_with_metadata: vec![],
@@ -101,7 +100,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             request: job_request_payload,
             signature: request_signature.into(),
             offchain_input: vec![],
-            state: vec![],
         };
         let submit_job_response =
             args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
@@ -132,7 +130,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_offchain_result_with_metadata(
             job_id,
             keccak256(&job_result.onchain_input),
-            keccak256(vec![]),
             keccak256(vec![]),
             job_result.max_cycles,
             &job_result.program_id,

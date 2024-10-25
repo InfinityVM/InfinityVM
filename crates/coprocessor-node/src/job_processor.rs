@@ -268,7 +268,6 @@ where
                         job.program_id.clone(),
                         job.onchain_input.clone(),
                         job.offchain_input.clone(),
-                        job.state.clone(),
                         elf_with_meta.elf,
                         VmType::Risc0,
                     )

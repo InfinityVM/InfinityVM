@@ -96,7 +96,6 @@ pub async fn mock_consumer_pending_job(
         program_id: bytes,
         onchain_input: addr.abi_encode(),
         offchain_input: vec![],
-        state: vec![],
         request_type: RequestType::Onchain,
         result_with_metadata: result_with_meta,
         status: JobStatus {

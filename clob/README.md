@@ -67,7 +67,7 @@ The user can perform these actions:
 
 ### Sending batches to the InfinityVM coprocessor
 
-The InfinityVM coprocessor allows apps to submit jobs directly to the coprocessor. Apps can choose which inputs they want to post onchain vs. to some DA layer. Some apps are also "stateful" and can pass in state. For example, the CLOB state contains all user balances in the CLOB along with the order book.
+The InfinityVM coprocessor allows apps to submit jobs directly to the coprocessor. Apps can choose which inputs they want to post onchain vs. to some DA layer. 
 
 The API for submitting a job to the coprocessor is:
 ```rust=
@@ -78,24 +78,24 @@ struct JobRequest {
     onchain_input: Vec<u8>,
     offchain_input: Vec<u8>,
     offchain_input_hash: Vec<u8>,
-    state: Vec<u8>,
-    state_hash: Vec<u8>,
 }
 ```
-
 `offchain_input` contains:
 - the new batch of orders/cancels/deposits/withdraws
 - user signature for each order in the batch
 
-The `offchain_input` and `state` will be borsh-encoded before submitting to the coprocessor.
+The CLOB is also a stateful app, and the CLOB's state contains all user balances along with the order book. The CLOB stores its state as a merkle tree. To pass this state to the zkVM program, the CLOB submits the state root in `onchain_input` and submits merkle proofs against this state root for the relevant balances + order book values in `offchain_input`.
+
+The `offchain_input` will be borsh-encoded before submitting to the coprocessor.
 
 ### zkVM program
 
-The zkVM program takes in `state` and `offchain_input` as inputs. It does these things:
-- Decodes `state` and `offchain_input`
+The zkVM program takes in `onchain_input` and `offchain_input` as inputs. It does these things:
+- Decodes `onchain_input` and `offchain_input`
 - Verifies that the signature on every order in the batch is valid
+- Verifies merkle proofs against the state root provided in `onchain_input`
 - Runs the CLOB matching function, which takes in the batch and the existing order book as inputs. We won't explain this function in detail here, but the code for this is in `zkvm_stf` in `clob/core/src/lib.rs` in the `InfinityVM` monorepo.
-- Returns an ABI-encoded output, which includes the hash of the new CLOB state and a list of state updates which will be processed by the CLOB contract.
+- Returns an ABI-encoded output, which includes the new CLOB state root and a list of state updates which will be processed by the CLOB contract.
 
 The list of state updates sent to the CLOB contract is structured like this:
 ```solidity=
@@ -130,28 +130,11 @@ struct WithdrawDelta {
 
 The CLOB contract receives this list of state updates and processes it to update user balances. `DepositDelta` is used to update a user's `depositedBalance` and `freeBalance` due to deposits. `OrderDelta` is used to update a user's `freeBalance` and/or `lockedBalance` due to orders being placed, filled, and/or cancelled. `WithdrawDelta` is used to update a user's `freeBalance` and transfer funds to the user due to withdrawals.
 
-### Ensuring correctness of the state passed as input
+### Ensuring correctness of the state root passed as input
 
-The coprocessor verifies that the `state` hashes to the same value as `state_hash` signed by the CLOB server in the job request. But, this is still not fully secure since the CLOB server can provide any arbitrary value for `state` and just include the corresponding hash for this arbitrary state in `state_hash`.
+In the design so far, the CLOB server can provide any arbitrary value for the state root in `onchain_input` to the zkVM program.
 
-To solve this, we add logic in the CLOB contract to keep track of the state hash for each batch:
-```solidity=
-contract ClobConsumer {
-    bytes32 latestStateHash;
-    
-    function receiveResult(bytes32 jobID, bytes result) {
-        bytes32 stateHash = getStateHashForJob(jobID);
-        
-        // Check that state_hash passed by CLOB 
-        // server matches the most recent state hash
-        require(stateHash == latestStateHash);
-        
-        // Update the most recent state hash with the new state
-        latestStateHash = abi.decode(result).nextStateHash;
-    }
-}
-```
-By verifying that `state_hash` matches the state from the most recent batch, this logic ensures that the CLOB server can only submit valid state to the InfinityVM coprocessor.
+To solve this, we make the CLOB contract implement the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface, to verify that the state root submitted by the CLOB server in the job request matches the most recent state root stored in the contract.
 
 ### Future improvements
 
