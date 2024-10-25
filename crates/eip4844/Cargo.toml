@@ -10,5 +10,3 @@ workspace = true
 [dependencies]
 alloy = { workspace = true, features = ["consensus", "kzg", "std", "eips"] }
 c-kzg = { version = "1" }
-thiserror = { workspace = true }
-
