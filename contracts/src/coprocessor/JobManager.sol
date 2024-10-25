@@ -124,14 +124,15 @@ contract JobManager is
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
         // Extract the blob hashes
-        bytes32[] memory blobhashes = new bytes32[](blobCount);
-        for (uint256 i = 0; i < blobCount; i++) {
-            bytes32 versionedHash = blobhash(i);
-            require(versionedHash != 0, "JobManager.submitResultForOffchainJob: missing blob");
-            blobhashes[i] = versionedHash;
+        if (blobCount != 0) {
+            bytes32[] memory blobhashes = new bytes32[](blobCount);
+            for (uint256 i = 0; i < blobCount; i++) {
+                bytes32 versionedHash = blobhash(i);
+                require(versionedHash != 0, "JobManager.submitResultForOffchainJob: missing blob");
+                blobhashes[i] = versionedHash;
+            }
+            jobIDToBlobhashes[jobID] = blobhashes;
         }
-        jobIDToBlobhashes[jobID] = blobhashes;
-
 
         // Create a job without emitting an event and set onchain input and offchain input hash on consumer
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);

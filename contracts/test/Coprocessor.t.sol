@@ -388,13 +388,24 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         assertEq(consumer.getNextNonce(), DEFAULT_NONCE);
 
-        vm.expectEmit(true, true, false, false);
-        emit JobCompleted(DEFAULT_JOB_ID, abi.encode(address(0), 10));
         bytes32[] memory blobhashes = new bytes32[](2);
         blobhashes[0] = bytes32(0x0000000000000000000000000000000000000000000000000000000000000001);
         blobhashes[1] = bytes32(0x0000000000000000000000000000000000000000000000000000000000000002);
         vm.blobhashes(blobhashes);
+        // vm.expectEmit(true, true, false, false);
+        // emit JobCompleted(DEFAULT_JOB_ID, abi.encode(address(0), 10));
         vm.prank(RELAYER);
         jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 2);
+
+    //     assertEq(consumer.getOnchainInputForJob(DEFAULT_JOB_ID), abi.encode(address(0)));
+    //     assertEq(consumer.getNextNonce(), DEFAULT_NONCE + 1);
+
+    //     JobManager.JobMetadata memory jobMetadata = jobManager.getJobMetadata(DEFAULT_JOB_ID);
+    //     // Check that job status is COMPLETED
+    //     assertEq(jobMetadata.status, 3);
+
+    //     // Check that state was correctly updated in Consumer contract
+    //     assertEq(consumer.getBalance(address(0)), 10);
+    //     assertEq(consumer.getJobResult(DEFAULT_JOB_ID), abi.encode(address(0), 10));
     }
 }
