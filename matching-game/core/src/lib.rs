@@ -147,12 +147,15 @@ impl<T: BorshSerialize> BorshKeccak256 for T {
 #[cfg(test)]
 mod tests {
     use crate::{
-        api::{CancelNumberRequest, CancelNumberResponse, MatchPair, Request, Response, SubmitNumberRequest, SubmitNumberResponse},
+        api::{
+            CancelNumberRequest, CancelNumberResponse, MatchPair, Request, Response,
+            SubmitNumberRequest, SubmitNumberResponse,
+        },
         tick, MatchingGameState,
     };
 
     #[test]
-    fn submit_number_cancel() {
+    fn submit_number_cancel_number() {
         let matching_game_state = MatchingGameState::default();
         let bob = [69u8; 20];
         let alice = [42u8; 20];
@@ -160,26 +163,26 @@ mod tests {
         let alice_submit =
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 });
         let (resp, matching_game_state) = tick(alice_submit, matching_game_state);
-        assert_eq!(Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }), resp);
+        assert_eq!(
+            Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }),
+            resp
+        );
         assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(), vec![alice]);
 
-        let bob_submit =
-            Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 });
+        let bob_submit = Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 });
         let (resp, matching_game_state) = tick(bob_submit, matching_game_state);
         assert_eq!(
-            Response::SubmitNumber(SubmitNumberResponse {
-                success: true,
-                match_pair: None,
-            }),
+            Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }),
             resp
         );
         assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(), vec![alice]);
         assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).unwrap(), vec![bob]);
 
-        let alice_cancel = Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 });
+        let alice_cancel =
+            Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 });
         let (resp, matching_game_state) = tick(alice_cancel, matching_game_state);
         assert_eq!(Response::CancelNumber(CancelNumberResponse { success: true }), resp);
-        assert_eq!(matching_game_state.get_number_to_addresses().get(&42).unwrap().len(), 0);
+        assert!(matching_game_state.get_number_to_addresses().get(&42).unwrap().is_empty());
         assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).unwrap(), vec![bob]);
 
         let alice_second_submit =
@@ -192,7 +195,7 @@ mod tests {
             }),
             resp
         );
-        assert_eq!(matching_game_state.get_number_to_addresses().get(&42).unwrap().len(), 0);
-        assert_eq!(matching_game_state.get_number_to_addresses().get(&69).unwrap().len(), 0);
+        assert!(matching_game_state.get_number_to_addresses().get(&42).unwrap().is_empty());
+        assert!(matching_game_state.get_number_to_addresses().get(&69).unwrap().is_empty());
     }
 }

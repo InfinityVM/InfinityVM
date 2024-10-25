@@ -3849,11 +3849,22 @@ dependencies = [
  "abi",
  "alloy",
  "borsh",
- "clob-core",
- "clob-test-utils",
+ "matching-game-core",
+ "matching-game-test-utils",
  "risc0-build",
  "risc0-zkvm",
  "zkvm",
+]
+
+[[package]]
+name = "matching-game-test-utils"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "matching-game-contracts",
+ "matching-game-core",
+ "test-utils",
+ "tokio",
 ]
 
 [[package]]

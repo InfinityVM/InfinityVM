@@ -1,0 +1,14 @@
+[package]
+name = "matching-game-test-utils"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+tokio = { workspace = true }
+matching-game-core = { workspace = true }
+matching-game-contracts = { workspace = true }
+test-utils = { workspace = true }
