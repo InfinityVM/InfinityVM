@@ -1,11 +1,11 @@
-//! CLOB execution engine.
+//! Matching game execution engine.
 
 use crate::db::{
     models::{MatchingGameStateModel, RequestModel, ResponseModel},
     tables::{MatchingGameStateTable, GlobalIndexTable, RequestTable, ResponseTable},
     PROCESSED_GLOBAL_INDEX_KEY, SEEN_GLOBAL_INDEX_KEY,
 };
-use clob_core::{
+use matching_game_core::{
     api::{ApiResponse, Request},
     tick, MatchingGameState,
 };
@@ -72,7 +72,7 @@ where
                 .wrap_err("processed global index")?;
             tx.put::<ResponseTable>(global_index, ResponseModel(response2)).wrap_err("response")?;
             tx.put::<MatchingGameStateTable>(global_index, MatchingGameStateModel(post_state2))
-                .wrap_err("matching game state")?;
+                .wrap_err("matching game state")
         })
         .wrap_err_with(|| format!("failed to write tick results {global_index}"))??;
 

@@ -13,7 +13,7 @@ pub mod db;
 pub mod engine;
 
 /// Address to listen for HTTP requests on.
-pub const HTTP_LISTEN_ADDR: &str = "HTTP_LISTEN_ADDR";
+pub const LISTEN_ADDR: &str = "LISTEN_ADDR";
 /// Directory for database.
 pub const DB_DIR: &str = "DB_DIR";
 /// Coprocessor Node gRPC address.

@@ -3,7 +3,7 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use matching_game_core::{
     api::{ Request, Response},
-    MatchingGamehingGameState,
+    MatchingGameState,
 };
 use paste::paste;
 use serde::{Deserialize, Serialize};

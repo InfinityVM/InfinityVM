@@ -14,7 +14,7 @@ use axum::{
     Json, Router,
 };
 use matching_game_core::api::{
-    SubmitNumberRequest, Response, CancelNumberRequest, Request,
+    SubmitNumberRequest, CancelNumberRequest, Request, ApiResponse,
 };
 use eyre::{eyre, WrapErr};
 use reth_db::{transaction::DbTx, Database, DatabaseEnv};

@@ -25,6 +25,16 @@ pub enum Response {
     CancelNumber(CancelNumberResponse),
 }
 
+/// A response from the matching game engine with the global index of the request.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ApiResponse {
+    /// Response to processing a request against the engine.
+    pub response: Response,
+    /// The global index of the request. The request is guaranteed to be processed
+    /// via ordering indicated by this index.
+    pub global_index: u64,
+}
 /// Submit a favorite number.
 #[derive(
     Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
