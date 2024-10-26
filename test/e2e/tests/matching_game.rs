@@ -1,7 +1,7 @@
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
 use alloy::{
     network::EthereumWallet,
-    primitives::{keccak256, U256},
+    primitives::keccak256,
     providers::ProviderBuilder,
     signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
@@ -19,7 +19,6 @@ use matching_game_programs::MATCHING_GAME_ELF;
 use matching_game_test_utils::next_state;
 use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
-use tokio::time::{sleep, Duration};
 use zkvm_executor::service::OffchainResultWithMetadata;
 
 fn program_id() -> Vec<u8> {
@@ -41,8 +40,6 @@ async fn state_job_submission_matching_game_consumer() {
         let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
-        let alice_wallet = EthereumWallet::new(alice_key);
-        let bob_wallet = EthereumWallet::new(bob_key);
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -185,8 +182,6 @@ async fn matching_game_node_e2e() {
         let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
-        let alice_wallet = EthereumWallet::new(alice_key);
-        let bob_wallet = EthereumWallet::new(bob_key);
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {

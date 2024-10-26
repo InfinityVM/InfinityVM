@@ -618,7 +618,6 @@ dependencies = [
  "alloy",
  "borsh",
  "serde",
- "sha2",
 ]
 
 [[package]]

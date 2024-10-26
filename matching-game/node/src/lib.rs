@@ -1,9 +1,6 @@
 //! The matching game node.
 
-use alloy::{
-    eips::BlockNumberOrTag,
-    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
-};
+use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
@@ -18,16 +15,12 @@ pub const LISTEN_ADDR: &str = "LISTEN_ADDR";
 pub const DB_DIR: &str = "DB_DIR";
 /// Coprocessor Node gRPC address.
 pub const CN_GRPC_ADDR: &str = "CN_GRPC_ADDR";
-/// WS Ethereum RPC address.
-pub const ETH_WS_ADDR: &str = "ETH_WS_ADDR";
 /// Matching game consumer contract address.
 pub const CONSUMER_ADDR: &str = "CONSUMER_ADDR";
 /// Duration between creating batches.
 pub const BATCHER_DURATION_MS: &str = "BATCHER_DURATION_MS";
 /// Matching game operator's secret key.
 pub const OPERATOR_KEY: &str = "OPERATOR_KEY";
-/// Block to start syncing from.
-pub const JOB_SYNC_START: &str = "JOB_SYNC_START";
 
 /// Operator signer type.
 pub type K256LocalSigner = LocalSigner<SigningKey>;
@@ -40,9 +33,7 @@ pub async fn run<P: AsRef<Path>>(
     batcher_duration_ms: u64,
     operator_signer: K256LocalSigner,
     cn_grpc_url: String,
-    eth_ws_url: String,
     consumer_addr: [u8; 20],
-    job_sync_start: BlockNumberOrTag,
 ) -> eyre::Result<()> {
     let db = crate::db::init_db(db_dir)?;
     let db = Arc::new(db);
@@ -51,11 +42,10 @@ pub async fn run<P: AsRef<Path>>(
     let db2 = Arc::clone(&db);
     let engine_sender_2 = engine_sender.clone();
     let server_handle = tokio::spawn(async move {
-        let server_state = app::AppState::new(engine_sender_2, db2);
+        let server_state = app::AppState::new(engine_sender_2);
         app::http_listen(server_state, &listen_addr).await
     });
 
-    let db2 = Arc::clone(&db);
     let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
 
     let batcher_handle = tokio::spawn(async move {

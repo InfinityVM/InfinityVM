@@ -4,8 +4,8 @@ use matching_game_core::{api::Request, tick, BorshKeccak256, MatchingGameState};
 
 use alloy::{
     network::EthereumWallet,
-    primitives::{Address, U256},
-    providers::{ProviderBuilder, WalletProvider},
+    primitives::Address,
+    providers::ProviderBuilder,
     signers::{
         k256::ecdsa::SigningKey,
         local::{LocalSigner, PrivateKeySigner},

@@ -18,6 +18,7 @@ use api::{
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
+///
 pub mod api;
 
 use crate::api::Match;
@@ -86,7 +87,7 @@ pub fn cancel_number(
     (CancelNumberResponse { success: true }, state)
 }
 
-/// A tick will execute a single request against the CLOB state.
+/// A tick will execute a single request against the matching game state.
 pub fn tick(request: Request, state: MatchingGameState) -> (Response, MatchingGameState) {
     match request {
         Request::SubmitNumber(req) => {

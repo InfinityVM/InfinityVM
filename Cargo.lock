@@ -3847,17 +3847,11 @@ dependencies = [
 name = "matching-game-client"
 version = "0.1.0"
 dependencies = [
- "alloy",
- "borsh",
- "clap",
- "contracts",
  "eyre",
  "matching-game-core",
  "matching-game-node",
  "reqwest 0.11.27",
  "serde",
- "test-utils",
- "tokio",
 ]
 
 [[package]]
@@ -3875,7 +3869,6 @@ dependencies = [
  "alloy",
  "borsh",
  "serde",
- "sha2",
 ]
 
 [[package]]
@@ -3889,7 +3882,6 @@ dependencies = [
  "bytes",
  "eyre",
  "http-body-util",
- "matching-game-contracts",
  "matching-game-core",
  "matching-game-programs",
  "mime",
@@ -3899,7 +3891,6 @@ dependencies = [
  "reth-db-api",
  "risc0-zkvm",
  "serde",
- "serde_json",
  "tempfile",
  "tokio",
  "tonic",
@@ -3930,7 +3921,6 @@ dependencies = [
  "matching-game-contracts",
  "matching-game-core",
  "test-utils",
- "tokio",
 ]
 
 [[package]]

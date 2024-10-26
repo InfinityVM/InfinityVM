@@ -5,14 +5,11 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 #[cfg(test)]
 mod tests {
     use alloy::{
-        primitives::{keccak256, I256, U256},
+        primitives::keccak256,
         sol_types::{SolType, SolValue},
     };
     use matching_game_core::{
-        api::{
-            CancelNumberRequest, CancelNumberResponse, Match, Request, Response,
-            SubmitNumberRequest, SubmitNumberResponse,
-        },
+        api::{CancelNumberRequest, Match, Request, SubmitNumberRequest},
         BorshKeccak256, Matches, MatchingGameState,
     };
     use matching_game_test_utils::next_state;

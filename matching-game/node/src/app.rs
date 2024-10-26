@@ -1,23 +1,13 @@
-//! CLOB application https request router.
+//! Matching game application https request router.
 
-use crate::{
-    db::{
-        tables::{GlobalIndexTable, MatchingGameStateTable},
-        PROCESSED_GLOBAL_INDEX_KEY,
-    },
-    engine::GENESIS_GLOBAL_INDEX,
-};
 use axum::{
     extract::State as ExtractState,
     http::StatusCode,
     response::{IntoResponse, Response},
     Json, Router,
 };
-use eyre::{eyre, WrapErr};
+use eyre::WrapErr;
 use matching_game_core::api::{ApiResponse, CancelNumberRequest, Request, SubmitNumberRequest};
-use reth_db::{transaction::DbTx, Database, DatabaseEnv};
-use serde::{Deserialize, Serialize};
-use std::sync::Arc;
 use tokio::sync::{mpsc::Sender, oneshot};
 use tracing::{info, instrument};
 
@@ -31,17 +21,12 @@ pub const CANCEL: &str = "/cancel";
 pub struct AppState {
     /// Engine send channel handle.
     engine_sender: Sender<(Request, oneshot::Sender<ApiResponse>)>,
-    /// The database
-    db: Arc<DatabaseEnv>,
 }
 
 impl AppState {
     /// Create a new instance of [Self].
-    pub const fn new(
-        engine_sender: Sender<(Request, oneshot::Sender<ApiResponse>)>,
-        db: Arc<DatabaseEnv>,
-    ) -> Self {
-        Self { engine_sender, db }
+    pub const fn new(engine_sender: Sender<(Request, oneshot::Sender<ApiResponse>)>) -> Self {
+        Self { engine_sender }
     }
 }
 

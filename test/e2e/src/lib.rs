@@ -142,7 +142,6 @@ impl E2E {
         }
 
         let cn_grpc_client_url2 = cn_grpc_client_url.clone();
-        let ws_rpc_url2 = ws_rpc_url.clone();
         if self.clob {
             let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
             let clob_db_dir = temp_dir().join(format!("infinity-clob-test-db-{}", test_num));
@@ -193,9 +192,7 @@ impl E2E {
                     batcher_duration_ms,
                     operator_signer,
                     cn_grpc_client_url2,
-                    ws_rpc_url2,
                     **matching_game_consumer_addr,
-                    BlockNumberOrTag::Earliest,
                 )
                 .await
             });

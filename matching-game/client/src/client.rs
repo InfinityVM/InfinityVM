@@ -1,12 +1,8 @@
 //! HTTP client for the matching game node.
 
 use eyre::bail;
-use matching_game_core::{
-    api::{
-        ApiResponse, CancelNumberRequest, CancelNumberResponse, Request, Response,
-        SubmitNumberRequest, SubmitNumberResponse,
-    },
-    MatchingGameState,
+use matching_game_core::api::{
+    CancelNumberRequest, CancelNumberResponse, Response, SubmitNumberRequest, SubmitNumberResponse,
 };
 use matching_game_node::app::{AppResponse, CANCEL, SUBMIT};
 use serde::{de::DeserializeOwned, Serialize};
