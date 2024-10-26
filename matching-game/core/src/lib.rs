@@ -18,7 +18,7 @@ use api::{
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
-///
+/// Matching game server API types.
 pub mod api;
 
 use crate::api::Match;
@@ -61,7 +61,7 @@ pub fn submit_number(
         // if the number is already submitted by other addresses, remove the first address in that
         // list and create a match pair
         let other_address = addresses.remove(0);
-        match_pair = Some(MatchPair { user1: other_address.into(), user2: address.into() });
+        match_pair = Some(MatchPair { user1: other_address, user2: address });
     } else {
         // if not, add the submission
         state.number_to_addresses.entry(number).or_default().push(address);
@@ -192,7 +192,7 @@ mod tests {
         assert_eq!(
             Response::SubmitNumber(SubmitNumberResponse {
                 success: true,
-                match_pair: Some(MatchPair { user1: bob.into(), user2: alice.into() })
+                match_pair: Some(MatchPair { user1: bob, user2: alice })
             }),
             resp
         );
