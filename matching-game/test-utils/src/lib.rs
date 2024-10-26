@@ -33,7 +33,10 @@ pub async fn anvil_with_matching_game_consumer(anvil: &AnvilJobManager) -> Anvil
 }
 
 /// Deploy matching game consumer contracts.
-pub async fn matching_game_consumer_deploy(rpc_url: String, job_manager: &Address) -> AnvilMatchingGame {
+pub async fn matching_game_consumer_deploy(
+    rpc_url: String,
+    job_manager: &Address,
+) -> AnvilMatchingGame {
     let signers = get_signers(6);
 
     let consumer_owner: PrivateKeySigner = signers[4].clone();

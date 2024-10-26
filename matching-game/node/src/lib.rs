@@ -64,12 +64,8 @@ pub async fn run<P: AsRef<Path>>(
             .await
     });
 
-    tokio::try_join!(
-        flatten(server_handle),
-        flatten(engine_handle),
-        flatten(batcher_handle)
-    )
-    .map(|_| ())
+    tokio::try_join!(flatten(server_handle), flatten(engine_handle), flatten(batcher_handle))
+        .map(|_| ())
 }
 
 async fn flatten<T>(handle: JoinHandle<eyre::Result<T>>) -> eyre::Result<T> {

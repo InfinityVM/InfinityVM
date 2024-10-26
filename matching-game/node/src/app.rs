@@ -2,7 +2,7 @@
 
 use crate::{
     db::{
-        tables::{MatchingGameStateTable, GlobalIndexTable},
+        tables::{GlobalIndexTable, MatchingGameStateTable},
         PROCESSED_GLOBAL_INDEX_KEY,
     },
     engine::GENESIS_GLOBAL_INDEX,
@@ -13,10 +13,8 @@ use axum::{
     response::{IntoResponse, Response},
     Json, Router,
 };
-use matching_game_core::api::{
-    SubmitNumberRequest, CancelNumberRequest, Request, ApiResponse,
-};
 use eyre::{eyre, WrapErr};
+use matching_game_core::api::{ApiResponse, CancelNumberRequest, Request, SubmitNumberRequest};
 use reth_db::{transaction::DbTx, Database, DatabaseEnv};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;

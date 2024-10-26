@@ -1,14 +1,14 @@
 //! HTTP client for the matching game node.
 
+use eyre::bail;
 use matching_game_core::{
     api::{
-        Request, Response, SubmitNumberRequest, SubmitNumberResponse, CancelNumberRequest,
-        CancelNumberResponse, ApiResponse,
+        ApiResponse, CancelNumberRequest, CancelNumberResponse, Request, Response,
+        SubmitNumberRequest, SubmitNumberResponse,
     },
     MatchingGameState,
 };
-use matching_game_node::app::{AppResponse, SUBMIT, CANCEL};
-use eyre::bail;
+use matching_game_node::app::{AppResponse, CANCEL, SUBMIT};
 use serde::{de::DeserializeOwned, Serialize};
 
 /// Matching game node client.
@@ -24,7 +24,10 @@ impl Client {
     }
 
     /// Post a submit number request.
-    pub async fn submit_number(&self, req: SubmitNumberRequest) -> eyre::Result<(SubmitNumberResponse, u64)> {
+    pub async fn submit_number(
+        &self,
+        req: SubmitNumberRequest,
+    ) -> eyre::Result<(SubmitNumberResponse, u64)> {
         let url = self.path(SUBMIT);
         let app_resp: AppResponse = post(&url, req).await;
         let api_resp = match app_resp {

@@ -1,13 +1,13 @@
 //! Collects requests into batches and submits them to the coprocessor node at some regular
 //! cadence.
 use crate::db::{
-    tables::{MatchingGameStateTable, GlobalIndexTable, RequestTable},
+    tables::{GlobalIndexTable, MatchingGameStateTable, RequestTable},
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
-use matching_game_programs::MATCHING_GAME_ID;
 use eyre::OptionExt;
+use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
@@ -88,8 +88,10 @@ where
         info!("creating batch {start_index}..={end_index}");
 
         let prev_state_index = start_index - 1;
-        let start_state =
-            db.view(|tx| tx.get::<MatchingGameStateTable>(prev_state_index))??.ok_or_eyre("start_state")?.0;
+        let start_state = db
+            .view(|tx| tx.get::<MatchingGameStateTable>(prev_state_index))??
+            .ok_or_eyre("start_state")?
+            .0;
         tokio::task::yield_now().await;
 
         let mut requests = Vec::with_capacity((end_index - start_index + 1) as usize);

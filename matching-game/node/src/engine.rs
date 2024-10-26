@@ -2,14 +2,14 @@
 
 use crate::db::{
     models::{MatchingGameStateModel, RequestModel, ResponseModel},
-    tables::{MatchingGameStateTable, GlobalIndexTable, RequestTable, ResponseTable},
+    tables::{GlobalIndexTable, MatchingGameStateTable, RequestTable, ResponseTable},
     PROCESSED_GLOBAL_INDEX_KEY, SEEN_GLOBAL_INDEX_KEY,
 };
+use eyre::{eyre, OptionExt, WrapErr};
 use matching_game_core::{
     api::{ApiResponse, Request},
     tick, MatchingGameState,
 };
-use eyre::{eyre, OptionExt, WrapErr};
 use reth_db::{
     transaction::{DbTx, DbTxMut},
     Database,
@@ -34,7 +34,9 @@ pub(crate) fn read_start_up_values<D: Database + 'static>(
         db.update(|tx| tx.put::<MatchingGameStateTable>(global_index, model))??;
         genesis_state
     } else {
-        db.view(|tx| tx.get::<MatchingGameStateTable>(global_index))??.ok_or_eyre("missing matching game state")?.0
+        db.view(|tx| tx.get::<MatchingGameStateTable>(global_index))??
+            .ok_or_eyre("missing matching game state")?
+            .0
     };
     Ok((global_index, matching_game_state))
 }

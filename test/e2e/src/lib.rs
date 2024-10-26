@@ -1,12 +1,12 @@
 //! E2E tests and helpers.
 use alloy::eips::BlockNumberOrTag;
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
-use matching_game_test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
 use coprocessor_node::{
     job_processor::JobProcessorConfig,
     node::{NodeConfig, WsConfig},
 };
 use futures::future::FutureExt;
+use matching_game_test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 use rand::Rng;
@@ -176,7 +176,8 @@ impl E2E {
 
         if self.matching_game {
             let matching_game_consumer = anvil_with_matching_game_consumer(&args.anvil).await;
-            let matching_game_db_dir = temp_dir().join(format!("infinity-matching-game-test-db-{}", test_num));
+            let matching_game_db_dir =
+                temp_dir().join(format!("infinity-matching-game-test-db-{}", test_num));
             delete_dirs.push(matching_game_db_dir.clone());
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
@@ -187,7 +188,16 @@ impl E2E {
             let operator_signer = matching_game_consumer.matching_game_signer.clone();
             tokio::spawn(async move {
                 matching_game_node::run(
-                    matching_game_db_dir, listen_addr2, batcher_duration_ms, operator_signer, cn_grpc_client_url2, ws_rpc_url2, **matching_game_consumer_addr, BlockNumberOrTag::Earliest).await
+                    matching_game_db_dir,
+                    listen_addr2,
+                    batcher_duration_ms,
+                    operator_signer,
+                    cn_grpc_client_url2,
+                    ws_rpc_url2,
+                    **matching_game_consumer_addr,
+                    BlockNumberOrTag::Earliest,
+                )
+                .await
             });
             sleep_until_bound(listen_port).await;
 

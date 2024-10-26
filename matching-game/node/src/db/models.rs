@@ -2,7 +2,7 @@
 
 use borsh::{BorshDeserialize, BorshSerialize};
 use matching_game_core::{
-    api::{ Request, Response},
+    api::{Request, Response},
     MatchingGameState,
 };
 use paste::paste;
