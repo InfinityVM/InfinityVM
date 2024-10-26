@@ -49,8 +49,7 @@ pub async fn matching_game_consumer_deploy(
         .wallet(consumer_owner_wallet)
         .on_http(rpc_url.parse().unwrap());
 
-    let matching_game_state0 = MatchingGameState::default();
-    let init_state_hash: [u8; 32] = matching_game_state0.borsh_keccak256().into();
+    let init_state_hash: [u8; 32] = Default::default();
 
     // Deploy the matching game consumer
     let matching_game_consumer = *MatchingGameConsumer::deploy(

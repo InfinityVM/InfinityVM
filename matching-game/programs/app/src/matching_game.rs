@@ -22,11 +22,11 @@ fn main() {
 
     let requests: Vec<Request> = borsh::from_slice(&requests_borsh)
         .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
-    let state: MatchingGameState = borsh::from_slice(&state_borsh)
-        .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
+    // let state: MatchingGameState = borsh::from_slice(&state_borsh)
+    //     .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
 
-    let matching_game_program_output = zkvm_stf(requests, state);
-    let abi_encoded = StatefulAppResult::abi_encode(&matching_game_program_output);
+    // let matching_game_program_output = zkvm_stf(requests, state);
+    // let abi_encoded = StatefulAppResult::abi_encode(&matching_game_program_output);
 
-    env::commit_slice(&abi_encoded);
+    // env::commit_slice(&abi_encoded);
 }
