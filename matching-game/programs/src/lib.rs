@@ -48,16 +48,25 @@ mod tests {
 
     fn execute(txns: Vec<Request>, init_state: MatchingGameState) -> StatefulAppResult {
         let requests_borsh = borsh::to_vec(&txns).expect("borsh works. qed.");
-        let state_borsh = borsh::to_vec(&init_state).expect("borsh works. qed.");
 
         let mut combined_offchain_input = Vec::new();
         combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
         combined_offchain_input.extend_from_slice(&requests_borsh);
-        combined_offchain_input.extend_from_slice(&state_borsh);
 
-        let state_hash = keccak256(&state_borsh);
+        // let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+        // let mut initial_root = Default::default();
+        // let mut merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
+    
+        // // Go through the number_to_addresses and insert into the merkle trie
+        // for (number, addresses) in &state.number_to_addresses {
+        //     merkle_trie.insert(number.to_le_bytes().as_slice(), &hash_addresses(addresses)).unwrap();
+        // }
+        // init_state.merkle_root = *merkle_trie.root();
+    
+        // combined_offchain_input.extend_from_slice(&state_borsh);
+
         let onchain_input =
-            StatefulAppOnchainInput { input_state_root: state_hash, onchain_input: [0].into() };
+            StatefulAppOnchainInput { input_state_root: init_state.merkle_root.into(), onchain_input: [0].into() };
 
         let out_bytes = zkvm::Risc0 {}
             .execute(
