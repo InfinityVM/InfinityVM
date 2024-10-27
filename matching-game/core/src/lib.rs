@@ -16,11 +16,11 @@ use api::{
     SubmitNumberResponse,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
-use serde::{Deserialize, Serialize};
-use trie_db::{Trie, TrieDBMutBuilder, TrieMut, TrieDBMut};
-use memory_db::{MemoryDB, HashKey};
 use keccak_hasher::KeccakHasher;
-use reference_trie::{ExtensionLayout, RefTrieDBMut, RefTrieDBMutBuilder};
+use memory_db::{HashKey, MemoryDB};
+use reference_trie::{RefTrieDBMut, RefTrieDBMutBuilder};
+use serde::{Deserialize, Serialize};
+use trie_db::{Trie, TrieDBMut, TrieDBMutBuilder, TrieMut};
 
 /// Matching game server API types.
 pub mod api;
@@ -29,38 +29,33 @@ use crate::api::Match;
 
 /// The state of the universe for the matching game.
 #[derive(
-Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
+    Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
 )]
 pub struct MatchingGameState {
     /// Map of number to list of addresses that submitted it.
     pub number_to_addresses: HashMap<u64, Vec<[u8; 20]>>,
-    /// The merkle root of the state.
+    /// The root of the state merkle trie.
     pub merkle_root: [u8; 32],
 }
 
 impl MatchingGameState {
-    /// Creates a new `MatchingGameState` with default values.
-    pub fn new() -> Self {
-        let merkle_root = Default::default();
-
-        Self {
-            number_to_addresses: HashMap::new(),
-            merkle_root,
-        }
-    }
-
     /// Get the map of number to list of addresses that submitted it.
     pub fn get_number_to_addresses(&self) -> &HashMap<u64, Vec<[u8; 20]>> {
         &self.number_to_addresses
     }
+
+    /// Get the root of the state merkle trie.
+    pub fn get_merkle_root(&self) -> &[u8; 32] {
+        &self.merkle_root
+    }
 }
 
 /// Add a submission with a user's favorite number.
-pub fn submit_number(
+pub fn submit_number<'a>(
     req: SubmitNumberRequest,
     mut state: MatchingGameState,
-) -> (SubmitNumberResponse, MatchingGameState) {
-
+    mut merkle_trie: RefTrieDBMut<'a>,
+) -> (SubmitNumberResponse, MatchingGameState, RefTrieDBMut<'a>) {
     let number = req.number;
     let address = req.address;
     let mut match_pair = None;
@@ -71,7 +66,7 @@ pub fn submit_number(
         .get(&number)
         .map_or(false, |addresses| addresses.contains(&address))
     {
-        return (SubmitNumberResponse { success: false, match_pair }, state);
+        return (SubmitNumberResponse { success: false, match_pair }, state, merkle_trie);
     }
 
     if let Some(addresses) = state.number_to_addresses.get_mut(&number) {
@@ -79,41 +74,68 @@ pub fn submit_number(
         // list and create a match pair
         let other_address = addresses.remove(0);
         match_pair = Some(MatchPair { user1: other_address, user2: address });
+
+        // update the merkle trie
+        merkle_trie.insert(number.to_le_bytes().as_slice(), &hash_addresses(&addresses)).unwrap();
+        state.merkle_root = *merkle_trie.root();
     } else {
         // if not, add the submission
         state.number_to_addresses.entry(number).or_default().push(address);
+
+        // update the merkle trie
+        merkle_trie.insert(number.to_le_bytes().as_slice(), &hash_addresses(&[address])).unwrap();
+        state.merkle_root = *merkle_trie.root();
     }
 
-    (SubmitNumberResponse { success: true, match_pair }, state)
+    (SubmitNumberResponse { success: true, match_pair }, state, merkle_trie)
 }
 
 /// Cancel a submission of a number.
-pub fn cancel_number(
+pub fn cancel_number<'a>(
     req: CancelNumberRequest,
     mut state: MatchingGameState,
-) -> (CancelNumberResponse, MatchingGameState) {
+    mut merkle_trie: RefTrieDBMut<'a>,
+) -> (CancelNumberResponse, MatchingGameState, RefTrieDBMut<'a>) {
     let number = req.number;
     let address = req.address;
 
     if !state.number_to_addresses.get_mut(&number).map_or(false, |addresses| {
-        addresses.iter().position(|&a| a == address).map(|i| addresses.remove(i)).is_some()
+        addresses
+            .iter()
+            .position(|&a| a == address)
+            .map(|i| {
+                let remove_result = addresses.remove(i);
+
+                // update the merkle trie
+                merkle_trie
+                    .insert(number.to_le_bytes().as_slice(), &hash_addresses(&addresses))
+                    .unwrap();
+                state.merkle_root = *merkle_trie.root();
+
+                remove_result
+            })
+            .is_some()
     }) {
-        return (CancelNumberResponse { success: false }, state);
+        return (CancelNumberResponse { success: false }, state, merkle_trie);
     }
 
-    (CancelNumberResponse { success: true }, state)
+    (CancelNumberResponse { success: true }, state, merkle_trie)
 }
 
 /// A tick will execute a single request against the matching game state.
-pub fn tick(request: Request, state: MatchingGameState) -> (Response, MatchingGameState) {
+pub fn tick<'a>(
+    request: Request,
+    state: MatchingGameState,
+    merkle_trie: RefTrieDBMut<'a>,
+) -> (Response, MatchingGameState, RefTrieDBMut<'a>) {
     match request {
         Request::SubmitNumber(req) => {
-            let (resp, state) = submit_number(req, state);
-            (Response::SubmitNumber(resp), state)
+            let (resp, state, merkle_trie) = submit_number(req, state, merkle_trie);
+            (Response::SubmitNumber(resp), state, merkle_trie)
         }
         Request::CancelNumber(req) => {
-            let (resp, state) = cancel_number(req, state);
-            (Response::CancelNumber(resp), state)
+            let (resp, state, merkle_trie) = cancel_number(req, state, merkle_trie);
+            (Response::CancelNumber(resp), state, merkle_trie)
         }
     }
 }
@@ -128,8 +150,18 @@ pub type Matches = sol! {
 pub fn zkvm_stf(requests: Vec<Request>, mut state: MatchingGameState) -> StatefulAppResult {
     let mut matches = Vec::<Match>::with_capacity(requests.len());
 
+    let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+    let mut initial_root = Default::default();
+    let mut merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
+
+    // Go through the number_to_addresses and insert into the merkle trie
+    for (number, addresses) in &state.number_to_addresses {
+        merkle_trie.insert(number.to_le_bytes().as_slice(), &hash_addresses(addresses)).unwrap();
+    }
+    state.merkle_root = *merkle_trie.root();
+
     for req in requests {
-        let (resp, next_state) = tick(req, state);
+        let (resp, next_state, next_merkle_trie) = tick(req, state, merkle_trie);
         if let Response::SubmitNumber(resp) = resp {
             if let Some(match_pair) = resp.match_pair {
                 let match_struct =
@@ -138,7 +170,8 @@ pub fn zkvm_stf(requests: Vec<Request>, mut state: MatchingGameState) -> Statefu
             }
         }
 
-        state = next_state
+        state = next_state;
+        merkle_trie = next_merkle_trie;
     }
 
     matches.sort();
@@ -160,6 +193,12 @@ impl<T: BorshSerialize> BorshKeccak256 for T {
         let borsh = borsh::to_vec(&self).expect("T is serializable");
         keccak256(&borsh)
     }
+}
+
+// Hasher function for list of addresses
+pub fn hash_addresses(addresses: &[[u8; 20]]) -> [u8; 32] {
+    let concatenated = addresses.concat();
+    *keccak256(&concatenated)
 }
 
 #[cfg(test)]
@@ -185,7 +224,8 @@ mod tests {
         //     Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }),
         //     resp
         // );
-        // assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(), vec![alice]);
+        // assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(),
+        // vec![alice]);
 
         // let bob_submit = Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 });
         // let (resp, matching_game_state) = tick(bob_submit, matching_game_state);
@@ -193,8 +233,9 @@ mod tests {
         //     Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }),
         //     resp
         // );
-        // assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(), vec![alice]);
-        // assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).unwrap(), vec![bob]);
+        // assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(),
+        // vec![alice]); assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).
+        // unwrap(), vec![bob]);
 
         // let alice_cancel =
         //     Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 });

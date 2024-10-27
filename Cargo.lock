@@ -3885,6 +3885,7 @@ dependencies = [
  "memory-db",
  "reference-trie",
  "serde",
+ "tokio",
  "trie-db",
 ]
 
@@ -3899,11 +3900,14 @@ dependencies = [
  "bytes",
  "eyre",
  "http-body-util",
+ "keccak-hasher",
  "matching-game-core",
  "matching-game-programs",
+ "memory-db",
  "mime",
  "paste",
  "proto",
+ "reference-trie",
  "reth-db",
  "reth-db-api",
  "risc0-zkvm",
@@ -3914,6 +3918,7 @@ dependencies = [
  "tower",
  "tracing 0.1.40",
  "tracing-subscriber 0.3.18",
+ "trie-db",
 ]
 
 [[package]]

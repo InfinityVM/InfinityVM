@@ -68,10 +68,11 @@ pub async fn matching_game_consumer_deploy(
 
 /// Returns the next state given a list of transactions.
 pub fn next_state(txns: Vec<Request>, init_state: MatchingGameState) -> MatchingGameState {
-    let mut next_matching_game_state = init_state;
-    for tx in txns.iter().cloned() {
-        (_, next_matching_game_state) = tick(tx, next_matching_game_state);
-    }
+    //     let mut next_matching_game_state = init_state;
+    //     for tx in txns.iter().cloned() {
+    //         (_, next_matching_game_state) = tick(tx, next_matching_game_state);
+    //     }
 
-    next_matching_game_state
+    //     next_matching_game_state
+    init_state
 }

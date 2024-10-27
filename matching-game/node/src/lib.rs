@@ -46,7 +46,10 @@ pub async fn run<P: AsRef<Path>>(
         app::http_listen(server_state, &listen_addr).await
     });
 
-    let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, db2).await });
+    let engine_handle = tokio::task::spawn_blocking(move || {
+        tokio::runtime::Handle::current()
+            .block_on(async move { engine::run_engine(engine_receiver, db2).await })
+    });
 
     let batcher_handle = tokio::spawn(async move {
         let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);

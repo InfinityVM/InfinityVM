@@ -6,10 +6,13 @@ use crate::db::{
     PROCESSED_GLOBAL_INDEX_KEY, SEEN_GLOBAL_INDEX_KEY,
 };
 use eyre::{eyre, OptionExt, WrapErr};
+use keccak_hasher::KeccakHasher;
 use matching_game_core::{
     api::{ApiResponse, Request},
-    tick, MatchingGameState,
+    hash_addresses, tick, MatchingGameState,
 };
+use memory_db::{HashKey, MemoryDB};
+use reference_trie::{RefTrieDBMut, RefTrieDBMutBuilder};
 use reth_db::{
     transaction::{DbTx, DbTxMut},
     Database,
@@ -17,6 +20,7 @@ use reth_db::{
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
 use tracing::instrument;
+use trie_db::{Trie, TrieDBMut, TrieDBMutBuilder, TrieMut};
 
 /// The zero index only contains the default state, but no requests.
 pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
@@ -52,6 +56,16 @@ where
 {
     let (mut global_index, mut state) = read_start_up_values(Arc::clone(&db))?;
 
+    let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+    let mut initial_root = Default::default();
+    let mut merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
+
+    // Go through the number_to_addresses and insert into the merkle trie
+    for (number, addresses) in &state.number_to_addresses {
+        merkle_trie.insert(number.to_le_bytes().as_slice(), &hash_addresses(addresses)).unwrap();
+    }
+    state.merkle_root = *merkle_trie.root();
+
     loop {
         global_index += 1;
 
@@ -65,7 +79,7 @@ where
         })
         .wrap_err_with(|| format!("failed to write request {global_index}"))??;
 
-        let (response, post_state) = tick(request, state);
+        let (response, post_state, post_merkle_trie) = tick(request, state, merkle_trie);
 
         let post_state2 = post_state.clone();
         let response2 = response.clone();
@@ -85,5 +99,6 @@ where
             .map_err(|_| eyre!("engine oneshot unexpectedly dropped {global_index}"))?;
 
         state = post_state;
+        merkle_trie = post_merkle_trie;
     }
 }
