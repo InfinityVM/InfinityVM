@@ -32,8 +32,12 @@ fn main() {
     let mut items = Vec::new();
     for i in 0..trie_nodes.numbers.len() {
         let number_bytes = trie_nodes.numbers[i].to_le_bytes().to_vec();
-        let addresses_hash = hash_addresses(trie_nodes.addresses[i].as_slice());
-        items.push((number_bytes, Some(addresses_hash)));
+        if trie_nodes.addresses[i].is_empty() {
+            items.push((number_bytes, None));
+        } else {
+            let addresses_hash = hash_addresses(trie_nodes.addresses[i].as_slice());
+            items.push((number_bytes, Some(addresses_hash)));
+        }
     }
     // verify the proof
     verify_proof::<ExtensionLayout, &Vec<(Vec<u8>, Option<[u8; 32]>)>, Vec<u8>, [u8; 32]>(&input_merkle_root, &trie_nodes.proof, &items).unwrap();
@@ -41,7 +45,9 @@ fn main() {
     let mut state = MatchingGameState::default();
     state.merkle_root = *input_merkle_root;
     for (number, addresses) in trie_nodes.numbers.iter().zip(trie_nodes.addresses.iter()) {
-        state.number_to_addresses.insert(*number, addresses.clone());
+        if !addresses.is_empty() {
+            state.number_to_addresses.insert(*number, addresses.clone());
+        }
     }
 
     let matching_game_program_output = zkvm_stf(requests, state);

@@ -108,7 +108,6 @@ where
             requests.push(r);
             tokio::task::yield_now().await;
         }
-
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
         let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
@@ -134,7 +133,9 @@ where
             };
 
             trie_nodes.numbers.push(number);
-            trie_nodes.addresses.push(start_state.number_to_addresses[&number].clone());
+            trie_nodes
+                .addresses
+                .push(start_state.number_to_addresses.get(&number).unwrap_or(&Vec::new()).clone());
         }
 
         // First, create a vector to hold the byte representations

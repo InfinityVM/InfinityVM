@@ -20,7 +20,7 @@ use keccak_hasher::KeccakHasher;
 use memory_db::{HashKey, MemoryDB};
 use reference_trie::{RefTrieDBMut, RefTrieDBMutBuilder};
 use serde::{Deserialize, Serialize};
-use trie_db::{Trie, TrieDBMut, TrieDBMutBuilder, TrieMut};
+use trie_db::TrieMut;
 
 /// Matching game server API types.
 pub mod api;
@@ -70,14 +70,18 @@ pub fn submit_number<'a>(
     }
 
     if let Some(addresses) = state.number_to_addresses.get_mut(&number) {
-        // if the number is already submitted by other addresses, remove the first address in that
-        // list and create a match pair
-        let other_address = addresses.remove(0);
-        match_pair = Some(MatchPair { user1: other_address, user2: address });
+        if !addresses.is_empty() {
+            // if the number is already submitted by other addresses, remove the first address in
+            // that list and create a match pair
+            let other_address = addresses.remove(0);
+            match_pair = Some(MatchPair { user1: other_address, user2: address });
 
-        // update the merkle trie
-        merkle_trie.insert(number.to_le_bytes().as_slice(), &hash_addresses(&addresses)).unwrap();
-        state.merkle_root = *merkle_trie.root();
+            // update the merkle trie
+            merkle_trie
+                .insert(number.to_le_bytes().as_slice(), &hash_addresses(&addresses))
+                .unwrap();
+            state.merkle_root = *merkle_trie.root();
+        }
     } else {
         // if not, add the submission
         state.number_to_addresses.entry(number).or_default().push(address);
@@ -204,9 +208,9 @@ pub fn hash_addresses(addresses: &[[u8; 20]]) -> [u8; 32] {
 /// Used to pass each trie node as input to the ZKVM.
 #[derive(Debug, Clone, BorshDeserialize, BorshSerialize)]
 pub struct TrieNodes {
-    /// Favorite numbers of the user.
+    /// Favorite numbers submitted by users.
     pub numbers: Vec<u64>,
-    /// Lists of addresses that submitted the numbers.
+    /// Lists of addresses that submitted each number.
     pub addresses: Vec<Vec<[u8; 20]>>,
     /// Proof of the inclusion of all the (number, addresses) pairs in the trie.
     pub proof: Vec<Vec<u8>>,
@@ -218,13 +222,14 @@ mod tests {
         api::{
             CancelNumberRequest, CancelNumberResponse, MatchPair, Request, Response,
             SubmitNumberRequest, SubmitNumberResponse,
-        }, hash_addresses, tick, MatchingGameState
+        },
+        hash_addresses, tick, MatchingGameState,
     };
     use keccak_hasher::KeccakHasher;
     use memory_db::{HashKey, MemoryDB};
-    use reference_trie::{RefTrieDBMut, RefTrieDBMutBuilder};
-    use trie_db::{Trie, TrieDBMut, TrieDBMutBuilder, TrieMut};
-    
+    use reference_trie::RefTrieDBMutBuilder;
+    use trie_db::TrieMut;
+
     #[test]
     fn submit_number_cancel_number() {
         let matching_game_state = MatchingGameState::default();
@@ -233,47 +238,64 @@ mod tests {
 
         let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
         let mut initial_root = Default::default();
-        let merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();    
+        let merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
         let empty_list_hash = hash_addresses(&vec![]);
 
         let alice_submit =
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 });
-        let (resp, matching_game_state, mut merkle_trie) = tick(alice_submit, matching_game_state, merkle_trie);
+        let (resp, matching_game_state, mut merkle_trie) =
+            tick(alice_submit, matching_game_state, merkle_trie);
         assert_eq!(
             Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }),
             resp
         );
-        assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(),
-        vec![alice]);
+        assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(), vec![alice]);
         assert_eq!(merkle_trie.root(), matching_game_state.get_merkle_root());
-        assert_ne!(merkle_trie.get(42u64.to_le_bytes().as_slice()).unwrap().unwrap(), empty_list_hash);
+        assert_ne!(
+            merkle_trie.get(42u64.to_le_bytes().as_slice()).unwrap().unwrap(),
+            empty_list_hash
+        );
 
         let bob_submit = Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 });
-        let (resp, matching_game_state, mut merkle_trie) = tick(bob_submit, matching_game_state, merkle_trie);
+        let (resp, matching_game_state, mut merkle_trie) =
+            tick(bob_submit, matching_game_state, merkle_trie);
         assert_eq!(
             Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }),
             resp
         );
-        assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(),
-        vec![alice]); assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).
-        unwrap(), vec![bob]);
+        assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(), vec![alice]);
+        assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).unwrap(), vec![bob]);
         assert_eq!(merkle_trie.root(), matching_game_state.get_merkle_root());
-        assert_ne!(merkle_trie.get(42u64.to_le_bytes().as_slice()).unwrap().unwrap(), empty_list_hash);
-        assert_ne!(merkle_trie.get(69u64.to_le_bytes().as_slice()).unwrap().unwrap(), empty_list_hash);
+        assert_ne!(
+            merkle_trie.get(42u64.to_le_bytes().as_slice()).unwrap().unwrap(),
+            empty_list_hash
+        );
+        assert_ne!(
+            merkle_trie.get(69u64.to_le_bytes().as_slice()).unwrap().unwrap(),
+            empty_list_hash
+        );
 
         let alice_cancel =
             Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 });
-        let (resp, matching_game_state, mut merkle_trie) = tick(alice_cancel, matching_game_state, merkle_trie);
+        let (resp, matching_game_state, mut merkle_trie) =
+            tick(alice_cancel, matching_game_state, merkle_trie);
         assert_eq!(Response::CancelNumber(CancelNumberResponse { success: true }), resp);
         assert!(matching_game_state.get_number_to_addresses().get(&42).unwrap().is_empty());
         assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).unwrap(), vec![bob]);
         assert_eq!(merkle_trie.root(), matching_game_state.get_merkle_root());
-        assert_eq!(merkle_trie.get(42u64.to_le_bytes().as_slice()).unwrap().unwrap(), empty_list_hash);
-        assert_ne!(merkle_trie.get(69u64.to_le_bytes().as_slice()).unwrap().unwrap(), empty_list_hash);
+        assert_eq!(
+            merkle_trie.get(42u64.to_le_bytes().as_slice()).unwrap().unwrap(),
+            empty_list_hash
+        );
+        assert_ne!(
+            merkle_trie.get(69u64.to_le_bytes().as_slice()).unwrap().unwrap(),
+            empty_list_hash
+        );
 
         let alice_second_submit =
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 69 });
-        let (resp, matching_game_state, mut merkle_trie) = tick(alice_second_submit, matching_game_state, merkle_trie);
+        let (resp, matching_game_state, mut merkle_trie) =
+            tick(alice_second_submit, matching_game_state, merkle_trie);
         assert_eq!(
             Response::SubmitNumber(SubmitNumberResponse {
                 success: true,
@@ -284,7 +306,13 @@ mod tests {
         assert!(matching_game_state.get_number_to_addresses().get(&42).unwrap().is_empty());
         assert!(matching_game_state.get_number_to_addresses().get(&69).unwrap().is_empty());
         assert_eq!(merkle_trie.root(), matching_game_state.get_merkle_root());
-        assert_eq!(merkle_trie.get(42u64.to_le_bytes().as_slice()).unwrap().unwrap(), empty_list_hash);
-        assert_eq!(merkle_trie.get(69u64.to_le_bytes().as_slice()).unwrap().unwrap(), empty_list_hash);
+        assert_eq!(
+            merkle_trie.get(42u64.to_le_bytes().as_slice()).unwrap().unwrap(),
+            empty_list_hash
+        );
+        assert_eq!(
+            merkle_trie.get(69u64.to_le_bytes().as_slice()).unwrap().unwrap(),
+            empty_list_hash
+        );
     }
 }

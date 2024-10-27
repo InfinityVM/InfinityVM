@@ -11,8 +11,12 @@ use alloy::{
         local::{LocalSigner, PrivateKeySigner},
     },
 };
+use keccak_hasher::KeccakHasher;
 use matching_game_contracts::matching_game_consumer::MatchingGameConsumer;
+use memory_db::{HashKey, MemoryDB};
+use reference_trie::{ExtensionLayout, RefTrieDBMutBuilder};
 use test_utils::{get_signers, AnvilJobManager};
+use trie_db::{TrieDBMut, TrieMut};
 
 /// Local Signer
 pub type K256LocalSigner = LocalSigner<SigningKey>;
@@ -67,12 +71,18 @@ pub async fn matching_game_consumer_deploy(
 }
 
 /// Returns the next state given a list of transactions.
-pub fn next_state(txns: Vec<Request>, init_state: MatchingGameState) -> MatchingGameState {
-    //     let mut next_matching_game_state = init_state;
-    //     for tx in txns.iter().cloned() {
-    //         (_, next_matching_game_state) = tick(tx, next_matching_game_state);
-    //     }
+pub fn next_state<'a>(
+    txns: Vec<Request>,
+    init_state: MatchingGameState,
+    merkle_trie: TrieDBMut<'a, ExtensionLayout>,
+) -> (MatchingGameState, TrieDBMut<'a, ExtensionLayout>) {
+    let mut next_matching_game_state = init_state;
+    let mut next_merkle_trie = merkle_trie;
+    println!("NARULA merkle trie next_state root initially: {:?}", next_merkle_trie.root());
+    for tx in txns.iter().cloned() {
+        (_, next_matching_game_state, next_merkle_trie) =
+            tick(tx, next_matching_game_state, next_merkle_trie);
+    }
 
-    //     next_matching_game_state
-    init_state
+    (next_matching_game_state, next_merkle_trie)
 }

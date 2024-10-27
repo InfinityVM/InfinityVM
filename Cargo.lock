@@ -3928,10 +3928,14 @@ dependencies = [
  "abi",
  "alloy",
  "borsh",
+ "keccak-hasher",
  "matching-game-core",
  "matching-game-test-utils",
+ "memory-db",
+ "reference-trie",
  "risc0-build",
  "risc0-zkvm",
+ "trie-db",
  "zkvm",
 ]
 

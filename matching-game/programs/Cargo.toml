@@ -13,6 +13,10 @@ alloy = { workspace = true, features = ["full", "contract", "transport-http", "t
 zkvm = { workspace = true }
 matching-game-test-utils = { workspace = true }
 abi = { workspace = true }
+trie-db = { version = "0.27.0", default-features = false }
+keccak-hasher = { version = "0.16.0", default-features = false }
+reference-trie = { version = "0.29.1", features = ["std"] }
+memory-db = { workspace = true }
 
 [build-dependencies]
 risc0-build = { workspace = true }
