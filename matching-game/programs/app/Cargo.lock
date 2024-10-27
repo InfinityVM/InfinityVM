@@ -142,8 +142,11 @@ dependencies = [
  "abi",
  "alloy",
  "borsh",
+ "keccak-hasher",
  "matching-game-core",
+ "reference-trie",
  "risc0-zkvm",
+ "trie-db",
 ]
 
 [[package]]

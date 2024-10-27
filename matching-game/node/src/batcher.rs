@@ -114,7 +114,6 @@ where
         let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
         let mut initial_root = Default::default();
 
-        // Scope for mutable operations on merkle_trie
         {
             let mut merkle_trie =
                 RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
@@ -126,7 +125,6 @@ where
             }
             start_state.merkle_root = *merkle_trie.root();
         }
-        // merkle_trie goes out of scope here, ending the mutable borrow on memory_db
 
         let mut trie_nodes = TrieNodes { numbers: vec![], addresses: vec![], proof: vec![] };
         for r in requests {
