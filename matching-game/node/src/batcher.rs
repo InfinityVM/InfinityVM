@@ -7,8 +7,12 @@ use crate::db::{
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use eyre::OptionExt;
+use keccak_hasher::KeccakHasher;
+use matching_game_core::{api::Request, hash_addresses, TrieNodes};
 use matching_game_programs::MATCHING_GAME_ID;
+use memory_db::{HashKey, MemoryDB};
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
+use reference_trie::{ExtensionLayout, RefTrieDBMut, RefTrieDBMutBuilder};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;
@@ -16,6 +20,7 @@ use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
 use tracing::{debug, info, instrument, warn};
+use trie_db::{proof::generate_proof, Trie, TrieDBMut, TrieDBMutBuilder, TrieMut};
 
 use crate::K256LocalSigner;
 
@@ -88,7 +93,7 @@ where
         info!("creating batch {start_index}..={end_index}");
 
         let prev_state_index = start_index - 1;
-        let start_state = db
+        let mut start_state = db
             .view(|tx| tx.get::<MatchingGameStateTable>(prev_state_index))??
             .ok_or_eyre("start_state")?
             .0;
@@ -105,19 +110,64 @@ where
         }
 
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
-        let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
+
+        let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+        let mut initial_root = Default::default();
+
+        // Scope for mutable operations on merkle_trie
+        {
+            let mut merkle_trie =
+                RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
+
+            for (number, addresses) in &start_state.number_to_addresses {
+                merkle_trie
+                    .insert(number.to_le_bytes().as_slice(), &hash_addresses(addresses))
+                    .unwrap();
+            }
+            start_state.merkle_root = *merkle_trie.root();
+        }
+        // merkle_trie goes out of scope here, ending the mutable borrow on memory_db
+
+        let mut trie_nodes = TrieNodes { numbers: vec![], addresses: vec![], proof: vec![] };
+        for r in requests {
+            let number = match r {
+                Request::SubmitNumber(s) => s.number,
+                Request::CancelNumber(c) => c.number,
+            };
+
+            trie_nodes.numbers.push(number);
+            trie_nodes.addresses.push(start_state.number_to_addresses[&number].clone());
+        }
+
+        // First, create a vector to hold the byte representations
+        let number_bytes: Vec<Vec<u8>> =
+            trie_nodes.numbers.iter().map(|&n| n.to_le_bytes().to_vec()).collect();
+
+        // Then, create a vector of slices referencing these bytes
+        let number_slices: Vec<&[u8]> = number_bytes.iter().map(|v| v.as_slice()).collect();
+
+        // Now generate the proof
+        trie_nodes.proof = generate_proof::<
+            MemoryDB<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>,
+            ExtensionLayout,
+            &Vec<&[u8]>,
+            &[u8],
+        >(&memory_db, &start_state.merkle_root, &number_slices)
+        .unwrap();
+
+        let trie_nodes_borsh = borsh::to_vec(&trie_nodes).expect("borsh works. qed.");
 
         // Combine requests_borsh and state_borsh
         let mut combined_offchain_input = Vec::new();
         combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
         combined_offchain_input.extend_from_slice(&requests_borsh);
-        combined_offchain_input.extend_from_slice(&state_borsh);
-
+        combined_offchain_input.extend_from_slice(&trie_nodes_borsh);
         let offchain_input_hash = keccak256(&combined_offchain_input);
-        let state_hash = keccak256(&state_borsh);
 
-        let onchain_input =
-            StatefulAppOnchainInput { input_state_root: state_hash, onchain_input: (&[]).into() };
+        let onchain_input = StatefulAppOnchainInput {
+            input_state_root: start_state.merkle_root.into(),
+            onchain_input: (&[]).into(),
+        };
         let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
         let job_params = JobParams {

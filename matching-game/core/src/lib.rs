@@ -195,10 +195,21 @@ impl<T: BorshSerialize> BorshKeccak256 for T {
     }
 }
 
-// Hasher function for list of addresses
+/// Hasher function for list of addresses
 pub fn hash_addresses(addresses: &[[u8; 20]]) -> [u8; 32] {
     let concatenated = addresses.concat();
     *keccak256(&concatenated)
+}
+
+/// Used to pass each trie node as input to the ZKVM.
+#[derive(Debug, Clone, BorshDeserialize, BorshSerialize)]
+pub struct TrieNodes {
+    /// Favorite numbers of the user.
+    pub numbers: Vec<u64>,
+    /// Lists of addresses that submitted the numbers.
+    pub addresses: Vec<Vec<[u8; 20]>>,
+    /// Proof of the inclusion of all the (number, addresses) pairs in the trie.
+    pub proof: Vec<Vec<u8>>,
 }
 
 #[cfg(test)]
