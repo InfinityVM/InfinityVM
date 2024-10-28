@@ -10,3 +10,6 @@
 [submodule "contracts/lib/solady"]
 	path = contracts/lib/solady
 	url = https://github.com/vectorized/solady
+[submodule "crates/kairos-trie"]
+	path = crates/kairos-trie
+	url = https://github.com/cspr-rad/kairos-trie.git

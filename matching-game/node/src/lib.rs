@@ -51,10 +51,13 @@ pub async fn run<P: AsRef<Path>>(
             .block_on(async move { engine::run_engine(engine_receiver, db2).await })
     });
 
-    let batcher_handle = tokio::spawn(async move {
-        let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
-        batcher::run_batcher(db, batcher_duration, operator_signer, cn_grpc_url, consumer_addr)
-            .await
+    let batcher_handle = tokio::task::spawn_blocking(move || {
+        tokio::runtime::Handle::current()
+            .block_on(async move {
+                let batcher_duration = tokio::time::Duration::from_millis(batcher_duration_ms);
+                batcher::run_batcher(db, batcher_duration, operator_signer, cn_grpc_url, consumer_addr)
+                    .await
+            })
     });
 
     tokio::try_join!(flatten(server_handle), flatten(engine_handle), flatten(batcher_handle))

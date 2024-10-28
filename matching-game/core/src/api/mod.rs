@@ -79,8 +79,8 @@ pub struct MatchPair {
 pub struct SubmitNumberResponse {
     /// If the request was successfully processed.
     pub success: bool,
-    /// The match that occurred.
-    pub match_pair: Option<MatchPair>,
+    // /// The match that occurred.
+    // pub match_pair: Option<MatchPair>,
 }
 
 /// Response to [`CancelNumberRequest`].

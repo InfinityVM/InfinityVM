@@ -224,6 +224,7 @@ clob-test-utils = { path = "clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
+kairos-trie = { path = "crates/kairos-trie", features = ["serde"] }
 matching-game-client = { path = "matching-game/client" }
 matching-game-contracts = { path = "matching-game/contracts" }
 matching-game-core = { path = "matching-game/core" }

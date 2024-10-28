@@ -2,7 +2,7 @@
 
 use crate::db::{
     models::{MatchingGameStateModel, RequestModel, ResponseModel},
-    tables::{GlobalIndexTable, MatchingGameStateTable, RequestTable, ResponseTable},
+    tables::{GlobalIndexTable, MatchingGameStateTable, RequestTable},
     PROCESSED_GLOBAL_INDEX_KEY, SEEN_GLOBAL_INDEX_KEY,
 };
 use eyre::{eyre, OptionExt, WrapErr};
@@ -56,15 +56,15 @@ where
 {
     let (mut global_index, mut state) = read_start_up_values(Arc::clone(&db))?;
 
-    let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
-    let mut initial_root = Default::default();
-    let mut merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
+    // let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+    // let mut initial_root = Default::default();
+    // let mut merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
 
-    // Go through the number_to_addresses and insert into the merkle trie
-    for (number, addresses) in &state.number_to_addresses {
-        merkle_trie.insert(number.to_le_bytes().as_slice(), &hash_addresses(addresses)).unwrap();
-    }
-    state.merkle_root = *merkle_trie.root();
+    // // Go through the number_to_addresses and insert into the merkle trie
+    // for (number, addresses) in &state.number_to_addresses {
+    //     merkle_trie.insert(number.to_le_bytes().as_slice(), &hash_addresses(addresses)).unwrap();
+    // }
+    // state.merkle_root = *merkle_trie.root();
 
     loop {
         global_index += 1;
@@ -79,16 +79,15 @@ where
         })
         .wrap_err_with(|| format!("failed to write request {global_index}"))??;
 
-        let (response, post_state, post_merkle_trie) = tick(request, state, merkle_trie);
+        let response = tick(request);
 
-        let post_state2 = post_state.clone();
+        // let post_state2 = post_state.clone();
         let response2 = response.clone();
         db.update(|tx| {
             tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index)
-                .wrap_err("processed global index")?;
-            tx.put::<ResponseTable>(global_index, ResponseModel(response2)).wrap_err("response")?;
-            tx.put::<MatchingGameStateTable>(global_index, MatchingGameStateModel(post_state2))
-                .wrap_err("matching game state")
+                .wrap_err("processed global index")
+            // tx.put::<MatchingGameStateTable>(global_index, MatchingGameStateModel(post_state2))
+            //     .wrap_err("matching game state")
         })
         .wrap_err_with(|| format!("failed to write tick results {global_index}"))??;
 
@@ -98,7 +97,7 @@ where
             .send(api_response)
             .map_err(|_| eyre!("engine oneshot unexpectedly dropped {global_index}"))?;
 
-        state = post_state;
-        merkle_trie = post_merkle_trie;
+        // state = post_state;
+        // merkle_trie = post_merkle_trie;
     }
 }

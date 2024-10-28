@@ -15,4 +15,6 @@ trie-db = { workspace = true }
 memory-db = { workspace = true }
 keccak-hasher = { version = "0.16.0", default-features = false }
 reference-trie = { version = "0.29.1", features = ["std"] }
+kairos-trie = { workspace = true }
+sha2 = "0.10"
 tokio = { workspace = true }

@@ -13,9 +13,6 @@ reth_db::tables! {
     /// Requests table, keyed by global index.
     table RequestTable<Key = u64, Value = RequestModel>;
 
-    /// Responses table, keyed by global index.
-    table ResponseTable<Key = u64, Value = ResponseModel>;
-
     /// Matching Game State table, keyed by global index.
     table MatchingGameStateTable<Key = u64, Value = MatchingGameStateModel>;
 }

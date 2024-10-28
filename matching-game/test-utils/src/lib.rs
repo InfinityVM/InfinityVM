@@ -53,7 +53,10 @@ pub async fn matching_game_consumer_deploy(
         .wallet(consumer_owner_wallet)
         .on_http(rpc_url.parse().unwrap());
 
-    let init_state_hash: [u8; 32] = Default::default();
+    let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+    let mut initial_root = Default::default();
+    let mut merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
+    let init_state_hash = *merkle_trie.root();
 
     // Deploy the matching game consumer
     let matching_game_consumer = *MatchingGameConsumer::deploy(
@@ -78,11 +81,10 @@ pub fn next_state<'a>(
 ) -> (MatchingGameState, TrieDBMut<'a, ExtensionLayout>) {
     let mut next_matching_game_state = init_state;
     let mut next_merkle_trie = merkle_trie;
-    println!("NARULA merkle trie next_state root initially: {:?}", next_merkle_trie.root());
-    for tx in txns.iter().cloned() {
-        (_, next_matching_game_state, next_merkle_trie) =
-            tick(tx, next_matching_game_state, next_merkle_trie);
-    }
+    // for tx in txns.iter().cloned() {
+    //     (_, next_matching_game_state, next_merkle_trie) =
+    //         tick(tx, next_matching_game_state, next_merkle_trie);
+    // }
 
     (next_matching_game_state, next_merkle_trie)
 }

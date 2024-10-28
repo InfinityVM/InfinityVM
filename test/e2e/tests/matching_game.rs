@@ -13,16 +13,67 @@ use matching_game_core::{
         CancelNumberRequest, CancelNumberResponse, MatchPair, Request, SubmitNumberRequest,
         SubmitNumberResponse,
     },
-    BorshKeccak256, MatchingGameState,
+    BorshKeccak256, MatchingGameState, hash_addresses, TrieNodes,
 };
 use matching_game_programs::MATCHING_GAME_ELF;
 use matching_game_test_utils::next_state;
 use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use zkvm_executor::service::OffchainResultWithMetadata;
+use keccak_hasher::KeccakHasher;
+use memory_db::{HashKey, MemoryDB};
+use reference_trie::{ExtensionLayout, RefTrieDBMutBuilder};
+use trie_db::{proof::generate_proof, TrieMut};
+use rlp::Rlp;
 
 fn program_id() -> Vec<u8> {
     compute_image_id(MATCHING_GAME_ELF).unwrap().as_bytes().to_vec()
+}
+
+fn reconstruct_root_from_proof(
+    proof: Vec<Vec<u8>>,                      // Serialized proof nodes
+    key_values: Vec<(Vec<u8>, Option<[u8; 32]>)>,  // Vec of (key, Option<value>)
+) {
+    // Step 1: Initialize an empty memory database and trie
+    let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+    let mut root = Default::default();
+    let mut trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut root).build();
+
+
+    // Step 2: Insert each node in the proof into the trie
+    for node in proof {
+        let rlp_node = Rlp::new(&node);
+        if rlp_node.is_list() {
+            let item_count = rlp_node.item_count().unwrap();
+            if item_count == 2 {
+                // Leaf or extension node
+                let path = rlp_node.at(0).unwrap().data().unwrap();
+                let node_value = rlp_node.at(1).unwrap().data().unwrap();
+                trie.insert(path, node_value).unwrap();
+            } else if item_count == 17 {
+                // Branch node with up to 16 children and a value
+                for i in 0..16 {
+                    if let Ok(child) = rlp_node.at(i).unwrap().data() {
+                        trie.insert(&[i as u8], child).unwrap();
+                    }
+                }
+                
+                if let Ok(branch_value) = rlp_node.at(16).unwrap().data() {
+                    trie.insert(&[], branch_value).unwrap();
+                }
+            }
+        }
+    }
+
+    // Step 3: Insert each (key, value) pair if `value` is Some
+    for (key, value_opt) in key_values {
+        if let Some(value) = value_opt {
+            trie.insert(&key, &value).unwrap();
+        }
+    }
+
+    // Step 4: Recalculate the root
+    let recalculated_root = trie.root();
 }
 
 #[ignore]
@@ -35,6 +86,9 @@ async fn state_job_submission_matching_game_consumer() {
         // let matching_game_signer_wallet =
         //     EthereumWallet::from(matching_game.matching_game_signer.clone());
         // let matching_game_state0 = MatchingGameState::default();
+        // let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+        // let mut initial_root = Default::default();
+        // let merkle_trie0 = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
 
         // let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
         // let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
@@ -63,39 +117,118 @@ async fn state_job_submission_matching_game_consumer() {
         //     Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 }),
         //     Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
         // ];
-        // let matching_game_state1 = next_state(requests1.clone(), matching_game_state0.clone());
+        // let (matching_game_state1, merkle_trie1) = next_state(requests1.clone(), matching_game_state0.clone(), merkle_trie0);
 
         // let requests2 =
         //     vec![Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 })];
-        // let matching_game_state2 = next_state(requests2.clone(), matching_game_state1.clone());
-
+        // let (matching_game_state2, mut merkle_trie2) = next_state(requests2.clone(), matching_game_state1.clone(), merkle_trie1);
+        
         // let requests3 =
         //     vec![Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 69 })];
-        // let matching_game_state3 = next_state(requests3.clone(), matching_game_state2.clone());
+        // let (matching_game_state3, merkle_trie3) = next_state(requests3.clone(), matching_game_state2.clone(), merkle_trie2);
 
         // let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
         // interval.tick().await; // First tick processes immediately
         // let mut nonce = 2;
-        // for (requests, init_state, next_state) in [
-        //     (requests1, &matching_game_state0, &matching_game_state1),
-        //     (requests2, &matching_game_state1, &matching_game_state2),
-        //     (requests3, &matching_game_state2, &matching_game_state3),
+        // for (requests, mut init_state, next_state) in [
+        //     (requests1, matching_game_state0.clone(), &matching_game_state1),
+        //     (requests2, matching_game_state1.clone(), &matching_game_state2),
+        //     (requests3, matching_game_state2.clone(), &matching_game_state3),
         // ] {
         //     let requests_borsh = borsh::to_vec(&requests).unwrap();
 
-        //     let previous_state_hash = init_state.borsh_keccak256();
-        //     let state_borsh = borsh::to_vec(&init_state).unwrap();
+        //     let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
+        //     let mut initial_root = Default::default();
 
-        //     // Combine requests_borsh and state_borsh
+        //     {
+        //         let mut merkle_trie =
+        //             RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
+
+        //         for (number, addresses) in &init_state.number_to_addresses {
+        //             merkle_trie
+        //                 .insert(number.to_le_bytes().as_slice(), &hash_addresses(addresses))
+        //                 .unwrap();
+        //         }
+        //         init_state.merkle_root = *merkle_trie.root();
+        //     }
+
+    
+        //     let mut trie_nodes = TrieNodes { numbers: vec![], addresses: vec![], proof: vec![] };
+        //     for r in requests.clone() {
+        //         let number = match r {
+        //             Request::SubmitNumber(s) => s.number,
+        //             Request::CancelNumber(c) => c.number,
+        //         };
+    
+        //         trie_nodes.numbers.push(number);
+        //         trie_nodes
+        //             .addresses
+        //             .push(init_state.number_to_addresses.get(&number).unwrap_or(&Vec::new()).clone());
+        //     }
+    
+        //     // First, create a vector to hold the byte representations
+        //     let number_bytes: Vec<Vec<u8>> =
+        //         trie_nodes.numbers.iter().map(|&n| n.to_le_bytes().to_vec()).collect();
+    
+        //     // Then, create a vector of slices referencing these bytes
+        //     let number_slices: Vec<&[u8]> = number_bytes.iter().map(|v| v.as_slice()).collect();
+    
+        //     // Now generate the proof
+        //     trie_nodes.proof = generate_proof::<
+        //         MemoryDB<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>,
+        //         ExtensionLayout,
+        //         &Vec<&[u8]>,
+        //         &[u8],
+        //     >(&memory_db, &init_state.merkle_root, &number_slices)
+        //     .unwrap();
+        //     let proof = trie_nodes.proof.clone();
+
+        //     let mut items = Vec::new();
+        //     for i in 0..trie_nodes.numbers.len() {
+        //         let number_bytes = trie_nodes.numbers[i].to_le_bytes().to_vec();
+        //         if trie_nodes.addresses[i].is_empty() {
+        //             items.push((number_bytes, None));
+        //         } else {
+        //             let addresses_hash = hash_addresses(trie_nodes.addresses[i].as_slice());
+        //             items.push((number_bytes, Some(addresses_hash)));
+        //         }
+        //     }
+        
+        //     reconstruct_root_from_proof(proof, items);
+    
+        //     let trie_nodes_borsh = borsh::to_vec(&trie_nodes).expect("borsh works. qed.");
+
+        //     // print keccak256 of state_borsh
+        //     let state_borsh_hash = keccak256(&trie_nodes_borsh);
+
+        //     let mut state = MatchingGameState::default();
+        //     state.merkle_root = init_state.merkle_root;
+        //     for (number, addresses) in trie_nodes.numbers.iter().zip(trie_nodes.addresses.iter()) {
+        //         if !addresses.is_empty() {
+        //             state.number_to_addresses.insert(*number, addresses.clone());
+        //         }
+        //     }
+
+        //     let state_borsh = borsh::to_vec(&state).expect("borsh works. qed.");
+        //     let state_borsh_hash = keccak256(&state_borsh);
+        
+
+            // Combine requests_borsh and trie_nodes_borsh
         //     let mut combined_offchain_input = Vec::new();
-        //     combined_offchain_input.extend_from_slice(&(requests_borsh.len() as
-        // u32).to_le_bytes());     combined_offchain_input.extend_from_slice(&
-        // requests_borsh);     combined_offchain_input.extend_from_slice(&state_borsh);
+        //     combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
+        //     combined_offchain_input.extend_from_slice(&requests_borsh);
+        //     combined_offchain_input.extend_from_slice(&trie_nodes_borsh);
 
         //     let offchain_input_hash = keccak256(&combined_offchain_input);
 
+        //     // run zkvm_stf
+        //     let zkvm_stf_output = zkvm_stf(requests.clone(), init_state.clone());
+
+        //     // run zkvm_stf on state_borsh
+        //     let zkvm_stf_output_borsh = zkvm_stf(requests, state.clone());
+
         //     let onchain_input = StatefulAppOnchainInput {
-        //         input_state_root: previous_state_hash,
+        //         input_state_root: init_state.merkle_root.into(),
         //         onchain_input: (&[]).into(),
         //     };
         //     let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
@@ -144,8 +277,8 @@ async fn state_job_submission_matching_game_consumer() {
 
         //     {
         //         let matching_game_output =
-        //             StatefulAppResult::abi_decode(&raw_output, true).unwrap();
-        //         assert_eq!(matching_game_output.output_state_root, next_state.borsh_keccak256());
+        //             StatefulAppResult::abi_decode(&raw_output, false).unwrap();
+        //         assert_eq!(*matching_game_output.output_state_root, next_state.merkle_root);
         //     }
 
         //     nonce += 1;
