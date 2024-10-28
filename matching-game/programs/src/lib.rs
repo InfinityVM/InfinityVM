@@ -22,7 +22,7 @@ mod tests {
     use zkvm::Zkvm;
     use kairos_trie::{
         stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
-        DigestHasher, KeyHash, PortableHash, PortableHasher, Transaction, TrieRoot,
+        DigestHasher, KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
         Entry::{Occupied, Vacant, VacantEmptyTrie},
     };
     use std::rc::Rc;
@@ -84,6 +84,14 @@ mod tests {
     
     #[test]
     fn submit_number_cancel_number_execute() {
+        let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
+        let mut txn =
+            Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), TrieRoot::Empty));
+        let hasher = &mut DigestHasher::<Sha256>::default();
+    
+        let mut pre_txn_merkle_root = txn.calc_root_hash(hasher).unwrap();
+
+
         // let matching_game_state0 = MatchingGameState::default();
         // let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
         // let mut initial_root = Default::default();
@@ -98,8 +106,8 @@ mod tests {
         ];
         // let (matching_game_state1, merkle_trie1) =
         //     next_state(requests1.clone(), matching_game_state0.clone(), merkle_trie0);
-        let matching_game_out = execute(requests1.clone());
-        println!("NARULA matching_game_out.output_state_root: {:?}", matching_game_out.output_state_root);
+        let matching_game_out = execute(requests1.clone(), trie_db.clone(), pre_txn_merkle_root);
+        println!("NARULA matching_game_out.output_state_root: {:?}", matching_game_out.output_state_root.as_slice());
         // assert_eq!(*matching_game_out.output_state_root, matching_game_state1.merkle_root);
         // let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
         // assert!(matches.is_empty());
@@ -117,22 +125,24 @@ mod tests {
         // assert_eq!(matches, vec![Match { user1: bob.into(), user2: charlie.into() }]);
     }
 
-    fn execute(requests: Vec<Request>) -> StatefulAppResult {
+    fn execute(requests: Vec<Request>, trie_db: Rc<MemoryDb<Vec<u8>>>, pre_txn_merkle_root: TrieRoot<NodeHash>) -> StatefulAppResult {
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
-        let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
-
-        // println!("NARULA TrieRoot::Empty: {:?}", TrieRoot::Empty);
         let mut txn =
-            Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), TrieRoot::Empty));
-        let hasher = &mut DigestHasher::<Sha256>::default();
-    
-        let mut pre_txn_merkle_root = txn.calc_root_hash(hasher).unwrap();
+            Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), pre_txn_merkle_root));
 
         apply_requests(&mut txn, &requests);
 
         let hasher = &mut DigestHasher::<Sha256>::default();
         let output_merkle_root = txn.commit(hasher).unwrap();
+        let output_merkle_root_thirty_two: Option<[u8; 32]> = output_merkle_root.into();
+        let output_merkle_root_result = if output_merkle_root_thirty_two.is_none() {
+            Default::default()
+        } else {
+            output_merkle_root_thirty_two.unwrap()
+        };
+        println!("NARULA output_merkle_root_result in prover: {:?}", output_merkle_root_result);
+
         let snapshot = txn.build_initial_snapshot();
 
         let merkle_root_thirty_two: Option<[u8; 32]> = pre_txn_merkle_root.into();
