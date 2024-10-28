@@ -4084,6 +4084,7 @@ dependencies = [
  "abi",
  "alloy",
  "borsh",
+ "kairos-trie",
  "keccak-hasher",
  "matching-game-core",
  "matching-game-test-utils",
@@ -4091,6 +4092,8 @@ dependencies = [
  "reference-trie",
  "risc0-build",
  "risc0-zkvm",
+ "serde_json",
+ "sha2",
  "trie-db",
  "zkvm",
 ]

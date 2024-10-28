@@ -9,6 +9,7 @@ use reference_trie::ExtensionLayout;
 use kairos_trie::{
     stored::{memory_db::MemoryDb, merkle::{Snapshot, SnapshotBuilder, VerifiedSnapshot}, Store},
     DigestHasher, KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
+    Entry::{Occupied, Vacant, VacantEmptyTrie},
 };
 use std::rc::Rc;
 use sha2::Sha256;
@@ -31,14 +32,37 @@ fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: 
     for r in requests {
         match r {
             Request::SubmitNumber(s) => {
-                let mut old_list = deserialize_address_list(txn.entry(&hash(s.number)).unwrap().or_default());
-                old_list.push(s.address);
-                let _ = txn.insert(&hash(s.number), serialize_address_list(&old_list));
+
+                let mut old_list = txn.entry(&hash(s.number)).unwrap();
+                match old_list {
+                    Occupied(mut entry) => {
+                        let mut old_list = deserialize_address_list(entry.get());
+                        old_list.push(s.address);
+                        let _ = entry.insert(serialize_address_list(&old_list));
+                    }
+                    Vacant(_) => {
+                        let _ = txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                    }
+                    VacantEmptyTrie(_) => {
+                        let _ = txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                    }
+                }
             }
             Request::CancelNumber(c) => {
-                let mut old_list = deserialize_address_list(txn.entry(&hash(c.number)).unwrap().or_default());
-                old_list.remove(old_list.iter().position(|&x| x == c.address).unwrap());
-                let _ = txn.insert(&hash(c.number), serialize_address_list(&old_list));
+                let mut old_list = txn.entry(&hash(c.number)).unwrap();
+                match old_list {
+                    Occupied(mut entry) => {
+                        let mut old_list = deserialize_address_list(entry.get());
+                        old_list.remove(old_list.iter().position(|&x| x == c.address).unwrap());
+                        let _ = entry.insert(serialize_address_list(&old_list));
+                    }
+                    Vacant(_) => {
+                        // do nothing
+                    }
+                    VacantEmptyTrie(_) => {
+                        // do nothing
+                    }
+                }
             }
         }
     }
