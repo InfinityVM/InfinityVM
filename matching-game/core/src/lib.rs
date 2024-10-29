@@ -3,7 +3,7 @@ use crate::api::Request;
 use kairos_trie::{
     stored::{
         memory_db::MemoryDb,
-        merkle::{Snapshot, SnapshotBuilder, VerifiedSnapshot},
+        merkle::{Snapshot, SnapshotBuilder},
         Store,
     },
     DigestHasher,
@@ -31,20 +31,24 @@ pub type Matches = alloy::sol! {
     Match[]
 };
 
+/// Serialize a list of addresses.
 pub fn serialize_address_list(addresses: &Vec<[u8; 20]>) -> Vec<u8> {
     borsh::to_vec(addresses).expect("borsh works. qed.")
 }
 
+/// Deserialize a list of addresses.
 pub fn deserialize_address_list(data: &[u8]) -> Vec<[u8; 20]> {
     borsh::from_slice(data).expect("borsh works. qed.")
 }
 
+/// Hash a number to a key hash for the merkle trie.
 pub fn hash(key: u64) -> KeyHash {
     let hasher = &mut DigestHasher::<Sha256>::default();
     key.portable_hash(hasher);
     KeyHash::from_bytes(&hasher.finalize_reset())
 }
 
+/// Get the bytes representation of a merkle root.
 pub fn get_merkle_root_bytes(merkle_root: TrieRoot<NodeHash>) -> [u8; 32] {
     if let Some(root) = merkle_root.into() {
         root
@@ -53,6 +57,7 @@ pub fn get_merkle_root_bytes(merkle_root: TrieRoot<NodeHash>) -> [u8; 32] {
     }
 }
 
+/// Apply a list of requests to a trie and return the new merkle root and snapshot.
 pub fn apply_requests_to_trie(
     trie_db: Rc<MemoryDb<Vec<u8>>>,
     pre_txn_merkle_root: TrieRoot<NodeHash>,
@@ -71,6 +76,7 @@ pub fn apply_requests_to_trie(
     (post_txn_merkle_root, snapshot)
 }
 
+/// Apply a list of requests to a trie and return the matches.
 pub fn apply_requests(
     txn: &mut Transaction<impl Store<Value = Vec<u8>>>,
     requests: &[Request],
@@ -80,13 +86,15 @@ pub fn apply_requests(
     for r in requests {
         match r {
             Request::SubmitNumber(s) => {
-                let mut old_list = txn.entry(&hash(s.number)).unwrap();
-                match old_list {
+                let addresses = txn.entry(&hash(s.number)).unwrap();
+                match addresses {
                     Occupied(mut entry) => {
                         let mut old_list = deserialize_address_list(entry.get());
                         if old_list.is_empty() {
+                            // If addresses list is empty, add the new address.
                             old_list.push(s.address);
                         } else {
+                            // If addresses list is not empty, we have a match!
                             let match_pair =
                                 Match { user1: old_list[0].into(), user2: s.address.into() };
                             matches.push(match_pair);
@@ -97,20 +105,23 @@ pub fn apply_requests(
                         let _ = entry.insert(serialize_address_list(&old_list));
                     }
                     Vacant(_) => {
+                        // If addresses list doesn't exist for this number, create it.
                         let _ =
                             txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
                     }
                     VacantEmptyTrie(_) => {
+                        // If addresses list doesn't exist for this number, create it.
                         let _ =
                             txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
                     }
                 }
             }
             Request::CancelNumber(c) => {
-                let old_list = txn.entry(&hash(c.number)).unwrap();
-                match old_list {
+                let addresses = txn.entry(&hash(c.number)).unwrap();
+                match addresses {
                     Occupied(mut entry) => {
                         let mut old_list = deserialize_address_list(entry.get());
+                        // Remove the user's address from the list.
                         old_list.remove(old_list.iter().position(|&x| x == c.address).unwrap());
                         let _ = entry.insert(serialize_address_list(&old_list));
                     }
