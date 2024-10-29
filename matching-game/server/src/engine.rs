@@ -3,8 +3,7 @@
 use crate::state::InMemoryState;
 use eyre::{eyre, OptionExt, WrapErr};
 use matching_game_core::{
-    api::{ApiResponse, Request},
-    tick,
+    api::{ApiResponse, Request, Response, SubmitNumberResponse, CancelNumberResponse},
 };
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
@@ -30,7 +29,11 @@ pub async fn run_engine(
         state.set_seen_global_index(global_index);
         state.store_request(global_index, request.clone());
 
-        let response = tick(request);
+        let response = match request {
+            Request::SubmitNumber(_) => Response::SubmitNumber(SubmitNumberResponse { success: true }),
+            Request::CancelNumber(_) => Response::CancelNumber(CancelNumberResponse { success: true }),
+        };
+    
         state.set_processed_global_index(global_index);
 
         let api_response = ApiResponse { response, global_index };

@@ -11,8 +11,8 @@ use kairos_trie::{
     KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
 };
 use matching_game_core::{
-    api::{Match, Request},
-    Matches,
+    api::Request,
+    Match, Matches,
 };
 use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};

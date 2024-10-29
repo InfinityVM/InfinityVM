@@ -1,6 +1,6 @@
 //! High level test utilities specifically for the matching game.
 
-use matching_game_core::{api::Request, tick};
+use matching_game_core::api::Request;
 
 use alloy::{
     network::EthereumWallet,
