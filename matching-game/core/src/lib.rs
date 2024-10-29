@@ -1,5 +1,5 @@
 //! Shared logic and types of the matching game.
-use crate::api::Request;
+use api::Request;
 use kairos_trie::{
     stored::{
         memory_db::MemoryDb,
