@@ -89,13 +89,8 @@ mod tests {
             Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), TrieRoot::Empty));
         let hasher = &mut DigestHasher::<Sha256>::default();
     
-        let mut pre_txn_merkle_root = txn.calc_root_hash(hasher).unwrap();
+        let mut merkle_root0 = txn.calc_root_hash(hasher).unwrap();
 
-
-        // let matching_game_state0 = MatchingGameState::default();
-        // let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
-        // let mut initial_root = Default::default();
-        // let merkle_trie0 = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
         let bob = [69u8; 20];
         let alice = [42u8; 20];
         let charlie = [55u8; 20];
@@ -104,11 +99,14 @@ mod tests {
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 }),
             Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
         ];
-        // let (matching_game_state1, merkle_trie1) =
-        //     next_state(requests1.clone(), matching_game_state0.clone(), merkle_trie0);
-        let matching_game_out = execute(requests1.clone(), trie_db.clone(), pre_txn_merkle_root);
-        println!("NARULA matching_game_out.output_state_root: {:?}", matching_game_out.output_state_root.as_slice());
-        // assert_eq!(*matching_game_out.output_state_root, matching_game_state1.merkle_root);
+        let (merkle_root1, matching_game_out) = execute(requests1.clone(), trie_db.clone(), merkle_root0);
+        let merkle_root_1_thirty_two: Option<[u8; 32]> = merkle_root1.into();
+        let merkle_root_1_node_hash = if merkle_root_1_thirty_two.is_none() {
+            Default::default()
+        } else {
+            merkle_root_1_thirty_two.unwrap()
+        };
+        assert_eq!(*matching_game_out.output_state_root, merkle_root_1_node_hash);
         // let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
         // assert!(matches.is_empty());
 
@@ -125,7 +123,7 @@ mod tests {
         // assert_eq!(matches, vec![Match { user1: bob.into(), user2: charlie.into() }]);
     }
 
-    fn execute(requests: Vec<Request>, trie_db: Rc<MemoryDb<Vec<u8>>>, pre_txn_merkle_root: TrieRoot<NodeHash>) -> StatefulAppResult {
+    fn execute(requests: Vec<Request>, trie_db: Rc<MemoryDb<Vec<u8>>>, pre_txn_merkle_root: TrieRoot<NodeHash>) -> (TrieRoot<NodeHash>, StatefulAppResult) {
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
         let mut txn =
@@ -135,13 +133,6 @@ mod tests {
 
         let hasher = &mut DigestHasher::<Sha256>::default();
         let output_merkle_root = txn.commit(hasher).unwrap();
-        let output_merkle_root_thirty_two: Option<[u8; 32]> = output_merkle_root.into();
-        let output_merkle_root_result = if output_merkle_root_thirty_two.is_none() {
-            Default::default()
-        } else {
-            output_merkle_root_thirty_two.unwrap()
-        };
-        println!("NARULA output_merkle_root_result in prover: {:?}", output_merkle_root_result);
 
         let snapshot = txn.build_initial_snapshot();
 
@@ -154,57 +145,10 @@ mod tests {
 
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
         
-        // let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
-        // let mut initial_root = Default::default();
-
-        // {
-        //     let mut merkle_trie =
-        //         RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
-
-        //     // for (number, addresses) in &init_state.number_to_addresses {
-        //     //     merkle_trie
-        //     //         .insert(number.to_le_bytes().as_slice(), &hash_addresses(addresses))
-        //     //         .unwrap();
-        //     // }
-        //     init_state.merkle_root = *merkle_trie.root();
-        // }
-
-        // let mut trie_nodes = TrieNodes { numbers: vec![], addresses: vec![], proof: vec![] };
-        // for txn in txns {
-        //     let number = match txn {
-        //         Request::SubmitNumber(s) => s.number,
-        //         Request::CancelNumber(c) => c.number,
-        //     };
-
-        //     trie_nodes.numbers.push(number);
-        //     // trie_nodes
-        //     //     .addresses
-        //     //     .push(init_state.number_to_addresses.get(&number).unwrap_or(&Vec::new()).clone());
-        // }
-
-        // // First, create a vector to hold the byte representations
-        // let number_bytes: Vec<Vec<u8>> =
-        //     trie_nodes.numbers.iter().map(|&n| n.to_le_bytes().to_vec()).collect();
-
-        // // Then, create a vector of slices referencing these bytes
-        // let number_slices: Vec<&[u8]> = number_bytes.iter().map(|v| v.as_slice()).collect();
-
-        // // Now generate the proof
-        // trie_nodes.proof = generate_proof::<
-        //     MemoryDB<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>,
-        //     ExtensionLayout,
-        //     &Vec<&[u8]>,
-        //     &[u8],
-        // >(&memory_db, &init_state.merkle_root, &number_slices)
-        // .unwrap();
-
-        // let trie_nodes_borsh = borsh::to_vec(&trie_nodes).expect("borsh works. qed.");
-
         let mut combined_offchain_input = Vec::new();
         combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
         combined_offchain_input.extend_from_slice(&requests_borsh);
         combined_offchain_input.extend_from_slice(&snapshot_serialized);
-        // combined_offchain_input.extend_from_slice(&trie_nodes_borsh);
 
         let onchain_input = StatefulAppOnchainInput {
             input_state_root: onchain_input_state_root.into(),
@@ -220,6 +164,6 @@ mod tests {
             )
             .unwrap();
 
-        <StatefulAppResult as SolValue>::abi_decode(&out_bytes, true).unwrap()
+        (output_merkle_root, <StatefulAppResult as SolValue>::abi_decode(&out_bytes, true).unwrap())
     }
 }
