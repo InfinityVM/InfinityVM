@@ -4,7 +4,7 @@
 
 .PHONY: clippy-ci
 clippy-ci: contracts
-	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked --exclude kairos-trie
+	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked -- --exclude kairos-trie
 
 .PHONY: clippy
 clippy:
@@ -12,7 +12,7 @@ clippy:
 
 .PHONY: fmt-ci
 fmt-ci: 
-	cargo +nightly fmt --all --check --exclude kairos-trie
+	cargo +nightly fmt --all --check -- --exclude kairos-trie
 
 .PHONY: fmt
 fmt:
