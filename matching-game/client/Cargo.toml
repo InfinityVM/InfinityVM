@@ -1,0 +1,16 @@
+[package]
+name = "matching-game-client"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+eyre = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+
+# local deps
+matching-game-core = { workspace = true }
+matching-game-node = { workspace = true }

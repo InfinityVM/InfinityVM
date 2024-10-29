@@ -16,11 +16,17 @@ members = [
 	"crates/zkvm-executor",
     "crates/tracing",
 	"clob/client",
-	"clob/core",
 	"clob/contracts",
-	"clob/programs",
+	"clob/core",
 	"clob/node",
+	"clob/programs",
 	"clob/test-utils",
+	"matching-game/client",
+	"matching-game/contracts",
+	"matching-game/core",
+	"matching-game/node",
+	"matching-game/programs",
+	"matching-game/test-utils",
 	"test/e2e",
 	"test/load-test",
 	"programs/risc0/mock-consumer/methods",
@@ -215,6 +221,12 @@ clob-test-utils = { path = "clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
+matching-game-client = { path = "matching-game/client" }
+matching-game-contracts = { path = "matching-game/contracts" }
+matching-game-core = { path = "matching-game/core" }
+matching-game-node = { path = "matching-game/node" }
+matching-game-programs = { path = "matching-game/programs" }
+matching-game-test-utils = { path = "matching-game/test-utils" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }

@@ -1,0 +1,13 @@
+[package]
+name = "matching-game-core"
+version = "0.1.0"
+edition = "2021"
+
+[lints]
+workspace = true
+
+[dependencies]
+alloy = { workspace = true }
+borsh = { workspace = true }
+serde = { workspace = true }
+abi = { workspace = true }
