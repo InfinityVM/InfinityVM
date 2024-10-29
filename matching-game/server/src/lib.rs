@@ -45,10 +45,7 @@ pub async fn run(
     });
 
     let state_engine = Arc::clone(&state);
-    let engine_handle = tokio::task::spawn_blocking(move || {
-        tokio::runtime::Handle::current()
-            .block_on(async move { engine::run_engine(engine_receiver, state_engine).await })
-    });
+    let engine_handle = tokio::spawn(async move { engine::run_engine(engine_receiver, state_engine).await });
 
     let state_batcher = Arc::clone(&state);
     let batcher_handle = tokio::task::spawn_blocking(move || {
