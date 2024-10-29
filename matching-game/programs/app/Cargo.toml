@@ -25,4 +25,4 @@ matching-game-core = { path = "../../core" }
 abi = { path = "../../../crates/sdk/abi" }
 sha2 = "0.10"
 serde_json = "1.0"
-kairos-trie = { path = "../../../crates/kairos-trie" }
+kairos-trie = { path = "../../../crates/sdk/kairos-trie" }

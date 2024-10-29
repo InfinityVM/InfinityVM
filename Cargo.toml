@@ -218,7 +218,7 @@ clob-test-utils = { path = "clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
-kairos-trie = { path = "crates/kairos-trie", features = ["serde"] }
+kairos-trie = { path = "crates/sdk/kairos-trie", features = ["serde"] }
 matching-game-core = { path = "matching-game/core" }
 matching-game-server = { path = "matching-game/server" }
 matching-game-programs = { path = "matching-game/programs" }
