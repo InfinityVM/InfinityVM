@@ -35,7 +35,6 @@ mod tests {
         assert!(matches.is_empty());
 
         let requests2 = vec![
-            // Sell 100 base for 4*100 quote
             Request::SubmitNumber(SubmitNumberRequest { address: charlie, number: 69 }),
             Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 }),
         ];
