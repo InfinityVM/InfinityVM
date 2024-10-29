@@ -69,13 +69,10 @@ pub async fn run_batcher(
 
         info!("creating batch {start_index}..={end_index}");
 
-        tokio::task::yield_now().await;
-
         let mut requests = Vec::with_capacity((end_index - start_index + 1) as usize);
         for i in start_index..=end_index {
             let r = state.get_request(i).ok_or_eyre(format!("batcher: request {i}"))?;
             requests.push(r);
-            tokio::task::yield_now().await;
         }
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
