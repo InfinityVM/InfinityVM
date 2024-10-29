@@ -54,7 +54,7 @@ pub fn get_merkle_root_bytes(merkle_root: TrieRoot<NodeHash>) -> [u8; 32] {
 }
 
 /// Apply a list of requests to a trie and return the new merkle root and snapshot.
-pub fn apply_requests_to_trie(
+pub fn next_state(
     trie_db: Rc<MemoryDb<Vec<u8>>>,
     pre_txn_merkle_root: TrieRoot<NodeHash>,
     requests: &[Request],

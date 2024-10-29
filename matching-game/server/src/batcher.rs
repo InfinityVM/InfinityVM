@@ -5,7 +5,7 @@ use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use eyre::OptionExt;
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
-use matching_game_core::{apply_requests_to_trie, get_merkle_root_bytes};
+use matching_game_core::{get_merkle_root_bytes, next_state};
 use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use risc0_zkvm::sha::Digest;
@@ -84,7 +84,7 @@ pub async fn run_batcher(
         // Snapshot contains the minimal portion of the merkle trie needed to
         // verify the state transition in the zkVM program.
         let (post_txn_merkle_root, snapshot) =
-            apply_requests_to_trie(trie_db.clone(), pre_txn_merkle_root, &requests);
+            next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
 
         // Combine requests_borsh and snapshot_serialized

@@ -7,7 +7,7 @@ mod tests {
     use alloy::sol_types::{SolType, SolValue};
     use matching_game_core::{
         api::{CancelNumberRequest, Request, SubmitNumberRequest},
-        apply_requests_to_trie, get_merkle_root_bytes, Match, Matches,
+        get_merkle_root_bytes, next_state, Match, Matches,
     };
 
     use abi::{StatefulAppOnchainInput, StatefulAppResult};
@@ -54,7 +54,7 @@ mod tests {
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
         let (post_txn_merkle_root, snapshot) =
-            apply_requests_to_trie(trie_db.clone(), pre_txn_merkle_root, &requests);
+            next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
 
         let mut combined_offchain_input = Vec::new();
