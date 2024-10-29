@@ -691,6 +691,7 @@ checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
 [[package]]
 name = "kairos-trie"
 version = "0.1.0"
+source = "git+https://github.com/cspr-rad/kairos-trie.git#e649cb702d12f4711714fc37d44a2186b20007f0"
 dependencies = [
  "bumpalo",
  "digest",

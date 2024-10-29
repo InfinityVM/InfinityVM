@@ -25,4 +25,4 @@ matching-game-core = { path = "../../core" }
 abi = { path = "../../../crates/sdk/abi" }
 sha2 = { version = "0.10", default-features = false }
 serde_json = { version = "1.0", features = ["std"], default-features = false }
-kairos-trie = { path = "../../../crates/sdk/kairos-trie" }
+kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = ["serde"] }

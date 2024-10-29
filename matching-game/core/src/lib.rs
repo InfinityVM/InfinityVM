@@ -50,7 +50,7 @@ pub fn hash(key: u64) -> KeyHash {
 
 /// Get the bytes representation of a merkle root.
 pub fn get_merkle_root_bytes(merkle_root: TrieRoot<NodeHash>) -> [u8; 32] {
-    let maybe_root: Option<[u8; 32]>  = merkle_root.into();
+    let maybe_root: Option<[u8; 32]> = merkle_root.into();
     maybe_root.unwrap_or_default()
 }
 

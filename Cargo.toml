@@ -148,6 +148,7 @@ home = { version = "0.5", default-features = false }
 # j
 # k
 k256 = { version = "0.13", default-features = false }
+kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = ["serde"] }
 
 # l
 # m
@@ -218,7 +219,6 @@ clob-test-utils = { path = "clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
-kairos-trie = { path = "crates/sdk/kairos-trie", features = ["serde"] }
 matching-game-core = { path = "matching-game/core" }
 matching-game-server = { path = "matching-game/server" }
 matching-game-programs = { path = "matching-game/programs" }
