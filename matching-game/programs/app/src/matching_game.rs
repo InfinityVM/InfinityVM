@@ -3,13 +3,11 @@
 use alloy::sol_types::SolType;
 use abi::{StatefulAppOnchainInput, StatefulAppResult};
 use risc0_zkvm::guest::env;
-use matching_game_core::{api::Request, Match, Matches, serialize_address_list, deserialize_address_list, hash, apply_requests, get_merkle_root_bytes};
+use matching_game_core::{api::Request, Matches, apply_requests, get_merkle_root_bytes};
 use kairos_trie::{
-    stored::{memory_db::MemoryDb, merkle::{Snapshot, SnapshotBuilder, VerifiedSnapshot}, Store},
-    DigestHasher, KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
-    Entry::{Occupied, Vacant, VacantEmptyTrie},
+    stored::merkle::{Snapshot, VerifiedSnapshot},
+    DigestHasher, NodeHash, Transaction, TrieRoot,
 };
-use std::rc::Rc;
 use sha2::Sha256;
 
 fn main() {
@@ -24,7 +22,7 @@ fn main() {
     let mut offchain_input_buf = vec![0u8; offchain_input_len as usize];
     env::read_slice(&mut offchain_input_buf);
 
-    // We combined the requests and trie nodes in offchain input, so we need to split them here.
+    // We combined the requests and snapshot in offchain input, so we need to split them here.
     let requests_len = u32::from_le_bytes(offchain_input_buf[..4].try_into().unwrap()) as usize;
     let requests_borsh = offchain_input_buf[4..4 + requests_len].to_vec();
     let snapshot_serialized = offchain_input_buf[4 + requests_len..].to_vec();
@@ -38,11 +36,13 @@ fn main() {
         TrieRoot::Node(NodeHash::new(*input_merkle_root))
     };
 
+    // Verify the snapshot against the merkle root.
     let hasher = &mut DigestHasher::<Sha256>::default();
     let verified_snapshot = VerifiedSnapshot::verify_snapshot(snapshot, hasher).unwrap();
     let pre_batch_trie_root = verified_snapshot.trie_root_hash();
     assert_eq!(pre_batch_trie_root, pre_txn_merkle_root);
 
+    // Apply the batch of requests to the trie and get the new merkle root.
     let mut txn = Transaction::from(verified_snapshot);
     let matches = apply_requests(&mut txn, &requests);
     let output_merkle_root = txn.calc_root_hash(hasher).unwrap();

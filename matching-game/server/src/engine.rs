@@ -1,16 +1,13 @@
 //! Matching game execution engine.
 
 use crate::state::ServerState;
-use eyre::{eyre, OptionExt, WrapErr};
+use eyre::{eyre, OptionExt};
 use matching_game_core::api::{
     ApiResponse, CancelNumberResponse, Request, Response, SubmitNumberResponse,
 };
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
 use tracing::instrument;
-
-/// The zero index only contains the default state, but no requests.
-pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
 
 /// Run the matching game execution engine
 #[instrument(skip_all)]

@@ -50,11 +50,7 @@ pub fn hash(key: u64) -> KeyHash {
 
 /// Get the bytes representation of a merkle root.
 pub fn get_merkle_root_bytes(merkle_root: TrieRoot<NodeHash>) -> [u8; 32] {
-    if let Some(root) = merkle_root.into() {
-        root
-    } else {
-        Default::default()
-    }
+    <TrieRoot<NodeHash> as Into<Option<[u8; 32]>>>::into(merkle_root).unwrap_or_default()
 }
 
 /// Apply a list of requests to a trie and return the new merkle root and snapshot.
@@ -63,11 +59,9 @@ pub fn apply_requests_to_trie(
     pre_txn_merkle_root: TrieRoot<NodeHash>,
     requests: &[Request],
 ) -> (TrieRoot<NodeHash>, Snapshot<Vec<u8>>) {
-    let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
-        trie_db.clone(),
-        pre_txn_merkle_root,
-    ));
-    apply_requests(&mut txn, &requests);
+    let mut txn =
+        Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db, pre_txn_merkle_root));
+    apply_requests(&mut txn, requests);
 
     let hasher = &mut DigestHasher::<Sha256>::default();
     let post_txn_merkle_root = txn.commit(hasher).unwrap();
@@ -104,12 +98,7 @@ pub fn apply_requests(
                         }
                         let _ = entry.insert(serialize_address_list(&old_list));
                     }
-                    Vacant(_) => {
-                        // If addresses list doesn't exist for this number, create it.
-                        let _ =
-                            txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
-                    }
-                    VacantEmptyTrie(_) => {
+                    Vacant(_) | VacantEmptyTrie(_) => {
                         // If addresses list doesn't exist for this number, create it.
                         let _ =
                             txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
@@ -125,10 +114,7 @@ pub fn apply_requests(
                         old_list.remove(old_list.iter().position(|&x| x == c.address).unwrap());
                         let _ = entry.insert(serialize_address_list(&old_list));
                     }
-                    Vacant(_) => {
-                        // do nothing
-                    }
-                    VacantEmptyTrie(_) => {
+                    Vacant(_) | VacantEmptyTrie(_) => {
                         // do nothing
                     }
                 }

@@ -1,64 +1,76 @@
-use std::sync::Mutex;
+//! In-memory state for the matching game server.
 
-use kairos_trie::{
-    stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
-    DigestHasher,
-    Entry::{Occupied, Vacant, VacantEmptyTrie},
-    KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
+use std::sync::{
+    atomic::{AtomicU64, Ordering},
+    Mutex,
 };
+
+use kairos_trie::{NodeHash, TrieRoot};
 use matching_game_core::api::Request;
 
-#[derive(Default)]
+/// In-memory state.
+#[derive(Default, Debug)]
 pub struct ServerState {
     merkle_root: Mutex<TrieRoot<NodeHash>>,
     requests: Mutex<std::collections::HashMap<u64, Request>>,
-    seen_global_index: Mutex<u64>,
-    processed_global_index: Mutex<u64>,
-    next_batch_global_index: Mutex<u64>,
+    seen_global_index: AtomicU64,
+    processed_global_index: AtomicU64,
+    next_batch_global_index: AtomicU64,
 }
 
 impl ServerState {
+    /// Create new in-memory state.
     pub fn new() -> Self {
         Self::default()
     }
 
+    /// Get the merkle root from the most recently processed batch.
     pub fn get_merkle_root(&self) -> TrieRoot<NodeHash> {
         *self.merkle_root.lock().unwrap()
     }
 
+    /// Set the merkle root for the most recently processed batch.
     pub fn set_merkle_root(&self, merkle_root: TrieRoot<NodeHash>) {
         *self.merkle_root.lock().unwrap() = merkle_root;
     }
 
+    /// Store a request.
     pub fn store_request(&self, index: u64, request: Request) {
         self.requests.lock().unwrap().insert(index, request);
     }
 
+    /// Get a request by its global index.
     pub fn get_request(&self, index: u64) -> Option<Request> {
-        self.requests.lock().unwrap().get(&index).map(|r| r.clone())
+        self.requests.lock().unwrap().get(&index).cloned()
     }
 
+    /// Get the global index of the most recently seen request.
     pub fn get_seen_global_index(&self) -> u64 {
-        *self.seen_global_index.lock().unwrap()
+        self.seen_global_index.load(Ordering::SeqCst)
     }
 
+    /// Set the global index of the most recently seen request.
     pub fn set_seen_global_index(&self, index: u64) {
-        *self.seen_global_index.lock().unwrap() = index;
+        self.seen_global_index.store(index, Ordering::SeqCst);
     }
 
+    /// Get the global index of the most recently processed request.
     pub fn get_processed_global_index(&self) -> u64 {
-        *self.processed_global_index.lock().unwrap()
+        self.processed_global_index.load(Ordering::SeqCst)
     }
 
+    /// Set the global index of the most recently processed request.
     pub fn set_processed_global_index(&self, index: u64) {
-        *self.processed_global_index.lock().unwrap() = index;
+        self.processed_global_index.store(index, Ordering::SeqCst);
     }
 
+    /// Get the global index of the next batch.
     pub fn get_next_batch_global_index(&self) -> u64 {
-        *self.next_batch_global_index.lock().unwrap()
+        self.next_batch_global_index.load(Ordering::SeqCst)
     }
 
+    /// Set the global index of the next batch.
     pub fn set_next_batch_global_index(&self, index: u64) {
-        *self.next_batch_global_index.lock().unwrap() = index;
+        self.next_batch_global_index.store(index, Ordering::SeqCst);
     }
 }

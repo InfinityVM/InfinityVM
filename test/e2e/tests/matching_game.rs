@@ -7,25 +7,18 @@ use alloy::{
     sol_types::SolValue,
 };
 use e2e::{Args, E2E};
-use kairos_trie::{
-    stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
-    DigestHasher,
-    Entry::{Occupied, Vacant, VacantEmptyTrie},
-    KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
-};
+use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
     api::{
         CancelNumberRequest, CancelNumberResponse, Request, SubmitNumberRequest,
         SubmitNumberResponse,
     },
-    apply_requests, apply_requests_to_trie, deserialize_address_list, get_merkle_root_bytes, hash,
-    serialize_address_list, Match, Matches,
+    apply_requests_to_trie, get_merkle_root_bytes,
 };
 use matching_game_programs::MATCHING_GAME_ELF;
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
-use sha2::Sha256;
 use std::rc::Rc;
 use zkvm_executor::service::OffchainResultWithMetadata;
 

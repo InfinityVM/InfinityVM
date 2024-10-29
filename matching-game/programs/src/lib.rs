@@ -4,31 +4,21 @@ include!(concat!(env!("OUT_DIR"), "/methods.rs"));
 
 #[cfg(test)]
 mod tests {
-    use alloy::{
-        primitives::keccak256,
-        sol_types::{SolType, SolValue},
-    };
+    use alloy::sol_types::{SolType, SolValue};
     use matching_game_core::{
         api::{CancelNumberRequest, Request, SubmitNumberRequest},
-        apply_requests, apply_requests_to_trie, deserialize_address_list, get_merkle_root_bytes,
-        hash, serialize_address_list, Match, Matches,
+        apply_requests_to_trie, get_merkle_root_bytes, Match, Matches,
     };
 
     use abi::{StatefulAppOnchainInput, StatefulAppResult};
-    use kairos_trie::{
-        stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
-        DigestHasher,
-        Entry::{Occupied, Vacant, VacantEmptyTrie},
-        KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
-    };
-    use sha2::Sha256;
+    use kairos_trie::{stored::memory_db::MemoryDb, NodeHash, TrieRoot};
     use std::rc::Rc;
     use zkvm::Zkvm;
 
     #[test]
     fn submit_number_cancel_number() {
         let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
-        let mut merkle_root0 = TrieRoot::Empty;
+        let merkle_root0 = TrieRoot::Empty;
 
         let bob = [69u8; 20];
         let alice = [42u8; 20];

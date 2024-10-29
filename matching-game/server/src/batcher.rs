@@ -4,20 +4,11 @@ use crate::state::ServerState;
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use eyre::OptionExt;
-use kairos_trie::{
-    stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
-    DigestHasher,
-    Entry::{Occupied, Vacant, VacantEmptyTrie},
-    KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
-};
-use matching_game_core::{
-    api::Request, apply_requests, apply_requests_to_trie, deserialize_address_list,
-    get_merkle_root_bytes, hash, serialize_address_list, Match, Matches,
-};
+use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
+use matching_game_core::{apply_requests_to_trie, get_merkle_root_bytes};
 use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use risc0_zkvm::sha::Digest;
-use sha2::Sha256;
 use std::{rc::Rc, sync::Arc};
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
@@ -89,6 +80,9 @@ pub async fn run_batcher(
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
         let pre_txn_merkle_root = state.get_merkle_root();
+        // Apply requests to the trie and get the new merkle root and snapshot.
+        // Snapshot contains the minimal portion of the merkle trie needed to
+        // verify the state transition in the zkVM program.
         let (post_txn_merkle_root, snapshot) =
             apply_requests_to_trie(trie_db.clone(), pre_txn_merkle_root, &requests);
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");

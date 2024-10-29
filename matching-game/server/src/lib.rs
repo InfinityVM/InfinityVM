@@ -1,7 +1,7 @@
 //! The matching game node.
 
 use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 use tokio::task::JoinHandle;
 
 pub mod app;
@@ -14,8 +14,6 @@ pub mod test_utils;
 
 /// Address to listen for HTTP requests on.
 pub const LISTEN_ADDR: &str = "LISTEN_ADDR";
-/// Directory for database.
-pub const DB_DIR: &str = "DB_DIR";
 /// Coprocessor Node gRPC address.
 pub const CN_GRPC_ADDR: &str = "CN_GRPC_ADDR";
 /// Matching game consumer contract address.
@@ -40,7 +38,6 @@ pub async fn run(
     let state = Arc::new(state::ServerState::new());
 
     let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(32);
-    let state_server = Arc::clone(&state);
     let engine_sender_2 = engine_sender.clone();
     let server_handle = tokio::spawn(async move {
         let server_state = app::AppState::new(engine_sender_2);

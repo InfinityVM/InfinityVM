@@ -2,6 +2,7 @@
 
 /// `MatchingGameConsumer.sol` bindings
 pub mod matching_game_consumer {
+    #![allow(missing_docs)]
     alloy::sol! {
       #[sol(rpc)]
       MatchingGameConsumer,
