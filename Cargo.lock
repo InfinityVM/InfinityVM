@@ -2718,7 +2718,6 @@ dependencies = [
  "risc0-binfmt",
  "risc0-zkp",
  "serde_json",
- "sha2",
  "test-utils",
  "tokio",
  "tonic",
@@ -3992,14 +3991,11 @@ dependencies = [
 name = "matching-game-core"
 version = "0.1.0"
 dependencies = [
- "abi",
  "alloy",
  "borsh",
  "kairos-trie",
  "serde",
- "serde_json",
  "sha2",
- "tokio",
 ]
 
 [[package]]
@@ -4037,7 +4033,6 @@ dependencies = [
  "risc0-zkvm",
  "serde",
  "serde_json",
- "sha2",
  "tempfile",
  "test-utils",
  "tokio",
