@@ -123,6 +123,5 @@ pub fn apply_requests(
         }
     }
 
-    matches.sort();
     matches
 }
