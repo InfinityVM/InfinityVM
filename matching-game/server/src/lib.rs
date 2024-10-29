@@ -8,6 +8,7 @@ pub mod app;
 pub mod batcher;
 pub mod engine;
 pub mod state;
+pub mod test_utils;
 
 /// Address to listen for HTTP requests on.
 pub const LISTEN_ADDR: &str = "LISTEN_ADDR";

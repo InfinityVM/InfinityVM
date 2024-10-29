@@ -6,7 +6,7 @@ use coprocessor_node::{
     node::{NodeConfig, WsConfig},
 };
 use futures::future::FutureExt;
-use matching_game_test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
+use matching_game_server::test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use proto::coprocessor_node_client::CoprocessorNodeClient;
 use rand::Rng;
@@ -186,7 +186,7 @@ impl E2E {
             let listen_addr2 = listen_addr.clone();
             let operator_signer = matching_game_consumer.matching_game_signer.clone();
             tokio::spawn(async move {
-                matching_game_node::run(
+                matching_game_server::run(
                     listen_addr2,
                     batcher_duration_ms,
                     operator_signer,

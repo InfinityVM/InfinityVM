@@ -1,7 +1,7 @@
 //! The matching game node binary.
 
 use alloy::hex;
-use matching_game_node::K256LocalSigner;
+use matching_game_server::K256LocalSigner;
 use std::env;
 
 // Small for now to get to failure cases quicker
@@ -10,7 +10,7 @@ const DEFAULT_DB_DIR: &str = "./tmp-data-dir/dev/db";
 /// Secret for anvil key #6
 pub const DEV_SECRET: &str = "92db14e403b83dfe3df233f83dfa3a0d7096f21ca9b0d6d6b8d88b2b4ec1564e";
 
-use matching_game_node::{
+use matching_game_server::{
     BATCHER_DURATION_MS, CN_GRPC_ADDR, CONSUMER_ADDR, DB_DIR, LISTEN_ADDR, OPERATOR_KEY,
 };
 
@@ -37,7 +37,7 @@ async fn main() -> eyre::Result<()> {
         bytes.try_into().unwrap()
     };
 
-    matching_game_node::run(
+    matching_game_server::run(
         listen_addr,
         batcher_duration_ms,
         operator_signer,

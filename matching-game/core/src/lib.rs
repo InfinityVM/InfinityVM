@@ -12,7 +12,7 @@ use alloy::{
 
 use abi::StatefulAppResult;
 use api::{
-    CancelNumberRequest, CancelNumberResponse, MatchPair, Request, Response, SubmitNumberRequest,
+    CancelNumberRequest, CancelNumberResponse, Request, Response, SubmitNumberRequest,
     SubmitNumberResponse,
 };
 use borsh::{BorshDeserialize, BorshSerialize};

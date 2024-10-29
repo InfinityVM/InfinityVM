@@ -16,7 +16,7 @@ use kairos_trie::{
 use matching_game_contracts::matching_game_consumer::MatchingGameConsumer;
 use matching_game_core::{
     api::{
-        CancelNumberRequest, CancelNumberResponse, Match, MatchPair, Request, SubmitNumberRequest,
+        CancelNumberRequest, CancelNumberResponse, Match, Request, SubmitNumberRequest,
         SubmitNumberResponse,
     },
     Matches,
@@ -277,7 +277,7 @@ async fn state_job_submission_matching_game_consumer() {
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
-async fn matching_game_node_e2e() {
+async fn matching_game_server_e2e() {
     async fn test(mut args: Args) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
         interval.tick().await; // First tick processes immediately
