@@ -1,10 +1,7 @@
 //! Models for persisting data in the DB.
 
 use borsh::{BorshDeserialize, BorshSerialize};
-use matching_game_core::{
-    api::{Request, Response},
-    MatchingGameState,
-};
+use matching_game_core::api::{Request, Response};
 use paste::paste;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
@@ -51,4 +48,3 @@ macro_rules! create_model {
 
 create_model! { Request }
 create_model! { Response }
-create_model! { MatchingGameState }

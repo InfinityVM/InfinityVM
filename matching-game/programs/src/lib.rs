@@ -9,16 +9,10 @@ mod tests {
         sol_types::{SolType, SolValue},
     };
     use matching_game_core::{
-        api::{CancelNumberRequest, Match, Request, SubmitNumberRequest},
-        hash_addresses, BorshKeccak256, Matches, MatchingGameState, TrieNodes,
+        api::{CancelNumberRequest, Match, Request, SubmitNumberRequest}, Matches,
     };
-    use matching_game_test_utils::next_state;
 
     use abi::{StatefulAppOnchainInput, StatefulAppResult};
-    use keccak_hasher::KeccakHasher;
-    use memory_db::{HashKey, MemoryDB};
-    use reference_trie::{ExtensionLayout, RefTrieDBMutBuilder};
-    use trie_db::{proof::generate_proof, TrieMut};
     use zkvm::Zkvm;
     use kairos_trie::{
         stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
@@ -101,7 +95,6 @@ mod tests {
         let mut txn =
             Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), TrieRoot::Empty));
         let hasher = &mut DigestHasher::<Sha256>::default();
-    
         let mut merkle_root0 = txn.calc_root_hash(hasher).unwrap();
 
         let bob = [69u8; 20];
@@ -113,13 +106,9 @@ mod tests {
             Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
         ];
         let (merkle_root1, matching_game_out) = execute(requests1.clone(), trie_db.clone(), merkle_root0);
-        let merkle_root_1_thirty_two: Option<[u8; 32]> = merkle_root1.into();
-        let merkle_root_1_node_hash = if merkle_root_1_thirty_two.is_none() {
-            Default::default()
-        } else {
-            merkle_root_1_thirty_two.unwrap()
-        };
-        assert_eq!(*matching_game_out.output_state_root, merkle_root_1_node_hash);
+        let merkle_root_1_option: Option<[u8; 32]> = merkle_root1.into();
+        let merkle_root_1_bytes = merkle_root_1_option.unwrap();
+        assert_eq!(*matching_game_out.output_state_root, merkle_root_1_bytes);
         let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
         assert!(matches.is_empty());
 
@@ -129,13 +118,9 @@ mod tests {
             Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 }),
         ];
         let (merkle_root2, matching_game_out) = execute(requests2.clone(), trie_db.clone(), merkle_root1);
-        let merkle_root_2_thirty_two: Option<[u8; 32]> = merkle_root2.into();
-        let merkle_root_2_node_hash = if merkle_root_2_thirty_two.is_none() {
-            Default::default()
-        } else {
-            merkle_root_2_thirty_two.unwrap()
-        };
-        assert_eq!(*matching_game_out.output_state_root, merkle_root_2_node_hash);
+        let merkle_root_2_option: Option<[u8; 32]> = merkle_root2.into();
+        let merkle_root_2_bytes = merkle_root_2_option.unwrap();
+        assert_eq!(*matching_game_out.output_state_root, merkle_root_2_bytes);
         let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
         assert_eq!(matches, vec![Match { user1: bob.into(), user2: charlie.into() }]);
     }
@@ -145,21 +130,11 @@ mod tests {
 
         let mut txn =
             Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), pre_txn_merkle_root));
-
         let matches = apply_requests(&mut txn, &requests);
-
         let hasher = &mut DigestHasher::<Sha256>::default();
         let output_merkle_root = txn.commit(hasher).unwrap();
 
         let snapshot = txn.build_initial_snapshot();
-
-        let merkle_root_thirty_two: Option<[u8; 32]> = pre_txn_merkle_root.into();
-        let onchain_input_state_root = if merkle_root_thirty_two.is_none() {
-            Default::default()
-        } else {
-            merkle_root_thirty_two.unwrap()
-        };
-
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
         
         let mut combined_offchain_input = Vec::new();
@@ -167,6 +142,12 @@ mod tests {
         combined_offchain_input.extend_from_slice(&requests_borsh);
         combined_offchain_input.extend_from_slice(&snapshot_serialized);
 
+        let merkle_root_thirty_two: Option<[u8; 32]> = pre_txn_merkle_root.into();
+        let onchain_input_state_root = if merkle_root_thirty_two.is_none() {
+            Default::default()
+        } else {
+            merkle_root_thirty_two.unwrap()
+        };
         let onchain_input = StatefulAppOnchainInput {
             input_state_root: onchain_input_state_root.into(),
             onchain_input: [0].into(),

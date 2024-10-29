@@ -1,6 +1,6 @@
 //! High level test utilities specifically for the matching game.
 
-use matching_game_core::{api::Request, tick, BorshKeccak256, MatchingGameState};
+use matching_game_core::{api::Request, tick};
 
 use alloy::{
     network::EthereumWallet,
@@ -11,12 +11,8 @@ use alloy::{
         local::{LocalSigner, PrivateKeySigner},
     },
 };
-use keccak_hasher::KeccakHasher;
 use matching_game_contracts::matching_game_consumer::MatchingGameConsumer;
-use memory_db::{HashKey, MemoryDB};
-use reference_trie::{ExtensionLayout, RefTrieDBMutBuilder};
 use test_utils::{get_signers, AnvilJobManager};
-use trie_db::{TrieDBMut, TrieMut};
 
 /// Local Signer
 pub type K256LocalSigner = LocalSigner<SigningKey>;
@@ -53,10 +49,7 @@ pub async fn matching_game_consumer_deploy(
         .wallet(consumer_owner_wallet)
         .on_http(rpc_url.parse().unwrap());
 
-    let mut memory_db = MemoryDB::<KeccakHasher, HashKey<KeccakHasher>, Vec<u8>>::default();
-    let mut initial_root = Default::default();
-    let mut merkle_trie = RefTrieDBMutBuilder::new(&mut memory_db, &mut initial_root).build();
-    let init_state_hash = *merkle_trie.root();
+    let init_state_hash: [u8; 32] = Default::default();
 
     // Deploy the matching game consumer
     let matching_game_consumer = *MatchingGameConsumer::deploy(
@@ -71,20 +64,4 @@ pub async fn matching_game_consumer_deploy(
     .address();
 
     AnvilMatchingGame { matching_game_signer, matching_game_consumer }
-}
-
-/// Returns the next state given a list of transactions.
-pub fn next_state<'a>(
-    txns: Vec<Request>,
-    init_state: MatchingGameState,
-    merkle_trie: TrieDBMut<'a, ExtensionLayout>,
-) -> (MatchingGameState, TrieDBMut<'a, ExtensionLayout>) {
-    let mut next_matching_game_state = init_state;
-    let mut next_merkle_trie = merkle_trie;
-    // for tx in txns.iter().cloned() {
-    //     (_, next_matching_game_state, next_merkle_trie) =
-    //         tick(tx, next_matching_game_state, next_merkle_trie);
-    // }
-
-    (next_matching_game_state, next_merkle_trie)
 }

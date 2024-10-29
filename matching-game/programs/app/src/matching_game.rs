@@ -3,9 +3,7 @@
 use alloy::sol_types::SolType;
 use abi::{StatefulAppOnchainInput, StatefulAppResult};
 use risc0_zkvm::guest::env;
-use trie_db::proof::verify_proof;
-use matching_game_core::{api::Request, MatchingGameState, TrieNodes, hash_addresses, Match, Matches};
-use reference_trie::ExtensionLayout;
+use matching_game_core::{api::Request, Match, Matches};
 use kairos_trie::{
     stored::{memory_db::MemoryDb, merkle::{Snapshot, SnapshotBuilder, VerifiedSnapshot}, Store},
     DigestHasher, KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
@@ -101,36 +99,26 @@ fn main() {
     let requests: Vec<Request> = borsh::from_slice(&requests_borsh)
         .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
     let snapshot: Snapshot<Vec<u8>> = serde_json::from_slice(&snapshot_serialized).expect("serde works. qed.");
-    let default_thirty_two: [u8; 32] = Default::default();
-    let pre_txn_merkle_root = if *input_merkle_root == default_thirty_two {
+    let pre_txn_merkle_root = if *input_merkle_root == [0u8; 32] {
         TrieRoot::Empty
     } else {
         TrieRoot::Node(NodeHash::new(*input_merkle_root))
     };
 
     let hasher = &mut DigestHasher::<Sha256>::default();
-
     let verified_snapshot = VerifiedSnapshot::verify_snapshot(snapshot, hasher).unwrap();
-
     let pre_batch_trie_root = verified_snapshot.trie_root_hash();
-
     assert_eq!(pre_batch_trie_root, pre_txn_merkle_root);
 
     let mut txn = Transaction::from(verified_snapshot);
-
     let matches = apply_requests(&mut txn, &requests);
-
     let output_merkle_root = txn.calc_root_hash(hasher).unwrap();
 
-    let merkle_root_thirty_two: Option<[u8; 32]> = output_merkle_root.into();
-    let output_merkle_root_result = if merkle_root_thirty_two.is_none() {
-        Default::default()
-    } else {
-        merkle_root_thirty_two.unwrap()
-    };
+    let output_merkle_root_option: Option<[u8; 32]> = output_merkle_root.into();
+    let output_merkle_root_bytes = output_merkle_root_option.unwrap();
 
     let stateful_app_result = StatefulAppResult {
-        output_state_root: output_merkle_root_result.into(),
+        output_state_root: output_merkle_root_bytes.into(),
         result: Matches::abi_encode(&matches).into(),
     };
 

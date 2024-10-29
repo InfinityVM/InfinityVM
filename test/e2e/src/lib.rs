@@ -187,7 +187,6 @@ impl E2E {
             let operator_signer = matching_game_consumer.matching_game_signer.clone();
             tokio::spawn(async move {
                 matching_game_node::run(
-                    matching_game_db_dir,
                     listen_addr2,
                     batcher_duration_ms,
                     operator_signer,

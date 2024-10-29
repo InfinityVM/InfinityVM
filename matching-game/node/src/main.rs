@@ -19,7 +19,6 @@ async fn main() -> eyre::Result<()> {
     tracing_subscriber::fmt().event_format(tracing_subscriber::fmt::format()).init();
 
     let listen_addr = env::var(LISTEN_ADDR).unwrap_or_else(|_| "127.0.0.1:3001".to_string());
-    let db_dir = env::var(DB_DIR).unwrap_or_else(|_| DEFAULT_DB_DIR.to_string());
     let cn_grpc_addr =
         env::var(CN_GRPC_ADDR).unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
     let batcher_duration_ms: u64 =
@@ -39,7 +38,6 @@ async fn main() -> eyre::Result<()> {
     };
 
     matching_game_node::run(
-        db_dir,
         listen_addr,
         batcher_duration_ms,
         operator_signer,

@@ -2706,30 +2706,27 @@ dependencies = [
  "coprocessor-node",
  "db",
  "futures",
- "keccak-hasher",
+ "kairos-trie",
  "matching-game-client",
  "matching-game-contracts",
  "matching-game-core",
  "matching-game-node",
  "matching-game-programs",
  "matching-game-test-utils",
- "memory-db",
  "mock-consumer",
  "mock-consumer-methods",
  "proto",
  "rand 0.8.5",
- "reference-trie",
  "reth-db",
  "risc0-binfmt",
  "risc0-zkp",
- "rlp",
  "serde_json",
+ "sha2",
  "test-utils",
  "tokio",
  "tonic",
  "tracing 0.1.40",
  "tracing-subscriber 0.3.18",
- "trie-db",
  "zkvm-executor",
 ]
 
@@ -3258,21 +3255,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6dd08c532ae367adf81c312a4580bc67f1d0fe8bc9c460520283f4c0ff277888"
 dependencies = [
  "cfg-if 1.0.0",
- "crunchy",
-]
-
-[[package]]
-name = "hash-db"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e7d7786361d7425ae2fe4f9e407eb0efaa0840f5212d109cc018c40c35c6ab4"
-
-[[package]]
-name = "hash256-std-hasher"
-version = "0.15.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92c171d55b98633f4ed3860808f004099b36c1cc29c42cfc53aa8591b21efcf2"
-dependencies = [
  "crunchy",
 ]
 
@@ -3823,17 +3805,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "keccak-hasher"
-version = "0.16.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "19ea4653859ca2266a86419d3f592d3f22e7a854b482f99180d2498507902048"
-dependencies = [
- "hash-db",
- "hash256-std-hasher",
- "tiny-keccak",
-]
-
-[[package]]
 name = "kzg-rs"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4033,13 +4004,9 @@ dependencies = [
  "alloy",
  "borsh",
  "kairos-trie",
- "keccak-hasher",
- "memory-db",
- "reference-trie",
  "serde",
  "sha2",
  "tokio",
- "trie-db",
 ]
 
 [[package]]
@@ -4054,14 +4021,11 @@ dependencies = [
  "eyre",
  "http-body-util",
  "kairos-trie",
- "keccak-hasher",
  "matching-game-core",
  "matching-game-programs",
- "memory-db",
  "mime",
  "paste",
  "proto",
- "reference-trie",
  "reth-db",
  "reth-db-api",
  "risc0-zkvm",
@@ -4074,7 +4038,6 @@ dependencies = [
  "tower",
  "tracing 0.1.40",
  "tracing-subscriber 0.3.18",
- "trie-db",
 ]
 
 [[package]]
@@ -4085,16 +4048,12 @@ dependencies = [
  "alloy",
  "borsh",
  "kairos-trie",
- "keccak-hasher",
  "matching-game-core",
  "matching-game-test-utils",
- "memory-db",
- "reference-trie",
  "risc0-build",
  "risc0-zkvm",
  "serde_json",
  "sha2",
- "trie-db",
  "zkvm",
 ]
 
@@ -4103,13 +4062,9 @@ name = "matching-game-test-utils"
 version = "0.1.0"
 dependencies = [
  "alloy",
- "keccak-hasher",
  "matching-game-contracts",
  "matching-game-core",
- "memory-db",
- "reference-trie",
  "test-utils",
- "trie-db",
 ]
 
 [[package]]
@@ -4152,15 +4107,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fe751422e4a8caa417e13c3ea66452215d7d63e19e604f4980461212f3ae1322"
 dependencies = [
  "libc",
-]
-
-[[package]]
-name = "memory-db"
-version = "0.32.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "808b50db46293432a45e63bc15ea51e0ab4c0a1647b8eb114e31a3e698dd6fbe"
-dependencies = [
- "hash-db",
 ]
 
 [[package]]
@@ -5328,21 +5274,6 @@ dependencies = [
  "getrandom 0.2.15",
  "libredox",
  "thiserror",
-]
-
-[[package]]
-name = "reference-trie"
-version = "0.29.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07d0cce9052afc45cefde7166ad8b8a165c7136de8b57634c7789f14eebed06c"
-dependencies = [
- "hash-db",
- "hashbrown 0.13.2",
- "keccak-hasher",
- "parity-scale-codec",
- "paste",
- "trie-db",
- "trie-root",
 ]
 
 [[package]]
@@ -7458,28 +7389,6 @@ dependencies = [
  "tracing-core",
  "tracing-log",
  "tracing-serde",
-]
-
-[[package]]
-name = "trie-db"
-version = "0.27.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "767abe6ffed88a1889671a102c2861ae742726f52e0a5a425b92c9fbfa7e9c85"
-dependencies = [
- "hash-db",
- "hashbrown 0.13.2",
- "log",
- "rustc-hex",
- "smallvec",
-]
-
-[[package]]
-name = "trie-root"
-version = "0.18.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d4ed310ef5ab98f5fa467900ed906cb9232dd5376597e00fd4cba2a449d06c0b"
-dependencies = [
- "hash-db",
 ]
 
 [[package]]

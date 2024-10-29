@@ -154,8 +154,6 @@ k256 = { version = "0.13", default-features = false }
 
 # l
 # m
-memory-db = { version = "0.32.0", default-features = false }
-
 # n
 # o
 once_cell = { version = "1.8", default-features = false }
@@ -197,7 +195,6 @@ tempfile = { version = "3", default-features = false }
 tracing = { version = "0.1.40", default-features = false}
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt","json"] , default-features = false }
 tracing-appender = { version = "0.2.3", default-features = false }
-trie-db = { version = "0.27.0", default-features = false }
 
 # u
 url = { version = "2.4.0", default-features = false }

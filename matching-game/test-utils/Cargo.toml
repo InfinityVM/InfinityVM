@@ -11,7 +11,3 @@ alloy = { workspace = true, features = ["full", "contract", "transport-http", "t
 matching-game-core = { workspace = true }
 matching-game-contracts = { workspace = true }
 test-utils = { workspace = true }
-trie-db = { workspace = true }
-memory-db = { workspace = true }
-keccak-hasher = { version = "0.16.0", default-features = false }
-reference-trie = { version = "0.29.1", features = ["std"] }
