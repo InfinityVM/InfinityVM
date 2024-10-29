@@ -11,8 +11,8 @@ use kairos_trie::{
     KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
 };
 use matching_game_core::{
-    api::Request, apply_requests, deserialize_address_list, hash, serialize_address_list, Match,
-    Matches, get_merkle_root_bytes,
+    api::Request, apply_requests, apply_requests_to_trie, deserialize_address_list,
+    get_merkle_root_bytes, hash, serialize_address_list, Match, Matches,
 };
 use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
@@ -89,15 +89,8 @@ pub async fn run_batcher(
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
         let pre_txn_merkle_root = state.get_merkle_root();
-        let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
-            trie_db.clone(),
-            pre_txn_merkle_root,
-        ));
-        apply_requests(&mut txn, &requests);
-
-        let hasher = &mut DigestHasher::<Sha256>::default();
-        let post_txn_merkle_root = txn.commit(hasher).unwrap();
-        let snapshot = txn.build_initial_snapshot();
+        let (post_txn_merkle_root, snapshot) =
+            apply_requests_to_trie(trie_db.clone(), pre_txn_merkle_root, &requests);
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
 
         // Combine requests_borsh and snapshot_serialized

@@ -11,7 +11,7 @@ use kairos_trie::{
     KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
 };
 use sha2::Sha256;
-
+use std::rc::Rc;
 /// Matching game server API types.
 pub mod api;
 
@@ -51,6 +51,24 @@ pub fn get_merkle_root_bytes(merkle_root: TrieRoot<NodeHash>) -> [u8; 32] {
     } else {
         Default::default()
     }
+}
+
+pub fn apply_requests_to_trie(
+    trie_db: Rc<MemoryDb<Vec<u8>>>,
+    pre_txn_merkle_root: TrieRoot<NodeHash>,
+    requests: &[Request],
+) -> (TrieRoot<NodeHash>, Snapshot<Vec<u8>>) {
+    let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
+        trie_db.clone(),
+        pre_txn_merkle_root,
+    ));
+    apply_requests(&mut txn, &requests);
+
+    let hasher = &mut DigestHasher::<Sha256>::default();
+    let post_txn_merkle_root = txn.commit(hasher).unwrap();
+    let snapshot = txn.build_initial_snapshot();
+
+    (post_txn_merkle_root, snapshot)
 }
 
 pub fn apply_requests(

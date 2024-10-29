@@ -10,8 +10,8 @@ mod tests {
     };
     use matching_game_core::{
         api::{CancelNumberRequest, Request, SubmitNumberRequest},
-        apply_requests, deserialize_address_list, hash, serialize_address_list, Match, Matches,
-        get_merkle_root_bytes,
+        apply_requests, apply_requests_to_trie, deserialize_address_list, get_merkle_root_bytes,
+        hash, serialize_address_list, Match, Matches,
     };
 
     use abi::{StatefulAppOnchainInput, StatefulAppResult};
@@ -28,12 +28,7 @@ mod tests {
     #[test]
     fn submit_number_cancel_number() {
         let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
-        let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
-            trie_db.clone(),
-            TrieRoot::Empty,
-        ));
-        let hasher = &mut DigestHasher::<Sha256>::default();
-        let mut merkle_root0 = txn.calc_root_hash(hasher).unwrap();
+        let mut merkle_root0 = TrieRoot::Empty;
 
         let bob = [69u8; 20];
         let alice = [42u8; 20];
@@ -68,15 +63,8 @@ mod tests {
     ) -> (TrieRoot<NodeHash>, StatefulAppResult) {
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
-        let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
-            trie_db.clone(),
-            pre_txn_merkle_root,
-        ));
-        let matches = apply_requests(&mut txn, &requests);
-        let hasher = &mut DigestHasher::<Sha256>::default();
-        let output_merkle_root = txn.commit(hasher).unwrap();
-
-        let snapshot = txn.build_initial_snapshot();
+        let (post_txn_merkle_root, snapshot) =
+            apply_requests_to_trie(trie_db.clone(), pre_txn_merkle_root, &requests);
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
 
         let mut combined_offchain_input = Vec::new();
@@ -98,6 +86,9 @@ mod tests {
             )
             .unwrap();
 
-        (output_merkle_root, <StatefulAppResult as SolValue>::abi_decode(&out_bytes, true).unwrap())
+        (
+            post_txn_merkle_root,
+            <StatefulAppResult as SolValue>::abi_decode(&out_bytes, true).unwrap(),
+        )
     }
 }

@@ -18,8 +18,8 @@ use matching_game_core::{
         CancelNumberRequest, CancelNumberResponse, Request, SubmitNumberRequest,
         SubmitNumberResponse,
     },
-    apply_requests, deserialize_address_list, hash, serialize_address_list, Match, Matches,
-    get_merkle_root_bytes,
+    apply_requests, apply_requests_to_trie, deserialize_address_list, get_merkle_root_bytes, hash,
+    serialize_address_list, Match, Matches,
 };
 use matching_game_programs::MATCHING_GAME_ELF;
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
@@ -66,61 +66,36 @@ async fn state_job_submission_matching_game_consumer() {
             .wallet(matching_game_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
 
+        let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
+        let merkle_root0 = TrieRoot::Empty;
+
         let requests1 = vec![
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 }),
             Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
         ];
-
-        let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
-        let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
-            trie_db.clone(),
-            TrieRoot::Empty,
-        ));
-        let hasher = &mut DigestHasher::<Sha256>::default();
-        let mut merkle_root0 = txn.calc_root_hash(hasher).unwrap();
-
-        let matches = apply_requests(&mut txn, &requests1);
-        let hasher = &mut DigestHasher::<Sha256>::default();
-        let merkle_root1 = txn.commit(hasher).unwrap();
+        let (merkle_root1, _) = apply_requests_to_trie(trie_db.clone(), merkle_root0, &requests1);
 
         let requests2 =
             vec![Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 })];
-
-        let mut txn =
-            Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), merkle_root1));
-        let matches = apply_requests(&mut txn, &requests2);
-        let hasher = &mut DigestHasher::<Sha256>::default();
-        let merkle_root2 = txn.commit(hasher).unwrap();
+        let (merkle_root2, _) = apply_requests_to_trie(trie_db.clone(), merkle_root1, &requests2);
 
         let requests3 =
             vec![Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 69 })];
-
-        let mut txn =
-            Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), merkle_root2));
-        let matches = apply_requests(&mut txn, &requests3);
-        let hasher = &mut DigestHasher::<Sha256>::default();
-        let merkle_root3 = txn.commit(hasher).unwrap();
+        let (merkle_root3, _) = apply_requests_to_trie(trie_db.clone(), merkle_root2, &requests3);
 
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
         interval.tick().await; // First tick processes immediately
         let mut nonce = 2;
 
-        for (requests, pre_txn_merkle_root, next_merkle_root) in [
+        for (requests, pre_txn_merkle_root, post_txn_merkle_root) in [
             (requests1, merkle_root0, merkle_root1),
             (requests2, merkle_root1, merkle_root2),
             (requests3, merkle_root2, merkle_root3),
         ] {
             let requests_borsh = borsh::to_vec(&requests).unwrap();
 
-            let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
-                trie_db.clone(),
-                pre_txn_merkle_root,
-            ));
-            let matches = apply_requests(&mut txn, &requests);
-            let hasher = &mut DigestHasher::<Sha256>::default();
-            let output_merkle_root = txn.commit(hasher).unwrap();
-
-            let snapshot = txn.build_initial_snapshot();
+            let (_, snapshot) =
+                apply_requests_to_trie(trie_db.clone(), pre_txn_merkle_root, &requests);
             let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
 
             let mut combined_offchain_input = Vec::new();
@@ -180,7 +155,10 @@ async fn state_job_submission_matching_game_consumer() {
             {
                 let matching_game_output =
                     StatefulAppResult::abi_decode(&raw_output, false).unwrap();
-                assert_eq!(*matching_game_output.output_state_root, get_merkle_root_bytes(next_merkle_root));
+                assert_eq!(
+                    *matching_game_output.output_state_root,
+                    get_merkle_root_bytes(post_txn_merkle_root)
+                );
             }
 
             nonce += 1;
