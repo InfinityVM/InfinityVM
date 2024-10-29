@@ -9,40 +9,44 @@ mod tests {
         sol_types::{SolType, SolValue},
     };
     use matching_game_core::{
-        api::{CancelNumberRequest, Match, Request, SubmitNumberRequest}, Matches,
+        api::{CancelNumberRequest, Match, Request, SubmitNumberRequest},
+        Matches,
     };
 
     use abi::{StatefulAppOnchainInput, StatefulAppResult};
-    use zkvm::Zkvm;
     use kairos_trie::{
         stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
-        DigestHasher, KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
+        DigestHasher,
         Entry::{Occupied, Vacant, VacantEmptyTrie},
+        KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
     };
-    use std::rc::Rc;
     use sha2::Sha256;
+    use std::rc::Rc;
+    use zkvm::Zkvm;
 
     fn hash(key: u64) -> KeyHash {
         let hasher = &mut DigestHasher::<Sha256>::default();
         key.portable_hash(hasher);
         KeyHash::from_bytes(&hasher.finalize_reset())
     }
-    
+
     pub fn serialize_address_list(addresses: &Vec<[u8; 20]>) -> Vec<u8> {
         borsh::to_vec(addresses).expect("borsh works. qed.")
     }
-    
+
     pub fn deserialize_address_list(data: &[u8]) -> Vec<[u8; 20]> {
         borsh::from_slice(data).expect("borsh works. qed.")
     }
-    
-    fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: &[Request]) -> Vec<Match> {
+
+    fn apply_requests(
+        txn: &mut Transaction<impl Store<Value = Vec<u8>>>,
+        requests: &[Request],
+    ) -> Vec<Match> {
         let mut matches = Vec::<Match>::with_capacity(requests.len());
 
         for r in requests {
             match r {
                 Request::SubmitNumber(s) => {
-
                     let mut old_list = txn.entry(&hash(s.number)).unwrap();
                     match old_list {
                         Occupied(mut entry) => {
@@ -50,7 +54,8 @@ mod tests {
                             if old_list.is_empty() {
                                 old_list.push(s.address);
                             } else {
-                                let match_pair = Match { user1: old_list[0].into(), user2: s.address.into() };
+                                let match_pair =
+                                    Match { user1: old_list[0].into(), user2: s.address.into() };
                                 matches.push(match_pair);
 
                                 // remove the first element from the list
@@ -59,10 +64,12 @@ mod tests {
                             let _ = entry.insert(serialize_address_list(&old_list));
                         }
                         Vacant(_) => {
-                            let _ = txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                            let _ = txn
+                                .insert(&hash(s.number), serialize_address_list(&vec![s.address]));
                         }
                         VacantEmptyTrie(_) => {
-                            let _ = txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                            let _ = txn
+                                .insert(&hash(s.number), serialize_address_list(&vec![s.address]));
                         }
                     }
                 }
@@ -88,12 +95,14 @@ mod tests {
         matches.sort();
         matches
     }
-    
+
     #[test]
-    fn submit_number_cancel_number_execute() {
+    fn submit_number_cancel_number() {
         let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
-        let mut txn =
-            Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), TrieRoot::Empty));
+        let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
+            trie_db.clone(),
+            TrieRoot::Empty,
+        ));
         let hasher = &mut DigestHasher::<Sha256>::default();
         let mut merkle_root0 = txn.calc_root_hash(hasher).unwrap();
 
@@ -105,7 +114,8 @@ mod tests {
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 }),
             Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
         ];
-        let (merkle_root1, matching_game_out) = execute(requests1.clone(), trie_db.clone(), merkle_root0);
+        let (merkle_root1, matching_game_out) =
+            execute(requests1.clone(), trie_db.clone(), merkle_root0);
         let merkle_root_1_option: Option<[u8; 32]> = merkle_root1.into();
         let merkle_root_1_bytes = merkle_root_1_option.unwrap();
         assert_eq!(*matching_game_out.output_state_root, merkle_root_1_bytes);
@@ -117,7 +127,8 @@ mod tests {
             Request::SubmitNumber(SubmitNumberRequest { address: charlie, number: 69 }),
             Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 }),
         ];
-        let (merkle_root2, matching_game_out) = execute(requests2.clone(), trie_db.clone(), merkle_root1);
+        let (merkle_root2, matching_game_out) =
+            execute(requests2.clone(), trie_db.clone(), merkle_root1);
         let merkle_root_2_option: Option<[u8; 32]> = merkle_root2.into();
         let merkle_root_2_bytes = merkle_root_2_option.unwrap();
         assert_eq!(*matching_game_out.output_state_root, merkle_root_2_bytes);
@@ -125,18 +136,24 @@ mod tests {
         assert_eq!(matches, vec![Match { user1: bob.into(), user2: charlie.into() }]);
     }
 
-    fn execute(requests: Vec<Request>, trie_db: Rc<MemoryDb<Vec<u8>>>, pre_txn_merkle_root: TrieRoot<NodeHash>) -> (TrieRoot<NodeHash>, StatefulAppResult) {
+    fn execute(
+        requests: Vec<Request>,
+        trie_db: Rc<MemoryDb<Vec<u8>>>,
+        pre_txn_merkle_root: TrieRoot<NodeHash>,
+    ) -> (TrieRoot<NodeHash>, StatefulAppResult) {
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
-        let mut txn =
-            Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), pre_txn_merkle_root));
+        let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
+            trie_db.clone(),
+            pre_txn_merkle_root,
+        ));
         let matches = apply_requests(&mut txn, &requests);
         let hasher = &mut DigestHasher::<Sha256>::default();
         let output_merkle_root = txn.commit(hasher).unwrap();
 
         let snapshot = txn.build_initial_snapshot();
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
-        
+
         let mut combined_offchain_input = Vec::new();
         combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
         combined_offchain_input.extend_from_slice(&requests_borsh);

@@ -46,4 +46,4 @@ impl InMemoryState {
     pub fn set_next_batch_global_index(&self, index: u64) {
         *self.next_batch_global_index.lock().unwrap() = index;
     }
-} 
+}

@@ -6,10 +6,6 @@ use matching_game_core::{
     api::{ApiResponse, Request},
     tick,
 };
-use reth_db::{
-    transaction::{DbTx, DbTxMut},
-    Database,
-};
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
 use tracing::instrument;
@@ -22,8 +18,7 @@ pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
 pub async fn run_engine(
     mut receiver: Receiver<(Request, oneshot::Sender<ApiResponse>)>,
     state: Arc<InMemoryState>,
-) -> eyre::Result<()>
-{
+) -> eyre::Result<()> {
     let mut global_index = state.get_seen_global_index();
 
     loop {

@@ -4,22 +4,24 @@ use crate::state::InMemoryState;
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use eyre::OptionExt;
-use matching_game_core::api::Request;
+use kairos_trie::{
+    stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
+    DigestHasher,
+    Entry::{Occupied, Vacant, VacantEmptyTrie},
+    KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
+};
+use matching_game_core::{
+    api::{Match, Request},
+    Matches,
+};
 use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
-use reth_db::transaction::{DbTx, DbTxMut};
-use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;
-use std::sync::Arc;
+use sha2::Sha256;
+use std::{rc::Rc, sync::Arc};
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
 use tracing::{debug, info, instrument, warn};
-use kairos_trie::{
-    stored::{memory_db::MemoryDb, merkle::SnapshotBuilder, Store},
-    DigestHasher, KeyHash, PortableHash, PortableHasher, Transaction, TrieRoot,
-};
-use std::rc::Rc;
-use sha2::Sha256;
 
 use crate::K256LocalSigner;
 
@@ -35,7 +37,7 @@ async fn ensure_initialized(state: Arc<InMemoryState>) -> eyre::Result<()> {
             }
             break;
         }
-        
+
         debug!("waiting for the first request to be processed before starting batcher");
         sleep(Duration::from_millis(1_000)).await;
     }
@@ -57,21 +59,62 @@ pub fn deserialize_address_list(data: &[u8]) -> Vec<[u8; 20]> {
     borsh::from_slice(data).expect("borsh works. qed.")
 }
 
-fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: &[Request]) {
+fn apply_requests(
+    txn: &mut Transaction<impl Store<Value = Vec<u8>>>,
+    requests: &[Request],
+) -> Vec<Match> {
+    let mut matches = Vec::<Match>::with_capacity(requests.len());
+
     for r in requests {
         match r {
             Request::SubmitNumber(s) => {
-                let mut old_list = deserialize_address_list(txn.entry(&hash(s.number)).unwrap().or_default());
-                old_list.push(s.address);
-                let _ = txn.insert(&hash(s.number), serialize_address_list(&old_list));
+                let mut old_list = txn.entry(&hash(s.number)).unwrap();
+                match old_list {
+                    Occupied(mut entry) => {
+                        let mut old_list = deserialize_address_list(entry.get());
+                        if old_list.is_empty() {
+                            old_list.push(s.address);
+                        } else {
+                            let match_pair =
+                                Match { user1: old_list[0].into(), user2: s.address.into() };
+                            matches.push(match_pair);
+
+                            // remove the first element from the list
+                            old_list.remove(0);
+                        }
+                        let _ = entry.insert(serialize_address_list(&old_list));
+                    }
+                    Vacant(_) => {
+                        let _ =
+                            txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                    }
+                    VacantEmptyTrie(_) => {
+                        let _ =
+                            txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                    }
+                }
             }
             Request::CancelNumber(c) => {
-                let mut old_list = deserialize_address_list(txn.entry(&hash(c.number)).unwrap().or_default());
-                old_list.remove(old_list.iter().position(|&x| x == c.address).unwrap());
-                let _ = txn.insert(&hash(c.number), serialize_address_list(&old_list));
+                let mut old_list = txn.entry(&hash(c.number)).unwrap();
+                match old_list {
+                    Occupied(mut entry) => {
+                        let mut old_list = deserialize_address_list(entry.get());
+                        old_list.remove(old_list.iter().position(|&x| x == c.address).unwrap());
+                        let _ = entry.insert(serialize_address_list(&old_list));
+                    }
+                    Vacant(_) => {
+                        // do nothing
+                    }
+                    VacantEmptyTrie(_) => {
+                        // do nothing
+                    }
+                }
             }
         }
     }
+
+    matches.sort();
+    matches
 }
 
 /// Run the matching game execution engine
@@ -82,8 +125,7 @@ pub async fn run_batcher(
     signer: K256LocalSigner,
     cn_grpc_url: String,
     consumer_addr: [u8; 20],
-) -> eyre::Result<()>
-{
+) -> eyre::Result<()> {
     // Wait for the system to have at least one processed request from the matching game server
     ensure_initialized(Arc::clone(&state)).await?;
     let program_id = Digest::from(MATCHING_GAME_ID).as_bytes().to_vec();
@@ -118,14 +160,16 @@ pub async fn run_batcher(
 
         let mut requests = Vec::with_capacity((end_index - start_index + 1) as usize);
         for i in start_index..=end_index {
-            let r = state.get_request(i)
-                .ok_or_eyre(format!("batcher: request {i}"))?;
+            let r = state.get_request(i).ok_or_eyre(format!("batcher: request {i}"))?;
             requests.push(r);
             tokio::task::yield_now().await;
         }
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
-        let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), pre_txn_merkle_root));
+        let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
+            trie_db.clone(),
+            pre_txn_merkle_root,
+        ));
         apply_requests(&mut txn, &requests);
 
         let hasher = &mut DigestHasher::<Sha256>::default();

@@ -24,9 +24,7 @@ pub mod api;
 pub use crate::api::Match;
 
 /// Simple tick function that processes a request and returns a response.
-pub fn tick<'a>(
-    request: Request,
-) -> Response {
+pub fn tick<'a>(request: Request) -> Response {
     match request {
         Request::SubmitNumber(_) => Response::SubmitNumber(SubmitNumberResponse { success: true }),
         Request::CancelNumber(_) => Response::CancelNumber(CancelNumberResponse { success: true }),
