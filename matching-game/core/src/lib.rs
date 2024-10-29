@@ -25,7 +25,7 @@ use trie_db::TrieMut;
 /// Matching game server API types.
 pub mod api;
 
-use crate::api::Match;
+pub use crate::api::Match;
 
 /// The state of the universe for the matching game.
 #[derive(

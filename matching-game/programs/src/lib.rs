@@ -42,7 +42,9 @@ mod tests {
         borsh::from_slice(data).expect("borsh works. qed.")
     }
     
-    fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: &[Request]) {
+    fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: &[Request]) -> Vec<Match> {
+        let mut matches = Vec::<Match>::with_capacity(requests.len());
+
         for r in requests {
             match r {
                 Request::SubmitNumber(s) => {
@@ -51,7 +53,15 @@ mod tests {
                     match old_list {
                         Occupied(mut entry) => {
                             let mut old_list = deserialize_address_list(entry.get());
-                            old_list.push(s.address);
+                            if old_list.is_empty() {
+                                old_list.push(s.address);
+                            } else {
+                                let match_pair = Match { user1: old_list[0].into(), user2: s.address.into() };
+                                matches.push(match_pair);
+
+                                // remove the first element from the list
+                                old_list.remove(0);
+                            }
                             let _ = entry.insert(serialize_address_list(&old_list));
                         }
                         Vacant(_) => {
@@ -80,6 +90,9 @@ mod tests {
                 }
             }
         }
+
+        matches.sort();
+        matches
     }
     
     #[test]
@@ -107,20 +120,24 @@ mod tests {
             merkle_root_1_thirty_two.unwrap()
         };
         assert_eq!(*matching_game_out.output_state_root, merkle_root_1_node_hash);
-        // let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
-        // assert!(matches.is_empty());
+        let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
+        assert!(matches.is_empty());
 
-        // let requests2 = vec![
-        //     // Sell 100 base for 4*100 quote
-        //     Request::SubmitNumber(SubmitNumberRequest { address: charlie, number: 69 }),
-        //     Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 }),
-        // ];
-        // let (matching_game_state2, merkle_trie2) =
-        //     next_state(requests2.clone(), matching_game_state1.clone(), merkle_trie1);
-        // let matching_game_out = execute(requests2.clone(), matching_game_state1.clone());
-        // assert_eq!(matching_game_out.output_state_root, matching_game_state2.merkle_root);
-        // let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
-        // assert_eq!(matches, vec![Match { user1: bob.into(), user2: charlie.into() }]);
+        let requests2 = vec![
+            // Sell 100 base for 4*100 quote
+            Request::SubmitNumber(SubmitNumberRequest { address: charlie, number: 69 }),
+            Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 }),
+        ];
+        let (merkle_root2, matching_game_out) = execute(requests2.clone(), trie_db.clone(), merkle_root1);
+        let merkle_root_2_thirty_two: Option<[u8; 32]> = merkle_root2.into();
+        let merkle_root_2_node_hash = if merkle_root_2_thirty_two.is_none() {
+            Default::default()
+        } else {
+            merkle_root_2_thirty_two.unwrap()
+        };
+        assert_eq!(*matching_game_out.output_state_root, merkle_root_2_node_hash);
+        let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
+        assert_eq!(matches, vec![Match { user1: bob.into(), user2: charlie.into() }]);
     }
 
     fn execute(requests: Vec<Request>, trie_db: Rc<MemoryDb<Vec<u8>>>, pre_txn_merkle_root: TrieRoot<NodeHash>) -> (TrieRoot<NodeHash>, StatefulAppResult) {
@@ -129,7 +146,7 @@ mod tests {
         let mut txn =
             Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), pre_txn_merkle_root));
 
-        apply_requests(&mut txn, &requests);
+        let matches = apply_requests(&mut txn, &requests);
 
         let hasher = &mut DigestHasher::<Sha256>::default();
         let output_merkle_root = txn.commit(hasher).unwrap();

@@ -4,7 +4,7 @@ use alloy::sol_types::SolType;
 use abi::{StatefulAppOnchainInput, StatefulAppResult};
 use risc0_zkvm::guest::env;
 use trie_db::proof::verify_proof;
-use matching_game_core::{api::Request, MatchingGameState, TrieNodes, hash_addresses};
+use matching_game_core::{api::Request, MatchingGameState, TrieNodes, hash_addresses, Match, Matches};
 use reference_trie::ExtensionLayout;
 use kairos_trie::{
     stored::{memory_db::MemoryDb, merkle::{Snapshot, SnapshotBuilder, VerifiedSnapshot}, Store},
@@ -28,7 +28,9 @@ fn hash(key: u64) -> KeyHash {
     KeyHash::from_bytes(&hasher.finalize_reset())
 }
 
-fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: &[Request]) {
+fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: &[Request]) -> Vec<Match> {
+    let mut matches = Vec::<Match>::with_capacity(requests.len());
+
     for r in requests {
         match r {
             Request::SubmitNumber(s) => {
@@ -37,7 +39,15 @@ fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: 
                 match old_list {
                     Occupied(mut entry) => {
                         let mut old_list = deserialize_address_list(entry.get());
-                        old_list.push(s.address);
+                        if old_list.is_empty() {
+                            old_list.push(s.address);
+                        } else {
+                            let match_pair = Match { user1: old_list[0].into(), user2: s.address.into() };
+                            matches.push(match_pair);
+
+                            // remove the first element from the list
+                            old_list.remove(0);
+                        }
                         let _ = entry.insert(serialize_address_list(&old_list));
                     }
                     Vacant(_) => {
@@ -66,6 +76,9 @@ fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: 
             }
         }
     }
+
+    matches.sort();
+    matches
 }
 
 fn main() {
@@ -105,7 +118,7 @@ fn main() {
 
     let mut txn = Transaction::from(verified_snapshot);
 
-    apply_requests(&mut txn, &requests);
+    let matches = apply_requests(&mut txn, &requests);
 
     let output_merkle_root = txn.calc_root_hash(hasher).unwrap();
 
@@ -118,39 +131,10 @@ fn main() {
 
     let stateful_app_result = StatefulAppResult {
         output_state_root: output_merkle_root_result.into(),
-        result: Vec::new().into(),
+        result: Matches::abi_encode(&matches).into(),
     };
 
     let abi_encoded = StatefulAppResult::abi_encode(&stateful_app_result);
 
     env::commit_slice(&abi_encoded);
-
-    // let trie_nodes: TrieNodes = borsh::from_slice(&trie_nodes_borsh)
-    //     .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
-
-    // let mut items = Vec::new();
-    // for i in 0..trie_nodes.numbers.len() {
-    //     let number_bytes = trie_nodes.numbers[i].to_le_bytes().to_vec();
-    //     if trie_nodes.addresses[i].is_empty() {
-    //         items.push((number_bytes, None));
-    //     } else {
-    //         let addresses_hash = hash_addresses(trie_nodes.addresses[i].as_slice());
-    //         items.push((number_bytes, Some(addresses_hash)));
-    //     }
-    // }
-    // // verify the proof
-    // verify_proof::<ExtensionLayout, &Vec<(Vec<u8>, Option<[u8; 32]>)>, Vec<u8>, [u8; 32]>(&input_merkle_root, &trie_nodes.proof, &items).unwrap();
-
-    // let mut state = MatchingGameState::default();
-    // state.merkle_root = *input_merkle_root;
-    // for (number, addresses) in trie_nodes.numbers.iter().zip(trie_nodes.addresses.iter()) {
-    //     if !addresses.is_empty() {
-    //         state.number_to_addresses.insert(*number, addresses.clone());
-    //     }
-    // }
-
-    // let matching_game_program_output = zkvm_stf(requests, state);
-    // let abi_encoded = StatefulAppResult::abi_encode(&matching_game_program_output);
-
-    // env::commit_slice(&abi_encoded);
 }
