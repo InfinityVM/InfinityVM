@@ -13,7 +13,7 @@ use kairos_trie::{
     Entry::{Occupied, Vacant, VacantEmptyTrie},
     KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
 };
-use matching_game_contracts::matching_game_consumer::MatchingGameConsumer;
+use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use matching_game_core::{
     api::{
         CancelNumberRequest, CancelNumberResponse, Match, Request, SubmitNumberRequest,

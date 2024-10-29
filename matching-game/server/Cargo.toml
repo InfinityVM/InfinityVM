@@ -27,7 +27,6 @@ matching-game-core = { workspace = true }
 matching-game-programs = { workspace = true }
 proto = { workspace = true }
 kairos-trie = { workspace = true }
-matching-game-contracts = { workspace = true }
 test-utils = { workspace = true }
 
 # zkvm deps

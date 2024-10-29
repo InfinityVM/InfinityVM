@@ -2708,7 +2708,6 @@ dependencies = [
  "futures",
  "kairos-trie",
  "matching-game-client",
- "matching-game-contracts",
  "matching-game-core",
  "matching-game-programs",
  "matching-game-server",
@@ -3989,13 +3988,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "matching-game-contracts"
-version = "0.0.1"
-dependencies = [
- "alloy",
-]
-
-[[package]]
 name = "matching-game-core"
 version = "0.1.0"
 dependencies = [
@@ -4035,7 +4027,6 @@ dependencies = [
  "eyre",
  "http-body-util",
  "kairos-trie",
- "matching-game-contracts",
  "matching-game-core",
  "matching-game-programs",
  "mime",

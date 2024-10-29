@@ -11,7 +11,7 @@ use alloy::{
         local::{LocalSigner, PrivateKeySigner},
     },
 };
-use matching_game_contracts::matching_game_consumer::MatchingGameConsumer;
+use crate::contracts::matching_game_consumer::MatchingGameConsumer;
 use test_utils::{get_signers, AnvilJobManager};
 
 /// Local Signer

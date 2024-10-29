@@ -6,6 +6,7 @@ use tokio::task::JoinHandle;
 
 pub mod app;
 pub mod batcher;
+pub mod contracts;
 pub mod engine;
 pub mod state;
 pub mod test_utils;
