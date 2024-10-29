@@ -13,4 +13,6 @@ serde = { workspace = true }
 abi = { workspace = true }
 kairos-trie = { workspace = true }
 sha2 = "0.10"
+serde_json = "1.0"
+
 tokio = { workspace = true }
