@@ -21,7 +21,6 @@ members = [
 	"clob/node",
 	"clob/programs",
 	"clob/test-utils",
-	"matching-game/client",
 	"matching-game/core",
 	"matching-game/server",
 	"matching-game/programs",
@@ -220,7 +219,6 @@ contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
 kairos-trie = { path = "crates/kairos-trie", features = ["serde"] }
-matching-game-client = { path = "matching-game/client" }
 matching-game-core = { path = "matching-game/core" }
 matching-game-server = { path = "matching-game/server" }
 matching-game-programs = { path = "matching-game/programs" }

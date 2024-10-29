@@ -289,7 +289,7 @@ async fn matching_game_server_e2e() {
             EthereumWallet::from(matching_game.matching_game_signer.clone());
         let matching_game_endpoint = args.matching_game_endpoint.unwrap();
 
-        let client = matching_game_client::Client::new(matching_game_endpoint);
+        let client = matching_game_server::client::Client::new(matching_game_endpoint);
 
         // Setup ready to use on chain accounts for Alice & Bob
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();

@@ -37,7 +37,6 @@ clob-node = { workspace = true }
 clob-test-utils = { workspace = true }
 matching-game-programs = { workspace = true }
 matching-game-core = { workspace = true }
-matching-game-client = { workspace = true }
 matching-game-server = { workspace = true }
 mock-consumer = { workspace = true }
 
