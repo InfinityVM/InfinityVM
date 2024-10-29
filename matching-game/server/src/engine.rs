@@ -1,9 +1,9 @@
 //! Matching game execution engine.
 
-use crate::state::InMemoryState;
+use crate::state::ServerState;
 use eyre::{eyre, OptionExt, WrapErr};
-use matching_game_core::{
-    api::{ApiResponse, Request, Response, SubmitNumberResponse, CancelNumberResponse},
+use matching_game_core::api::{
+    ApiResponse, CancelNumberResponse, Request, Response, SubmitNumberResponse,
 };
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
@@ -16,7 +16,7 @@ pub(crate) const GENESIS_GLOBAL_INDEX: u64 = 0;
 #[instrument(skip_all)]
 pub async fn run_engine(
     mut receiver: Receiver<(Request, oneshot::Sender<ApiResponse>)>,
-    state: Arc<InMemoryState>,
+    state: Arc<ServerState>,
 ) -> eyre::Result<()> {
     let mut global_index = state.get_seen_global_index();
 
@@ -30,10 +30,14 @@ pub async fn run_engine(
         state.store_request(global_index, request.clone());
 
         let response = match request {
-            Request::SubmitNumber(_) => Response::SubmitNumber(SubmitNumberResponse { success: true }),
-            Request::CancelNumber(_) => Response::CancelNumber(CancelNumberResponse { success: true }),
+            Request::SubmitNumber(_) => {
+                Response::SubmitNumber(SubmitNumberResponse { success: true })
+            }
+            Request::CancelNumber(_) => {
+                Response::CancelNumber(CancelNumberResponse { success: true })
+            }
         };
-    
+
         state.set_processed_global_index(global_index);
 
         let api_response = ApiResponse { response, global_index };

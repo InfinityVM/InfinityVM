@@ -9,8 +9,8 @@ mod tests {
         sol_types::{SolType, SolValue},
     };
     use matching_game_core::{
-        api::{CancelNumberRequest, Match, Request, SubmitNumberRequest},
-        Matches, serialize_address_list, deserialize_address_list, hash, apply_requests,
+        api::{CancelNumberRequest, Request, SubmitNumberRequest},
+        apply_requests, deserialize_address_list, hash, serialize_address_list, Match, Matches,
     };
 
     use abi::{StatefulAppOnchainInput, StatefulAppResult};

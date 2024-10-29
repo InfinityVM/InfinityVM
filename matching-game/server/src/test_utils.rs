@@ -2,6 +2,7 @@
 
 use matching_game_core::api::Request;
 
+use crate::contracts::matching_game_consumer::MatchingGameConsumer;
 use alloy::{
     network::EthereumWallet,
     primitives::Address,
@@ -11,7 +12,6 @@ use alloy::{
         local::{LocalSigner, PrivateKeySigner},
     },
 };
-use crate::contracts::matching_game_consumer::MatchingGameConsumer;
 use test_utils::{get_signers, AnvilJobManager};
 
 /// Local Signer

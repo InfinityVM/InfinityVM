@@ -1,6 +1,6 @@
 //! Collects requests into batches and submits them to the coprocessor node at some regular
 //! cadence.
-use crate::state::InMemoryState;
+use crate::state::ServerState;
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use eyre::OptionExt;
@@ -11,10 +11,8 @@ use kairos_trie::{
     KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
 };
 use matching_game_core::{
-    api::Request,
-    Match, Matches,
-    serialize_address_list, deserialize_address_list,
-    hash, apply_requests,
+    api::Request, apply_requests, deserialize_address_list, hash, serialize_address_list, Match,
+    Matches,
 };
 use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
@@ -31,7 +29,7 @@ const MAX_CYCLES: u64 = 32 * 1000 * 1000;
 /// First global index that a request will get.
 const INIT_INDEX: u64 = 1;
 
-async fn ensure_initialized(state: Arc<InMemoryState>) -> eyre::Result<()> {
+async fn ensure_initialized(state: Arc<ServerState>) -> eyre::Result<()> {
     loop {
         if state.get_processed_global_index() > 0 {
             if state.get_next_batch_global_index() == 0 {
@@ -50,7 +48,7 @@ async fn ensure_initialized(state: Arc<InMemoryState>) -> eyre::Result<()> {
 /// Run the matching game execution engine
 #[instrument(skip_all)]
 pub async fn run_batcher(
-    state: Arc<InMemoryState>,
+    state: Arc<ServerState>,
     sleep_duration: Duration,
     signer: K256LocalSigner,
     cn_grpc_url: String,
@@ -64,13 +62,7 @@ pub async fn run_batcher(
     let mut interval = tokio::time::interval(sleep_duration);
 
     let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
-
-    // println!("NARULA TrieRoot::Empty: {:?}", TrieRoot::Empty);
-    let mut txn =
-        Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db.clone(), TrieRoot::Empty));
-    let hasher = &mut DigestHasher::<Sha256>::default();
-
-    let mut pre_txn_merkle_root = txn.calc_root_hash(hasher).unwrap();
+    state.set_merkle_root(TrieRoot::Empty);
 
     let mut job_nonce = 0;
     loop {
@@ -96,6 +88,7 @@ pub async fn run_batcher(
         }
         let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
 
+        let pre_txn_merkle_root = state.get_merkle_root();
         let mut txn = Transaction::from_snapshot_builder(SnapshotBuilder::new(
             trie_db.clone(),
             pre_txn_merkle_root,
@@ -103,17 +96,10 @@ pub async fn run_batcher(
         apply_requests(&mut txn, &requests);
 
         let hasher = &mut DigestHasher::<Sha256>::default();
-        let output_merkle_root = txn.commit(hasher).unwrap();
+        let post_txn_merkle_root = txn.commit(hasher).unwrap();
         let snapshot = txn.build_initial_snapshot();
-
-        let merkle_root_thirty_two: Option<[u8; 32]> = pre_txn_merkle_root.into();
-        let onchain_input_state_root = if merkle_root_thirty_two.is_none() {
-            Default::default()
-        } else {
-            merkle_root_thirty_two.unwrap()
-        };
-
         let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
+
         // Combine requests_borsh and snapshot_serialized
         let mut combined_offchain_input = Vec::new();
         combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
@@ -121,8 +107,14 @@ pub async fn run_batcher(
         combined_offchain_input.extend_from_slice(&snapshot_serialized);
         let offchain_input_hash = keccak256(&combined_offchain_input);
 
+        let pre_txn_merkle_root_option: Option<[u8; 32]> = pre_txn_merkle_root.into();
+        let pre_txn_merkle_root_bytes = if pre_txn_merkle_root_option.is_none() {
+            Default::default()
+        } else {
+            pre_txn_merkle_root_option.unwrap()
+        };
         let onchain_input = StatefulAppOnchainInput {
-            input_state_root: onchain_input_state_root.into(),
+            input_state_root: pre_txn_merkle_root_bytes.into(),
             onchain_input: (&[]).into(),
         };
         let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
@@ -143,8 +135,7 @@ pub async fn run_batcher(
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
         state.set_next_batch_global_index(end_index + 1);
-
-        pre_txn_merkle_root = output_merkle_root;
+        state.set_merkle_root(post_txn_merkle_root);
 
         job_nonce += 1;
     }

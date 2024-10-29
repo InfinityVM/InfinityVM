@@ -1,11 +1,16 @@
 //! Shared logic and types of the matching game.
+use crate::api::Request;
 use kairos_trie::{
-    stored::{memory_db::MemoryDb, merkle::{Snapshot, SnapshotBuilder, VerifiedSnapshot}, Store},
-    DigestHasher, KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
+    stored::{
+        memory_db::MemoryDb,
+        merkle::{Snapshot, SnapshotBuilder, VerifiedSnapshot},
+        Store,
+    },
+    DigestHasher,
     Entry::{Occupied, Vacant, VacantEmptyTrie},
+    KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
 };
 use sha2::Sha256;
-use crate::api::Request;
 
 /// Matching game server API types.
 pub mod api;
@@ -40,13 +45,15 @@ pub fn hash(key: u64) -> KeyHash {
     KeyHash::from_bytes(&hasher.finalize_reset())
 }
 
-pub fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, requests: &[Request]) -> Vec<Match> {
+pub fn apply_requests(
+    txn: &mut Transaction<impl Store<Value = Vec<u8>>>,
+    requests: &[Request],
+) -> Vec<Match> {
     let mut matches = Vec::<Match>::with_capacity(requests.len());
 
     for r in requests {
         match r {
             Request::SubmitNumber(s) => {
-
                 let mut old_list = txn.entry(&hash(s.number)).unwrap();
                 match old_list {
                     Occupied(mut entry) => {
@@ -54,7 +61,8 @@ pub fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, reques
                         if old_list.is_empty() {
                             old_list.push(s.address);
                         } else {
-                            let match_pair = Match { user1: old_list[0].into(), user2: s.address.into() };
+                            let match_pair =
+                                Match { user1: old_list[0].into(), user2: s.address.into() };
                             matches.push(match_pair);
 
                             // remove the first element from the list
@@ -63,10 +71,12 @@ pub fn apply_requests(txn: &mut Transaction<impl Store<Value = Vec<u8>>>, reques
                         let _ = entry.insert(serialize_address_list(&old_list));
                     }
                     Vacant(_) => {
-                        let _ = txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                        let _ =
+                            txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
                     }
                     VacantEmptyTrie(_) => {
-                        let _ = txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                        let _ =
+                            txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
                     }
                 }
             }

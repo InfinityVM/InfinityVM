@@ -13,16 +13,15 @@ use kairos_trie::{
     Entry::{Occupied, Vacant, VacantEmptyTrie},
     KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
 };
-use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use matching_game_core::{
     api::{
-        CancelNumberRequest, CancelNumberResponse, Match, Request, SubmitNumberRequest,
+        CancelNumberRequest, CancelNumberResponse, Request, SubmitNumberRequest,
         SubmitNumberResponse,
     },
-    Matches,
-    serialize_address_list, deserialize_address_list, hash, apply_requests,
+    apply_requests, deserialize_address_list, hash, serialize_address_list, Match, Matches,
 };
 use matching_game_programs::MATCHING_GAME_ELF;
+use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use sha2::Sha256;

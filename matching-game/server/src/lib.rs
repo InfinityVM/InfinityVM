@@ -37,7 +37,7 @@ pub async fn run(
     cn_grpc_url: String,
     consumer_addr: [u8; 20],
 ) -> eyre::Result<()> {
-    let state = Arc::new(state::InMemoryState::new());
+    let state = Arc::new(state::ServerState::new());
 
     let (engine_sender, engine_receiver) = tokio::sync::mpsc::channel(32);
     let state_server = Arc::clone(&state);
