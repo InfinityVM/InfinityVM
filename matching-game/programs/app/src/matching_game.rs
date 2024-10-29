@@ -43,9 +43,9 @@ fn main() {
     assert_eq!(pre_batch_trie_root, pre_txn_merkle_root);
 
     // Apply the batch of requests to the trie and get the new merkle root.
-    let mut txn = Transaction::from(verified_snapshot);
-    let matches = apply_requests(&mut txn, &requests);
-    let output_merkle_root = txn.calc_root_hash(hasher).unwrap();
+    let mut trie_txn = Transaction::from(verified_snapshot);
+    let matches = apply_requests(&mut trie_txn, &requests);
+    let output_merkle_root = trie_txn.calc_root_hash(hasher).unwrap();
 
     let stateful_app_result = StatefulAppResult {
         output_state_root: get_merkle_root_bytes(output_merkle_root).into(),

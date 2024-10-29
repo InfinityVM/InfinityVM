@@ -60,13 +60,13 @@ pub fn next_state(
     pre_txn_merkle_root: TrieRoot<NodeHash>,
     requests: &[Request],
 ) -> (TrieRoot<NodeHash>, Snapshot<Vec<u8>>) {
-    let mut txn =
+    let mut trie_txn =
         Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db, pre_txn_merkle_root));
-    apply_requests(&mut txn, requests);
+    apply_requests(&mut trie_txn, requests);
 
     let hasher = &mut DigestHasher::<Sha256>::default();
-    let post_txn_merkle_root = txn.commit(hasher).unwrap();
-    let snapshot = txn.build_initial_snapshot();
+    let post_txn_merkle_root = trie_txn.commit(hasher).unwrap();
+    let snapshot = trie_txn.build_initial_snapshot();
 
     (post_txn_merkle_root, snapshot)
 }
