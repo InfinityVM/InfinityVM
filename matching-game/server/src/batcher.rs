@@ -12,7 +12,7 @@ use kairos_trie::{
 };
 use matching_game_core::{
     api::Request, apply_requests, deserialize_address_list, hash, serialize_address_list, Match,
-    Matches,
+    Matches, get_merkle_root_bytes,
 };
 use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
@@ -107,14 +107,8 @@ pub async fn run_batcher(
         combined_offchain_input.extend_from_slice(&snapshot_serialized);
         let offchain_input_hash = keccak256(&combined_offchain_input);
 
-        let pre_txn_merkle_root_option: Option<[u8; 32]> = pre_txn_merkle_root.into();
-        let pre_txn_merkle_root_bytes = if pre_txn_merkle_root_option.is_none() {
-            Default::default()
-        } else {
-            pre_txn_merkle_root_option.unwrap()
-        };
         let onchain_input = StatefulAppOnchainInput {
-            input_state_root: pre_txn_merkle_root_bytes.into(),
+            input_state_root: get_merkle_root_bytes(pre_txn_merkle_root).into(),
             onchain_input: (&[]).into(),
         };
         let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);

@@ -45,6 +45,14 @@ pub fn hash(key: u64) -> KeyHash {
     KeyHash::from_bytes(&hasher.finalize_reset())
 }
 
+pub fn get_merkle_root_bytes(merkle_root: TrieRoot<NodeHash>) -> [u8; 32] {
+    if let Some(root) = merkle_root.into() {
+        root
+    } else {
+        Default::default()
+    }
+}
+
 pub fn apply_requests(
     txn: &mut Transaction<impl Store<Value = Vec<u8>>>,
     requests: &[Request],

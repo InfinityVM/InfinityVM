@@ -19,6 +19,7 @@ use matching_game_core::{
         SubmitNumberResponse,
     },
     apply_requests, deserialize_address_list, hash, serialize_address_list, Match, Matches,
+    get_merkle_root_bytes,
 };
 use matching_game_programs::MATCHING_GAME_ELF;
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
@@ -128,14 +129,8 @@ async fn state_job_submission_matching_game_consumer() {
             combined_offchain_input.extend_from_slice(&snapshot_serialized);
             let offchain_input_hash = keccak256(&combined_offchain_input);
 
-            let merkle_root_thirty_two: Option<[u8; 32]> = pre_txn_merkle_root.into();
-            let onchain_input_state_root = if merkle_root_thirty_two.is_none() {
-                Default::default()
-            } else {
-                merkle_root_thirty_two.unwrap()
-            };
             let onchain_input = StatefulAppOnchainInput {
-                input_state_root: onchain_input_state_root.into(),
+                input_state_root: get_merkle_root_bytes(pre_txn_merkle_root).into(),
                 onchain_input: [0].into(),
             };
             let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
@@ -185,9 +180,7 @@ async fn state_job_submission_matching_game_consumer() {
             {
                 let matching_game_output =
                     StatefulAppResult::abi_decode(&raw_output, false).unwrap();
-                let next_merkle_root_option: Option<[u8; 32]> = next_merkle_root.into();
-                let next_merkle_root_bytes = next_merkle_root_option.unwrap();
-                assert_eq!(*matching_game_output.output_state_root, next_merkle_root_bytes);
+                assert_eq!(*matching_game_output.output_state_root, get_merkle_root_bytes(next_merkle_root));
             }
 
             nonce += 1;

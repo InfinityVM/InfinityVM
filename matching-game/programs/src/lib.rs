@@ -11,6 +11,7 @@ mod tests {
     use matching_game_core::{
         api::{CancelNumberRequest, Request, SubmitNumberRequest},
         apply_requests, deserialize_address_list, hash, serialize_address_list, Match, Matches,
+        get_merkle_root_bytes,
     };
 
     use abi::{StatefulAppOnchainInput, StatefulAppResult};
@@ -44,9 +45,7 @@ mod tests {
         ];
         let (merkle_root1, matching_game_out) =
             execute(requests1.clone(), trie_db.clone(), merkle_root0);
-        let merkle_root_1_option: Option<[u8; 32]> = merkle_root1.into();
-        let merkle_root_1_bytes = merkle_root_1_option.unwrap();
-        assert_eq!(*matching_game_out.output_state_root, merkle_root_1_bytes);
+        assert_eq!(*matching_game_out.output_state_root, get_merkle_root_bytes(merkle_root1));
         let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
         assert!(matches.is_empty());
 
@@ -57,9 +56,7 @@ mod tests {
         ];
         let (merkle_root2, matching_game_out) =
             execute(requests2.clone(), trie_db.clone(), merkle_root1);
-        let merkle_root_2_option: Option<[u8; 32]> = merkle_root2.into();
-        let merkle_root_2_bytes = merkle_root_2_option.unwrap();
-        assert_eq!(*matching_game_out.output_state_root, merkle_root_2_bytes);
+        assert_eq!(*matching_game_out.output_state_root, get_merkle_root_bytes(merkle_root2));
         let matches = Matches::abi_decode(matching_game_out.result.as_ref(), false).unwrap();
         assert_eq!(matches, vec![Match { user1: bob.into(), user2: charlie.into() }]);
     }
@@ -87,14 +84,8 @@ mod tests {
         combined_offchain_input.extend_from_slice(&requests_borsh);
         combined_offchain_input.extend_from_slice(&snapshot_serialized);
 
-        let merkle_root_thirty_two: Option<[u8; 32]> = pre_txn_merkle_root.into();
-        let onchain_input_state_root = if merkle_root_thirty_two.is_none() {
-            Default::default()
-        } else {
-            merkle_root_thirty_two.unwrap()
-        };
         let onchain_input = StatefulAppOnchainInput {
-            input_state_root: onchain_input_state_root.into(),
+            input_state_root: get_merkle_root_bytes(pre_txn_merkle_root).into(),
             onchain_input: [0].into(),
         };
 

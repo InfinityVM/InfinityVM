@@ -3,7 +3,7 @@
 use alloy::sol_types::SolType;
 use abi::{StatefulAppOnchainInput, StatefulAppResult};
 use risc0_zkvm::guest::env;
-use matching_game_core::{api::Request, Match, Matches, serialize_address_list, deserialize_address_list, hash, apply_requests};
+use matching_game_core::{api::Request, Match, Matches, serialize_address_list, deserialize_address_list, hash, apply_requests, get_merkle_root_bytes};
 use kairos_trie::{
     stored::{memory_db::MemoryDb, merkle::{Snapshot, SnapshotBuilder, VerifiedSnapshot}, Store},
     DigestHasher, KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
@@ -47,11 +47,8 @@ fn main() {
     let matches = apply_requests(&mut txn, &requests);
     let output_merkle_root = txn.calc_root_hash(hasher).unwrap();
 
-    let output_merkle_root_option: Option<[u8; 32]> = output_merkle_root.into();
-    let output_merkle_root_bytes = output_merkle_root_option.unwrap();
-
     let stateful_app_result = StatefulAppResult {
-        output_state_root: output_merkle_root_bytes.into(),
+        output_state_root: get_merkle_root_bytes(output_merkle_root).into(),
         result: Matches::abi_encode(&matches).into(),
     };
 
