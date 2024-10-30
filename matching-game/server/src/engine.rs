@@ -2,10 +2,12 @@
 
 use crate::state::ServerState;
 use eyre::{eyre, OptionExt};
-use matching_game_core::api::{
-    ApiResponse, CancelNumberResponse, Request, Response, SubmitNumberResponse,
+use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
+use matching_game_core::{
+    api::{ApiResponse, CancelNumberResponse, MatchPair, Request, Response, SubmitNumberResponse},
+    next_state,
 };
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 use tokio::sync::{mpsc::Receiver, oneshot};
 use tracing::instrument;
 
@@ -16,6 +18,8 @@ pub async fn run_engine(
     state: Arc<ServerState>,
 ) -> eyre::Result<()> {
     let mut global_index = state.get_seen_global_index();
+    let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
+    state.set_merkle_root_engine(TrieRoot::Empty);
 
     loop {
         global_index += 1;
@@ -28,9 +32,21 @@ pub async fn run_engine(
 
         let response = match request {
             Request::SubmitNumber(_) => {
-                Response::SubmitNumber(SubmitNumberResponse { success: true })
+                // Update trie merkle root and get match, if any.
+                let (post_txn_merkle_root, _, matches) =
+                    next_state(trie_db.clone(), state.get_merkle_root_engine(), &[request]);
+                let match_pair = matches
+                    .first()
+                    .cloned()
+                    .map(|m| MatchPair { user1: **m.user1, user2: **m.user2 });
+                state.set_merkle_root_engine(post_txn_merkle_root);
+                Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair })
             }
             Request::CancelNumber(_) => {
+                // Update trie merkle root.
+                let (post_txn_merkle_root, _, _) =
+                    next_state(trie_db.clone(), state.get_merkle_root_engine(), &[request]);
+                state.set_merkle_root_engine(post_txn_merkle_root);
                 Response::CancelNumber(CancelNumberResponse { success: true })
             }
         };

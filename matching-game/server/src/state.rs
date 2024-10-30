@@ -11,7 +11,10 @@ use matching_game_core::api::Request;
 /// In-memory state.
 #[derive(Default, Debug)]
 pub struct ServerState {
-    merkle_root: Mutex<TrieRoot<NodeHash>>,
+    /// The merkle root of the trie after the most recently processed batch.
+    merkle_root_batcher: Mutex<TrieRoot<NodeHash>>,
+    /// The merkle root of the trie after the most recently processed engine (server) call.
+    merkle_root_engine: Mutex<TrieRoot<NodeHash>>,
     requests: Mutex<std::collections::HashMap<u64, Request>>,
     seen_global_index: AtomicU64,
     processed_global_index: AtomicU64,
@@ -25,13 +28,23 @@ impl ServerState {
     }
 
     /// Get the merkle root from the most recently processed batch.
-    pub fn get_merkle_root(&self) -> TrieRoot<NodeHash> {
-        *self.merkle_root.lock().unwrap()
+    pub fn get_merkle_root_batcher(&self) -> TrieRoot<NodeHash> {
+        *self.merkle_root_batcher.lock().unwrap()
     }
 
     /// Set the merkle root for the most recently processed batch.
-    pub fn set_merkle_root(&self, merkle_root: TrieRoot<NodeHash>) {
-        *self.merkle_root.lock().unwrap() = merkle_root;
+    pub fn set_merkle_root_batcher(&self, merkle_root: TrieRoot<NodeHash>) {
+        *self.merkle_root_batcher.lock().unwrap() = merkle_root;
+    }
+
+    /// Get the merkle root from the most recently processed engine call.
+    pub fn get_merkle_root_engine(&self) -> TrieRoot<NodeHash> {
+        *self.merkle_root_engine.lock().unwrap()
+    }
+
+    /// Set the merkle root for the most recently processed engine call.
+    pub fn set_merkle_root_engine(&self, merkle_root: TrieRoot<NodeHash>) {
+        *self.merkle_root_engine.lock().unwrap() = merkle_root;
     }
 
     /// Store a request.

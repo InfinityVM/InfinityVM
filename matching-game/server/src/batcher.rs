@@ -53,7 +53,7 @@ pub async fn run_batcher(
     let mut interval = tokio::time::interval(sleep_duration);
 
     let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
-    state.set_merkle_root(TrieRoot::Empty);
+    state.set_merkle_root_batcher(TrieRoot::Empty);
 
     let mut job_nonce = 0;
     loop {
@@ -77,11 +77,11 @@ pub async fn run_batcher(
         let requests_bytes =
             bincode::serialize(&requests).expect("bincode serialization works. qed.");
 
-        let pre_txn_merkle_root = state.get_merkle_root();
+        let pre_txn_merkle_root = state.get_merkle_root_batcher();
         // Apply requests to the trie and get the new merkle root and snapshot.
         // Snapshot contains the minimal portion of the merkle trie needed to
         // verify the state transition in the zkVM program.
-        let (post_txn_merkle_root, snapshot) =
+        let (post_txn_merkle_root, snapshot, _) =
             next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
         let snapshot_bytes =
             bincode::serialize(&snapshot).expect("bincode serialization works. qed.");
@@ -115,7 +115,7 @@ pub async fn run_batcher(
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
         state.set_next_batch_global_index(end_index + 1);
-        state.set_merkle_root(post_txn_merkle_root);
+        state.set_merkle_root_batcher(post_txn_merkle_root);
 
         job_nonce += 1;
     }

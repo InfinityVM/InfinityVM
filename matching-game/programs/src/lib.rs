@@ -53,7 +53,7 @@ mod tests {
         let requests_bytes =
             bincode::serialize(&requests).expect("bincode serialization works. qed.");
 
-        let (post_txn_merkle_root, snapshot) =
+        let (post_txn_merkle_root, snapshot, _) =
             next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
         let snapshot_bytes =
             bincode::serialize(&snapshot).expect("bincode serialization works. qed.");

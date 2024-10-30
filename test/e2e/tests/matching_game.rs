@@ -10,7 +10,7 @@ use e2e::{Args, E2E};
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
     api::{
-        CancelNumberRequest, CancelNumberResponse, Request, SubmitNumberRequest,
+        CancelNumberRequest, CancelNumberResponse, MatchPair, Request, SubmitNumberRequest,
         SubmitNumberResponse,
     },
     get_merkle_root_bytes, next_state,
@@ -66,15 +66,15 @@ async fn state_job_submission_matching_game_consumer() {
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 }),
             Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
         ];
-        let (merkle_root1, _) = next_state(trie_db.clone(), merkle_root0, &requests1);
+        let (merkle_root1, _, _) = next_state(trie_db.clone(), merkle_root0, &requests1);
 
         let requests2 =
             vec![Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 })];
-        let (merkle_root2, _) = next_state(trie_db.clone(), merkle_root1, &requests2);
+        let (merkle_root2, _, _) = next_state(trie_db.clone(), merkle_root1, &requests2);
 
         let requests3 =
             vec![Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 69 })];
-        let (merkle_root3, _) = next_state(trie_db.clone(), merkle_root2, &requests3);
+        let (merkle_root3, _, _) = next_state(trie_db.clone(), merkle_root2, &requests3);
 
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
         interval.tick().await; // First tick processes immediately
@@ -87,7 +87,7 @@ async fn state_job_submission_matching_game_consumer() {
         ] {
             let requests_bytes = bincode::serialize(&requests).unwrap();
 
-            let (_, snapshot) = next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
+            let (_, snapshot, _) = next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
             let snapshot_bytes = bincode::serialize(&snapshot).unwrap();
 
             let mut combined_offchain_input = Vec::new();
@@ -213,11 +213,11 @@ async fn matching_game_server_e2e() {
         let bob_submit_number = SubmitNumberRequest { address: bob, number: 69 };
         let (r, i) = client.submit_number(alice_submit_number).await.unwrap();
         assert_eq!(i, 1);
-        assert_eq!(r, SubmitNumberResponse { success: true });
+        assert_eq!(r, SubmitNumberResponse { success: true, match_pair: None });
 
         let (r, i) = client.submit_number(bob_submit_number).await.unwrap();
         assert_eq!(i, 2);
-        assert_eq!(r, SubmitNumberResponse { success: true });
+        assert_eq!(r, SubmitNumberResponse { success: true, match_pair: None });
 
         let alice_cancel_number = CancelNumberRequest { address: alice, number: 42 };
         let (r, i) = client.cancel_number(alice_cancel_number).await.unwrap();
@@ -227,7 +227,13 @@ async fn matching_game_server_e2e() {
         let alice_submit_number_second = SubmitNumberRequest { address: alice, number: 69 };
         let (r, i) = client.submit_number(alice_submit_number_second).await.unwrap();
         assert_eq!(i, 4);
-        assert_eq!(r, SubmitNumberResponse { success: true });
+        assert_eq!(
+            r,
+            SubmitNumberResponse {
+                success: true,
+                match_pair: Some(MatchPair { user1: bob, user2: alice })
+            }
+        );
 
         // Give the batcher some time to process.
         interval.tick().await;

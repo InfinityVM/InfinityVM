@@ -55,6 +55,18 @@ pub struct CancelNumberRequest {
     pub number: u64,
 }
 
+/// A pair of users that matched.
+#[derive(
+    Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
+)]
+#[serde(rename_all = "camelCase")]
+pub struct MatchPair {
+    /// First user in pair.
+    pub user1: [u8; 20],
+    /// Second user in pair.
+    pub user2: [u8; 20],
+}
+
 /// Response to [`SubmitNumberRequest`].
 #[derive(
     Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
@@ -63,6 +75,8 @@ pub struct CancelNumberRequest {
 pub struct SubmitNumberResponse {
     /// If the request was successfully processed.
     pub success: bool,
+    /// The match that occurred (if any).
+    pub match_pair: Option<MatchPair>,
 }
 
 /// Response to [`CancelNumberRequest`].

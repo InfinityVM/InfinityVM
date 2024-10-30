@@ -59,16 +59,16 @@ pub fn next_state(
     trie_db: Rc<MemoryDb<Vec<u8>>>,
     pre_txn_merkle_root: TrieRoot<NodeHash>,
     requests: &[Request],
-) -> (TrieRoot<NodeHash>, Snapshot<Vec<u8>>) {
+) -> (TrieRoot<NodeHash>, Snapshot<Vec<u8>>, Vec<Match>) {
     let mut trie_txn =
         Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db, pre_txn_merkle_root));
-    apply_requests(&mut trie_txn, requests);
+    let matches = apply_requests(&mut trie_txn, requests);
 
     let hasher = &mut DigestHasher::<Sha256>::default();
     let post_txn_merkle_root = trie_txn.commit(hasher).unwrap();
     let snapshot = trie_txn.build_initial_snapshot();
 
-    (post_txn_merkle_root, snapshot)
+    (post_txn_merkle_root, snapshot, matches)
 }
 
 /// Apply a list of requests to a trie and return the matches.
