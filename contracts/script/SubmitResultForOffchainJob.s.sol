@@ -23,7 +23,7 @@ contract SubmitResultForOffchainJob is Script, Utils {
         );
 
         vm.startBroadcast();
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
         vm.stopBroadcast();
         console.log("Result for offchain job submitted!");
     }

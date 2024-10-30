@@ -2362,7 +2362,6 @@ dependencies = [
  "abi",
  "alloy",
  "bincode",
- "borsh",
  "eip4844",
  "eyre",
  "proto",

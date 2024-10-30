@@ -3,7 +3,6 @@
 use crate::Error;
 use abi::JobParams;
 use alloy::{primitives::utils::keccak256, rlp::bytes};
-use borsh::{BorshDeserialize, BorshSerialize};
 use eip4844::BlobTransactionSidecar;
 use proto::JobStatus;
 use reth_db::{
@@ -35,7 +34,7 @@ macro_rules! impl_compress_decompress {
     };
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 /// Request type for a job
 pub enum RequestType {
     /// Onchain job request (originating from contracts)
@@ -148,7 +147,7 @@ impl Decode for ElfKey {
 }
 
 /// Storage format for elf files
-#[derive(Debug, BorshSerialize, BorshDeserialize, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct ElfWithMeta {
     /// The type of vm
     pub vm_type: u8,

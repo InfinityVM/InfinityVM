@@ -166,14 +166,12 @@ impl JobRelayer {
 
             let call_builder = if let Some(sidecar) = job.blobs_sidecar {
                 let gas_price = self.job_manager.provider().get_gas_price().await?;
-                let blob_count = sidecar.blobs.len() as u32;
                 self.job_manager
                     .submitResultForOffchainJob(
                         job.result_with_metadata.into(),
                         job.zkvm_operator_signature.into(),
                         job_request_payload.into(),
                         request_signature.into(),
-                        blob_count,
                     )
                     .sidecar(sidecar)
                     .max_fee_per_blob_gas(gas_price)
@@ -183,7 +181,6 @@ impl JobRelayer {
                     job.zkvm_operator_signature.into(),
                     job_request_payload.into(),
                     request_signature.into(),
-                    0, // TODO - can we remove this now
                 )
             };
 

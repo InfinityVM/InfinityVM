@@ -230,7 +230,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         vm.expectEmit(true, true, false, false);
         emit JobCompleted(DEFAULT_JOB_ID, abi.encode(address(0), 10));
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
 
         // Check that inputs are stored correctly in Consumer contract
         assertEq(consumer.getOnchainInputForJob(DEFAULT_JOB_ID), abi.encode(address(0)));
@@ -254,7 +254,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         bytes memory signatureOnResult = hex"3e6bbc4fa7b727191be2e24303d901f0dea5dbbda344a99fd39b19189dd584ab5b44e2e0d42f201fed4f1bccd3ff9691373d843001443f265bbde70f4ca3d7ef1b";
 
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitResultForOffchainJobDuplicateNonce() public {
@@ -269,7 +269,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.createJob: job already exists with this nonce and consumer");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitResultForOffchainJobInvalidSignatureOnRequest() public {
@@ -282,7 +282,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.submitResultForOffchainJob: Invalid signature on job request");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, invalidSignatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, invalidSignatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitResultForOffchainJobInvalidSignatureOnResult() public {
@@ -295,7 +295,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.submitResultForOffchainJob: Invalid signature on result");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, invalidSignatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, invalidSignatureOnResult, jobRequest, signatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitResultForOffchainJobWrongOnchainInputHash() public {
@@ -308,7 +308,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.submitResult: onchain input signed by coprocessor doesn't match onchain input submitted with job");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitResultForOffchainJobWrongOffchainInputHash() public {
@@ -321,7 +321,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitResultForOffchainJobWrongProgramID() public {
@@ -334,7 +334,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.submitResult: program ID signed by coprocessor doesn't match program ID submitted with job");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitResultForOffchainJobWrongMaxCycles() public {
@@ -347,7 +347,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.submitResult: max cycles signed by coprocessor doesn't match max cycles submitted with job");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitResultForOffchainJobWrongJobID() public {
@@ -360,7 +360,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 0);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
     function testRevertWhen_JobManager_SubmitWrongBlobCountForOffchainJob() public {
@@ -375,7 +375,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
         vm.expectRevert("JobManager.submitResultForOffchainJob: missing blob");
         vm.prank(RELAYER);
-        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest, 1);
+        jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
     // function test_JobManager_SubmitOffchainJobWithBlobs() public {

@@ -108,8 +108,7 @@ contract JobManager is
         bytes calldata offchainResultWithMetadata,
         bytes calldata signatureOnResult,
         bytes calldata jobRequest,
-        bytes calldata signatureOnRequest,
-        uint32 blobCount
+        bytes calldata signatureOnRequest
     ) public override {
         // Decode the job request using abi.decode
         OffchainJobRequest memory request = abi.decode(jobRequest, (OffchainJobRequest));
@@ -123,15 +122,19 @@ contract JobManager is
         bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
-        // Extract the blob hashes
-        if (blobCount != 0) {
-            bytes32[] memory blobhashes = new bytes32[](blobCount);
-            for (uint256 i = 0; i < blobCount; i++) {
-                bytes32 versionedHash = blobhash(i);
-                require(versionedHash != 0, "JobManager.submitResultForOffchainJob: missing blob");
-                blobhashes[i] = versionedHash;
+        // Make sure the blob hashses match and persist them
+        OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
+        if (result.versioned_blob_hashes.length != 0) {
+            for (uint256 i = 0; i < result.versioned_blob_hashes.length; i++) {
+                bytes32 contextVersionedHash = blobhash(i);
+                bytes32 userVersionedHash = result.versioned_blob_hashes[i];
+
+                require(
+                    contextVersionedHash == userVersionedHash, 
+                    "JobManager.submitResultForOffchainJob: given blob hash does not match"
+                );
             }
-            jobIDToBlobhashes[jobID] = blobhashes;
+            jobIDToBlobhashes[jobID] = result.versioned_blob_hashes;
         }
 
         // Create a job without emitting an event and set onchain input and offchain input hash on consumer
@@ -139,7 +142,6 @@ contract JobManager is
         Consumer(request.consumer).setInputsForJob(jobID, request.onchainInput, request.offchainInputHash);
 
         // Decode the result using abi.decode
-        OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
         require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
         require(request.offchainInputHash == result.offchainInputHash, "JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
         _submitResult(jobID, result.maxCycles, result.onchainInputHash, result.programID, result.result);
