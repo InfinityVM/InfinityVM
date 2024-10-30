@@ -20,7 +20,6 @@ tracing = { workspace = true }
 rand = { workspace = true }
 reth-db = { workspace = true }
 kairos-trie = { workspace = true }
-serde_json = { workspace = true }
 
 coprocessor-node = { workspace = true }
 contracts = { workspace = true }

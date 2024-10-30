@@ -96,6 +96,8 @@ pub fn apply_requests(
 
                             // remove the first element from the list
                             old_list.remove(0);
+
+                            // TODO: if the list is empty, remove the entry from the trie.
                         }
                         let _ = entry.insert(serialize_address_list(&old_list));
                     }
@@ -114,6 +116,8 @@ pub fn apply_requests(
                         // Remove the user's address from the list.
                         old_list.remove(old_list.iter().position(|&x| x == c.address).unwrap());
                         let _ = entry.insert(serialize_address_list(&old_list));
+
+                        // TODO: if the list is empty, remove the entry from the trie.
                     }
                     Vacant(_) | VacantEmptyTrie(_) => {
                         // do nothing

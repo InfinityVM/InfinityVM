@@ -3882,8 +3882,6 @@ dependencies = [
  "matching-game-core",
  "risc0-build",
  "risc0-zkvm",
- "serde_json",
- "sha2",
  "zkvm",
 ]
 

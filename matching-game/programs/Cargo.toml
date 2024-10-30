@@ -13,8 +13,6 @@ alloy = { workspace = true, features = ["full", "contract", "transport-http", "t
 zkvm = { workspace = true }
 abi = { workspace = true }
 kairos-trie = { workspace = true }
-sha2 = { workspace = true }
-serde_json = { workspace = true }
 
 [build-dependencies]
 risc0-build = { workspace = true }
