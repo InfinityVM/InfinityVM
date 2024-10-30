@@ -122,6 +122,7 @@ async-channel = { version = "2", default-features = false }
 
 # b
 borsh = { version = "1", features = ["derive", "std"], default-features = false }
+bincode = { version = "1", default-features = false }
 
 # c
 clap = { version = "4", features = ["derive"], default-features = false }

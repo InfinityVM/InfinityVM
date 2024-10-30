@@ -14,7 +14,4 @@ DA is gossiped around the network in short lived blobs. Validators guarantee tha
 
 The target use case for DA is [offchain coprocessing jobs](../integration/offchain.md); offchain input is stored in blobs that can be used for fraud proofs and general consumption. 
 
-When submitting the results for an offchain job, the coprocessor will convert the offchain input into blobs and reference the blob hashes in the job result metadata. The job manager contract processes the job result metadata and ensures that the blob hashes referenced in the metadata are correctly associated with the block by using the [BLOBHASH op code](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md#opcode-to-get-versioned-hashes). This processes ensures the blob data for job is available in the consensus layer to process fraud proofs.
-
-
-
+When submitting the results for an offchain job, the coprocessor will convert the offchain input into blobs and reference the blob hashes in the job result metadata. In effect, the coprocessor operator is committing to not only the job inputs and outputs, but also the exact DA blobs. The job manager contract processes the job result metadata and ensures that the blob hashes referenced in the metadata are correctly associated with the block by using the [BLOBHASH op code](https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md#opcode-to-get-versioned-hashes). This processes ensures the correct blob data for job is available in the consensus layer to process fraud proofs.

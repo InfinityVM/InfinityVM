@@ -2361,7 +2361,9 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
+ "bincode",
  "borsh",
+ "eip4844",
  "eyre",
  "proto",
  "reth-db",
@@ -7807,6 +7809,7 @@ name = "zkvm-executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "eip4844",
  "proto",
  "thiserror",
  "tokio",

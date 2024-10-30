@@ -89,6 +89,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
                 retries: 0,
             },
             relay_tx_hash: vec![],
+            blobs_sidecar: None
         };
 
         // Add signature from user on job request
@@ -134,6 +135,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
+            vec![]
         );
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();

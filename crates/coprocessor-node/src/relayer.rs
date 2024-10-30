@@ -12,7 +12,6 @@ use alloy::{
 };
 use contracts::i_job_manager::IJobManager;
 use db::tables::{Job, RequestType};
-use eip4844::{SidecarBuilder, SimpleCoder};
 use std::sync::Arc;
 use tracing::{error, info, instrument};
 
@@ -57,12 +56,8 @@ pub enum Error {
     /// invalid job request type
     #[error("invalid job request type")]
     InvalidJobRequestType,
-    /// tokio task returned an error
-    #[error("tokio task: {0}")]
-    TokioTask(#[from] tokio::task::JoinError),
-    /// c-kzg logic had an error.
-    #[error("c-kzg: {0}")]
-    Kzg(#[from] eip4844::CKzgError),
+    #[error("internal error - offchain job result missing blob sidecar")]
+    InternalMissingBlobSidecar,
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
@@ -168,23 +163,29 @@ impl JobRelayer {
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
         if let RequestType::Offchain(request_signature) = job.request_type {
-            let sidecar_builder: SidecarBuilder<SimpleCoder> =
-                std::iter::once(job.offchain_input).collect();
-            let sidecar = tokio::task::spawn_blocking(|| sidecar_builder.build()).await??;
 
-            let gas_price = self.job_manager.provider().get_gas_price().await?;
-            let blob_count = sidecar.blobs.len() as u32;
-            let call_builder = self
-                .job_manager
-                .submitResultForOffchainJob(
+            let call_builder = if let Some(sidecar) = job.blobs_sidecar {
+                let gas_price = self.job_manager.provider().get_gas_price().await?;
+                let blob_count = sidecar.blobs.len() as u32;
+                self.job_manager
+                    .submitResultForOffchainJob(
+                        job.result_with_metadata.into(),
+                        job.zkvm_operator_signature.into(),
+                        job_request_payload.into(),
+                        request_signature.into(),
+                        blob_count,
+                    )
+                    .sidecar(sidecar)
+                    .max_fee_per_blob_gas(gas_price)
+            } else {
+                self.job_manager.submitResultForOffchainJob(
                     job.result_with_metadata.into(),
                     job.zkvm_operator_signature.into(),
                     job_request_payload.into(),
                     request_signature.into(),
-                    blob_count,
+                    0, // TODO - can we remove this now
                 )
-                .sidecar(sidecar)
-                .max_fee_per_blob_gas(gas_price);
+            };
 
             let pending_tx = call_builder.send().await.map_err(|error| {
                 error!(

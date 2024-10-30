@@ -141,6 +141,7 @@ where
                                 retries: 0,
                             },
                             relay_tx_hash: vec![],
+                            blobs_sidecar: None,
                         };
                         if let Err(error) = self.intake.submit_job(job).await {
                             error!(?error, ?event.jobID, "failed while submitting to job processor");

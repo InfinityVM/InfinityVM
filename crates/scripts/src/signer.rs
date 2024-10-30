@@ -66,6 +66,7 @@ impl RequestAndResultSigner {
             MAX_CYCLES,
             PROGRAM_ID,
             &raw_output,
+            vec![],
         );
 
         // Sign the message

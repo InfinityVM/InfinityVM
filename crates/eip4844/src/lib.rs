@@ -12,5 +12,5 @@ pub const SIMPLE_CODER_MAX_DATA_PER_BLOB: usize =
 /// The max number of blobs in a mainnet block.
 pub const MAX_BLOBS_PER_BLOCK: usize = 6;
 
-pub use alloy::consensus::{SidecarBuilder, SimpleCoder};
+pub use alloy::consensus::{BlobTransactionSidecar, SidecarBuilder, SimpleCoder};
 pub use c_kzg::Error as CKzgError;

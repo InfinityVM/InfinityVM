@@ -4,6 +4,7 @@ use crate::Error;
 use abi::JobParams;
 use alloy::{primitives::utils::keccak256, rlp::bytes};
 use borsh::{BorshDeserialize, BorshSerialize};
+use eip4844::BlobTransactionSidecar;
 use proto::JobStatus;
 use reth_db::{
     table::{Decode, Encode},
@@ -18,14 +19,17 @@ macro_rules! impl_compress_decompress {
             type Compressed = Vec<u8>;
 
             fn compress_to_buf<B: bytes::buf::BufMut + AsMut<[u8]>>(self, dest: &mut B) {
-                let src = borsh::to_vec(&self).expect("borsh serialize works. qed.");
-                dest.put(&src[..])
+                let src = bincode::serialize(&self).expect("failed to serialize into bufmut.");
+                // ideally we would use `bincode::serialize_into(dest.writer(), &self)` so we could
+                // use the `Write` api, but dest is behind a mutable ref and `.writer` needs
+                // to take ownership
+                dest.put(&*src)
             }
         }
 
         impl reth_db::table::Decompress for $name {
             fn decompress<B: AsRef<[u8]>>(value: B) -> Result<Self, reth_db::DatabaseError> {
-                borsh::from_slice(value.as_ref()).map_err(|_| reth_db::DatabaseError::Decode)
+                bincode::deserialize(value.as_ref()).map_err(|_| reth_db::DatabaseError::Decode)
             }
         }
     };
@@ -41,7 +45,7 @@ pub enum RequestType {
 }
 
 /// Job used internally and stored in DB
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, BorshSerialize, BorshDeserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Job {
     /// The job ID (hash of nonce and consumer address)
     pub id: [u8; 32],
@@ -69,6 +73,8 @@ pub struct Job {
     pub status: JobStatus,
     /// Tx hash of relayed result
     pub relay_tx_hash: Vec<u8>,
+    /// eip4844 blob transaction sidecar. Only should be present after executing an offchain job.
+    pub blobs_sidecar: Option<BlobTransactionSidecar>,
 }
 
 impl_compress_decompress! { Job }
@@ -142,7 +148,7 @@ impl Decode for ElfKey {
 }
 
 /// Storage format for elf files
-#[derive(Debug, BorshSerialize, BorshDeserialize, serde::Serialize)]
+#[derive(Debug, BorshSerialize, BorshDeserialize, serde::Serialize, serde::Deserialize)]
 pub struct ElfWithMeta {
     /// The type of vm
     pub vm_type: u8,
