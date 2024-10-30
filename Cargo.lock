@@ -2588,7 +2588,7 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
- "borsh",
+ "bincode",
  "clob-client",
  "clob-contracts",
  "clob-core",
@@ -3863,6 +3863,7 @@ name = "matching-game-core"
 version = "0.1.0"
 dependencies = [
  "alloy",
+ "bincode",
  "borsh",
  "kairos-trie",
  "serde",
@@ -3875,7 +3876,7 @@ version = "0.1.0"
 dependencies = [
  "abi",
  "alloy",
- "borsh",
+ "bincode",
  "kairos-trie",
  "matching-game-core",
  "risc0-build",
@@ -3892,7 +3893,7 @@ dependencies = [
  "abi",
  "alloy",
  "axum",
- "borsh",
+ "bincode",
  "eyre",
  "http-body-util",
  "kairos-trie",
@@ -3903,7 +3904,6 @@ dependencies = [
  "reqwest 0.11.27",
  "risc0-zkvm",
  "serde",
- "serde_json",
  "tempfile",
  "test-utils",
  "tokio",

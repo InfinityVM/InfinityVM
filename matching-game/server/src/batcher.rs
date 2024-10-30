@@ -74,7 +74,8 @@ pub async fn run_batcher(
             let r = state.get_request(i).ok_or_eyre(format!("batcher: request {i}"))?;
             requests.push(r);
         }
-        let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
+        let requests_bytes =
+            bincode::serialize(&requests).expect("bincode serialization works. qed.");
 
         let pre_txn_merkle_root = state.get_merkle_root();
         // Apply requests to the trie and get the new merkle root and snapshot.
@@ -82,13 +83,14 @@ pub async fn run_batcher(
         // verify the state transition in the zkVM program.
         let (post_txn_merkle_root, snapshot) =
             next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
-        let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
+        let snapshot_bytes =
+            bincode::serialize(&snapshot).expect("bincode serialization works. qed.");
 
-        // Combine requests_borsh and snapshot_serialized
+        // Combine requests_bytes and snapshot_bytes
         let mut combined_offchain_input = Vec::new();
-        combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
-        combined_offchain_input.extend_from_slice(&requests_borsh);
-        combined_offchain_input.extend_from_slice(&snapshot_serialized);
+        combined_offchain_input.extend_from_slice(&(requests_bytes.len() as u32).to_le_bytes());
+        combined_offchain_input.extend_from_slice(&requests_bytes);
+        combined_offchain_input.extend_from_slice(&snapshot_bytes);
         let offchain_input_hash = keccak256(&combined_offchain_input);
 
         let onchain_input = StatefulAppOnchainInput {

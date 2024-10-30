@@ -24,12 +24,14 @@ fn main() {
 
     // We combined the requests and snapshot in offchain input, so we need to split them here.
     let requests_len = u32::from_le_bytes(offchain_input_buf[..4].try_into().unwrap()) as usize;
-    let requests_borsh = offchain_input_buf[4..4 + requests_len].to_vec();
-    let snapshot_serialized = offchain_input_buf[4 + requests_len..].to_vec();
+    let requests_bytes = offchain_input_buf[4..4 + requests_len].to_vec();
+    let snapshot_bytes = offchain_input_buf[4 + requests_len..].to_vec();
 
-    let requests: Vec<Request> = borsh::from_slice(&requests_borsh)
+    let requests: Vec<Request> = bincode::deserialize(&requests_bytes)
         .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
-    let snapshot: Snapshot<Vec<u8>> = serde_json::from_slice(&snapshot_serialized).expect("serde works. qed.");
+    let snapshot: Snapshot<Vec<u8>> = bincode::deserialize(&snapshot_bytes)
+        .expect("TODO: https://github.com/InfinityVM/InfinityVM/issues/296");
+
     let pre_txn_merkle_root = if *input_merkle_root == [0u8; 32] {
         TrieRoot::Empty
     } else {

@@ -33,12 +33,12 @@ pub type Matches = alloy::sol! {
 
 /// Serialize a list of addresses.
 pub fn serialize_address_list(addresses: &Vec<[u8; 20]>) -> Vec<u8> {
-    borsh::to_vec(addresses).expect("borsh works. qed.")
+    bincode::serialize(addresses).expect("bincode serialization works. qed.")
 }
 
 /// Deserialize a list of addresses.
 pub fn deserialize_address_list(data: &[u8]) -> Vec<[u8; 20]> {
-    borsh::from_slice(data).expect("borsh works. qed.")
+    bincode::deserialize(data).expect("bincode deserialization works. qed.")
 }
 
 /// Hash a number to a key hash for the merkle trie.

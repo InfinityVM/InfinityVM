@@ -85,15 +85,15 @@ async fn state_job_submission_matching_game_consumer() {
             (requests2, merkle_root1, merkle_root2),
             (requests3, merkle_root2, merkle_root3),
         ] {
-            let requests_borsh = borsh::to_vec(&requests).unwrap();
+            let requests_bytes = bincode::serialize(&requests).unwrap();
 
             let (_, snapshot) = next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
-            let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
+            let snapshot_bytes = bincode::serialize(&snapshot).unwrap();
 
             let mut combined_offchain_input = Vec::new();
-            combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
-            combined_offchain_input.extend_from_slice(&requests_borsh);
-            combined_offchain_input.extend_from_slice(&snapshot_serialized);
+            combined_offchain_input.extend_from_slice(&(requests_bytes.len() as u32).to_le_bytes());
+            combined_offchain_input.extend_from_slice(&requests_bytes);
+            combined_offchain_input.extend_from_slice(&snapshot_bytes);
             let offchain_input_hash = keccak256(&combined_offchain_input);
 
             let onchain_input = StatefulAppOnchainInput {

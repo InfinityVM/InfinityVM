@@ -50,16 +50,18 @@ mod tests {
         trie_db: Rc<MemoryDb<Vec<u8>>>,
         pre_txn_merkle_root: TrieRoot<NodeHash>,
     ) -> (TrieRoot<NodeHash>, StatefulAppResult) {
-        let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
+        let requests_bytes =
+            bincode::serialize(&requests).expect("bincode serialization works. qed.");
 
         let (post_txn_merkle_root, snapshot) =
             next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
-        let snapshot_serialized = serde_json::to_vec(&snapshot).expect("serde works. qed.");
+        let snapshot_bytes =
+            bincode::serialize(&snapshot).expect("bincode serialization works. qed.");
 
         let mut combined_offchain_input = Vec::new();
-        combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
-        combined_offchain_input.extend_from_slice(&requests_borsh);
-        combined_offchain_input.extend_from_slice(&snapshot_serialized);
+        combined_offchain_input.extend_from_slice(&(requests_bytes.len() as u32).to_le_bytes());
+        combined_offchain_input.extend_from_slice(&requests_bytes);
+        combined_offchain_input.extend_from_slice(&snapshot_bytes);
 
         let onchain_input = StatefulAppOnchainInput {
             input_state_root: get_merkle_root_bytes(pre_txn_merkle_root).into(),
