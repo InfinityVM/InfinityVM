@@ -4,7 +4,7 @@
 
 .PHONY: clippy-ci
 clippy-ci: contracts
-	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked -- --exclude kairos-trie
+	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
 
 .PHONY: clippy
 clippy:
@@ -12,7 +12,7 @@ clippy:
 
 .PHONY: fmt-ci
 fmt-ci: 
-	cargo +nightly fmt --all --check -- --exclude kairos-trie
+	cargo +nightly fmt --all --check
 
 .PHONY: fmt
 fmt:
@@ -24,7 +24,7 @@ lint: clippy fmt
 .PHONY: doc-ci
 doc-ci: contracts
 	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
-	cargo doc --document-private-items --no-deps --exclude kairos-trie
+	cargo doc --document-private-items --no-deps
 
 .PHONY: doc
 doc: contracts
@@ -35,7 +35,7 @@ doc: contracts
 .PHONY: test-all
 test-all: contracts
 	@# Make sure to run the ignored tests
-	cargo test --all --exclude kairos-trie -- --include-ignored --nocapture
+	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: build
 build: contracts

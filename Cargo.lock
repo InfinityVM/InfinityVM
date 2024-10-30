@@ -2589,6 +2589,7 @@ dependencies = [
  "abi",
  "alloy",
  "bincode",
+ "borsh",
  "clob-client",
  "clob-contracts",
  "clob-core",
