@@ -1,202 +1,131 @@
-//! Core logic and types of the matching game.
-//!
-//! Note that everything in here needs to be able to target the ZKVM architecture.
-
-use std::collections::HashMap;
-
-use alloy::{
-    primitives::{utils::keccak256, FixedBytes},
-    sol,
-    sol_types::SolType,
+//! Shared logic and types of the matching game.
+use api::Request;
+use kairos_trie::{
+    stored::{
+        memory_db::MemoryDb,
+        merkle::{Snapshot, SnapshotBuilder},
+        Store,
+    },
+    DigestHasher,
+    Entry::{Occupied, Vacant, VacantEmptyTrie},
+    KeyHash, NodeHash, PortableHash, PortableHasher, Transaction, TrieRoot,
 };
-
-use abi::StatefulAppResult;
-use api::{
-    CancelNumberRequest, CancelNumberResponse, MatchPair, Request, Response, SubmitNumberRequest,
-    SubmitNumberResponse,
-};
-use borsh::{BorshDeserialize, BorshSerialize};
-use serde::{Deserialize, Serialize};
-
+use sha2::Sha256;
+use std::rc::Rc;
 /// Matching game server API types.
 pub mod api;
 
-use crate::api::Match;
-
-/// The state of the universe for the matching game.
-#[derive(
-    Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize, BorshDeserialize, BorshSerialize,
-)]
-pub struct MatchingGameState {
-    /// Map of number to list of addresses that submitted it.
-    pub number_to_addresses: HashMap<u64, Vec<[u8; 20]>>,
-}
-
-impl MatchingGameState {
-    /// Get the map of number to list of addresses that submitted it.
-    pub const fn get_number_to_addresses(&self) -> &HashMap<u64, Vec<[u8; 20]>> {
-        &self.number_to_addresses
-    }
-}
-
-/// Add a submission with a user's favorite number.
-pub fn submit_number(
-    req: SubmitNumberRequest,
-    mut state: MatchingGameState,
-) -> (SubmitNumberResponse, MatchingGameState) {
-    let number = req.number;
-    let address = req.address;
-    let mut match_pair = None;
-
-    // check if the number is already submitted by this address
-    if state
-        .number_to_addresses
-        .get(&number)
-        .map_or(false, |addresses| addresses.contains(&address))
-    {
-        return (SubmitNumberResponse { success: false, match_pair }, state);
-    }
-
-    if let Some(addresses) = state.number_to_addresses.get_mut(&number) {
-        // if the number is already submitted by other addresses, remove the first address in that
-        // list and create a match pair
-        let other_address = addresses.remove(0);
-        match_pair = Some(MatchPair { user1: other_address, user2: address });
-    } else {
-        // if not, add the submission
-        state.number_to_addresses.entry(number).or_default().push(address);
-    }
-
-    (SubmitNumberResponse { success: true, match_pair }, state)
-}
-
-/// Cancel a submission of a number.
-pub fn cancel_number(
-    req: CancelNumberRequest,
-    mut state: MatchingGameState,
-) -> (CancelNumberResponse, MatchingGameState) {
-    let number = req.number;
-    let address = req.address;
-
-    if !state.number_to_addresses.get_mut(&number).map_or(false, |addresses| {
-        addresses.iter().position(|&a| a == address).map(|i| addresses.remove(i)).is_some()
-    }) {
-        return (CancelNumberResponse { success: false }, state);
-    }
-
-    (CancelNumberResponse { success: true }, state)
-}
-
-/// A tick will execute a single request against the matching game state.
-pub fn tick(request: Request, state: MatchingGameState) -> (Response, MatchingGameState) {
-    match request {
-        Request::SubmitNumber(req) => {
-            let (resp, state) = submit_number(req, state);
-            (Response::SubmitNumber(resp), state)
-        }
-        Request::CancelNumber(req) => {
-            let (resp, state) = cancel_number(req, state);
-            (Response::CancelNumber(resp), state)
-        }
+alloy::sol! {
+    /// A pair of users that matched.
+    #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
+    struct Match {
+        /// First user in pair.
+        address user1;
+        /// Second user in pair.
+        address user2;
     }
 }
 
 /// Array of matches. Result from matching game program.
-pub type Matches = sol! {
+pub type Matches = alloy::sol! {
     Match[]
 };
 
-/// State transition function used in the ZKVM. It only outputs balance changes, which are abi
-/// encoded for contract consumption.
-pub fn zkvm_stf(requests: Vec<Request>, mut state: MatchingGameState) -> StatefulAppResult {
+/// Serialize a list of addresses.
+pub fn serialize_address_list(addresses: &Vec<[u8; 20]>) -> Vec<u8> {
+    bincode::serialize(addresses).expect("bincode serialization works. qed.")
+}
+
+/// Deserialize a list of addresses.
+pub fn deserialize_address_list(data: &[u8]) -> Vec<[u8; 20]> {
+    bincode::deserialize(data).expect("bincode deserialization works. qed.")
+}
+
+/// Hash a number to a key hash for the merkle trie.
+pub fn hash(key: u64) -> KeyHash {
+    let hasher = &mut DigestHasher::<Sha256>::default();
+    key.portable_hash(hasher);
+    KeyHash::from_bytes(&hasher.finalize_reset())
+}
+
+/// Get the bytes representation of a merkle root.
+pub fn get_merkle_root_bytes(merkle_root: TrieRoot<NodeHash>) -> [u8; 32] {
+    let maybe_root: Option<[u8; 32]> = merkle_root.into();
+    maybe_root.unwrap_or_default()
+}
+
+/// Apply a list of requests to a trie and return the new merkle root and snapshot.
+pub fn next_state(
+    trie_db: Rc<MemoryDb<Vec<u8>>>,
+    pre_txn_merkle_root: TrieRoot<NodeHash>,
+    requests: &[Request],
+) -> (TrieRoot<NodeHash>, Snapshot<Vec<u8>>, Vec<Match>) {
+    let mut trie_txn =
+        Transaction::from_snapshot_builder(SnapshotBuilder::new(trie_db, pre_txn_merkle_root));
+    let matches = apply_requests(&mut trie_txn, requests);
+
+    let hasher = &mut DigestHasher::<Sha256>::default();
+    let post_txn_merkle_root = trie_txn.commit(hasher).unwrap();
+    let snapshot = trie_txn.build_initial_snapshot();
+
+    (post_txn_merkle_root, snapshot, matches)
+}
+
+/// Apply a list of requests to a trie and return the matches.
+pub fn apply_requests(
+    txn: &mut Transaction<impl Store<Value = Vec<u8>>>,
+    requests: &[Request],
+) -> Vec<Match> {
     let mut matches = Vec::<Match>::with_capacity(requests.len());
 
-    for req in requests {
-        let (resp, next_state) = tick(req, state);
-        if let Response::SubmitNumber(resp) = resp {
-            if let Some(match_pair) = resp.match_pair {
-                let match_struct =
-                    Match { user1: match_pair.user1.into(), user2: match_pair.user2.into() };
-                matches.push(match_struct);
+    for r in requests {
+        match r {
+            Request::SubmitNumber(s) => {
+                let addresses = txn.entry(&hash(s.number)).unwrap();
+                match addresses {
+                    Occupied(mut entry) => {
+                        let mut old_list = deserialize_address_list(entry.get());
+                        if old_list.is_empty() {
+                            // If addresses list is empty, add the new address.
+                            old_list.push(s.address);
+                        } else {
+                            // If addresses list is not empty, we have a match!
+                            let match_pair =
+                                Match { user1: old_list[0].into(), user2: s.address.into() };
+                            matches.push(match_pair);
+
+                            // remove the first element from the list
+                            old_list.remove(0);
+
+                            // TODO: if the list is empty, remove the entry from the trie.
+                        }
+                        let _ = entry.insert(serialize_address_list(&old_list));
+                    }
+                    Vacant(_) | VacantEmptyTrie(_) => {
+                        // If addresses list doesn't exist for this number, create it.
+                        let _ =
+                            txn.insert(&hash(s.number), serialize_address_list(&vec![s.address]));
+                    }
+                }
+            }
+            Request::CancelNumber(c) => {
+                let addresses = txn.entry(&hash(c.number)).unwrap();
+                match addresses {
+                    Occupied(mut entry) => {
+                        let mut old_list = deserialize_address_list(entry.get());
+                        // Remove the user's address from the list.
+                        old_list.remove(old_list.iter().position(|&x| x == c.address).unwrap());
+                        let _ = entry.insert(serialize_address_list(&old_list));
+
+                        // TODO: if the list is empty, remove the entry from the trie.
+                    }
+                    Vacant(_) | VacantEmptyTrie(_) => {
+                        // do nothing
+                    }
+                }
             }
         }
-
-        state = next_state
     }
 
-    matches.sort();
-
-    StatefulAppResult {
-        output_state_root: state.borsh_keccak256(),
-        result: Matches::abi_encode(&matches).into(),
-    }
-}
-
-/// Trait for the keccak256 hash of a borsh serialized type
-pub trait BorshKeccak256 {
-    /// The keccak256 hash of a borsh serialized type
-    fn borsh_keccak256(&self) -> FixedBytes<32>;
-}
-
-impl<T: BorshSerialize> BorshKeccak256 for T {
-    fn borsh_keccak256(&self) -> FixedBytes<32> {
-        let borsh = borsh::to_vec(&self).expect("T is serializable");
-        keccak256(&borsh)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        api::{
-            CancelNumberRequest, CancelNumberResponse, MatchPair, Request, Response,
-            SubmitNumberRequest, SubmitNumberResponse,
-        },
-        tick, MatchingGameState,
-    };
-
-    #[test]
-    fn submit_number_cancel_number() {
-        let matching_game_state = MatchingGameState::default();
-        let bob = [69u8; 20];
-        let alice = [42u8; 20];
-
-        let alice_submit =
-            Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 });
-        let (resp, matching_game_state) = tick(alice_submit, matching_game_state);
-        assert_eq!(
-            Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }),
-            resp
-        );
-        assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(), vec![alice]);
-
-        let bob_submit = Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 });
-        let (resp, matching_game_state) = tick(bob_submit, matching_game_state);
-        assert_eq!(
-            Response::SubmitNumber(SubmitNumberResponse { success: true, match_pair: None }),
-            resp
-        );
-        assert_eq!(*matching_game_state.get_number_to_addresses().get(&42).unwrap(), vec![alice]);
-        assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).unwrap(), vec![bob]);
-
-        let alice_cancel =
-            Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 });
-        let (resp, matching_game_state) = tick(alice_cancel, matching_game_state);
-        assert_eq!(Response::CancelNumber(CancelNumberResponse { success: true }), resp);
-        assert!(matching_game_state.get_number_to_addresses().get(&42).unwrap().is_empty());
-        assert_eq!(*matching_game_state.get_number_to_addresses().get(&69).unwrap(), vec![bob]);
-
-        let alice_second_submit =
-            Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 69 });
-        let (resp, matching_game_state) = tick(alice_second_submit, matching_game_state);
-        assert_eq!(
-            Response::SubmitNumber(SubmitNumberResponse {
-                success: true,
-                match_pair: Some(MatchPair { user1: bob, user2: alice })
-            }),
-            resp
-        );
-        assert!(matching_game_state.get_number_to_addresses().get(&42).unwrap().is_empty());
-        assert!(matching_game_state.get_number_to_addresses().get(&69).unwrap().is_empty());
-    }
+    matches
 }

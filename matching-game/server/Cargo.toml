@@ -1,5 +1,5 @@
 [package]
-name = "matching-game-node"
+name = "matching-game-server"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,26 +8,23 @@ workspace = true
 
 [dependencies]
 axum = { workspace = true }
-alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+alloy = { workspace = true }
 tokio = { workspace = true }
 eyre = { workspace = true }
+reqwest = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 tonic = { workspace = true }
-
-# DB deps
-bytes = { workspace = true }
-borsh = { workspace = true }
+bincode = { workspace = true }
 serde = { workspace = true }
-paste = { workspace = true }
-reth-db-api = { workspace = true }
-reth-db = { workspace = true }
 
 # local deps
 abi = { workspace = true }
 matching-game-core = { workspace = true }
 matching-game-programs = { workspace = true }
 proto = { workspace = true }
+kairos-trie = { workspace = true }
+test-utils = { workspace = true }
 
 # zkvm deps
 risc0-zkvm = { workspace = true }

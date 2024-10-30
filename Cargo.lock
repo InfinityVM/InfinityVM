@@ -86,6 +86,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "aliasable"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2582,6 +2588,7 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
+ "bincode",
  "borsh",
  "clob-client",
  "clob-contracts",
@@ -2593,12 +2600,10 @@ dependencies = [
  "coprocessor-node",
  "db",
  "futures",
- "matching-game-client",
- "matching-game-contracts",
+ "kairos-trie",
  "matching-game-core",
- "matching-game-node",
  "matching-game-programs",
- "matching-game-test-utils",
+ "matching-game-server",
  "mock-consumer",
  "mock-consumer-methods",
  "proto",
@@ -3651,6 +3656,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "kairos-trie"
+version = "0.1.0"
+source = "git+https://github.com/cspr-rad/kairos-trie.git#e649cb702d12f4711714fc37d44a2186b20007f0"
+dependencies = [
+ "bumpalo",
+ "digest 0.10.7",
+ "ouroboros",
+ "serde",
+]
+
+[[package]]
 name = "keccak"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3844,59 +3860,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "matching-game-client"
-version = "0.1.0"
-dependencies = [
- "eyre",
- "matching-game-core",
- "matching-game-node",
- "reqwest 0.11.27",
- "serde",
-]
-
-[[package]]
-name = "matching-game-contracts"
-version = "0.0.1"
-dependencies = [
- "alloy",
-]
-
-[[package]]
 name = "matching-game-core"
 version = "0.1.0"
 dependencies = [
- "abi",
  "alloy",
+ "bincode",
  "borsh",
+ "kairos-trie",
  "serde",
-]
-
-[[package]]
-name = "matching-game-node"
-version = "0.1.0"
-dependencies = [
- "abi",
- "alloy",
- "axum",
- "borsh",
- "bytes",
- "eyre",
- "http-body-util",
- "matching-game-core",
- "matching-game-programs",
- "mime",
- "paste",
- "proto",
- "reth-db",
- "reth-db-api",
- "risc0-zkvm",
- "serde",
- "tempfile",
- "tokio",
- "tonic",
- "tower",
- "tracing 0.1.40",
- "tracing-subscriber 0.3.18",
+ "sha2",
 ]
 
 [[package]]
@@ -3905,22 +3877,39 @@ version = "0.1.0"
 dependencies = [
  "abi",
  "alloy",
- "borsh",
+ "bincode",
+ "kairos-trie",
  "matching-game-core",
- "matching-game-test-utils",
  "risc0-build",
  "risc0-zkvm",
  "zkvm",
 ]
 
 [[package]]
-name = "matching-game-test-utils"
+name = "matching-game-server"
 version = "0.1.0"
 dependencies = [
+ "abi",
  "alloy",
- "matching-game-contracts",
+ "axum",
+ "bincode",
+ "eyre",
+ "http-body-util",
+ "kairos-trie",
  "matching-game-core",
+ "matching-game-programs",
+ "mime",
+ "proto",
+ "reqwest 0.11.27",
+ "risc0-zkvm",
+ "serde",
+ "tempfile",
  "test-utils",
+ "tokio",
+ "tonic",
+ "tower",
+ "tracing 0.1.40",
+ "tracing-subscriber 0.3.18",
 ]
 
 [[package]]
@@ -4348,6 +4337,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "04744f49eae99ab78e0d5c0b603ab218f515ea8cfe5a456d7629ad883a3b6e7d"
 
 [[package]]
+name = "ouroboros"
+version = "0.18.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "944fa20996a25aded6b4795c6d63f10014a7a83f8be9828a11860b08c5fc4a67"
+dependencies = [
+ "aliasable",
+ "ouroboros_macro",
+ "static_assertions",
+]
+
+[[package]]
+name = "ouroboros_macro"
+version = "0.18.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "39b0deead1528fd0e5947a8546a9642a9777c25f6e1e26f34c97b204bbb465bd"
+dependencies = [
+ "heck 0.4.1",
+ "itertools 0.12.1",
+ "proc-macro2",
+ "proc-macro2-diagnostics",
+ "quote",
+ "syn 2.0.76",
+]
+
+[[package]]
 name = "overload"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4659,6 +4673,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5e719e8df665df0d1c8fbfd238015744736151d4445ec0836b8e628aae103b77"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "proc-macro2-diagnostics"
+version = "0.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "af066a9c399a26e020ada66a034357a868728e72cd426f3adcd35f80d88d88c8"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.76",
+ "version_check",
+ "yansi",
 ]
 
 [[package]]
@@ -7798,6 +7825,12 @@ checksum = "05f360fc0b24296329c78fda852a1e9ae82de9cf7b27dae4b7f62f118f77b9ed"
 dependencies = [
  "tap",
 ]
+
+[[package]]
+name = "yansi"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cfe53a6657fd280eaa890a3bc59152892ffa3e30101319d168b781ed6529b049"
 
 [[package]]
 name = "zerocopy"

@@ -1,18 +1,15 @@
 //! Collects requests into batches and submits them to the coprocessor node at some regular
 //! cadence.
-use crate::db::{
-    tables::{GlobalIndexTable, MatchingGameStateTable, RequestTable},
-    NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
-};
+use crate::state::ServerState;
 use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use eyre::OptionExt;
+use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
+use matching_game_core::{get_merkle_root_bytes, next_state};
 use matching_game_programs::MATCHING_GAME_ID;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
-use reth_db::transaction::{DbTx, DbTxMut};
-use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;
-use std::sync::Arc;
+use std::{rc::Rc, sync::Arc};
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
 use tracing::{debug, info, instrument, warn};
@@ -23,28 +20,17 @@ const MAX_CYCLES: u64 = 32 * 1000 * 1000;
 /// First global index that a request will get.
 const INIT_INDEX: u64 = 1;
 
-async fn ensure_initialized<D>(db: Arc<D>) -> eyre::Result<()>
-where
-    D: Database + 'static,
-{
+async fn ensure_initialized(state: Arc<ServerState>) -> eyre::Result<()> {
     loop {
-        let has_processed =
-            db.view(|tx| tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY))??.is_some();
-        if has_processed {
-            let has_next_batch =
-                db.view(|tx| tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY))??.is_some();
-            if !has_next_batch {
-                db.update(|tx| {
-                    tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, INIT_INDEX)
-                })??;
+        if state.get_processed_global_index() > 0 {
+            if state.get_next_batch_global_index() == 0 {
+                state.set_next_batch_global_index(INIT_INDEX);
             }
-
             break;
-        } else {
-            debug!("waiting for the first request to be processed before starting batcher");
-            sleep(Duration::from_millis(1_0000)).await;
-            continue;
         }
+
+        debug!("waiting for the first request to be processed before starting batcher");
+        sleep(Duration::from_millis(1_000)).await;
     }
 
     Ok(())
@@ -52,33 +38,29 @@ where
 
 /// Run the matching game execution engine
 #[instrument(skip_all)]
-pub async fn run_batcher<D>(
-    db: Arc<D>,
+pub async fn run_batcher(
+    state: Arc<ServerState>,
     sleep_duration: Duration,
     signer: K256LocalSigner,
     cn_grpc_url: String,
     consumer_addr: [u8; 20],
-) -> eyre::Result<()>
-where
-    D: Database + 'static,
-{
+) -> eyre::Result<()> {
     // Wait for the system to have at least one processed request from the matching game server
-    ensure_initialized(Arc::clone(&db)).await?;
+    ensure_initialized(Arc::clone(&state)).await?;
     let program_id = Digest::from(MATCHING_GAME_ID).as_bytes().to_vec();
 
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
     let mut interval = tokio::time::interval(sleep_duration);
 
+    let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
+    state.set_merkle_root_batcher(TrieRoot::Empty);
+
     let mut job_nonce = 0;
     loop {
         interval.tick().await;
 
-        let start_index = db
-            .view(|tx| tx.get::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY))??
-            .ok_or_eyre("start_index")?;
-        let end_index = db
-            .view(|tx| tx.get::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY))??
-            .ok_or_eyre("end_index")?;
+        let start_index = state.get_next_batch_global_index();
+        let end_index = state.get_processed_global_index();
 
         if start_index > end_index {
             debug!(start_index, end_index, "skipping batch creation");
@@ -87,37 +69,34 @@ where
 
         info!("creating batch {start_index}..={end_index}");
 
-        let prev_state_index = start_index - 1;
-        let start_state = db
-            .view(|tx| tx.get::<MatchingGameStateTable>(prev_state_index))??
-            .ok_or_eyre("start_state")?
-            .0;
-        tokio::task::yield_now().await;
-
         let mut requests = Vec::with_capacity((end_index - start_index + 1) as usize);
         for i in start_index..=end_index {
-            let r = db
-                .view(|tx| tx.get::<RequestTable>(i))??
-                .ok_or_eyre(format!("batcher: request {i}"))?
-                .0;
+            let r = state.get_request(i).ok_or_eyre(format!("batcher: request {i}"))?;
             requests.push(r);
-            tokio::task::yield_now().await;
         }
+        let requests_bytes =
+            bincode::serialize(&requests).expect("bincode serialization works. qed.");
 
-        let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
-        let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
+        let pre_txn_merkle_root = state.get_merkle_root_batcher();
+        // Apply requests to the trie and get the new merkle root and snapshot.
+        // Snapshot contains the minimal portion of the merkle trie needed to
+        // verify the state transition in the zkVM program.
+        let (post_txn_merkle_root, snapshot, _) =
+            next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
+        let snapshot_bytes =
+            bincode::serialize(&snapshot).expect("bincode serialization works. qed.");
 
-        // Combine requests_borsh and state_borsh
+        // Combine requests_bytes and snapshot_bytes
         let mut combined_offchain_input = Vec::new();
-        combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
-        combined_offchain_input.extend_from_slice(&requests_borsh);
-        combined_offchain_input.extend_from_slice(&state_borsh);
-
+        combined_offchain_input.extend_from_slice(&(requests_bytes.len() as u32).to_le_bytes());
+        combined_offchain_input.extend_from_slice(&requests_bytes);
+        combined_offchain_input.extend_from_slice(&snapshot_bytes);
         let offchain_input_hash = keccak256(&combined_offchain_input);
-        let state_hash = keccak256(&state_borsh);
 
-        let onchain_input =
-            StatefulAppOnchainInput { input_state_root: state_hash, onchain_input: (&[]).into() };
+        let onchain_input = StatefulAppOnchainInput {
+            input_state_root: get_merkle_root_bytes(pre_txn_merkle_root).into(),
+            onchain_input: (&[]).into(),
+        };
         let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
         let job_params = JobParams {
@@ -135,8 +114,8 @@ where
 
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
-        let next_batch_idx = end_index + 1;
-        db.update(|tx| tx.put::<GlobalIndexTable>(NEXT_BATCH_GLOBAL_INDEX_KEY, next_batch_idx))??;
+        state.set_next_batch_global_index(end_index + 1);
+        state.set_merkle_root_batcher(post_txn_merkle_root);
 
         job_nonce += 1;
     }

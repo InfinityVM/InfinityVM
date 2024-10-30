@@ -1,10 +1,10 @@
 //! HTTP client for the matching game node.
 
+use crate::app::{AppResponse, CANCEL, SUBMIT};
 use eyre::bail;
 use matching_game_core::api::{
     CancelNumberRequest, CancelNumberResponse, Response, SubmitNumberRequest, SubmitNumberResponse,
 };
-use matching_game_node::app::{AppResponse, CANCEL, SUBMIT};
 use serde::{de::DeserializeOwned, Serialize};
 
 /// Matching game node client.

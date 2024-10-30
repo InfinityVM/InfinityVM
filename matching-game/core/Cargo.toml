@@ -8,6 +8,8 @@ workspace = true
 
 [dependencies]
 alloy = { workspace = true }
+bincode = { workspace = true }
 borsh = { workspace = true }
 serde = { workspace = true }
-abi = { workspace = true }
+kairos-trie = { workspace = true }
+sha2 = { workspace = true }

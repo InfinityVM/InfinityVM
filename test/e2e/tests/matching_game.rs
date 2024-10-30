@@ -7,18 +7,19 @@ use alloy::{
     sol_types::SolValue,
 };
 use e2e::{Args, E2E};
-use matching_game_contracts::matching_game_consumer::MatchingGameConsumer;
+use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
     api::{
         CancelNumberRequest, CancelNumberResponse, MatchPair, Request, SubmitNumberRequest,
         SubmitNumberResponse,
     },
-    BorshKeccak256, MatchingGameState,
+    get_merkle_root_bytes, next_state,
 };
 use matching_game_programs::MATCHING_GAME_ELF;
-use matching_game_test_utils::next_state;
+use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
+use std::rc::Rc;
 use zkvm_executor::service::OffchainResultWithMetadata;
 
 fn program_id() -> Vec<u8> {
@@ -34,7 +35,6 @@ async fn state_job_submission_matching_game_consumer() {
         let program_id = program_id();
         let matching_game_signer_wallet =
             EthereumWallet::from(matching_game.matching_game_signer.clone());
-        let matching_game_state0 = MatchingGameState::default();
 
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
         let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
@@ -59,44 +59,46 @@ async fn state_job_submission_matching_game_consumer() {
             .wallet(matching_game_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
 
+        let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
+        let merkle_root0 = TrieRoot::Empty;
+
         let requests1 = vec![
             Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 }),
             Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
         ];
-        let matching_game_state1 = next_state(requests1.clone(), matching_game_state0.clone());
+        let (merkle_root1, _, _) = next_state(trie_db.clone(), merkle_root0, &requests1);
 
         let requests2 =
             vec![Request::CancelNumber(CancelNumberRequest { address: alice, number: 42 })];
-        let matching_game_state2 = next_state(requests2.clone(), matching_game_state1.clone());
+        let (merkle_root2, _, _) = next_state(trie_db.clone(), merkle_root1, &requests2);
 
         let requests3 =
             vec![Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 69 })];
-        let matching_game_state3 = next_state(requests3.clone(), matching_game_state2.clone());
+        let (merkle_root3, _, _) = next_state(trie_db.clone(), merkle_root2, &requests3);
 
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
         interval.tick().await; // First tick processes immediately
         let mut nonce = 2;
-        for (requests, init_state, next_state) in [
-            (requests1, &matching_game_state0, &matching_game_state1),
-            (requests2, &matching_game_state1, &matching_game_state2),
-            (requests3, &matching_game_state2, &matching_game_state3),
+
+        for (requests, pre_txn_merkle_root, post_txn_merkle_root) in [
+            (requests1, merkle_root0, merkle_root1),
+            (requests2, merkle_root1, merkle_root2),
+            (requests3, merkle_root2, merkle_root3),
         ] {
-            let requests_borsh = borsh::to_vec(&requests).unwrap();
+            let requests_bytes = bincode::serialize(&requests).unwrap();
 
-            let previous_state_hash = init_state.borsh_keccak256();
-            let state_borsh = borsh::to_vec(&init_state).unwrap();
+            let (_, snapshot, _) = next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
+            let snapshot_bytes = bincode::serialize(&snapshot).unwrap();
 
-            // Combine requests_borsh and state_borsh
             let mut combined_offchain_input = Vec::new();
-            combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
-            combined_offchain_input.extend_from_slice(&requests_borsh);
-            combined_offchain_input.extend_from_slice(&state_borsh);
-
+            combined_offchain_input.extend_from_slice(&(requests_bytes.len() as u32).to_le_bytes());
+            combined_offchain_input.extend_from_slice(&requests_bytes);
+            combined_offchain_input.extend_from_slice(&snapshot_bytes);
             let offchain_input_hash = keccak256(&combined_offchain_input);
 
             let onchain_input = StatefulAppOnchainInput {
-                input_state_root: previous_state_hash,
-                onchain_input: (&[]).into(),
+                input_state_root: get_merkle_root_bytes(pre_txn_merkle_root).into(),
+                onchain_input: [0].into(),
             };
             let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
@@ -144,8 +146,11 @@ async fn state_job_submission_matching_game_consumer() {
 
             {
                 let matching_game_output =
-                    StatefulAppResult::abi_decode(&raw_output, true).unwrap();
-                assert_eq!(matching_game_output.output_state_root, next_state.borsh_keccak256());
+                    StatefulAppResult::abi_decode(&raw_output, false).unwrap();
+                assert_eq!(
+                    *matching_game_output.output_state_root,
+                    get_merkle_root_bytes(post_txn_merkle_root)
+                );
             }
 
             nonce += 1;
@@ -163,7 +168,7 @@ async fn state_job_submission_matching_game_consumer() {
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
-async fn matching_game_node_e2e() {
+async fn matching_game_server_e2e() {
     async fn test(mut args: Args) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
         interval.tick().await; // First tick processes immediately
@@ -175,7 +180,7 @@ async fn matching_game_node_e2e() {
             EthereumWallet::from(matching_game.matching_game_signer.clone());
         let matching_game_endpoint = args.matching_game_endpoint.unwrap();
 
-        let client = matching_game_client::Client::new(matching_game_endpoint);
+        let client = matching_game_server::client::Client::new(matching_game_endpoint);
 
         // Setup ready to use on chain accounts for Alice & Bob
         let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();

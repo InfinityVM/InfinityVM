@@ -1,10 +1,6 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Deserialize, Serialize};
 
-mod program;
-
-pub use program::Match;
-
 /// All possible requests that can go into the matching game engine.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, BorshDeserialize, BorshSerialize)]
 #[serde(rename_all = "camelCase")]
@@ -79,7 +75,7 @@ pub struct MatchPair {
 pub struct SubmitNumberResponse {
     /// If the request was successfully processed.
     pub success: bool,
-    /// The match that occurred.
+    /// The match that occurred (if any).
     pub match_pair: Option<MatchPair>,
 }
 

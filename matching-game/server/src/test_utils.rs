@@ -1,7 +1,6 @@
 //! High level test utilities specifically for the matching game.
 
-use matching_game_core::{api::Request, tick, BorshKeccak256, MatchingGameState};
-
+use crate::contracts::matching_game_consumer::MatchingGameConsumer;
 use alloy::{
     network::EthereumWallet,
     primitives::Address,
@@ -11,7 +10,6 @@ use alloy::{
         local::{LocalSigner, PrivateKeySigner},
     },
 };
-use matching_game_contracts::matching_game_consumer::MatchingGameConsumer;
 use test_utils::{get_signers, AnvilJobManager};
 
 /// Local Signer
@@ -49,8 +47,7 @@ pub async fn matching_game_consumer_deploy(
         .wallet(consumer_owner_wallet)
         .on_http(rpc_url.parse().unwrap());
 
-    let matching_game_state0 = MatchingGameState::default();
-    let init_state_hash: [u8; 32] = matching_game_state0.borsh_keccak256().into();
+    let init_state_hash: [u8; 32] = Default::default();
 
     // Deploy the matching game consumer
     let matching_game_consumer = *MatchingGameConsumer::deploy(
@@ -65,14 +62,4 @@ pub async fn matching_game_consumer_deploy(
     .address();
 
     AnvilMatchingGame { matching_game_signer, matching_game_consumer }
-}
-
-/// Returns the next state given a list of transactions.
-pub fn next_state(txns: Vec<Request>, init_state: MatchingGameState) -> MatchingGameState {
-    let mut next_matching_game_state = init_state;
-    for tx in txns.iter().cloned() {
-        (_, next_matching_game_state) = tick(tx, next_matching_game_state);
-    }
-
-    next_matching_game_state
 }
