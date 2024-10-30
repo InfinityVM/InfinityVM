@@ -56,8 +56,6 @@ pub enum Error {
     /// invalid job request type
     #[error("invalid job request type")]
     InvalidJobRequestType,
-    #[error("internal error - offchain job result missing blob sidecar")]
-    InternalMissingBlobSidecar,
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
