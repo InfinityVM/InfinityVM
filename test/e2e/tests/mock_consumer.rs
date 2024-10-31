@@ -1,4 +1,4 @@
-use abi::{abi_encode_offchain_job_request, get_job_id};
+use abi::{abi_encode_offchain_job_request, get_job_id, JobParams};
 use alloy::{
     network::EthereumWallet,
     primitives::{
@@ -24,7 +24,6 @@ use zkvm_executor::service::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
     OffchainResultWithMetadata, ResultWithMetadata,
 };
-use abi::JobParams;
 
 type MockConsumerOut = sol!((Address, U256));
 
@@ -72,14 +71,14 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Submit job to coproc node
         let nonce = 1;
         let job_id = get_job_id(nonce, mock.mock_consumer);
-
+        let offchain_input_hash = keccak256(vec![]);
         let job_params = JobParams {
             nonce,
             max_cycles: MOCK_CONSUMER_MAX_CYCLES,
             consumer_address: mock.mock_consumer.abi_encode_packed().try_into().unwrap(),
             onchain_input: &mock_user_address.abi_encode(),
             program_id: &program_id,
-            offchain_input_hash: keccak256(vec![]).into(),
+            offchain_input_hash: offchain_input_hash.into(),
         };
 
         // Add signature from user on job request
@@ -120,11 +119,11 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_offchain_result_with_metadata(
             job_id,
             keccak256(&job_result.onchain_input),
-            keccak256(vec![]),
+            offchain_input_hash,
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
-            vec![]
+            vec![],
         );
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();

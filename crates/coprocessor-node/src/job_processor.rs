@@ -259,18 +259,19 @@ where
                 )
                 .await
                 .map(|(meta, sig)| (meta, sig, None)),
-            RequestType::Offchain(_) => zk_executor
-                .execute_offchain_job(
-                    id,
-                    job.max_cycles,
-                    job.program_id.clone(),
-                    job.onchain_input.clone(),
-                    job.offchain_input.clone(),
-                    elf_with_meta.elf,
-                    VmType::Risc0,
-                )
-                .await
-                .map(|(meta, sig, sidecar)| (meta, sig, Some(sidecar))),
+            RequestType::Offchain(_) => {
+                zk_executor
+                    .execute_offchain_job(
+                        id,
+                        job.max_cycles,
+                        job.program_id.clone(),
+                        job.onchain_input.clone(),
+                        job.offchain_input.clone(),
+                        elf_with_meta.elf,
+                        VmType::Risc0,
+                    )
+                    .await
+            }
         };
 
         match result {

@@ -127,7 +127,7 @@ where
         offchain_input: Vec<u8>,
         elf: Vec<u8>,
         vm_type: VmType,
-    ) -> Result<(Vec<u8>, Vec<u8>, BlobTransactionSidecar), Error> {
+    ) -> Result<(Vec<u8>, Vec<u8>, Option<BlobTransactionSidecar>), Error> {
         let hex_program_id = hex::encode(&program_id);
         let vm = self.vm(vm_type)?;
 
@@ -139,23 +139,28 @@ where
 
         let onchain_input_hash = keccak256(&onchain_input);
         let offchain_input_hash = keccak256(&offchain_input);
-        let (raw_output, sidecar): (Vec<u8>, BlobTransactionSidecar) =
-            tokio::task::spawn_blocking(move || {
-                let raw_output = vm
-                    .execute(&elf, &onchain_input, &offchain_input, max_cycles)
-                    .map_err(Error::ZkvmExecuteFailed)?;
+        let (raw_output, sidecar) = tokio::task::spawn_blocking(move || {
+            let raw_output = vm
+                .execute(&elf, &onchain_input, &offchain_input, max_cycles)
+                .map_err(Error::ZkvmExecuteFailed)?;
 
-                // We also build blob sidecars (with proofs) in this blocking task since
-                // it is probably too slow for a standard tokio task
+            // We also build blob sidecars (with proofs) in this blocking task since
+            // it is probably too slow for a standard tokio task
+            let sidecar = if !offchain_input.is_empty() {
                 let sidecar_builder: SidecarBuilder<SimpleCoder> =
                     std::iter::once(offchain_input).collect();
-                let sidecar = sidecar_builder.build()?;
+                Some(sidecar_builder.build()?)
+            } else {
+                None
+            };
 
-                Ok::<(Vec<u8>, BlobTransactionSidecar), Error>((raw_output, sidecar))
-            })
-            .await
-            .expect("spawn blocking join handle is infallible. qed.")?;
+            Ok::<(Vec<u8>, Option<BlobTransactionSidecar>), Error>((raw_output, sidecar))
+        })
+        .await
+        .expect("spawn blocking join handle is infallible. qed.")?;
 
+        let versioned_hashes =
+            sidecar.as_ref().map(|s| s.versioned_hashes().collect()).unwrap_or_default();
         let offchain_result_with_metadata = abi_encode_offchain_result_with_metadata(
             job_id,
             onchain_input_hash,
@@ -163,7 +168,7 @@ where
             max_cycles,
             &program_id,
             &raw_output,
-            sidecar.versioned_hashes().collect(),
+            versioned_hashes,
         );
         let zkvm_operator_signature = self.sign_message(&offchain_result_with_metadata).await?;
 

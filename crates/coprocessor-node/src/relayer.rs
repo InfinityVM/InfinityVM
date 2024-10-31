@@ -161,25 +161,30 @@ impl JobRelayer {
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
         if let RequestType::Offchain(request_signature) = job.request_type {
-
-            let call_builder = if let Some(sidecar) = job.blobs_sidecar {
-                let gas_price = self.job_manager.provider().get_gas_price().await?;
-                self.job_manager
-                    .submitResultForOffchainJob(
+            let call_builder = match job.blobs_sidecar {
+                // Only add the sidecar if there are some blobs. Some offchain jobs might
+                // have no offchain input, and thus no sidecar
+                Some(sidecar) if !sidecar.blobs.is_empty() => {
+                    let gas_price = self.job_manager.provider().get_gas_price().await?;
+                    self.job_manager
+                        .submitResultForOffchainJob(
+                            job.result_with_metadata.into(),
+                            job.zkvm_operator_signature.into(),
+                            job_request_payload.into(),
+                            request_signature.into(),
+                        )
+                        .sidecar(sidecar)
+                        .max_fee_per_blob_gas(gas_price)
+                }
+                _ => {
+                    debug_assert!(job.offchain_input.is_empty());
+                    self.job_manager.submitResultForOffchainJob(
                         job.result_with_metadata.into(),
                         job.zkvm_operator_signature.into(),
                         job_request_payload.into(),
                         request_signature.into(),
                     )
-                    .sidecar(sidecar)
-                    .max_fee_per_blob_gas(gas_price)
-            } else {
-                self.job_manager.submitResultForOffchainJob(
-                    job.result_with_metadata.into(),
-                    job.zkvm_operator_signature.into(),
-                    job_request_payload.into(),
-                    request_signature.into(),
-                )
+                }
             };
 
             let pending_tx = call_builder.send().await.map_err(|error| {
