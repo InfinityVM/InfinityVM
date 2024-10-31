@@ -161,9 +161,9 @@ impl JobRelayer {
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
         if let RequestType::Offchain(request_signature) = job.request_type {
+            // Only add the sidecar if there are some blobs. Some offchain jobs might
+            // have no offchain input, and thus no sidecar
             let call_builder = match job.blobs_sidecar {
-                // Only add the sidecar if there are some blobs. Some offchain jobs might
-                // have no offchain input, and thus no sidecar
                 Some(sidecar) if !sidecar.blobs.is_empty() => {
                     let gas_price = self.job_manager.provider().get_gas_price().await?;
                     self.job_manager
