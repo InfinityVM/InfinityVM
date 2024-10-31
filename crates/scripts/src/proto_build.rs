@@ -15,22 +15,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let out_dir = PathBuf::from(PROTO_CRATE_SRC);
 
     tonic_build::configure()
+        .type_attribute(".coprocessor_node", SERDE_AS)
         .type_attribute(".coprocessor_node", SERDE_SER_DER_DERIVE)
         .type_attribute(".coprocessor_node", SERDE_RENAME_CAMELCASE)
-        .type_attribute(".coprocessor_node.v1.JobResult", SERDE_AS)
-        .type_attribute(".coprocessor_node.v1.JobStatus", SERDE_AS)
+        // .type_attribute(".coprocessor_node.v1.JobStatus", BORSH_SER_DER_DERIVE)
+        // .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_SER_DER_DERIVE)
+        // .type_attribute(".coprocessor_node.v1.JobStatusType", BORSH_USE_DISCRIMINANT_TRUE)
         .field_attribute(".coprocessor_node.v1.JobStatus.failure_reason", SERDE_DEFAULT)
         .field_attribute(".coprocessor_node.v1.JobStatus.retries", SERDE_DEFAULT)
-        .field_attribute(".coprocessor_node.v1.JobResult.id", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.program_elf", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.program_id", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.onchain_input", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.offchain_input_hash", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.request_signature", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.result_with_metadata", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.zkvm_operator_signature", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.consumer_address", SERDE_BYTES_HEX)
-        .field_attribute(".coprocessor_node.v1.JobResult.relay_tx_hash", SERDE_BYTES_HEX)
+        .field_attribute("id", SERDE_BYTES_HEX)
+        .field_attribute("program_elf", SERDE_BYTES_HEX)
+        .field_attribute("program_id", SERDE_BYTES_HEX)
+        .field_attribute("onchain_input", SERDE_BYTES_HEX)
+        .field_attribute("offchain_input_hash", SERDE_BYTES_HEX)
+        .field_attribute("request_signature", SERDE_BYTES_HEX)
+        .field_attribute("result_with_metadata", SERDE_BYTES_HEX)
+        .field_attribute("zkvm_operator_signature", SERDE_BYTES_HEX)
+        .field_attribute("consumer_address", SERDE_BYTES_HEX)
+        .field_attribute("relay_tx_hash", SERDE_BYTES_HEX)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .out_dir(out_dir)
         .compile(
@@ -41,6 +43,43 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             &["proto"],
         )
         .unwrap();
+
+    // tonic_build::configure()
+    //     .type_attribute(".coprocessor_node.v1.JobResult", SERDE_AS)
+    //     .type_attribute(".coprocessor_node.v1.JobStatus", SERDE_AS)
+    //     // .type_attribute(".coprocessor_node.v1.SubmitJobResponse", SERDE_AS)
+    //     // .type_attribute(".coprocessor_node.v1.SubmitJobRequest", SERDE_AS)
+    //     // .type_attribute(".coprocessor_node.v1.GetResultRequest", SERDE_AS)
+    //     // .type_attribute(".coprocessor_node.v1.SubmitProgramRequest", SERDE_AS)
+    //     // .type_attribute(".coprocessor_node.v1.SubmitProgramResponse", SERDE_AS)
+    //     .field_attribute(".coprocessor_node.v1.JobStatus.failure_reason", SERDE_DEFAULT)
+    //     .field_attribute(".coprocessor_node.v1.JobStatus.retries", SERDE_DEFAULT)
+    //     .field_attribute("id", SERDE_BYTES_HEX)
+    //     .field_attribute("program_elf", SERDE_BYTES_HEX)
+    //     .field_attribute("program_id", SERDE_BYTES_HEX)
+    //     .field_attribute("onchain_input", SERDE_BYTES_HEX)
+    //     .field_attribute("offchain_input_hash", SERDE_BYTES_HEX)
+    //     .field_attribute("request_signature", SERDE_BYTES_HEX)
+    //     .field_attribute("result_with_metadata", SERDE_BYTES_HEX)
+    //     .field_attribute("zkvm_operator_signature", SERDE_BYTES_HEX)
+    //     .field_attribute("consumer_address", SERDE_BYTES_HEX)
+    //     .field_attribute("relay_tx_hash", SERDE_BYTES_HEX)
+    //     .field_attribute("request", SERDE_BYTES_HEX)
+    //     .field_attribute("signature", SERDE_BYTES_HEX)
+    //     .field_attribute("offchain_input", SERDE_BYTES_HEX)
+    //     .field_attribute("job_id", SERDE_BYTES_HEX)
+    //     .type_attribute(".coprocessor_node", SERDE_SER_DER_DERIVE)
+    //     .type_attribute(".coprocessor_node", SERDE_RENAME_CAMELCASE)
+    //     .file_descriptor_set_path(out_dir.join("descriptor.bin"))
+    //     .out_dir(out_dir)
+    //     .compile(
+    //         &[
+    //             "proto/coprocessor_node/v1/coprocessor_node.proto",
+    //             "proto/coprocessor_node/v1/job.proto",
+    //         ],
+    //         &["proto"],
+    //     )
+    //     .unwrap();
 
     Ok(())
 }
