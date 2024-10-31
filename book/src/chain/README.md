@@ -18,6 +18,8 @@ By separating consensus and execution, **Infinity is able to rollback the execut
 
 ## Technical Architecture
 
+We have built InfinityBFT on top of [Berachain's Beaconkit](https://github.com/berachain/beacon-kit/tree/main) which provides the base architecture separating consensus from execution.
+
 To better understand the architecture of the Infinity L1 and the optimizations we have made, please read:
 
 - [<u>Block Lifecycle</u>](./lifecycle.md): Overview of the end-to-end lifecycle for proposing blocks, processing blocks, etc.

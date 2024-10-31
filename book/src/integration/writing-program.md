@@ -1,12 +1,12 @@
 # Writing a zkVM Program
 
-The InfinityVM coprocessor runs zkVM programs. While the zkVM abstraction is extensible across SP1, Risc0, Jolt, and more - the current implementation just has support for Risc0. Please let us know if you would like support for another zkVM, its fairly straightforward to add!
+The InfinityVM coprocessor runs zkVM programs. While the zkVM abstraction is extensible across SP1, Risc0, Jolt, and more - the current implementation just has support for Risc0. Please let us know if you would like support for another zkVM, it's fairly straightforward to add!
 
 If you just want to quickly get your hands dirty, head over to the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template). You can fork the repo and we have instructions on how to write a program in the `README`.
 
 ## Structure of a program
 
-A zkVM program is written in a language that compiles down to RISC-V (most commonly Rust). The executable file is commonly referred to as an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format).
+A zkVM program is written in a language that compiles down to RISC-V. The executable file is commonly referred to as an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format).
 
 The logic for a program is:
 
@@ -47,7 +47,6 @@ fn main() {
   // ..
 }
 ```
-Since we are writing in Rust, we're able to easily use the `root()` function in Rust.
 
 Finally, we serialize the output and write it:
 
