@@ -116,7 +116,8 @@ where
     }
 
     /// Checks the verifying key, executes an offchain job on the given inputs, and returns signed
-    /// output. Returns (`offchain_result_with_metadata`, `zkvm_operator_signature`)
+    /// output. Returns (`offchain_result_with_metadata`, `zkvm_operator_signature`,
+    /// `maybe_blobs_sidecar`). If the offchain input is empty, the blobs sidecar will be None.
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_offchain_job(
         &self,
