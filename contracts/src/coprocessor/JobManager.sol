@@ -122,13 +122,16 @@ contract JobManager is
         bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
-        // Make sure the blob hashes match and persist them
+        // Decode the result using abi.decode
         OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
+        require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
+        require(request.offchainInputHash == result.offchainInputHash, "JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
+
+        // Make sure the blob hashes match and persist them
         if (result.versionedBlobHashes.length != 0) {
             for (uint256 i = 0; i < result.versionedBlobHashes.length; i++) {
                 bytes32 contextVersionedHash = blobhash(i);
                 bytes32 userVersionedHash = result.versionedBlobHashes[i];
-
                 require(
                     contextVersionedHash == userVersionedHash, 
                     "JobManager.submitResultForOffchainJob: given blob hash does not match"
@@ -141,9 +144,6 @@ contract JobManager is
         _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
         Consumer(request.consumer).setInputsForJob(jobID, request.onchainInput, request.offchainInputHash);
 
-        // Decode the result using abi.decode
-        require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
-        require(request.offchainInputHash == result.offchainInputHash, "JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
         _submitResult(jobID, result.maxCycles, result.onchainInputHash, result.programID, result.result);
     }
 
