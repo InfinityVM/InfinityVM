@@ -14,7 +14,7 @@ members = [
 	"crates/sdk/abi",
 	"crates/sdk/proto",
 	"crates/sdk/test-utils",
-    "crates/tracing",
+	"crates/tracing",
 	"crates/zkvm",
 	"crates/zkvm-executor",
 	"clob/client",
