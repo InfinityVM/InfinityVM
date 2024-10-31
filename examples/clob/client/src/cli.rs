@@ -30,7 +30,7 @@ impl Cli {
     pub async fn run() -> eyre::Result<()> {
         let args = Self::parse();
 
-        let client = Client::new(args.clob_endpoint.to_owned());
+        let client = Client::new(args.clob_endpoint.clone());
 
         match args.commands {
             Commands::Cancel(a) => {

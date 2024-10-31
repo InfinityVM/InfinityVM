@@ -15,15 +15,8 @@ members = [
 	"crates/zkvm",
 	"crates/zkvm-executor",
     "crates/tracing",
-	"clob/client",
-	"clob/contracts",
-	"clob/core",
-	"clob/node",
-	"clob/programs",
-	"clob/test-utils",
-	"matching-game/core",
-	"matching-game/server",
-	"matching-game/programs",
+	"examples/clob/*",
+	"examples/matching-game/*",
 	"test/e2e",
 	"test/load-test",
 	"programs/risc0/mock-consumer/methods",
@@ -211,18 +204,18 @@ reqwest = { version = "0", features = ["json"] }
 
 # local
 abi = { path = "crates/sdk/abi" }
-clob-client ={ path = "clob/client" }
-clob-contracts ={ path = "clob/contracts" }
-clob-core = { path = "clob/core" }
-clob-node = { path = "clob/node" }
-clob-programs = { path = "clob/programs" }
-clob-test-utils = { path = "clob/test-utils" }
+clob-client ={ path = "examples/clob/client" }
+clob-contracts ={ path = "examples/clob/contracts" }
+clob-core = { path = "examples/clob/core" }
+clob-node = { path = "examples/clob/node" }
+clob-programs = { path = "examples/clob/programs" }
+clob-test-utils = { path = "examples/clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
-matching-game-core = { path = "matching-game/core" }
-matching-game-server = { path = "matching-game/server" }
-matching-game-programs = { path = "matching-game/programs" }
+matching-game-core = { path = "examples/matching-game/core" }
+matching-game-server = { path = "examples/matching-game/server" }
+matching-game-programs = { path = "examples/matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }

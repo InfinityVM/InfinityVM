@@ -6,6 +6,6 @@ pub mod matching_game_consumer {
     alloy::sol! {
       #[sol(rpc)]
       MatchingGameConsumer,
-      "../../contracts/out/MatchingGameConsumer.sol/MatchingGameConsumer.json"
+      "../../../contracts/out/MatchingGameConsumer.sol/MatchingGameConsumer.json"
     }
 }
