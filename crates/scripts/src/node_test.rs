@@ -108,7 +108,7 @@ async fn main() {
     let http_gateway_url = format!("http://{COPROCESSOR_IP}:{COPROCESSOR_HTTP_PORT}");
     let client = reqwest::Client::new();
 
-    let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
+    let get_result_request = GetResultRequest { job_id: job_id.clone() };
     let response = client
         .post(format!("{}/v1/coprocessor_node/get_result", http_gateway_url))
         .json(&get_result_request)
