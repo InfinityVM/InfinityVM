@@ -8,5 +8,4 @@ edition.workspace = true
 tonic = { workspace = true }
 prost = { workspace = true }
 serde = { workspace = true }
-borsh = { workspace = true }
 serde_with = { workspace = true }
