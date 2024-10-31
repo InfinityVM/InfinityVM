@@ -79,7 +79,7 @@ Assuming you organize the main function of your zkVM program as above, you can h
 
 If you're using the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template), you can test and debug your zkVM program itself by following the example [here](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/programs/src/lib.rs) (you can run this using `cargo test`). You can add `dbg!` statements anywhere to help while debugging.
 
-If you're not using the InfinityVM foundry template, you can write unit tests by creating an executor and running the executor with your inputs and zkVM program ELF. An example with the matching game program can be found [here](https://github.com/InfinityVM/InfinityVM/blob/main/matching-game/programs/src/lib.rs#L48) (More info on this in the [Offchain App (Simple): Matching Game](../apps/matching-game.md) section).
+If you're not using the InfinityVM foundry template, you can write unit tests by creating an executor and running the executor with your inputs and zkVM program ELF. An example with the matching game program can be found [here](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/programs/src/lib.rs#L48) (More info on this in the [Offchain App (Simple): Matching Game](../apps/matching-game.md) section).
 
 For integration tests, we recommend reading the [Using your zkVM Program](./using-program.md) section.
 

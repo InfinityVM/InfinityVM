@@ -33,19 +33,19 @@ By running the matching logic in the InfinityVM coprocessor, the game is able to
 
 ## Code Overview
 
-The matching game contract is [`MatchingGameConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/matching-game/MatchingGameConsumer.sol).
+The matching game contract is [`MatchingGameConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/examples/matching-game/MatchingGameConsumer.sol).
 
 All code for the matching game server lives in [`matching-game/`](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game) in the InfinityVM repo. Specifically:
 
-- [server](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server):
-    - [app.rs](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server/src/app.rs): Code for the matching game REST server
-    - [client.rs](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server/src/client.rs): Client to interact with the matching game server
-    - [state.rs](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server/src/state.rs): In-memory game state stored by the server. Includes `requests` which has all the pending requests sent by players.
-    - [engine.rs](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server/src/engine.rs): Execution engine which accepts a request from a player, processes it and updates the server's state, and returns a response (with a player's match if they've been matched)
-    - [batcher.rs](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server/src/batcher.rs): Background service which batches requests and sends them to the InfinityVM coprocessor for matching
-- [core](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/core): Common types and functions with matching logic that are used in both the game server and zkVM program.
+- [server](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server):
+    - [app.rs](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server/src/app.rs): Code for the matching game REST server
+    - [client.rs](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server/src/client.rs): Client to interact with the matching game server
+    - [state.rs](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server/src/state.rs): In-memory game state stored by the server. Includes `requests` which has all the pending requests sent by players.
+    - [engine.rs](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server/src/engine.rs): Execution engine which accepts a request from a player, processes it and updates the server's state, and returns a response (with a player's match if they've been matched)
+    - [batcher.rs](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server/src/batcher.rs): Background service which batches requests and sends them to the InfinityVM coprocessor for matching
+- [core](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/core): Common types and functions with matching logic that are used in both the game server and zkVM program.
 
-The zkVM program for the matching game is [`matching_game.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/matching-game/programs/app/src/matching_game.rs).
+The zkVM program for the matching game is [`matching_game.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/programs/app/src/matching_game.rs).
 
 #### Note: Code organization
 
@@ -92,17 +92,17 @@ The `offchain_input` is borsh-encoded by the CLOB server before submitting to th
 
 The matching game is a stateful app server, and the game server's state contains all pending requests (players who submitted their favorite number but haven't been matched yet). The game stores its state as a merkle trie, to avoid having to pass in the entire state to the zkVM program every time it submits a job request to the coprocessor.
 
-The game server only submits the state root of the merkle trie in `onchain_input` and submits a merkle proof against this root for the relevant requests in `offchain_input`. The code for this is in [batcher.rs](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server/src/batcher.rs). 
+The game server only submits the state root of the merkle trie in `onchain_input` and submits a merkle proof against this root for the relevant requests in `offchain_input`. The code for this is in [batcher.rs](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server/src/batcher.rs). 
 
 In the matching game example, we use the [`kairos-tree`](https://github.com/cspr-rad/kairos-trie/tree/master) library to store and update the merkle trie and generate proofs, but you can use any trie library for this ([`alloy-trie`](https://github.com/alloy-rs/trie) is a common alternative).
 
 ## zkVM program
 
-The zkVM program ([`matching_game.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/matching-game/programs/app/src/matching_game.rs)) takes in `onchain_input` and `offchain_input` as inputs. It does these things:
+The zkVM program ([`matching_game.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/programs/app/src/matching_game.rs)) takes in `onchain_input` and `offchain_input` as inputs. It does these things:
 
 1. Decodes `onchain_input` and `offchain_input`.
 1. Verifies merkle proof against the state root provided in `onchain_input`.
-1. Runs the matching game's state transition function, which matches players given the inputs from the batch in `offchain_input` and the list of pending requests in the game's state. We won't explain this function in detail here, but the code for this is in [`apply_requests`](https://github.com/InfinityVM/InfinityVM/blob/main/matching-game/core/src/lib.rs#L75).
+1. Runs the matching game's state transition function, which matches players given the inputs from the batch in `offchain_input` and the list of pending requests in the game's state. We won't explain this function in detail here, but the code for this is in [`apply_requests`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/core/src/lib.rs#L75).
 1. Returns an ABI-encoded output, which includes the new game state root and a list of matched players which will be processed by the game contract to update the contract's state.
 
 ## Ensuring correctness of the state root
