@@ -1,4 +1,4 @@
-# Offchain Example: CLOB
+# Offchain App (Advanced): CLOB
 
 In this section, we walk through an example of an offchain app server: a central-limit order book (CLOB).
 

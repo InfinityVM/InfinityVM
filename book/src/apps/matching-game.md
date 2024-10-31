@@ -1,4 +1,4 @@
-# Offchain Example (Simple): Matching Game
+# Offchain App (Simple): Matching Game
 
 In this section, we walk through a simple example of an offchain app server: a matching game.
 

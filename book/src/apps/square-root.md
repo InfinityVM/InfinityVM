@@ -1,4 +1,4 @@
-# Onchain Example: Square Root
+# Onchain App: Square Root
 
 In this section, we walk through a simple example of a square root app from the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template). There is no native operation in Solidity to calculate a square root, so we can just write this in Rust to compute square roots in InfinityVM.
 
