@@ -99,7 +99,7 @@ In the matching game example, we use the [`kairos-tree`](https://github.com/cspr
 The zkVM program ([`matching_game.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/matching-game/programs/app/src/matching_game.rs)) takes in `onchain_input` and `offchain_input` as inputs. It does these things:
 
 1. Decodes `onchain_input` and `offchain_input`.
-2. Verifies merkle proof against the state root provided in `onchain_input`.
+1. Verifies merkle proof against the state root provided in `onchain_input`.
 1. Runs the matching game's state transition function, which matches players given the inputs from the batch in `offchain_input` and the list of pending requests in the game's state. We won't explain this function in detail here, but the code for this is in [`apply_requests`](https://github.com/InfinityVM/InfinityVM/blob/main/matching-game/core/src/lib.rs#L75).
 1. Returns an ABI-encoded output, which includes the new game state root and a list of matched players which will be processed by the game contract to update the contract's state.
 
