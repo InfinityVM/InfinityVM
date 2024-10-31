@@ -154,6 +154,7 @@ impl JobRelayer {
 
         Ok(receipt)
     }
+
     /// Submit a completed job to the `JobManager` contract for an offchain job request.
     pub async fn relay_result_for_offchain_job(
         &self,
