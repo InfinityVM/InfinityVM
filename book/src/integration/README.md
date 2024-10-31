@@ -28,8 +28,4 @@ A zkVM program can be run in InfinityVM using two types of job requests: **oncha
 
 ### Examples
 
-We have walked through three examples of building apps with InfinityVM:
-
-- [<u>Onchain App: Square Root</u>](../apps/square-root.md)
-- [<u>Offchain App (Simple): Matching Game</u>](../apps/matching-game.md)
-- [<u>Offchain App (Advanced): CLOB</u>](../apps/clob.md)
+We have walked through three examples of building apps with InfinityVM in the [Example Apps](../apps/README.md) section.
