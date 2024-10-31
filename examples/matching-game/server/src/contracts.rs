@@ -8,4 +8,4 @@ pub mod matching_game_consumer {
       MatchingGameConsumer,
       "../../../contracts/out/MatchingGameConsumer.sol/MatchingGameConsumer.json"
     }
-g}
+}
