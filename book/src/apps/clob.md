@@ -47,7 +47,9 @@ This also allows the `tick` function to be easily unit tested without the restri
 
 ## Onchain state
 
-The only state stored onchain in the CLOB app contract are the user balances for each token.
+The only state stored onchain in the CLOB app contract is:
+1. User balances for each token.
+1. A commitment (merkle root) to the CLOB's offchain state (user balances + order book). This is explained in the [State and merkle trie](./clob.md#state-and-merkle-trie) and [Ensuring correctness of the state root](./clob.md#ensuring-correctness-of-the-state-root) sections below.
 
 ## User actions
 
@@ -82,6 +84,8 @@ struct OffchainJobRequest {
 ```
 
 The CLOB uses `offchain_input` since we need to pass in a large number of orders as input in each batch. This `offchain_input` contains the new batch of orders/cancels/deposits/withdraws. The `offchain_input` is borsh-encoded by the CLOB server before submitting to the coprocessor.
+
+#### State and merkle trie
 
 The CLOB is a stateful app server, and the CLOB's state contains all user balances along with the order book. The CLOB stores its state as a merkle trie. To pass this state to the zkVM program, the CLOB submits the state root in `onchain_input` and submits a merkle proof against this state root for the relevant balances + order book values in `offchain_input` (Note: The merkle trie logic still needs to be implemented for the CLOB. Currently, we just pass in the entire CLOB state to the zkVM program.)
 

@@ -55,7 +55,9 @@ This also allows the `apply_requests` function to be easily unit tested without 
 
 ## Onchain state
 
-The only state stored onchain in the game contract is a mapping which stores which players are paired together.
+The only state stored onchain in the game contract is:
+1. A mapping which stores which players are paired together.
+1. A commitment (merkle root) to the game's offchain state (pending requests from players). This is explained in the [State and merkle trie](./matching-game.md#state-and-merkle-trie) and [Ensuring correctness of the state root](./matching-game.md#ensuring-correctness-of-the-state-root) sections below.
 
 ## Sending job requests to the InfinityVM coprocessor
 
