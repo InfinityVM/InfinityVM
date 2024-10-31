@@ -122,7 +122,7 @@ contract JobManager is
         bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
-        // Make sure the blob hashses match and persist them
+        // Make sure the blob hashes match and persist them
         OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
         if (result.versioned_blob_hashes.length != 0) {
             for (uint256 i = 0; i < result.versioned_blob_hashes.length; i++) {
