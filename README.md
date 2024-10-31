@@ -31,6 +31,7 @@ The following are some of the more important directories in the InfinityVM repos
 │   └── zkvm               // zkVM trait and implementations      
 ├── examples               // Example apps built with InfinityVM
 │   └── clob               // Proof-of-concept CLOB built with InfinityVM
+│   └── matching-game      // Simpler app built with InfinityVM
 ├── programs               // Sample zkVM programs
 ├── proto                  // Proto definitions
 ├── test                   // e2e and load tests for coprocessor and CLOB
