@@ -12,7 +12,7 @@ With InfinityVM, a CLOB is able to solve these problems by running an App Server
 
 ## High-level user flow
 
-The CLOB example only allows users to exchange two tokens: a `baseToken` and a `quoteToken`.
+The CLOB example implements an `OrderBook`, allowing users to exchange two tokens: a `baseToken` and a `quoteToken`.
 
 The user flow looks like this:
 
