@@ -5,6 +5,6 @@ pub mod clob_consumer {
     alloy::sol! {
       #[sol(rpc)]
       ClobConsumer,
-      "../../contracts/out/ClobConsumer.sol/ClobConsumer.json"
+      "../../../contracts/out/ClobConsumer.sol/ClobConsumer.json"
     }
 }

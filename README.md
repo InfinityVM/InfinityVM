@@ -23,13 +23,14 @@ The following are some of the more important directories in the InfinityVM repos
 
 ```shell
 .
-├── clob                   // Proof-of-concept CLOB built with InfinityVM
 ├── contracts              // Onchain business logic
 ├── crates                 // InfinityVM coprocessor
 │   ├── coprocessor-node   // Core logic of coprocessor
 │   ├── db                 // Database for coprocessor node
 │   ├── zkvm-executor      // zkVM interface used by coprocessor
 │   └── zkvm               // zkVM trait and implementations      
+├── examples               // Example apps built with InfinityVM
+│   └── clob               // Proof-of-concept CLOB built with InfinityVM
 ├── programs               // Sample zkVM programs
 ├── proto                  // Proto definitions
 ├── test                   // e2e and load tests for coprocessor and CLOB
