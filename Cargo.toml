@@ -18,11 +18,14 @@ members = [
 	"crates/zkvm",
 	"crates/zkvm-executor",
 	"clob/client",
-	"clob/core",
 	"clob/contracts",
-	"clob/programs",
+	"clob/core",
 	"clob/node",
+	"clob/programs",
 	"clob/test-utils",
+	"matching-game/core",
+	"matching-game/server",
+	"matching-game/programs",
 	"test/e2e",
 	"test/load-test",
 	"programs/risc0/mock-consumer/methods",
@@ -121,6 +124,7 @@ alloy = { version = "0.2", features = ["sol-types"], default-features = false }
 async-channel = { version = "2", default-features = false }
 
 # b
+bincode = { version = "1.3", default-features = false }
 borsh = { version = "1", features = ["derive", "std"], default-features = false }
 bincode = { version = "1", default-features = false }
 
@@ -148,6 +152,7 @@ home = { version = "0.5", default-features = false }
 # j
 # k
 k256 = { version = "0.13", default-features = false }
+kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = ["serde"] }
 
 # l
 # m
@@ -219,6 +224,9 @@ contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
 eip4844 = { path = "crates/eip4844" }
+matching-game-core = { path = "matching-game/core" }
+matching-game-server = { path = "matching-game/server" }
+matching-game-programs = { path = "matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
