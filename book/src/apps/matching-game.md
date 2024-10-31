@@ -90,7 +90,9 @@ The `offchain_input` is borsh-encoded by the CLOB server before submitting to th
 
 The matching game is a stateful app server, and the game server's state contains all pending requests (players who submitted their favorite number but haven't been matched yet). The game stores its state as a merkle trie, to avoid having to pass in the entire state to the zkVM program every time it submits a job request to the coprocessor.
 
-The game server only submits the state root of the merkle trie in `onchain_input` and submits a merkle proof against this root for the relevant requests in `offchain_input`. The code for this is in [batcher.rs](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server/src/batcher.rs). In the matching game example, we use the [`kairos-tree`](https://github.com/cspr-rad/kairos-trie/tree/master) library to store and update the merkle trie and generate proofs, but you can use any trie library for this ([`alloy-trie`](https://github.com/alloy-rs/trie) is a common alternative).
+The game server only submits the state root of the merkle trie in `onchain_input` and submits a merkle proof against this root for the relevant requests in `offchain_input`. The code for this is in [batcher.rs](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game/server/src/batcher.rs). 
+
+In the matching game example, we use the [`kairos-tree`](https://github.com/cspr-rad/kairos-trie/tree/master) library to store and update the merkle trie and generate proofs, but you can use any trie library for this ([`alloy-trie`](https://github.com/alloy-rs/trie) is a common alternative).
 
 ## zkVM program
 
