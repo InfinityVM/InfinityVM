@@ -61,7 +61,7 @@ The only state stored onchain in the game contract is a mapping which stores whi
 
 The game server batches `SubmitNumber/CancelNumber` requests from players and sends offchain job requests to the InfinityVM coprocessor.
 
-From [Offchain Jobs](./offchain.md), the API for submitting a job to the coprocessor is:
+From [Offchain Jobs](../integration/offchain.md), the API for submitting a job to the coprocessor is:
 
 ```rust,ignore
 message SubmitJobRequest {
@@ -105,6 +105,6 @@ The zkVM program ([`matching_game.rs`](https://github.com/InfinityVM/InfinityVM/
 
 ## Ensuring correctness of the state root
 
-In [Stateful App Servers](./offchain.md#stateful-app-servers), we discussed the problem of ensuring the correctness of the state root submitted by an app server to the coprocessor.
+In [Stateful App Servers](../integration/offchain.md#stateful-app-servers), we discussed the problem of ensuring the correctness of the state root submitted by an app server to the coprocessor.
 
 The `MatchingGameConsumer` contract implements the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface, to verify that the state root submitted by the game server in the job request is correct.

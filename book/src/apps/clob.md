@@ -63,7 +63,7 @@ A user can perform these actions:
 
 The CLOB server batches user orders and sends offchain job requests to the InfinityVM coprocessor.
 
-From [Offchain Jobs](./offchain.md), the API for submitting a job to the coprocessor is:
+From [Offchain Jobs](../integration/offchain.md), the API for submitting a job to the coprocessor is:
 
 ```rust,ignore
 message SubmitJobRequest {
@@ -109,6 +109,6 @@ The CLOB contract receives this list of state updates and processes it to update
 
 ## Ensuring correctness of the state root
 
-In [Stateful App Servers](./offchain.md#stateful-app-servers), we discussed the problem of ensuring the correctness of the state root submitted by an app server to the coprocessor.
+In [Stateful App Servers](../integration/offchain.md#stateful-app-servers), we discussed the problem of ensuring the correctness of the state root submitted by an app server to the coprocessor.
 
 The `ClobConsumer` contract implements the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface, to verify that the state root submitted by the CLOB server in the job request is correct.
