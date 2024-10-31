@@ -82,7 +82,7 @@ With this architecture, an app can provide real-time experiences to users via th
 
 Apps can also choose how to scale their infrastructure. Since it's a server, you can easily use battle-tested web2 scalability solutions.
 
-We walk through a detailed example of building an app server in [Offchain Example: CLOB](./clob.md).
+We walk through detailed examples of building an app server in [Offchain App (Simple): Matching Game](../apps/matching-game.md) and [Offchain App (Advanced): CLOB](../apps/clob.md).
 
 ### Stateful App Servers
 
@@ -90,9 +90,9 @@ Some app servers might be "stateful", i.e. they maintain some state, which is pa
 
 ![stateful app server](../assets/stateful-app-server.png)
 
-An app can store its state in a merkleized form. It can pass this state to its zkVM program by submitting the state root in `onchain_input` and merkle proofs against this state root in `offchain_input` for the relevant state values used in the zkVM program (Example of this coming soon...).
+An app can store its state as a merkle trie. It can pass this state to its zkVM program by submitting the state root in `onchain_input` and a merkle proof against this state root in `offchain_input` for the relevant state values used in the zkVM program. We walk through an example of this in [Offchain App (Simple): Matching Game](../apps/matching-game.md).
 
-This raises an interesting problem: how do we ensure that app servers submit the correct state root to the coprocessor? For example, if the latest state root on the app contract is `X` but the app server submits `Y` as the state root in `onchain_input` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the state root submitted by the app server in the job request matches the most recent state root in the app contract.
+This raises an interesting problem: how do we ensure that app servers submit the correct state root to the coprocessor? For example, if the latest state root on the app contract is `X` but the app server submits `Y` as the state root in `onchain_input` in the next job request, how do we prevent this? To solve this, we have created the [`StatefulConsumer`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/coprocessor/StatefulConsumer.sol) interface which your app contract can inherit. This adds a few checks in `receiveResult()` which verify that the input state root submitted by the app server in the job request matches the most recent state root in the app contract.
 
 If your app implements `StatefulConsumer`, it should structure its `onchain_input` and output from the zkVM program like this:
 ```rust,ignore
@@ -134,4 +134,4 @@ Specifically, you just need to call `requestOffchainJob()` in the foundry tests 
 
 #### Testing an App Server
 
-Because of the limitations of foundry, we don't have an SDK to write end-to-end tests for an app server in Solidity. Instead, you would need to write tests for your app server similar to how you would write end-to-end tests for any multi service setup. For example, we have written end-to-end tests for the [CLOB app server example](./clob.md) in the [`clob.rs` file](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/tests/clob.rs) in Rust. You can take a look at the [test harness](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/src/lib.rs) for inspiration.
+Because of the limitations of foundry, we don't have an SDK to write end-to-end tests for an app server in Solidity. Instead, you would need to write tests for your app server similar to how you would write end-to-end tests for any multi service setup. For example, we have written end-to-end tests for the [Matching Game example](../apps/matching-game.md) in the [`matching_game.rs` file](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/tests/matching_game.rs) in Rust. You can take a look at the [test harness](https://github.com/InfinityVM/InfinityVM/blob/main/test/e2e/src/lib.rs) for inspiration.
