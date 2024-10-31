@@ -35,7 +35,7 @@ interface IJobManager {
         uint64 maxCycles;
         bytes programID;
         bytes result;
-        bytes32[] versioned_blob_hashes;
+        bytes32[] versionedBlobHashes;
     }
 
     struct OffchainJobRequest {

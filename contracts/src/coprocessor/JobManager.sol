@@ -124,17 +124,17 @@ contract JobManager is
 
         // Make sure the blob hashes match and persist them
         OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
-        if (result.versioned_blob_hashes.length != 0) {
-            for (uint256 i = 0; i < result.versioned_blob_hashes.length; i++) {
+        if (result.versionedBlobHashes.length != 0) {
+            for (uint256 i = 0; i < result.versionedBlobHashes.length; i++) {
                 bytes32 contextVersionedHash = blobhash(i);
-                bytes32 userVersionedHash = result.versioned_blob_hashes[i];
+                bytes32 userVersionedHash = result.versionedBlobHashes[i];
 
                 require(
                     contextVersionedHash == userVersionedHash, 
                     "JobManager.submitResultForOffchainJob: given blob hash does not match"
                 );
             }
-            jobIDToBlobhashes[jobID] = result.versioned_blob_hashes;
+            jobIDToBlobhashes[jobID] = result.versionedBlobHashes;
         }
 
         // Create a job without emitting an event and set onchain input and offchain input hash on consumer
