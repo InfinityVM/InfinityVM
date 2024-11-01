@@ -59,10 +59,7 @@ impl RequestAndResultSigner {
         );
 
         // Sign the message
-        let private_key_hex = env::var("COPROCESSOR_OPERATOR_PRIVATE_KEY")
-            .expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
-        let decoded = hex::decode(private_key_hex).unwrap(); // Replace with your actual private key
-        let signer = K256LocalSigner::from_slice(&decoded).unwrap();
+        let signer = get_coprocessor_operator_private_key();
         let signature = signer.sign_message(&encoded_result).await.unwrap();
 
         println!("Encoded onchain result: {}", hex::encode(&encoded_result));
@@ -112,6 +109,7 @@ impl RequestAndResultSigner {
         let zero_addr: Address = Address::ZERO;
         let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
 
+        let offchain_input = get_offchain_input();
         let signer = get_coprocessor_operator_private_key();
 
         let (encoded_job_request, signature) = create_and_sign_offchain_request(
@@ -121,7 +119,7 @@ impl RequestAndResultSigner {
             Address::abi_encode(&zero_addr).as_slice(),
             PROGRAM_ID,
             signer,
-            &[],
+            &offchain_input,
         )
         .await;
 
