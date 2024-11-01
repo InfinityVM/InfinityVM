@@ -14,6 +14,36 @@ The InfinityVM team ships a Rust gRPC client, which can be found in the [`proto`
 
 Note that for json encoding request and response types, all `Vec<u8>` are encoded as hex strings.
 
+### `/coprocessor_node.v1.CoprocessorNode/SubmitProgram`
+
+#### Description
+
+Submit a zkVM program binary. This endpoint will validate the program binary and persist it in the network.
+
+#### Details
+
+HTTP gateway URL: `/v1/coprocessor_node/submit_program`
+
+Request
+
+```rust
+pub struct SubmitProgramRequest {
+    /// The compiled zkVM program ELF.
+    pub program_elf: Vec<u8>,
+    /// Type of ZKVM to execute.
+    pub vm_type: i32,
+}
+```
+
+Response
+
+```rust
+pub struct SubmitProgramResponse {
+    /// The ZK program verification key.
+    pub program_id: Vec<u8>,
+}
+```
+
 ### `/coprocessor_node.v1.CoprocessorNode/SubmitJob`
 
 #### Description
@@ -114,35 +144,5 @@ pub enum JobStatusType {
     Done = 2,
     Failed = 3,
     Relayed = 4,
-}
-```
-
-### `/coprocessor_node.v1.CoprocessorNode/SubmitProgram`
-
-#### Description
-
-Submit a zkVM program binary. This endpoint will validate the program binary and persist it in the network.
-
-#### Details
-
-HTTP gateway URL: `/v1/coprocessor_node/submit_program`
-
-Request
-
-```rust
-pub struct SubmitProgramRequest {
-    /// The compiled zkVM program ELF.
-    pub program_elf: Vec<u8>,
-    /// Type of ZKVM to execute.
-    pub vm_type: i32,
-}
-```
-
-Response
-
-```rust
-pub struct SubmitProgramResponse {
-    /// The ZK program verification key.
-    pub program_id: Vec<u8>,
 }
 ```

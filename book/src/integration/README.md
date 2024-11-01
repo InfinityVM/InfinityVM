@@ -1,10 +1,12 @@
 # Building with InfinityVM
 
- InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications. This section discusses key concepts for building an app with InfinityVM.
+InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications. This section discusses key concepts for building an app with InfinityVM.
 
 ## Overview
 
-The InfinityVM coprocessor allows developers to run a zkVM program with any set of inputs and then use the results onchain. A zkVM program is written in a language that compiles down to RISC-V (most commonly Rust). It accepts any inputs, runs some compute using these inputs, and then returns the result.
+The InfinityVM coprocessor allows developers to run offchain compute to supplement or entirely replace their smart contract applications. 
+
+To make this safe and efficient, we utilize zkVMs. A zkVM program is written in a language that compiles down to RISC-V. It accepts any inputs, runs some compute using these inputs, and then returns the result. A zk proof can then be generated to prove the correctness of this execution, enabling anyone to cheaply verify this offchain work.
 
 The high-level flow looks like this:
 
@@ -16,7 +18,7 @@ The high-level flow looks like this:
 
 ![coprocessor flow](../assets/coprocessor-overview.png)
 
-Importantly, InfinityVM guarantees that the canonical execution chain only contains valid job results.
+Importantly, InfinityVM guarantees that the canonical execution chain only contains valid job results. This is explained in more depth [here](../chain/fork-choice.md).
 
 ### Writing a zkVM Program
 
