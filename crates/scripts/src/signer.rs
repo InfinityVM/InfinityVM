@@ -6,14 +6,13 @@ use alloy::{
     sol_types::{SolType, SolValue},
 };
 use dotenv::dotenv;
+use eip4844::{SidecarBuilder, SimpleCoder};
 use k256::ecdsa::SigningKey;
 use std::env;
 use test_utils::create_and_sign_offchain_request;
 use zkvm_executor::service::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
 };
-use eip4844::SidecarBuilder;
-use eip4844::SimpleCoder;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -29,8 +28,7 @@ const COPROCESSOR_OPERATOR_PRIVATE_KEY: &str = "COPROCESSOR_OPERATOR_PRIVATE_KEY
 pub struct RequestAndResultSigner;
 
 fn get_offchain_input() -> Vec<u8> {
-    let hex_value = env::var(OFFCHAIN_INPUT)
-        .unwrap_or_default();
+    let hex_value = env::var(OFFCHAIN_INPUT).unwrap_or_default();
 
     hex::decode(hex_value).unwrap_or_default()
 }
@@ -38,7 +36,7 @@ fn get_offchain_input() -> Vec<u8> {
 fn get_coprocessor_operator_private_key() -> K256LocalSigner {
     let private_key_hex = env::var(COPROCESSOR_OPERATOR_PRIVATE_KEY)
         .expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
-    let decoded = hex::decode(private_key_hex).unwrap(); 
+    let decoded = hex::decode(private_key_hex).unwrap();
     K256LocalSigner::from_slice(&decoded).unwrap()
 }
 
@@ -73,9 +71,11 @@ impl RequestAndResultSigner {
         let zero_addr: Address = Address::ZERO;
 
         let offchain_input = get_offchain_input();
+        dbg!(hex::encode(&offchain_input));
 
         let versioned_blob_hashes = {
-            let sidecar_builder: SidecarBuilder<SimpleCoder> = std::iter::once(offchain_input.clone()).collect();
+            let sidecar_builder: SidecarBuilder<SimpleCoder> =
+                std::iter::once(offchain_input.clone()).collect();
             let sidecar = sidecar_builder.build();
             let versioned_blob_hashes =
                 sidecar.as_ref().map(|s| s.versioned_hashes().collect()).unwrap_or_default();
@@ -98,8 +98,14 @@ impl RequestAndResultSigner {
         let signer = get_coprocessor_operator_private_key();
         let signature = signer.sign_message(&encoded_result).await.unwrap();
 
-        println!("Encoded offchain result (offchainResultWithMetadata): {}", hex::encode(&encoded_result));
-        println!("Signature for encoded offchain result (signatureOnResult): {}", hex::encode(signature.as_bytes()));
+        println!(
+            "Encoded offchain result (offchainResultWithMetadata): {}",
+            hex::encode(&encoded_result)
+        );
+        println!(
+            "Signature for encoded offchain result (signatureOnResult): {}",
+            hex::encode(signature.as_bytes())
+        );
     }
 
     /// Sign an offchain job request
@@ -124,7 +130,10 @@ impl RequestAndResultSigner {
         .await;
 
         println!("Encoded job request (jobRequest): {}", hex::encode(&encoded_job_request));
-        println!("Signature for encoded job request (signatureOnRequest): {}", hex::encode(signature));
+        println!(
+            "Signature for encoded job request (signatureOnRequest): {}",
+            hex::encode(signature)
+        );
     }
 }
 
