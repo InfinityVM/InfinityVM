@@ -1,14 +1,14 @@
 # Building with InfinityVM
 
- InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications. This section discusses key concepts for building an app with InfinityVM.
+InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications. This section discusses key concepts for building an app with InfinityVM.
 
 ## Overview
 
-The InfinityVM coprocessor works by separating application logic from settlement logic. Application logic can run entirely offchain, giving users the experience of a Web2 server. Settlement happens on the decentralized base-layer.
+The InfinityVM coprocessor works by separating application logic from settlement logic. Application logic can run entirely offchain, giving users the experience of a Web2 server. Settlement (balance transfers or state changes) happens on the decentralized base-layer.
 
-To make this safe and efficient, we utilize zkVMs. Developers define their settlement logic as a zkVM program with a set of public inputs. These inputs come from user input to the application server. The result of this settlement is then used onchain.
+To make this safe and efficient, we utilize zkVMs. A zkVM program is written in a language that compiles down to RISC-V. It accepts any inputs, runs some compute using these inputs, and then returns the result.
 
-A zkVM program is written in a language that compiles down to RISC-V (most commonly Rust). It accepts any inputs, runs some compute using these inputs, and then returns the result.
+Developers define their settlement logic as a zkVM program with a set of public inputs. These inputs come from user input to the application server. The result of this settlement is then used onchain.
 
 The high-level flow looks like this:
 

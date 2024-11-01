@@ -1,6 +1,6 @@
 # Onchain Jobs
 
-For building an app which uses onchain jobs, we recommend forking the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template/tree/main). We have instructions in the `README` to get started.
+For building an app which uses onchain jobs, we recommend forking the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template/tree/main). We have similar instructions in the template's `README` to get started.
 
 ## Writing your app contract
 
