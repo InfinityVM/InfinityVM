@@ -4,11 +4,9 @@ InfinityVM enables developers to use expressive offchain compute alongside the E
 
 ## Overview
 
-The InfinityVM coprocessor works by separating application logic from settlement logic. Application logic can run entirely offchain, giving users the experience of a Web2 server. Settlement (balance transfers or state changes) happens on the decentralized base-layer.
+The InfinityVM coprocessor allows developers to run offchain compute to supplement or entirely replace their smart contract applications. 
 
-To make this safe and efficient, we utilize zkVMs. A zkVM program is written in a language that compiles down to RISC-V. It accepts any inputs, runs some compute using these inputs, and then returns the result.
-
-Developers define their settlement logic as a zkVM program with a set of public inputs. These inputs come from user input to the application server. The result of this settlement is then used onchain.
+To make this safe and efficient, we utilize zkVMs. A zkVM program is written in a language that compiles down to RISC-V. It accepts any inputs, runs some compute using these inputs, and then returns the result. A zk proof can then be generated to prove the correctness of this execution, enabling anyone to cheaply verify this offchain work.
 
 The high-level flow looks like this:
 
