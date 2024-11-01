@@ -127,7 +127,9 @@ contract JobManager is
         require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
         require(request.offchainInputHash == result.offchainInputHash, "JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
 
-        // Make sure the blob hashes match and persist them
+        // Make sure the blob hashes match and persist them.
+        // Note: `blobhash` is a special opcode introduced in cancun
+        // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md#opcode-to-get-versioned-hashes
         if (result.versionedBlobHashes.length != 0) {
             for (uint256 i = 0; i < result.versionedBlobHashes.length; i++) {
                 bytes32 contextVersionedHash = blobhash(i);

@@ -6094,6 +6094,7 @@ dependencies = [
  "clob-test-utils",
  "contracts",
  "dotenv",
+ "eip4844",
  "intensity-test-methods",
  "k256",
  "mock-consumer",
