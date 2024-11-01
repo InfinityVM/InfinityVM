@@ -23,6 +23,6 @@ To better understand the architecture of the Infinity L1 and the optimizations w
 - [<u>Block Lifecycle</u>](./lifecycle.md): Overview of the end-to-end lifecycle for proposing blocks, processing blocks, etc.
 - [<u>Optimistic Payload Building</u>](./optimistic-payload.md): Performance optimization to prematurely build execution payloads.
 - [<u>Fork Choice</u>](./fork-choice.md): Enshrining offchain compute into the fork choice of the Infinity L1.
-- [<u>DA</u>](./da.md): Single slot finality DA in lockstep with Infinity L1 blocks to facilitate native coprocessing.
+- [<u>DA</u>](./da.md): DA in Infinity L1 blocks to support offchain compute.
 
 **Note:** It isn't required to understand any of these sections to build with InfinityVM.

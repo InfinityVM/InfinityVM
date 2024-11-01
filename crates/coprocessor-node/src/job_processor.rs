@@ -258,7 +258,7 @@ where
                     VmType::Risc0,
                 )
                 .await
-                .map(|(meta, sig)| (meta, sig, None)),
+                .map(|(result_with_metadata, signature)| (result_with_metadata, signature, None)),
             RequestType::Offchain(_) => {
                 zk_executor
                     .execute_offchain_job(
