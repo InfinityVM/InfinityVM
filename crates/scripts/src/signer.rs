@@ -20,22 +20,23 @@ const MAX_CYCLES: u64 = 1_000_000;
 const PROGRAM_ID: &[u8] = b"programID";
 const NONCE: u64 = 1;
 const CONSUMER_ADDR: &str = "0xBb2180ebd78ce97360503434eD37fcf4a1Df61c3";
-const OFFCHAIN_INPUT: &str = "OFFCHAIN_INPUT";
 const COPROCESSOR_OPERATOR_PRIVATE_KEY: &str = "COPROCESSOR_OPERATOR_PRIVATE_KEY";
+const OFFCHAIN_SIGNER_PRIVATE_KEY: &str = "OFFCHAIN_SIGNER_PRIVATE_KEY";
 
 /// Script to generate ABI-encoded responses + signatures for the coprocessor contract tests
 #[derive(Debug)]
 pub struct RequestAndResultSigner;
 
-fn get_offchain_input() -> Vec<u8> {
-    let hex_value = env::var(OFFCHAIN_INPUT).unwrap_or_default();
-
-    hex::decode(hex_value).unwrap_or_default()
-}
-
 fn get_coprocessor_operator_private_key() -> K256LocalSigner {
     let private_key_hex = env::var(COPROCESSOR_OPERATOR_PRIVATE_KEY)
         .expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
+    let decoded = hex::decode(private_key_hex).unwrap();
+    K256LocalSigner::from_slice(&decoded).unwrap()
+}
+
+fn get_offchain_signer_private_key() -> K256LocalSigner {
+    let private_key_hex = env::var(OFFCHAIN_SIGNER_PRIVATE_KEY)
+        .expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");
     let decoded = hex::decode(private_key_hex).unwrap();
     K256LocalSigner::from_slice(&decoded).unwrap()
 }
@@ -60,8 +61,11 @@ impl RequestAndResultSigner {
         let signer = get_coprocessor_operator_private_key();
         let signature = signer.sign_message(&encoded_result).await.unwrap();
 
-        println!("Encoded onchain result: {}", hex::encode(&encoded_result));
-        println!("Signature for encoded onchain result: {}", hex::encode(signature.as_bytes()));
+        println!("Encoded onchain result (resultWithMetadata): {}", hex::encode(&encoded_result));
+        println!(
+            "Signature for encoded onchain result (signatureOnResult): {}",
+            hex::encode(signature.as_bytes())
+        );
     }
 
     /// Sign a result for a job requested offchain
@@ -70,7 +74,7 @@ impl RequestAndResultSigner {
 
         let zero_addr: Address = Address::ZERO;
 
-        let offchain_input = get_offchain_input();
+        let offchain_input = Address::abi_encode(&zero_addr);
         dbg!(hex::encode(&offchain_input));
 
         let versioned_blob_hashes = {
@@ -115,8 +119,8 @@ impl RequestAndResultSigner {
         let zero_addr: Address = Address::ZERO;
         let consumer_addr: Address = Address::parse_checksummed(CONSUMER_ADDR, None).unwrap();
 
-        let offchain_input = get_offchain_input();
-        let signer = get_coprocessor_operator_private_key();
+        let offchain_input = Address::abi_encode(&zero_addr);
+        let signer = get_offchain_signer_private_key();
 
         let (encoded_job_request, signature) = create_and_sign_offchain_request(
             NONCE,
