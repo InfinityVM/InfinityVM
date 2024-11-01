@@ -100,6 +100,7 @@ where
                 retries: 0,
             },
             relay_tx_hash: vec![],
+            blobs_sidecar: None,
         };
 
         self.intake_service

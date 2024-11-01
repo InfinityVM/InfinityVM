@@ -115,7 +115,7 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
         .block_time_f64(1.0)
         .port(port)
         // 1000 dev accounts generated and configured
-        .args(["-a", "1000"])
+        .args(["-a", "1000", "--hardfork", "cancun"])
         .try_spawn()
         .unwrap();
 

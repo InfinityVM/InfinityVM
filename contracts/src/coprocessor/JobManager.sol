@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.28;
 
 import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED} from "./IJobManager.sol";
 import {Consumer} from "./Consumer.sol";
@@ -28,6 +28,8 @@ contract JobManager is
 
     // Mapping from job ID --> job metadata
     mapping(bytes32 => JobMetadata) public jobIDToMetadata;
+    // Mapping from job ID --> versioned blob hashes
+    mapping(bytes32 => bytes32[]) public jobIDToBlobhashes;
     // storage gap for upgradeability
     uint256[50] private __GAP;
 
@@ -120,14 +122,30 @@ contract JobManager is
         bytes32 resultHash = ECDSA.toEthSignedMessageHash(offchainResultWithMetadata);
         require(ECDSA.tryRecover(resultHash, signatureOnResult) == coprocessorOperator, "JobManager.submitResultForOffchainJob: Invalid signature on result");
 
-        // Create a job without emitting an event and set onchain input and offchain input hash on consumer
-        _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
-        Consumer(request.consumer).setInputsForJob(jobID, request.onchainInput, request.offchainInputHash);
-
         // Decode the result using abi.decode
         OffchainResultWithMetadata memory result = abi.decode(offchainResultWithMetadata, (OffchainResultWithMetadata));
         require(jobID == result.jobID, "JobManager.submitResultForOffchainJob: job ID signed by coprocessor doesn't match job ID of job request");
         require(request.offchainInputHash == result.offchainInputHash, "JobManager.submitResultForOffchainJob: offchain input hash signed by coprocessor doesn't match offchain input hash of job request");
+
+        // Make sure the blob hashes match and persist them.
+        // Note: `blobhash` is a special opcode introduced in cancun
+        // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-4844.md#opcode-to-get-versioned-hashes
+        if (result.versionedBlobHashes.length != 0) {
+            for (uint256 i = 0; i < result.versionedBlobHashes.length; i++) {
+                bytes32 contextVersionedHash = blobhash(i);
+                bytes32 userVersionedHash = result.versionedBlobHashes[i];
+                require(
+                    contextVersionedHash == userVersionedHash, 
+                    "JobManager.submitResultForOffchainJob: given blob hash does not match"
+                );
+            }
+            jobIDToBlobhashes[jobID] = result.versionedBlobHashes;
+        }
+
+        // Create a job without emitting an event and set onchain input and offchain input hash on consumer
+        _createJob(request.nonce, jobID, request.programID, request.maxCycles, request.consumer);
+        Consumer(request.consumer).setInputsForJob(jobID, request.onchainInput, request.offchainInputHash);
+
         _submitResult(jobID, result.maxCycles, result.onchainInputHash, result.programID, result.result);
     }
 

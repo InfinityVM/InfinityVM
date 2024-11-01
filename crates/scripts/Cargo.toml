@@ -47,3 +47,4 @@ mock-consumer = { workspace = true }
 mock-consumer-methods = { workspace = true }
 contracts = { workspace = true }
 intensity-test-methods = { workspace = true }
+eip4844 = { workspace = true }

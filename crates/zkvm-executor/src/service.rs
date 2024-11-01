@@ -1,12 +1,14 @@
 //! zkVM execution logic.
 
 use alloy::{
+    consensus::BlobTransactionSidecar,
     hex,
     primitives::{keccak256, Address, FixedBytes, Signature},
     signers::Signer,
     sol,
     sol_types::SolValue,
 };
+use eip4844::{SidecarBuilder, SimpleCoder};
 use proto::VmType;
 use std::marker::Send;
 use tracing::{error, info};
@@ -33,6 +35,9 @@ pub enum Error {
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] zkvm::Error),
+    /// c-kzg logic had an error.
+    #[error("c-kzg: {0}")]
+    Kzg(#[from] eip4844::CKzgError),
 }
 
 /// The implementation of the `ZkvmExecutor` trait
@@ -111,7 +116,8 @@ where
     }
 
     /// Checks the verifying key, executes an offchain job on the given inputs, and returns signed
-    /// output. Returns (`offchain_result_with_metadata`, `zkvm_operator_signature`)
+    /// output. Returns (`offchain_result_with_metadata`, `zkvm_operator_signature`,
+    /// `maybe_blobs_sidecar`). If the offchain input is empty, the blobs sidecar will be None.
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_offchain_job(
         &self,
@@ -122,7 +128,7 @@ where
         offchain_input: Vec<u8>,
         elf: Vec<u8>,
         vm_type: VmType,
-    ) -> Result<(Vec<u8>, Vec<u8>), Error> {
+    ) -> Result<(Vec<u8>, Vec<u8>, Option<BlobTransactionSidecar>), Error> {
         let hex_program_id = hex::encode(&program_id);
         let vm = self.vm(vm_type)?;
 
@@ -134,13 +140,28 @@ where
 
         let onchain_input_hash = keccak256(&onchain_input);
         let offchain_input_hash = keccak256(&offchain_input);
-        let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute(&elf, &onchain_input, &offchain_input, max_cycles)
-                .map_err(Error::ZkvmExecuteFailed)
+        let (raw_output, sidecar) = tokio::task::spawn_blocking(move || {
+            let raw_output = vm
+                .execute(&elf, &onchain_input, &offchain_input, max_cycles)
+                .map_err(Error::ZkvmExecuteFailed)?;
+
+            // We also build blob sidecars (with proofs) in this blocking task since
+            // it is probably too slow for a standard tokio task
+            let sidecar = if !offchain_input.is_empty() {
+                let sidecar_builder: SidecarBuilder<SimpleCoder> =
+                    std::iter::once(offchain_input).collect();
+                Some(sidecar_builder.build()?)
+            } else {
+                None
+            };
+
+            Ok::<(Vec<u8>, Option<BlobTransactionSidecar>), Error>((raw_output, sidecar))
         })
         .await
         .expect("spawn blocking join handle is infallible. qed.")?;
 
+        let versioned_hashes =
+            sidecar.as_ref().map(|s| s.versioned_hashes().collect()).unwrap_or_default();
         let offchain_result_with_metadata = abi_encode_offchain_result_with_metadata(
             job_id,
             onchain_input_hash,
@@ -148,10 +169,11 @@ where
             max_cycles,
             &program_id,
             &raw_output,
+            versioned_hashes,
         );
         let zkvm_operator_signature = self.sign_message(&offchain_result_with_metadata).await?;
 
-        Ok((offchain_result_with_metadata, zkvm_operator_signature))
+        Ok((offchain_result_with_metadata, zkvm_operator_signature, sidecar))
     }
 
     /// Derives and returns program ID (verifying key) for the
@@ -206,6 +228,8 @@ sol! {
         bytes program_id;
         /// Raw output (result) from zkVM program.
         bytes raw_output;
+        /// Commitments to the blobs that will contain the offchain input.
+        bytes32[] versioned_blob_hashes;
     }
 }
 
@@ -237,6 +261,7 @@ pub fn abi_encode_offchain_result_with_metadata(
     max_cycles: u64,
     program_id: &[u8],
     raw_output: &[u8],
+    versioned_blob_hashes: Vec<FixedBytes<32>>,
 ) -> Vec<u8> {
     OffchainResultWithMetadata {
         job_id: job_id.into(),
@@ -245,6 +270,7 @@ pub fn abi_encode_offchain_result_with_metadata(
         max_cycles,
         program_id: program_id.to_vec().into(),
         raw_output: raw_output.to_vec().into(),
+        versioned_blob_hashes,
     }
     .abi_encode()
 }

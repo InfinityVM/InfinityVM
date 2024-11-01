@@ -1,0 +1,12 @@
+[package]
+name = "eip4844"
+version.workspace = true
+rust-version.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+alloy = { workspace = true, features = ["consensus", "kzg", "std", "eips", "serde"] }
+c-kzg = { version = "1" }

@@ -6,12 +6,15 @@ rust-version = "1.78"
 [workspace]
 members = [
 	"crates/contracts",
+	"crates/coprocessor-node",
+	"crates/db",
+	"crates/eip4844",
 	"crates/mock-consumer",
-	"crates/sdk/proto",
 	"crates/scripts",
 	"crates/sdk/abi",
+	"crates/sdk/proto",
 	"crates/sdk/test-utils",
-	"crates/coprocessor-node",
+	"crates/tracing",
 	"crates/zkvm",
 	"crates/zkvm-executor",
     "crates/tracing",
@@ -115,7 +118,7 @@ alloy = { version = "0.2", features = ["sol-types"], default-features = false }
 async-channel = { version = "2", default-features = false }
 
 # b
-bincode = { version = "1.3", default-features = false }
+bincode = { version = "1", default-features = false }
 borsh = { version = "1", features = ["derive", "std"], default-features = false }
 
 # c
@@ -213,6 +216,7 @@ clob-test-utils = { path = "examples/clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
 db = { path = "crates/db" }
+eip4844 = { path = "crates/eip4844" }
 matching-game-core = { path = "examples/matching-game/core" }
 matching-game-server = { path = "examples/matching-game/server" }
 matching-game-programs = { path = "examples/matching-game/programs" }
