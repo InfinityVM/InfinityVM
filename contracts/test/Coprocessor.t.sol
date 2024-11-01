@@ -374,9 +374,8 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
 
 
         bytes32 aBlobHash = hex"015d7428adaf03e2594d78a42dd16872cec946e1d66b20b70b0b100ba02abe27";
-        bytes32[] memory blobHashes;
+        bytes32[] memory blobHashes = new bytes32[](1);
         blobHashes[0] = aBlobHash;
-
         // vm.blobhashes(hashes); introduced in https://github.com/foundry-rs/foundry/pull/7001
         // https://github.com/foundry-rs/foundry/pull/7001/files#diff-562229c390a129629d8716616f5c7657e1f3616e0bbc854b019d1a1083d18157
         vm.blobhashes(blobHashes);
