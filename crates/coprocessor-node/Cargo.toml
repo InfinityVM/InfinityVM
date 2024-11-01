@@ -29,6 +29,7 @@ db = { workspace = true }
 proto = { workspace = true }
 zkvm-executor = { workspace = true }
 zkvm-tracing = { workspace = true }
+eip4844 = { workspace = true }
 
 [dev-dependencies]
 test-utils = { workspace = true }

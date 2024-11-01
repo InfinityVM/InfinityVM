@@ -248,18 +248,17 @@ where
     ) -> Result<Job, FailureReason> {
         let id = job.id;
         let result = match job.request_type {
-            RequestType::Onchain => {
-                zk_executor
-                    .execute_onchain_job(
-                        id,
-                        job.max_cycles,
-                        job.program_id.clone(),
-                        job.onchain_input.clone(),
-                        elf_with_meta.elf,
-                        VmType::Risc0,
-                    )
-                    .await
-            }
+            RequestType::Onchain => zk_executor
+                .execute_onchain_job(
+                    id,
+                    job.max_cycles,
+                    job.program_id.clone(),
+                    job.onchain_input.clone(),
+                    elf_with_meta.elf,
+                    VmType::Risc0,
+                )
+                .await
+                .map(|(result_with_metadata, signature)| (result_with_metadata, signature, None)),
             RequestType::Offchain(_) => {
                 zk_executor
                     .execute_offchain_job(
@@ -276,7 +275,7 @@ where
         };
 
         match result {
-            Ok((result_with_metadata, zkvm_operator_signature)) => {
+            Ok((result_with_metadata, zkvm_operator_signature, sidecar)) => {
                 tracing::debug!("job {:?} executed successfully", id);
                 job.status = JobStatus {
                     status: JobStatusType::Done as i32,
@@ -285,6 +284,7 @@ where
                 };
                 job.result_with_metadata = result_with_metadata;
                 job.zkvm_operator_signature = zkvm_operator_signature;
+                job.blobs_sidecar = sidecar;
                 if let Err(e) = put_job(db.clone(), job.clone()) {
                     error!("report this error: failed to save job {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
@@ -334,7 +334,6 @@ where
             Ok(receipt) => receipt.transaction_hash,
             Err(e) => {
                 error!("report this error: failed to relay job {:?}: {:?}", id, e);
-                metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                 if let Err(e) = put_fail_relay_job(db.clone(), job) {
                     error!("report this error: failed to save relay err {:?}: {:?}", id, e);
                     metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
@@ -427,7 +426,6 @@ where
                                 hex::encode(id),
                                 e
                             );
-                            metrics.incr_relay_err(&FailureReason::RelayErr.to_string());
                             job.status.retries += 1;
                             if let Err(e) = put_fail_relay_job(db.clone(), job) {
                                 error!(

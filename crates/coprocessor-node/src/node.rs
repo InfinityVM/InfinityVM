@@ -92,6 +92,8 @@ pub struct NodeConfig<D> {
     pub ws_config: WsConfig,
     /// Block number to start reading job requests from.
     pub job_sync_start: BlockNumberOrTag,
+    /// The max bytes of DA per job.
+    pub max_da_per_job: usize,
 }
 
 /// Run the coprocessor node.
@@ -110,6 +112,7 @@ pub async fn run<D>(
         job_proc_config,
         ws_config,
         job_sync_start,
+        max_da_per_job,
     }: NodeConfig<D>,
 ) -> Result<(), Error>
 where
@@ -159,8 +162,12 @@ where
     job_processor.start().await;
 
     let job_event_listener = {
-        let intake =
-            IntakeHandlers::new(Arc::clone(&db), exec_queue_sender.clone(), executor.clone());
+        let intake = IntakeHandlers::new(
+            Arc::clone(&db),
+            exec_queue_sender.clone(),
+            executor.clone(),
+            max_da_per_job,
+        );
         // Configure the job listener
         let job_event_listener = JobEventListener::new(
             job_manager_address,
@@ -179,7 +186,12 @@ where
             .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
             .build_v1()
             .expect("failed to build gRPC reflection service");
-        let intake = IntakeHandlers::new(Arc::clone(&db), exec_queue_sender, executor.clone());
+        let intake = IntakeHandlers::new(
+            Arc::clone(&db),
+            exec_queue_sender,
+            executor.clone(),
+            max_da_per_job,
+        );
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake));
 

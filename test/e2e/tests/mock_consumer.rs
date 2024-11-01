@@ -1,4 +1,4 @@
-use abi::{abi_encode_offchain_job_request, get_job_id};
+use abi::{abi_encode_offchain_job_request, get_job_id, JobParams};
 use alloy::{
     network::EthereumWallet,
     primitives::{
@@ -11,13 +11,10 @@ use alloy::{
     sol_types::{SolEvent, SolValue},
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
-use db::tables::{Job, RequestType};
 use e2e::{Args, E2E};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
-use proto::{
-    GetResultRequest, JobStatus, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType,
-};
+use proto::{GetResultRequest, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
 use zkvm_executor::service::{
@@ -71,30 +68,19 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         // Submit job to coproc node
         let nonce = 1;
         let job_id = get_job_id(nonce, mock.mock_consumer);
-        let mut job = Job {
-            id: job_id,
+        let offchain_input_hash = keccak256(vec![]);
+        let job_params = JobParams {
             nonce,
             max_cycles: MOCK_CONSUMER_MAX_CYCLES,
-            consumer_address: mock.mock_consumer.abi_encode_packed(),
-            program_id: program_id.clone(),
-            onchain_input: mock_user_address.abi_encode(),
-            offchain_input: vec![],
-            // signature added to this job below
-            request_type: RequestType::Offchain(vec![]),
-            result_with_metadata: vec![],
-            zkvm_operator_signature: vec![],
-            status: JobStatus {
-                status: JobStatusType::Pending as i32,
-                failure_reason: None,
-                retries: 0,
-            },
-            relay_tx_hash: vec![],
+            consumer_address: mock.mock_consumer.abi_encode_packed().try_into().unwrap(),
+            onchain_input: &mock_user_address.abi_encode(),
+            program_id: &program_id,
+            offchain_input_hash: offchain_input_hash.into(),
         };
 
         // Add signature from user on job request
-        let job_request_payload = abi_encode_offchain_job_request((&job).try_into().unwrap());
+        let job_request_payload = abi_encode_offchain_job_request(job_params);
         let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
-        job.request_type = RequestType::Offchain(request_signature.as_bytes().to_vec());
 
         let job_request = SubmitJobRequest {
             request: job_request_payload,
@@ -130,10 +116,11 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let signing_payload = abi_encode_offchain_result_with_metadata(
             job_id,
             keccak256(&job_result.onchain_input),
-            keccak256(vec![]),
+            offchain_input_hash,
             job_result.max_cycles,
             &job_result.program_id,
             &raw_output,
+            vec![],
         );
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();

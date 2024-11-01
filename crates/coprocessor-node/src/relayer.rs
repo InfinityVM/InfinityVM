@@ -1,20 +1,19 @@
 //! Logic to broadcast job result onchain.
 
+use crate::metrics::Metrics;
 use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::Address,
-    providers::{fillers::RecommendedFiller, ProviderBuilder},
+    providers::{fillers::RecommendedFiller, Provider, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::Signature,
     transports::http::reqwest,
 };
-use std::sync::Arc;
-use tracing::{error, info, instrument};
-
-use crate::metrics::Metrics;
 use contracts::i_job_manager::IJobManager;
 use db::tables::{Job, RequestType};
+use std::sync::Arc;
+use tracing::{error, info, instrument};
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
 
@@ -155,57 +154,79 @@ impl JobRelayer {
 
         Ok(receipt)
     }
+
     /// Submit a completed job to the `JobManager` contract for an offchain job request.
     pub async fn relay_result_for_offchain_job(
         &self,
         job: Job,
         job_request_payload: Vec<u8>,
     ) -> Result<TransactionReceipt, Error> {
-        if let RequestType::Offchain(request_signature) = job.request_type {
-            let call_builder = self.job_manager.submitResultForOffchainJob(
-                job.result_with_metadata.into(),
-                job.zkvm_operator_signature.into(),
-                job_request_payload.into(),
-                request_signature.into(),
-            );
+        let request_signature = if let RequestType::Offchain(request_signature) = job.request_type {
+            request_signature
+        } else {
+            error!("internal error please report: cannot relay non-offchain job request");
+            return Err(Error::InvalidJobRequestType);
+        };
 
-            let pending_tx = call_builder.send().await.map_err(|error| {
+        // Only add the sidecar if there are some blobs. Some offchain jobs might
+        // have no offchain input, and thus no sidecar
+        let call_builder = match job.blobs_sidecar {
+            Some(sidecar) if !sidecar.blobs.is_empty() => {
+                let gas_price = self.job_manager.provider().get_gas_price().await?;
+                self.job_manager
+                    .submitResultForOffchainJob(
+                        job.result_with_metadata.into(),
+                        job.zkvm_operator_signature.into(),
+                        job_request_payload.into(),
+                        request_signature.into(),
+                    )
+                    .sidecar(sidecar)
+                    .max_fee_per_blob_gas(gas_price)
+            }
+            _ => {
+                debug_assert!(job.offchain_input.is_empty());
+                self.job_manager.submitResultForOffchainJob(
+                    job.result_with_metadata.into(),
+                    job.zkvm_operator_signature.into(),
+                    job_request_payload.into(),
+                    request_signature.into(),
+                )
+            }
+        };
+
+        let pending_tx = call_builder.send().await.map_err(|error| {
+            error!(
+                ?error,
+                job.nonce,
+                "tx broadcast failure: contract_address = {}",
+                hex::encode(&job.consumer_address)
+            );
+            self.metrics.incr_relay_err(BROADCAST_ERROR);
+            Error::TxBroadcast(error)
+        })?;
+
+        let receipt =
+            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
                 error!(
                     ?error,
                     job.nonce,
-                    "tx broadcast failure: contract_address = {}",
+                    "tx inclusion failed: contract_address = {}",
                     hex::encode(&job.consumer_address)
                 );
-                self.metrics.incr_relay_err(BROADCAST_ERROR);
-                Error::TxBroadcast(error)
+                self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
+                Error::TxInclusion(error)
             })?;
 
-            let receipt =
-                pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
-                    error!(
-                        ?error,
-                        job.nonce,
-                        "tx inclusion failed: contract_address = {}",
-                        hex::encode(&job.consumer_address)
-                    );
-                    self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
-                    Error::TxInclusion(error)
-                })?;
+        info!(
+            receipt.transaction_index,
+            receipt.block_number,
+            ?receipt.block_hash,
+            ?receipt.transaction_hash,
+            id=hex::encode(job.id),
+            "tx included"
+        );
 
-            info!(
-                receipt.transaction_index,
-                receipt.block_number,
-                ?receipt.block_hash,
-                ?receipt.transaction_hash,
-                id=hex::encode(job.id),
-                "tx included"
-            );
-
-            Ok(receipt)
-        } else {
-            error!("not an offchain job request");
-            Err(Error::InvalidJobRequestType)
-        }
+        Ok(receipt)
     }
 }
 

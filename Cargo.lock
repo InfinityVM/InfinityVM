@@ -107,6 +107,7 @@ dependencies = [
  "alloy-contract",
  "alloy-core",
  "alloy-eips 0.2.1",
+ "alloy-genesis",
  "alloy-json-rpc 0.2.1",
  "alloy-network 0.2.1",
  "alloy-node-bindings",
@@ -114,6 +115,7 @@ dependencies = [
  "alloy-pubsub",
  "alloy-rpc-client",
  "alloy-rpc-types",
+ "alloy-serde 0.2.1",
  "alloy-signer 0.2.1",
  "alloy-signer-local 0.2.1",
  "alloy-transport",
@@ -2092,6 +2094,7 @@ dependencies = [
  "clap",
  "contracts",
  "db",
+ "eip4844",
  "home",
  "k256",
  "mock-consumer",
@@ -2358,7 +2361,8 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
- "borsh",
+ "bincode",
+ "eip4844",
  "eyre",
  "proto",
  "reth-db",
@@ -2632,6 +2636,14 @@ dependencies = [
  "rfc6979",
  "signature",
  "spki",
+]
+
+[[package]]
+name = "eip4844"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "c-kzg",
 ]
 
 [[package]]
@@ -3807,7 +3819,7 @@ dependencies = [
  "mock-consumer",
  "once_cell",
  "proto",
- "reqwest 0.12.7",
+ "reqwest 0.11.27",
  "test-utils",
  "tokio",
  "url",
@@ -6082,12 +6094,13 @@ dependencies = [
  "clob-test-utils",
  "contracts",
  "dotenv",
+ "eip4844",
  "intensity-test-methods",
  "k256",
  "mock-consumer",
  "mock-consumer-methods",
  "proto",
- "reqwest 0.12.7",
+ "reqwest 0.11.27",
  "serde_json",
  "tempfile",
  "test-utils",
@@ -7907,6 +7920,7 @@ name = "zkvm-executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "eip4844",
  "proto",
  "thiserror",
  "tokio",
