@@ -98,8 +98,8 @@ impl RequestAndResultSigner {
         let signer = get_coprocessor_operator_private_key();
         let signature = signer.sign_message(&encoded_result).await.unwrap();
 
-        println!("Encoded offchain result: {}", hex::encode(&encoded_result));
-        println!("Signature for encoded offchain result: {}", hex::encode(signature.as_bytes()));
+        println!("Encoded offchain result (offchainResultWithMetadata): {}", hex::encode(&encoded_result));
+        println!("Signature for encoded offchain result (signatureOnResult): {}", hex::encode(signature.as_bytes()));
     }
 
     /// Sign an offchain job request
@@ -123,8 +123,8 @@ impl RequestAndResultSigner {
         )
         .await;
 
-        println!("Encoded job request: {}", hex::encode(&encoded_job_request));
-        println!("Signature for encoded job request: {}", hex::encode(signature));
+        println!("Encoded job request (jobRequest): {}", hex::encode(&encoded_job_request));
+        println!("Signature for encoded job request (signatureOnRequest): {}", hex::encode(signature));
     }
 }
 
