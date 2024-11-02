@@ -1,4 +1,4 @@
-FROM us-docker.pkg.dev/infinityvm-core-artifacts/docker/risc0-builder:1.80.1 as base
+FROM us-docker.pkg.dev/infinityvm-core-artifacts/docker/risc0-builder:1.80.1 AS base
 WORKDIR /app
 
 COPY . .
@@ -8,7 +8,7 @@ rm -rf /var/lib/apt/lists/*
 RUN curl -L https://foundry.paradigm.xyz | bash && ~/.foundry/bin/foundryup
 ENV PATH /root/.foundry/bin:$PATH
 
-FROM base as builder
+FROM base AS builder
 WORKDIR /app
 COPY --from=base /app/. .
 RUN cd contracts && forge build

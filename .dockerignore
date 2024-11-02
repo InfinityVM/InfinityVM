@@ -3,6 +3,7 @@
 
 # include source files
 !/crates
+!/examples
 !/programs
 !/test
 !/test-load
