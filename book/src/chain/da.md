@@ -6,9 +6,12 @@ DA is gossiped around the network in short lived blobs. Validators guarantee tha
 
 ## Details 
 
-**Block production:** when a validator is creating a block, they send [engine_forkChoiceUpdatedV3](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#engine_forkchoiceupdatedv3) and then retrieve the payload from the execution layer using [engine_getPayloadV3](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#engine_getpayloadv3). The [response](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#response-2) includes a [blobs bundle](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#BlobsBundleV1). The validator then gossips the beacon block along with the referenced sidecars. Currently both the block and sidecars are in a unified bundle, but over time these will be gossipped separately to achieve higher blob throughput.
+**Block production:** when a validator is creating a block, they send [engine_forkChoiceUpdatedV3](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#engine_forkchoiceupdatedv3) and then retrieve the payload from the execution layer using [engine_getPayloadV3](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#engine_getpayloadv3). The [response](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#response-2) includes a [blobs bundle](https://github.com/ethereum/execution-apis/blob/main/src/engine/cancun.md#BlobsBundleV1). The validator then gossips the beacon block along with the referenced sidecars. Currently both the block and sidecars are in a unified bundle, but over time we will transition to data availability sampling blobs to achieve higher blob throughput.
 
 **Block validation:** validators approving beacon blocks will ensure that they have all blobs referenced by the block stored in a local availability store. Validators prune their availability store regularly to remove expired blobs.
+
+![](./../assets/blob-propagation.png)
+*Flow of blob propagation between the execution client and consensus client. In the future blobs will be gossiped separately.*
 
 ### Coprocessing
 
