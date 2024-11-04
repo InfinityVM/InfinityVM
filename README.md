@@ -2,7 +2,7 @@
 
 ## A new blockchain architecture with native offchain compute
 
-InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications.
+InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications. Applications can run as fully offchain servers that verifiably settle to the InfinityVM base layer.
 
 ## Docs
 
@@ -27,6 +27,10 @@ The following are some of the more important directories in the InfinityVM repos
 ├── crates                 // InfinityVM coprocessor
 │   ├── coprocessor-node   // Core logic of coprocessor
 │   ├── db                 // Database for coprocessor node
+│   ├── scripts            // Helper scripts for testing a remote node, generating signed requests/results, etc.
+│   ├── sdk                // Shared types and functions useful for interacting with coprocessor
+│       ├── abi            // ABI-encoded types
+│       ├── test-utils     // Utils for writing tests
 │   ├── zkvm-executor      // zkVM interface used by coprocessor
 │   └── zkvm               // zkVM trait and implementations      
 ├── examples               // Example apps built with InfinityVM
@@ -34,7 +38,7 @@ The following are some of the more important directories in the InfinityVM repos
 │   └── matching-game      // Simple offchain app built with InfinityVM
 ├── programs               // Sample zkVM programs
 ├── proto                  // Proto definitions
-├── test                   // e2e and load tests for coprocessor and CLOB
+├── test                   // e2e and load tests for coprocessor, CLOB, and matching game
 ```
 
 ## Media

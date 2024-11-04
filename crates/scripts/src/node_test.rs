@@ -18,13 +18,13 @@ use proto::{
 use test_utils::create_and_sign_offchain_request;
 use tracing::{error, info};
 
-const COPROCESSOR_IP: &str = "34.82.138.182";
+const COPROCESSOR_IP: &str = "";
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_HTTP_PORT: u16 = 8080;
 const MOCK_CONSUMER_ADDR: &str = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
 const OFFCHAIN_SIGNER_PRIVATE_KEY: &str =
     "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
-const ANVIL_IP: &str = "35.230.81.89";
+const ANVIL_IP: &str = "";
 const ANVIL_PORT: u16 = 8545;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
