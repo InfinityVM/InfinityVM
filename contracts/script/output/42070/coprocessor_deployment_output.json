@@ -1,0 +1,7 @@
+{
+  "addresses": {
+    "coprocessorProxyAdmin": "0x2190018d88dC9a7D0c261e57277636f28Fd2294c",
+    "jobManager": "0x07D00237f3D090677a8cC395d7A233B37D843421",
+    "jobManagerImplementation": "0xB0ce0be267f1B1db9b30CD3E61DF1C6937129A84"
+  }
+}
