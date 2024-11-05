@@ -1,8 +1,8 @@
 //! Test the coprocessor node by submitting programs, submitting a job, and getting the result.
 
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
+use abi::StatefulAppOnchainInput;
 use alloy::{
-    primitives::{hex, keccak256, Address, FixedBytes},
+    primitives::{hex, Address, FixedBytes},
     providers::ProviderBuilder,
     signers::local::LocalSigner,
     sol_types::SolValue,
@@ -12,10 +12,7 @@ use contracts::mock_consumer::MockConsumer;
 use k256::ecdsa::SigningKey;
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
-    api::{
-        CancelNumberRequest, CancelNumberResponse, MatchPair, Request, SubmitNumberRequest,
-        SubmitNumberResponse,
-    },
+    api::{Request, SubmitNumberRequest},
     get_merkle_root_bytes, next_state,
 };
 use matching_game_programs::{MATCHING_GAME_ELF, MATCHING_GAME_ID};
@@ -100,14 +97,16 @@ async fn main() {
     let provider = ProviderBuilder::new().with_recommended_fillers().on_http(
         url::Url::parse(format!("http://{ANVIL_IP}:{ANVIL_PORT}").as_str()).expect("Valid URL"),
     );
+    let decoded = hex::decode(OFFCHAIN_SIGNER_PRIVATE_KEY).unwrap();
+    let offchain_signer = K256LocalSigner::from_slice(&decoded).unwrap();
+
+    // Test mock consumer job submision flow
+
     // Get nonce from the mock consumer contract
     let mock_consumer_addr =
         Address::parse_checksummed(MOCK_CONSUMER_ADDR, None).expect("Valid address");
     let mock_consumer_contract = MockConsumer::new(mock_consumer_addr, &provider);
-    let nonce = mock_consumer_contract.getNextNonce().call().await.unwrap()._0 + 1;
-
-    let decoded = hex::decode(OFFCHAIN_SIGNER_PRIVATE_KEY).unwrap();
-    let offchain_signer = K256LocalSigner::from_slice(&decoded).unwrap();
+    let nonce = mock_consumer_contract.getNextNonce().call().await.unwrap()._0;
 
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
         nonce,
@@ -125,7 +124,7 @@ async fn main() {
         SubmitJobRequest { request: encoded_job_request, signature, offchain_input: Vec::new() };
 
     let submit_job_response = coproc_client.submit_job(submit_job_request).await.unwrap();
-    info!("Submitted job: {:?}", submit_job_response);
+    info!("Submitted job for mock consumer: {:?}", submit_job_response);
 
     tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
@@ -133,7 +132,7 @@ async fn main() {
     let job_id = submit_job_response.into_inner().job_id;
     let get_result_request = GetResultRequest { job_id: job_id.clone() };
     let get_result_response = coproc_client.get_result(get_result_request).await.unwrap();
-    info!("Result: {:?}", get_result_response);
+    info!("Result for mock consumer: {:?}", get_result_response);
 
     // Call get_result on HTTP gateway as well to make sure the gateway works correctly
     let http_gateway_url = format!("http://{COPROCESSOR_IP}:{COPROCESSOR_HTTP_PORT}");
@@ -149,7 +148,7 @@ async fn main() {
 
     let get_result_response: GetResultResponse =
         response.json().await.expect("Failed to parse JSON response");
-    info!("HTTP Gateway Result: {:?}", get_result_response);
+    info!("HTTP Gateway Result for mock consumer: {:?}", get_result_response);
 
     // Wait for the job result to be relayed to anvil
     let mut inputs = vec![0u8; 32];
@@ -169,19 +168,21 @@ async fn main() {
         }
     }
 
-    info!("Job result relayed to anvil with inputs: {:x?}", inputs);
+    info!("Job result for mock consumer relayed to anvil with inputs: {:x?}", inputs);
+
+    // Test matching game job submision flow
 
     // Get nonce from the matching game consumer contract
     let matching_game_consumer_addr =
         Address::parse_checksummed(MATCHING_GAME_CONSUMER_ADDR, None).expect("Valid address");
     let matching_game_consumer_contract =
         MatchingGameConsumer::new(matching_game_consumer_addr, &provider);
-    let matching_game_consumer_nonce =
-        matching_game_consumer_contract.getNextNonce().call().await.unwrap()._0;
+    let nonce = matching_game_consumer_contract.getNextNonce().call().await.unwrap()._0;
 
     let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
     let pre_txn_merkle_root = TrieRoot::Empty;
 
+    // Arbitrary addresses for alice and bob
     let alice = **mock_consumer_addr;
     let bob = **matching_game_consumer_addr;
     let requests = vec![
@@ -196,7 +197,6 @@ async fn main() {
     combined_offchain_input.extend_from_slice(&(requests_bytes.len() as u32).to_le_bytes());
     combined_offchain_input.extend_from_slice(&requests_bytes);
     combined_offchain_input.extend_from_slice(&snapshot_bytes);
-    let offchain_input_hash = keccak256(&combined_offchain_input);
 
     let onchain_input = StatefulAppOnchainInput {
         input_state_root: get_merkle_root_bytes(pre_txn_merkle_root).into(),
@@ -205,7 +205,7 @@ async fn main() {
     let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
-        matching_game_consumer_nonce,
+        nonce,
         MOCK_CONSUMER_MAX_CYCLES,
         matching_game_consumer_addr,
         onchain_input_abi_encoded.as_slice(),
@@ -216,11 +216,14 @@ async fn main() {
     .await;
 
     // Submit a job to the coprocessor node
-    let submit_job_request =
-        SubmitJobRequest { request: encoded_job_request, signature, offchain_input: combined_offchain_input };
+    let submit_job_request = SubmitJobRequest {
+        request: encoded_job_request,
+        signature,
+        offchain_input: combined_offchain_input,
+    };
 
     let submit_job_response = coproc_client.submit_job(submit_job_request).await.unwrap();
-    info!("Submitted job: {:?}", submit_job_response);
+    info!("Submitted job for matching game: {:?}", submit_job_response);
 
     tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
@@ -228,7 +231,7 @@ async fn main() {
     let job_id = submit_job_response.into_inner().job_id;
     let get_result_request = GetResultRequest { job_id: job_id.clone() };
     let get_result_response = coproc_client.get_result(get_result_request).await.unwrap();
-    info!("Result: {:?}", get_result_response);
+    info!("Result for matching game: {:?}", get_result_response);
 
     // Call get_result on HTTP gateway as well to make sure the gateway works correctly
     let get_result_request = GetResultRequest { job_id: job_id.clone() };
@@ -241,7 +244,7 @@ async fn main() {
 
     let get_result_response: GetResultResponse =
         response.json().await.expect("Failed to parse JSON response");
-    info!("HTTP Gateway Result: {:?}", get_result_response);
+    info!("HTTP Gateway Result for matching game: {:?}", get_result_response);
 
     // Wait for the job result to be relayed to anvil
     let mut inputs = vec![0u8; 32];
@@ -261,5 +264,5 @@ async fn main() {
         }
     }
 
-    info!("Job result relayed to anvil with inputs: {:x?}", inputs);
+    info!("Job result for matching game relayed to anvil with inputs: {:x?}", inputs);
 }
