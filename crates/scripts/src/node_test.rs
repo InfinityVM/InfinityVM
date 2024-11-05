@@ -27,14 +27,14 @@ use std::rc::Rc;
 use test_utils::create_and_sign_offchain_request;
 use tracing::{error, info};
 
-const COPROCESSOR_IP: &str = "34.162.236.254";
+const COPROCESSOR_IP: &str = "";
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_HTTP_PORT: u16 = 8080;
 const MOCK_CONSUMER_ADDR: &str = "0x124363b6D0866118A8b6899F2674856618E0Ea4c";
 const MATCHING_GAME_CONSUMER_ADDR: &str = "0x5793a71D3eF074f71dCC21216Dbfd5C0e780132c";
 const OFFCHAIN_SIGNER_PRIVATE_KEY: &str =
     "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
-const ANVIL_IP: &str = "34.162.169.163";
+const ANVIL_IP: &str = "";
 const ANVIL_PORT: u16 = 8545;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
