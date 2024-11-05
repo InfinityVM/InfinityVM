@@ -7,8 +7,8 @@ use alloy::{
 };
 
 // This function is simply doing some mock aura points calculations
-// we can adjust the intensity of the calculation by incorporating 
-// load testing in the future to SP1. 
+// we can adjust the intensity of the calculation by incorporating
+// load testing in the future to SP1.
 fn main() {
     // Read onchain input
     let onchain_input = sp1_zkvm::io::read_vec();
