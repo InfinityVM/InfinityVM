@@ -29,4 +29,6 @@ ENV CLOB_CONSUMER_ADDR="0xa0Ee7A142d267C1f36714E4a8F75612F20a79720"
 ENV CLOB_BATCHER_DURATION_MS="1000"
 # TODO: this is just anvil private key 0
 ENV CLOB_OPERATOR_KEY="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+
+COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
 CMD ["clob-node"]
