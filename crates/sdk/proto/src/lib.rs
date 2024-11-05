@@ -8,3 +8,5 @@ std::include!("coprocessor_node.v1.rs");
 
 /// gRPC reflection binary.
 pub const FILE_DESCRIPTOR_SET: &[u8] = std::include_bytes!("descriptor.bin");
+
+pub use tonic::transport::Channel;
