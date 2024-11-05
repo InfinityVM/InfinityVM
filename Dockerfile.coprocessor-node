@@ -19,5 +19,8 @@ WORKDIR /app
 RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates && \
   rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /app/target/release/coprocessor-node /usr/local/bin/coprocessor-node
+COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
+
 EXPOSE 50069 50420 22
