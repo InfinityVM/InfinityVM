@@ -101,7 +101,7 @@ async fn main() {
     let decoded = hex::decode(OFFCHAIN_SIGNER_PRIVATE_KEY).unwrap();
     let offchain_signer = K256LocalSigner::from_slice(&decoded).unwrap();
 
-    // Test mock consumer job submision flow
+    // Test mock consumer job submission flow
 
     // Get nonce from the mock consumer contract
     let mock_consumer_addr =
@@ -171,7 +171,7 @@ async fn main() {
 
     info!("Job result for mock consumer relayed to anvil with inputs: {:x?}", inputs);
 
-    // Test matching game job submision flow
+    // Test matching game job submission flow
 
     // Get nonce from the matching game consumer contract
     let matching_game_consumer_addr =
