@@ -1,4 +1,5 @@
-//! Test the coprocessor node by submitting programs, submitting a job, and getting the result.
+//! Test the coprocessor node by submitting programs, submitting jobs with onchain and offchain
+//! inputs, and getting the result for both.
 
 use abi::StatefulAppOnchainInput;
 use alloy::{
