@@ -1,7 +1,8 @@
 //! Test the coprocessor node by submitting programs, submitting a job, and getting the result.
 
+use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
 use alloy::{
-    primitives::{hex, Address, FixedBytes},
+    primitives::{hex, keccak256, Address, FixedBytes},
     providers::ProviderBuilder,
     signers::local::LocalSigner,
     sol_types::SolValue,
@@ -9,22 +10,34 @@ use alloy::{
 use clob_programs::CLOB_ELF;
 use contracts::mock_consumer::MockConsumer;
 use k256::ecdsa::SigningKey;
+use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
+use matching_game_core::{
+    api::{
+        CancelNumberRequest, CancelNumberResponse, MatchPair, Request, SubmitNumberRequest,
+        SubmitNumberResponse,
+    },
+    get_merkle_root_bytes, next_state,
+};
+use matching_game_programs::{MATCHING_GAME_ELF, MATCHING_GAME_ID};
+use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitProgramRequest, VmType,
 };
+use std::rc::Rc;
 use test_utils::create_and_sign_offchain_request;
 use tracing::{error, info};
 
-const COPROCESSOR_IP: &str = "";
+const COPROCESSOR_IP: &str = "34.162.236.254";
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_HTTP_PORT: u16 = 8080;
-const MOCK_CONSUMER_ADDR: &str = "0x0165878A594ca255338adfa4d48449f69242Eb8F";
+const MOCK_CONSUMER_ADDR: &str = "0x124363b6D0866118A8b6899F2674856618E0Ea4c";
+const MATCHING_GAME_CONSUMER_ADDR: &str = "0x5793a71D3eF074f71dCC21216Dbfd5C0e780132c";
 const OFFCHAIN_SIGNER_PRIVATE_KEY: &str =
     "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
-const ANVIL_IP: &str = "";
+const ANVIL_IP: &str = "34.162.169.163";
 const ANVIL_PORT: u16 = 8545;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
@@ -66,23 +79,41 @@ async fn main() {
         }
     }
 
-    // Get nonce from the consumer contract
+    info!("Trying to submit MatchingGameConsumer ELF to coprocessor node");
+    let submit_program_request = SubmitProgramRequest {
+        program_elf: MATCHING_GAME_ELF.to_vec(),
+        vm_type: VmType::Risc0.into(),
+    };
+    // We handle error here because we don't want to panic if the ELF was already submitted
+    match coproc_client.submit_program(submit_program_request).await {
+        Ok(submit_program_response) => {
+            info!(
+                "Submitted MatchingGameConsumer ELF to coprocessor node: {:?}",
+                submit_program_response
+            );
+        }
+        Err(e) => {
+            error!("Error while submitting MatchingGameConsumer ELF to coprocessor node: {:?}", e);
+        }
+    }
+
     let provider = ProviderBuilder::new().with_recommended_fillers().on_http(
         url::Url::parse(format!("http://{ANVIL_IP}:{ANVIL_PORT}").as_str()).expect("Valid URL"),
     );
-    let consumer_addr =
+    // Get nonce from the mock consumer contract
+    let mock_consumer_addr =
         Address::parse_checksummed(MOCK_CONSUMER_ADDR, None).expect("Valid address");
-    let consumer_contract = MockConsumer::new(consumer_addr, &provider);
-    let nonce = consumer_contract.getNextNonce().call().await.unwrap()._0;
+    let mock_consumer_contract = MockConsumer::new(mock_consumer_addr, &provider);
+    let mock_consumer_nonce = mock_consumer_contract.getNextNonce().call().await.unwrap()._0;
 
     let decoded = hex::decode(OFFCHAIN_SIGNER_PRIVATE_KEY).unwrap();
     let offchain_signer = K256LocalSigner::from_slice(&decoded).unwrap();
 
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
-        nonce,
+        mock_consumer_nonce,
         MOCK_CONSUMER_MAX_CYCLES,
-        consumer_addr,
-        Address::abi_encode(&consumer_addr).as_slice(),
+        mock_consumer_addr,
+        Address::abi_encode(&mock_consumer_addr).as_slice(),
         &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
         offchain_signer.clone(),
         &[],
@@ -126,7 +157,7 @@ async fn main() {
     while inputs.iter().all(|&x| x == 0) {
         let fixed_size_job_id: [u8; 32] = job_id.as_slice().try_into().expect("Fixed size array");
         let get_inputs_call =
-            consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
+            mock_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
         match get_inputs_call.call().await {
             Ok(MockConsumer::getOnchainInputForJobReturn { _0: result }) => {
                 inputs = result.to_vec();
@@ -139,4 +170,48 @@ async fn main() {
     }
 
     info!("Job result relayed to anvil with inputs: {:x?}", inputs);
+
+    // Get nonce from the matching game consumer contract
+    let matching_game_consumer_addr =
+        Address::parse_checksummed(MATCHING_GAME_CONSUMER_ADDR, None).expect("Valid address");
+    let matching_game_consumer_contract =
+        MatchingGameConsumer::new(matching_game_consumer_addr, &provider);
+    let matching_game_consumer_nonce =
+        matching_game_consumer_contract.getNextNonce().call().await.unwrap()._0;
+
+    let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
+    let pre_txn_merkle_root = TrieRoot::Empty;
+
+    let alice = **mock_consumer_addr;
+    let bob = **matching_game_consumer_addr;
+    let requests = vec![
+        Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 42 }),
+        Request::SubmitNumber(SubmitNumberRequest { address: bob, number: 69 }),
+    ];
+    let requests_bytes = bincode::serialize(&requests).unwrap();
+    let (_, snapshot, _) = next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
+    let snapshot_bytes = bincode::serialize(&snapshot).unwrap();
+
+    let mut combined_offchain_input = Vec::new();
+    combined_offchain_input.extend_from_slice(&(requests_bytes.len() as u32).to_le_bytes());
+    combined_offchain_input.extend_from_slice(&requests_bytes);
+    combined_offchain_input.extend_from_slice(&snapshot_bytes);
+    let offchain_input_hash = keccak256(&combined_offchain_input);
+
+    let onchain_input = StatefulAppOnchainInput {
+        input_state_root: get_merkle_root_bytes(pre_txn_merkle_root).into(),
+        onchain_input: [0].into(),
+    };
+    let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
+
+    let (encoded_job_request, signature) = create_and_sign_offchain_request(
+        matching_game_consumer_nonce,
+        MOCK_CONSUMER_MAX_CYCLES,
+        matching_game_consumer_addr,
+        onchain_input_abi_encoded.as_slice(),
+        &MATCHING_GAME_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
+        offchain_signer.clone(),
+        &combined_offchain_input,
+    )
+    .await;
 }

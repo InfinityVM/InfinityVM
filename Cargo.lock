@@ -6089,6 +6089,7 @@ version = "0.0.1"
 dependencies = [
  "abi",
  "alloy",
+ "bincode",
  "clob-node",
  "clob-programs",
  "clob-test-utils",
@@ -6097,6 +6098,10 @@ dependencies = [
  "eip4844",
  "intensity-test-methods",
  "k256",
+ "kairos-trie",
+ "matching-game-core",
+ "matching-game-programs",
+ "matching-game-server",
  "mock-consumer",
  "mock-consumer-methods",
  "proto",
