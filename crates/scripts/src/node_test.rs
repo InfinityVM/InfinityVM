@@ -104,13 +104,13 @@ async fn main() {
     let mock_consumer_addr =
         Address::parse_checksummed(MOCK_CONSUMER_ADDR, None).expect("Valid address");
     let mock_consumer_contract = MockConsumer::new(mock_consumer_addr, &provider);
-    let mock_consumer_nonce = mock_consumer_contract.getNextNonce().call().await.unwrap()._0;
+    let nonce = mock_consumer_contract.getNextNonce().call().await.unwrap()._0 + 1;
 
     let decoded = hex::decode(OFFCHAIN_SIGNER_PRIVATE_KEY).unwrap();
     let offchain_signer = K256LocalSigner::from_slice(&decoded).unwrap();
 
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
-        mock_consumer_nonce,
+        nonce,
         MOCK_CONSUMER_MAX_CYCLES,
         mock_consumer_addr,
         Address::abi_encode(&mock_consumer_addr).as_slice(),
@@ -214,4 +214,52 @@ async fn main() {
         &combined_offchain_input,
     )
     .await;
+
+    // Submit a job to the coprocessor node
+    let submit_job_request =
+        SubmitJobRequest { request: encoded_job_request, signature, offchain_input: combined_offchain_input };
+
+    let submit_job_response = coproc_client.submit_job(submit_job_request).await.unwrap();
+    info!("Submitted job: {:?}", submit_job_response);
+
+    tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
+
+    // Get the job result from the coprocessor node
+    let job_id = submit_job_response.into_inner().job_id;
+    let get_result_request = GetResultRequest { job_id: job_id.clone() };
+    let get_result_response = coproc_client.get_result(get_result_request).await.unwrap();
+    info!("Result: {:?}", get_result_response);
+
+    // Call get_result on HTTP gateway as well to make sure the gateway works correctly
+    let get_result_request = GetResultRequest { job_id: job_id.clone() };
+    let response = client
+        .post(format!("{}/v1/coprocessor_node/get_result", http_gateway_url))
+        .json(&get_result_request)
+        .send()
+        .await
+        .expect("Failed to send request");
+
+    let get_result_response: GetResultResponse =
+        response.json().await.expect("Failed to parse JSON response");
+    info!("HTTP Gateway Result: {:?}", get_result_response);
+
+    // Wait for the job result to be relayed to anvil
+    let mut inputs = vec![0u8; 32];
+    // If the inputs are all zero, then the job is not yet relayed
+    while inputs.iter().all(|&x| x == 0) {
+        let fixed_size_job_id: [u8; 32] = job_id.as_slice().try_into().expect("Fixed size array");
+        let get_inputs_call =
+            matching_game_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
+        match get_inputs_call.call().await {
+            Ok(MatchingGameConsumer::getOnchainInputForJobReturn { _0: result }) => {
+                inputs = result.to_vec();
+                if inputs.iter().all(|&x| x == 0) {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+                }
+            }
+            Err(e) => eprintln!("Error calling getOnchainInputForJob: {:?}", e),
+        }
+    }
+
+    info!("Job result relayed to anvil with inputs: {:x?}", inputs);
 }
