@@ -1,0 +1,8 @@
+[package]
+name = "mock-consumer-sp1-guest"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", features = ["libm", "lib"], default-features = false }
+alloy = { version = "0", features = ["sol-types"], default-features = false }

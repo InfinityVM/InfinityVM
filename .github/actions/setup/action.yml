@@ -17,16 +17,16 @@ runs:
           cargo risczero --version
 
       # TODO: https://github.com/InfinityVM/InfinityVM/issues/120
-      # - name: Install sp1 tooling
-      #   shell: bash
-      #   run: |
-      #     curl -L https://sp1.succinct.xyz | bash
-      #     echo "$HOME/.sp1/bin" >> $GITHUB_PATH
-      # - name: Check sp1 version
-      #   shell: bash
-      #   run: |
-      #     sp1up
-      #     cargo prove --version
+      - name: Install sp1 tooling
+        shell: bash
+        run: |
+          curl -L https://sp1.succinct.xyz | bash
+          echo "$HOME/.sp1/bin" >> $GITHUB_PATH
+      - name: Check sp1 version
+        shell: bash
+        run: |
+          sp1up
+          cargo prove --version
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1

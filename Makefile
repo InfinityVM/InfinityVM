@@ -1,6 +1,6 @@
 # These where required for building and running tests with sp1
 # TODO: https://github.com/InfinityVM/InfinityVM/issues/120
-# RUSTFLAGS = '-Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native'
+RUSTFLAGS = '-Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native'
 
 .PHONY: clippy-ci
 clippy-ci: contracts

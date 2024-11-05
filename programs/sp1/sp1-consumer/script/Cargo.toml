@@ -1,0 +1,18 @@
+[package]
+name = "mock-consumer-sp1-script"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "main"
+path = "src/bin/main.rs"
+
+[dependencies]
+sp1-sdk = { workspace = true }
+alloy = { workspace = true }
+clap = { version = "4.0", features = ["derive", "env"] }
+mock-consumer-sp1 = { path = "../" }
+
+[build-dependencies]
+sp1-helper = { workspace = true }
+sp1-build = "3.1.0"
