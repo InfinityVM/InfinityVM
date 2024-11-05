@@ -13,7 +13,7 @@ use alloy::{
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use e2e::{Args, E2E};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
+use mock_consumer_methods::{MOCK_CONSUMER_RISC0_GUEST_ELF, MOCK_CONSUMER_RISC0_GUEST_ID};
 use proto::{GetResultRequest, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
@@ -25,7 +25,7 @@ use zkvm_executor::service::{
 type MockConsumerOut = sol!((Address, U256));
 
 fn mock_consumer_program_id() -> Digest {
-    compute_image_id(MOCK_CONSUMER_GUEST_ELF).unwrap()
+    compute_image_id(MOCK_CONSUMER_RISC0_GUEST_ELF).unwrap()
 }
 
 #[test]
@@ -33,7 +33,7 @@ fn mock_consumer_program_id() -> Digest {
 fn invariants() {
     let image_id = mock_consumer_program_id();
 
-    assert_eq!(&MOCK_CONSUMER_GUEST_ID, image_id.as_words());
+    assert_eq!(&MOCK_CONSUMER_RISC0_GUEST_ID, image_id.as_words());
 }
 
 #[ignore]
@@ -49,7 +49,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
-            program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
+            program_elf: MOCK_CONSUMER_RISC0_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
         };
         let submit_program_response = args
@@ -183,7 +183,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
-            program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
+            program_elf: MOCK_CONSUMER_RISC0_GUEST_ELF.to_vec(),
             vm_type: VmType::Risc0.into(),
         };
         let submit_program_response = args

@@ -3,10 +3,6 @@ name = "mock-consumer-sp1-script"
 version = "0.1.0"
 edition = "2021"
 
-[[bin]]
-name = "main"
-path = "src/bin/main.rs"
-
 [dependencies]
 sp1-sdk = { workspace = true }
 alloy = { workspace = true }

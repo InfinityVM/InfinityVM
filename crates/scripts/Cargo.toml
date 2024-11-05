@@ -44,7 +44,6 @@ clob-test-utils = { workspace = true }
 clob-node = { workspace = true }
 clob-programs = { workspace = true }
 mock-consumer = { workspace = true }
-mock-consumer-sp1 = { workspace = true }
 mock-consumer-methods = { workspace = true }
 contracts = { workspace = true }
 intensity-test-methods = { workspace = true }

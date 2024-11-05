@@ -10,7 +10,7 @@ use clob_programs::CLOB_ELF;
 use contracts::mock_consumer::MockConsumer;
 use k256::ecdsa::SigningKey;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
+use mock_consumer_methods::{MOCK_CONSUMER_RISC0_GUEST_ELF, MOCK_CONSUMER_RISC0_GUEST_ID};
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitProgramRequest, VmType,
@@ -53,7 +53,7 @@ async fn main() {
 
     info!("Trying to submit MockConsumer ELF to coprocessor node");
     let submit_program_request = SubmitProgramRequest {
-        program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
+        program_elf: MOCK_CONSUMER_RISC0_GUEST_ELF.to_vec(),
         vm_type: VmType::Risc0.into(),
     };
     // We handle error here because we don't want to panic if the ELF was already submitted
@@ -83,7 +83,7 @@ async fn main() {
         MOCK_CONSUMER_MAX_CYCLES,
         consumer_addr,
         Address::abi_encode(&consumer_addr).as_slice(),
-        &MOCK_CONSUMER_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
+        &MOCK_CONSUMER_RISC0_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
         offchain_signer.clone(),
         &[],
     )

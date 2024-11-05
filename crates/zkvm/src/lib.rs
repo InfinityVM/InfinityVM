@@ -2,7 +2,6 @@
 
 use risc0_binfmt::compute_image_id;
 use risc0_zkvm::{Executor as Risc0Executor, ExecutorEnv, LocalProver};
-// use sp1_core_executor::{Executor as Sp1CoreExecutor, Program};
 use sp1_sdk::{HashableKey, ProverClient};
 use thiserror::Error;
 
@@ -129,61 +128,21 @@ impl Zkvm for Sp1 {
             .execute(program_elf, stdin)
             .max_cycles(max_cycles)
             .run()
-            .map_err(|e| Error::Sp1 { source: e.into() })?;
+            .map_err(|e| Error::Sp1 { source: e })?;
 
         Ok(output.to_vec())
     }
 }
-/*
-/// SP1 executor impl of [Zkvm] for testing purposes.
-#[derive(Debug)]
-pub struct Sp1Executor;
-
-impl Zkvm for Sp1Executor {
-    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-        // For testing we can return a hash of the program ELF bytes as the verification key
-        let _program = Program::from(program_elf)
-            .map_err(|e| Error::Sp1 { source: anyhow::anyhow!(e.to_string()) })?;
-
-        // Use keccak256 hash of the program ELF bytes as the verification key
-        use alloy::primitives::keccak256;
-        Ok(keccak256(program_elf).to_vec())
-    }
-
-    fn execute(
-        &self,
-        program_elf: &[u8],
-        onchain_input: &[u8],
-        _offchain_input: &[u8],
-        _max_cycles: u64,
-    ) -> Result<Vec<u8>, Error> {
-        let program = Program::from(program_elf)
-            .map_err(|e| Error::Sp1 { source: anyhow::anyhow!(e.to_string()) })?;
-
-        let mut executor = Sp1CoreExecutor::new(program, Default::default());
-        executor.write_stdin_slice(onchain_input);
-
-        executor.run_fast().map_err(|e| Error::Sp1 { source: anyhow::anyhow!(e.to_string()) })?;
-
-        let mut output = Vec::new();
-        executor
-            .read_to_end(&mut output)
-            .map_err(|e| Error::Sp1 { source: anyhow::anyhow!(e.to_string()) })?;
-
-        Ok(output)
-    }
-}
-*/
 
 #[cfg(test)]
 mod test {
     use crate::{Risc0, Sp1, Zkvm};
-    use alloy::{primitives::Address, sol_types::SolValue};
+    use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
-    use mock_consumer_sp1::SP1_MOCK_CONSUMER_GUEST_ELF;
+    use mock_consumer_sp1::SP1_MOCK_CONSUMER_RISC0_GUEST_ELF;
 
     const MOCK_CONSUMER_ELF_PATH: &str =
-        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-guest";
+        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
@@ -214,19 +173,13 @@ mod test {
     }
     #[test]
     fn sp1_execute_can_correctly_execute_program() {
-        let address = Address::repeat_byte(69);
-        let input = address.abi_encode();
+        let input = mock_contract_input_addr();
+        let raw_input = input.abi_encode();
 
-        let raw_result = Sp1
-            .execute(SP1_MOCK_CONSUMER_GUEST_ELF, &input, &[], MOCK_CONSUMER_MAX_CYCLES)
+        let raw_result = &Sp1
+            .execute(SP1_MOCK_CONSUMER_RISC0_GUEST_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
             .unwrap();
 
-        // this is just basic sanity check, not a full verification
-        assert!(!raw_result.is_empty(), "Output should not be empty");
-        assert_eq!(
-            raw_result.len(),
-            64,
-            "Expected 64 bytes output (32 bytes address + 32 bytes value)"
-        );
+        assert_eq!(*raw_result, mock_raw_output());
     }
 }
