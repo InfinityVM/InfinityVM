@@ -30,5 +30,7 @@ COPY contracts /root/contracts
 # Set the working directory
 WORKDIR /root/contracts
 
+COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
+
 # Expose the Anvil port
 EXPOSE 8545
