@@ -3,9 +3,6 @@ name = "mock-consumer-sp1-script"
 version = "0.1.0"
 edition = "2021"
 
-[dependencies]
-sp1-helper = { workspace = true }
-
 [build-dependencies]
 sp1-helper = { workspace = true }
 sp1-build = "3.1.0"
