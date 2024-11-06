@@ -11,7 +11,7 @@ use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
 use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
 use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::MOCK_CONSUMER_RISC0_GUEST_ELF;
-use mock_consumer_sp1::SP1_MOCK_CONSUMER_RISC0_GUEST_ELF;
+use mock_consumer_sp1::SP1_MOCK_CONSUMER_GUEST_ELF;
 use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use std::{fs::File, process::Command};
 use test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
@@ -145,7 +145,7 @@ async fn main() {
 
         info!("Submitting SP1 MockConsumer ELF to coprocessor node");
         let submit_program_request = SubmitProgramRequest {
-            program_elf: SP1_MOCK_CONSUMER_RISC0_GUEST_ELF.to_vec(),
+            program_elf: SP1_MOCK_CONSUMER_GUEST_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();

@@ -139,7 +139,7 @@ mod test {
     use crate::{Risc0, Sp1, Zkvm};
     use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
-    use mock_consumer_sp1::SP1_MOCK_CONSUMER_RISC0_GUEST_ELF;
+    use mock_consumer_sp1::SP1_MOCK_CONSUMER_GUEST_ELF;
 
     const MOCK_CONSUMER_ELF_PATH: &str =
         "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
@@ -177,7 +177,7 @@ mod test {
         let raw_input = input.abi_encode();
 
         let raw_result = &Sp1
-            .execute(SP1_MOCK_CONSUMER_RISC0_GUEST_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
+            .execute(SP1_MOCK_CONSUMER_GUEST_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
             .unwrap();
 
         assert_eq!(*raw_result, mock_raw_output());

@@ -4,10 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-sp1-sdk = { workspace = true }
-alloy = { workspace = true }
-clap = { version = "4.0", features = ["derive", "env"] }
-mock-consumer-sp1 = { path = "../" }
+sp1-helper = { workspace = true }
 
 [build-dependencies]
 sp1-helper = { workspace = true }
