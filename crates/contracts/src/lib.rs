@@ -11,7 +11,8 @@ use serde::{Deserialize, Serialize};
 pub mod i_job_manager {
     alloy::sol! {
       #[sol(rpc)]
-      "../../contracts/src/coprocessor/IJobManager.sol"
+      IJobManager,
+      "json/IJobManager.json"
     }
 }
 
@@ -20,7 +21,7 @@ pub mod job_manager {
     alloy::sol! {
       #[sol(rpc)]
       JobManager,
-      "../../contracts/out/JobManager.sol/JobManager.json"
+      "json/JobManager.json"
     }
 }
 
@@ -29,7 +30,7 @@ pub mod transparent_upgradeable_proxy {
     alloy::sol! {
       #[sol(rpc)]
       TransparentUpgradeableProxy,
-      "../../contracts/out/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json"
+      "json/TransparentUpgradeableProxy.json"
     }
 }
 
@@ -38,7 +39,7 @@ pub mod mock_consumer {
     alloy::sol! {
       #[sol(rpc)]
       MockConsumer,
-      "../../contracts/out/MockConsumer.sol/MockConsumer.json"
+      "json/MockConsumer.json"
     }
 }
 
