@@ -9,11 +9,11 @@ use coprocessor_node::{
 use futures::future::FutureExt;
 use matching_game_server::test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
-use proto::coprocessor_node_client::CoprocessorNodeClient;
+use ivm_proto::coprocessor_node_client::CoprocessorNodeClient;
 use rand::Rng;
 use reth_db::DatabaseEnv;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
-use test_utils::{
+use ivm_test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
 };
 use tonic::transport::Channel;
@@ -79,7 +79,7 @@ impl E2E {
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
-        test_utils::test_tracing();
+        ivm_test_utils::test_tracing();
 
         let mut rng = rand::thread_rng();
         let test_num: u32 = rng.gen();

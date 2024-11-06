@@ -1,5 +1,5 @@
 //! Load testing for the coprocessor node
-use abi::get_job_id;
+use ivm_abi::get_job_id;
 use alloy::{primitives::Address, providers::ProviderBuilder, sol_types::SolValue};
 use borsh::{BorshDeserialize, BorshSerialize};
 use contracts::mock_consumer::MockConsumer;
@@ -11,7 +11,7 @@ use load_test::{
     should_wait_until_job_completed, startup_time, wait_until_job_completed,
 };
 use once_cell::sync::Lazy;
-use proto::{GetResultRequest, SubmitJobRequest};
+use ivm_proto::{GetResultRequest, SubmitJobRequest};
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::Duration,

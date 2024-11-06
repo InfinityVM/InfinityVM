@@ -13,6 +13,6 @@ alloy = { workspace = true, features = ["full", "contract", "transport-http", "t
 thiserror = { workspace = true }
 tokio = { workspace = true }
 
-proto = { workspace = true }
+ivm-proto = { workspace = true }
 zkvm = { workspace = true }
 eip4844 = { workspace = true }

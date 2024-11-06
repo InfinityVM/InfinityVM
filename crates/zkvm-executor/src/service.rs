@@ -9,7 +9,7 @@ use alloy::{
     sol_types::SolValue,
 };
 use eip4844::{SidecarBuilder, SimpleCoder};
-use proto::VmType;
+use ivm_proto::VmType;
 use std::marker::Send;
 use tracing::{error, info};
 use zkvm::Zkvm;

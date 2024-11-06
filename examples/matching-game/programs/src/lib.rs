@@ -10,7 +10,7 @@ mod tests {
         get_merkle_root_bytes, next_state, Match, Matches,
     };
 
-    use abi::{StatefulAppOnchainInput, StatefulAppResult};
+    use ivm_abi::{StatefulAppOnchainInput, StatefulAppResult};
     use kairos_trie::{stored::memory_db::MemoryDb, NodeHash, TrieRoot};
     use std::rc::Rc;
     use zkvm::Zkvm;

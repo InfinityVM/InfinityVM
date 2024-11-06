@@ -1,7 +1,7 @@
 //! gRPC server handlers.
 
 use crate::intake::IntakeHandlers;
-use abi::{get_job_id, OffchainJobRequest};
+use ivm_abi::{get_job_id, OffchainJobRequest};
 use alloy::{
     hex,
     primitives::{keccak256, Signature},
@@ -9,7 +9,7 @@ use alloy::{
     sol_types::SolType,
 };
 use db::tables::{Job, RequestType};
-use proto::{
+use ivm_proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
     GetResultResponse, JobResult, JobStatus, JobStatusType, SubmitJobRequest, SubmitJobResponse,
     SubmitProgramRequest, SubmitProgramResponse,

@@ -14,7 +14,7 @@ use db::{
     get_last_block_height, set_last_block_height,
     tables::{Job, RequestType},
 };
-use proto::{JobStatus, JobStatusType};
+use ivm_proto::{JobStatus, JobStatusType};
 use reth_db::Database;
 use tokio::{
     task::JoinHandle,

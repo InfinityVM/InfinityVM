@@ -3,7 +3,7 @@
 use std::net::TcpListener;
 
 use crate::wallet::Wallet;
-use abi::{abi_encode_offchain_job_request, JobParams};
+use ivm_abi::{abi_encode_offchain_job_request, JobParams};
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
@@ -223,7 +223,7 @@ pub async fn create_and_sign_offchain_request(
     let job_params = JobParams {
         nonce,
         max_cycles,
-        // Need to use abi_encode_packed because the contract address
+        // Need to use ivm_abi_encode_packed because the contract address
         // should not be zero-padded
         consumer_address: Address::abi_encode_packed(&consumer_addr)
             .try_into()

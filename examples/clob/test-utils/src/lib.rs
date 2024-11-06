@@ -12,7 +12,7 @@ use alloy::{
 };
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{api::Request, tick, BorshKeccak256, ClobState};
-use test_utils::{get_signers, AnvilJobManager};
+use ivm_test_utils::{get_signers, AnvilJobManager};
 
 /// Local Signer
 pub type K256LocalSigner = LocalSigner<SigningKey>;

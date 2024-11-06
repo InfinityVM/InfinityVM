@@ -1,5 +1,5 @@
 [package]
-name = "test-utils"
+name = "ivm-test-utils"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -17,4 +17,4 @@ alloy-signer-local = { version = "0.3.3", features = ["mnemonic"]}
 alloy-signer = { version = "0.3.3" }
 
 contracts = { workspace = true }
-abi = { workspace = true }
+ivm-abi = { workspace = true }

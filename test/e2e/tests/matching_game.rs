@@ -1,4 +1,4 @@
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
+use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
 use alloy::{
     network::EthereumWallet,
     primitives::keccak256,
@@ -17,7 +17,7 @@ use matching_game_core::{
 };
 use matching_game_programs::MATCHING_GAME_ELF;
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
-use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
+use ivm_proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use std::rc::Rc;
 use zkvm_executor::service::OffchainResultWithMetadata;

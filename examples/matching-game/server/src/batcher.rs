@@ -1,13 +1,13 @@
 //! Collects requests into batches and submits them to the coprocessor node at some regular
 //! cadence.
 use crate::state::ServerState;
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
+use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use eyre::OptionExt;
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{get_merkle_root_bytes, next_state};
 use matching_game_programs::MATCHING_GAME_ID;
-use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
+use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use risc0_zkvm::sha::Digest;
 use std::{rc::Rc, sync::Arc};
 use tokio::time::{sleep, Duration};

@@ -17,7 +17,7 @@ mod tests {
     };
     use clob_test_utils::next_state;
 
-    use abi::{StatefulAppOnchainInput, StatefulAppResult};
+    use ivm_abi::{StatefulAppOnchainInput, StatefulAppResult};
     use zkvm::Zkvm;
 
     #[test]

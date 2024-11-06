@@ -10,7 +10,7 @@ use alloy::{
     sol_types::SolType,
 };
 
-use abi::StatefulAppResult;
+use ivm_abi::StatefulAppResult;
 use api::{
     AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobResultDeltas,
     DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,

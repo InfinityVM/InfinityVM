@@ -1,14 +1,14 @@
 //! Job processor implementation.
 
 use crate::{metrics::Metrics, relayer::JobRelayer};
-use abi::abi_encode_offchain_job_request;
+use ivm_abi::abi_encode_offchain_job_request;
 use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::Receiver;
 use db::{
     delete_fail_relay_job, get_all_failed_jobs, put_fail_relay_job, put_job,
     tables::{ElfWithMeta, Job, RequestType},
 };
-use proto::{JobStatus, JobStatusType, VmType};
+use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;

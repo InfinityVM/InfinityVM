@@ -1,4 +1,4 @@
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
+use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
 use alloy::{
     network::EthereumWallet,
     primitives::{keccak256, U256},
@@ -17,7 +17,7 @@ use clob_core::{
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{mint_and_approve, mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
-use proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
+use ivm_proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
 use zkvm_executor::service::OffchainResultWithMetadata;

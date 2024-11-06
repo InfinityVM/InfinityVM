@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use alloy::{hex, primitives::Signature, signers::Signer};
 use db::{get_elf, get_job, put_elf, put_job, tables::Job};
-use proto::{JobStatus, JobStatusType, VmType};
+use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use zkvm_executor::service::ZkvmExecutorService;
 

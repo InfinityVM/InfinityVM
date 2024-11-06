@@ -11,9 +11,9 @@ use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
 use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
 use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
-use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
+use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use std::{fs::File, process::Command};
-use test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
+use ivm_test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;
 

@@ -1,7 +1,7 @@
 //! ZKVM program for running the matching game.
 
 use alloy::sol_types::SolType;
-use abi::{StatefulAppOnchainInput, StatefulAppResult};
+use ivm_abi::{StatefulAppOnchainInput, StatefulAppResult};
 use risc0_zkvm::guest::env;
 use matching_game_core::{api::Request, Matches, apply_requests, get_merkle_root_bytes};
 use kairos_trie::{

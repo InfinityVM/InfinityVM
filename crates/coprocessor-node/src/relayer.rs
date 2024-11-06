@@ -235,7 +235,7 @@ mod test {
     use std::{collections::HashSet, sync::Arc};
 
     use crate::{metrics::Metrics, relayer::JobRelayerBuilder};
-    use abi::get_job_id;
+    use ivm_abi::get_job_id;
     use alloy::{
         network::EthereumWallet,
         providers::{Provider, ProviderBuilder},
@@ -250,7 +250,7 @@ mod test {
     };
     use prometheus::Registry;
 
-    use test_utils::{anvil_with_job_manager, get_localhost_port, AnvilJobManager};
+    use ivm_test_utils::{anvil_with_job_manager, get_localhost_port, AnvilJobManager};
     use tokio::task::JoinSet;
 
     const JOB_COUNT: usize = 30;
