@@ -1,6 +1,5 @@
 //! Utilities for setting testing with the `MockConsumer` contract.
 
-use ivm_abi::get_job_id;
 use alloy::{
     network::EthereumWallet,
     primitives::{keccak256, Address, U256},
@@ -10,6 +9,7 @@ use alloy::{
 };
 use contracts::mock_consumer::MockConsumer;
 use db::tables::{Job, RequestType};
+use ivm_abi::get_job_id;
 use ivm_proto::{JobStatus, JobStatusType};
 use ivm_test_utils::{get_signers, AnvilJobManager};
 use zkvm_executor::service::abi_encode_result_with_metadata;

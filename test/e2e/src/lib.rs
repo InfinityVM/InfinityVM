@@ -7,15 +7,15 @@ use coprocessor_node::{
     MAX_DA_PER_JOB,
 };
 use futures::future::FutureExt;
-use matching_game_server::test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
-use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
 use ivm_proto::coprocessor_node_client::CoprocessorNodeClient;
-use rand::Rng;
-use reth_db::DatabaseEnv;
-use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
 use ivm_test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
 };
+use matching_game_server::test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
+use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
+use rand::Rng;
+use reth_db::DatabaseEnv;
+use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
 use tonic::transport::Channel;
 
 /// Arguments passed to the test function.

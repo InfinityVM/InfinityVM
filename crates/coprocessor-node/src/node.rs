@@ -12,9 +12,9 @@ use crate::{
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
 use db::tables::Job;
+use ivm_proto::coprocessor_node_server::CoprocessorNodeServer;
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
-use ivm_proto::coprocessor_node_server::CoprocessorNodeServer;
 use reth_db::Database;
 use std::{
     net::{SocketAddr, SocketAddrV4},

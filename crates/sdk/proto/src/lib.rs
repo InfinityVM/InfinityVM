@@ -11,6 +11,5 @@ pub const FILE_DESCRIPTOR_SET: &[u8] = std::include_bytes!("descriptor.bin");
 
 /// Re-exports from tonic to help build gRPC clients.
 pub mod tonic {
-  pub use tonic::transport::*;
-  pub use tonic::{Code, Status};
+    pub use tonic::{transport::*, Code, Status};
 }

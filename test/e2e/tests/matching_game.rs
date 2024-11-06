@@ -1,4 +1,3 @@
-use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult};
 use alloy::{
     network::EthereumWallet,
     primitives::keccak256,
@@ -7,6 +6,10 @@ use alloy::{
     sol_types::SolValue,
 };
 use e2e::{Args, E2E};
+use ivm_abi::{
+    abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult,
+};
+use ivm_proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
     api::{
@@ -17,7 +20,6 @@ use matching_game_core::{
 };
 use matching_game_programs::MATCHING_GAME_ELF;
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
-use ivm_proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use std::rc::Rc;
 use zkvm_executor::service::OffchainResultWithMetadata;

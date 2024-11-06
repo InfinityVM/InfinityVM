@@ -235,7 +235,6 @@ mod test {
     use std::{collections::HashSet, sync::Arc};
 
     use crate::{metrics::Metrics, relayer::JobRelayerBuilder};
-    use ivm_abi::get_job_id;
     use alloy::{
         network::EthereumWallet,
         providers::{Provider, ProviderBuilder},
@@ -244,6 +243,7 @@ mod test {
         sol_types::SolEvent,
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+    use ivm_abi::get_job_id;
     use mock_consumer::{
         anvil_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
         AnvilMockConsumer,
@@ -257,7 +257,7 @@ mod test {
 
     #[tokio::test]
     async fn run_can_successfully_submit_results() {
-        test_utils::test_tracing();
+        ivm_test_utils::test_tracing();
 
         let anvil_port = get_localhost_port();
         let anvil = anvil_with_job_manager(anvil_port).await;
