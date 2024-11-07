@@ -1,7 +1,7 @@
 //! E2E tests and helpers.
 use alloy::eips::BlockNumberOrTag;
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
-use coprocessor_node::{
+use ivm_coprocessor_node::{
     job_processor::JobProcessorConfig,
     node::{NodeConfig, WsConfig},
     MAX_DA_PER_JOB,
@@ -123,7 +123,7 @@ impl E2E {
             job_sync_start: BlockNumberOrTag::Earliest,
             max_da_per_job: MAX_DA_PER_JOB,
         };
-        tokio::spawn(async move { coprocessor_node::node::run(config).await });
+        tokio::spawn(async move { ivm_coprocessor_node::node::run(config).await });
         sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =
             CoprocessorNodeClient::connect(cn_grpc_client_url.clone()).await.unwrap();

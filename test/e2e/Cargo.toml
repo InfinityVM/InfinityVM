@@ -21,7 +21,7 @@ rand = { workspace = true }
 reth-db = { workspace = true }
 kairos-trie = { workspace = true }
 
-coprocessor-node = { workspace = true }
+ivm-coprocessor-node = { workspace = true }
 contracts = { workspace = true }
 ivm-proto = { workspace = true }
 zkvm-executor = { workspace = true }
