@@ -7,7 +7,7 @@ use alloy::{
     signers::Signer,
     sol_types::SolType,
 };
-use db::tables::{Job, RequestType};
+use ivm_db::tables::{Job, RequestType};
 use ivm_abi::{get_job_id, OffchainJobRequest};
 use ivm_proto::{
     coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,

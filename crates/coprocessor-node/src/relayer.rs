@@ -11,7 +11,7 @@ use alloy::{
     transports::http::reqwest,
 };
 use contracts::i_job_manager::IJobManager;
-use db::tables::{Job, RequestType};
+use ivm_db::tables::{Job, RequestType};
 use std::sync::Arc;
 use tracing::{error, info, instrument};
 
@@ -286,7 +286,7 @@ mod test {
         let mut join_set = JoinSet::new();
 
         for i in 0u8..JOB_COUNT as u8 {
-            let job: db::tables::Job =
+            let job: ivm_db::tables::Job =
                 mock_consumer_pending_job(i + 1, coprocessor_operator.clone(), mock_consumer).await;
 
             let mock_addr = mock_contract_input_addr();

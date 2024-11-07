@@ -215,7 +215,7 @@ clob-programs = { path = "examples/clob/programs" }
 clob-test-utils = { path = "examples/clob/test-utils" }
 contracts = { path = "crates/contracts" }
 coprocessor-node = { path = "crates/coprocessor-node" }
-db = { path = "crates/db" }
+ivm-db = { path = "crates/db" }
 eip4844 = { path = "crates/eip4844" }
 matching-game-core = { path = "examples/matching-game/core" }
 matching-game-server = { path = "examples/matching-game/server" }

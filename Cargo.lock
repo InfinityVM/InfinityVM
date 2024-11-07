@@ -2085,10 +2085,10 @@ dependencies = [
  "axum",
  "clap",
  "contracts",
- "db",
  "eip4844",
  "home",
  "ivm-abi",
+ "ivm-db",
  "ivm-proto",
  "ivm-test-utils",
  "k256",
@@ -2349,23 +2349,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e8566979429cf69b49a5c740c60791108e86440e8be149bbea4fe54d2c32d6e2"
 
 [[package]]
-name = "db"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "bincode",
- "eip4844",
- "eyre",
- "ivm-abi",
- "ivm-proto",
- "reth-db",
- "reth-db-api",
- "serde",
- "sha2",
- "thiserror",
-]
-
-[[package]]
 name = "der"
 version = "0.7.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2594,9 +2577,9 @@ dependencies = [
  "clob-test-utils",
  "contracts",
  "coprocessor-node",
- "db",
  "futures",
  "ivm-abi",
+ "ivm-db",
  "ivm-proto",
  "ivm-test-utils",
  "kairos-trie",
@@ -3621,6 +3604,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "ivm-db"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "bincode",
+ "eip4844",
+ "eyre",
+ "ivm-abi",
+ "ivm-proto",
+ "reth-db",
+ "reth-db-api",
+ "serde",
+ "sha2",
+ "thiserror",
+]
+
+[[package]]
 name = "ivm-proto"
 version = "0.0.1"
 dependencies = [
@@ -4050,8 +4050,8 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "contracts",
- "db",
  "ivm-abi",
+ "ivm-db",
  "ivm-proto",
  "ivm-test-utils",
  "zkvm-executor",

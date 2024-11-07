@@ -27,7 +27,7 @@ ivm-proto = { workspace = true }
 zkvm-executor = { workspace = true }
 ivm-test-utils = { workspace = true }
 ivm-abi = { workspace = true }
-db = { workspace = true }
+ivm-db = { workspace = true }
 clob-contracts = { workspace = true }
 clob-programs = { workspace = true }
 clob-core = { workspace = true }

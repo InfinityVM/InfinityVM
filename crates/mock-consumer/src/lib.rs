@@ -8,7 +8,7 @@ use alloy::{
     sol_types::SolValue,
 };
 use contracts::mock_consumer::MockConsumer;
-use db::tables::{Job, RequestType};
+use ivm_db::tables::{Job, RequestType};
 use ivm_abi::get_job_id;
 use ivm_proto::{JobStatus, JobStatusType};
 use ivm_test_utils::{get_signers, AnvilJobManager};

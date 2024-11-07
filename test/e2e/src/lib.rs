@@ -102,7 +102,7 @@ impl E2E {
         let cn_grpc_client_url = format!("http://{coprocessor_node_grpc}");
 
         tracing::info!("💾 db initialized {}", coproc_db_dir.display());
-        let db = db::init_db(coproc_db_dir).unwrap();
+        let db = ivm_db::init_db(coproc_db_dir).unwrap();
         let config = NodeConfig {
             prom_addr: prometheus_addr.parse().unwrap(),
             grpc_addr: coprocessor_node_grpc.parse().unwrap(),

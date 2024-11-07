@@ -11,7 +11,7 @@ use crate::{
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
-use db::tables::Job;
+use ivm_db::tables::Job;
 use ivm_proto::coprocessor_node_server::CoprocessorNodeServer;
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
@@ -34,7 +34,7 @@ pub enum Error {
     GrpcServer(#[from] tonic::transport::Error),
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),
+    Database(#[from] ivm_db::Error),
     /// task join error
     #[error("error handling failed")]
     ErrorHandlingFailed(#[from] tokio::task::JoinError),

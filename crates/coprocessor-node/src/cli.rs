@@ -60,7 +60,7 @@ pub enum Error {
     Node(#[from] crate::node::Error),
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),
+    Database(#[from] ivm_db::Error),
 }
 
 type K256LocalSigner = LocalSigner<SigningKey>;
@@ -228,7 +228,7 @@ impl Cli {
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
-        let db = db::init_db(&opts.db_dir)?;
+        let db = ivm_db::init_db(&opts.db_dir)?;
         tracing::info!("💾 db initialized at {}", opts.db_dir);
 
         let config = NodeConfig {
