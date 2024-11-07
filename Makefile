@@ -41,6 +41,12 @@ test-all: contracts
 build: contracts
 	cargo build
 
+# IMPORTANT: if you update the contracts that ivm-contract crates rely on
+# you will need to update this script
 .PHONY: contracts
 contracts:
 	cd contracts && forge build
+	cp contracts/out/JobManager.sol/JobManager.json crates/contracts/json
+	cp contracts/out/IJobManager.sol/IJobManager.json crates/contracts/json
+	cp contracts/out/MockConsumer.sol/MockConsumer.json crates/contracts/json
+	cp contracts/out/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json crates/contracts/json

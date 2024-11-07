@@ -1,6 +1,8 @@
 //! This module contains bindings for contracts that we interact with.
 //!
 //! You can view generated code docs with `make doc`.
+// The `make contracts` command should copy the relevant json file into place
+// after building the json abi from source.
 
 #![allow(missing_docs)]
 
