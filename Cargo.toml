@@ -225,6 +225,6 @@ mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
 ivm-proto = { path = "crates/sdk/proto" }
 ivm-test-utils = { path = "crates/sdk/test-utils" }
-zkvm = { path = "crates/zkvm" }
+ivm-zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
 zkvm-executor = { path = "crates/zkvm-executor" }

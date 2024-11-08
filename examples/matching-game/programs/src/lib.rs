@@ -13,7 +13,7 @@ mod tests {
     use ivm_abi::{StatefulAppOnchainInput, StatefulAppResult};
     use kairos_trie::{stored::memory_db::MemoryDb, NodeHash, TrieRoot};
     use std::rc::Rc;
-    use zkvm::Zkvm;
+    use ivm_zkvm::Zkvm;
 
     #[test]
     fn submit_number_cancel_number() {
@@ -68,7 +68,7 @@ mod tests {
             onchain_input: [0].into(),
         };
 
-        let out_bytes = zkvm::Risc0 {}
+        let out_bytes = ivm_zkvm::Risc0 {}
             .execute(
                 super::MATCHING_GAME_ELF,
                 <StatefulAppOnchainInput as SolValue>::abi_encode(&onchain_input).as_slice(),

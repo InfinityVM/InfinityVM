@@ -1922,9 +1922,9 @@ dependencies = [
  "clob-core",
  "clob-test-utils",
  "ivm-abi",
+ "ivm-zkvm",
  "risc0-build",
  "risc0-zkvm",
- "zkvm",
 ]
 
 [[package]]
@@ -3647,6 +3647,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "ivm-zkvm"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "anyhow",
+ "mock-consumer",
+ "risc0-binfmt",
+ "risc0-zkvm",
+ "thiserror",
+]
+
+[[package]]
 name = "jobserver"
 version = "0.1.32"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3916,11 +3928,11 @@ dependencies = [
  "alloy",
  "bincode",
  "ivm-abi",
+ "ivm-zkvm",
  "kairos-trie",
  "matching-game-core",
  "risc0-build",
  "risc0-zkvm",
- "zkvm",
 ]
 
 [[package]]
@@ -7904,18 +7916,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "zkvm"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "anyhow",
- "mock-consumer",
- "risc0-binfmt",
- "risc0-zkvm",
- "thiserror",
-]
-
-[[package]]
 name = "zkvm-executor"
 version = "0.0.1"
 dependencies = [
@@ -7923,10 +7923,10 @@ dependencies = [
  "eip4844",
  "ivm-abi",
  "ivm-proto",
+ "ivm-zkvm",
  "thiserror",
  "tokio",
  "tracing 0.1.40",
- "zkvm",
 ]
 
 [[package]]

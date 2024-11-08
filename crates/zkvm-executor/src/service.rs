@@ -11,7 +11,7 @@ use ivm_abi::{abi_encode_offchain_result_with_metadata, abi_encode_result_with_m
 use ivm_proto::VmType;
 use std::marker::Send;
 use tracing::{error, info};
-use zkvm::Zkvm;
+use ivm_zkvm::Zkvm;
 
 /// Zkvm executor errors
 #[derive(thiserror::Error, Debug)]
@@ -33,7 +33,7 @@ pub enum Error {
     VerifyingKeyDerivationFailed(String),
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
-    ZkvmExecuteFailed(#[from] zkvm::Error),
+    ZkvmExecuteFailed(#[from] ivm_zkvm::Error),
     /// c-kzg logic had an error.
     #[error("c-kzg: {0}")]
     Kzg(#[from] eip4844::CKzgError),
@@ -67,7 +67,7 @@ where
     /// Returns the VM and VM type (enum) for the given VM type (i32)
     fn vm(&self, vm_type: VmType) -> Result<Box<dyn Zkvm + Send>, Error> {
         let vm: Box<dyn Zkvm + Send> = match vm_type {
-            VmType::Risc0 => Box::new(zkvm::Risc0),
+            VmType::Risc0 => Box::new(ivm_zkvm::Risc0),
             VmType::Sp1 => unimplemented!("https://github.com/InfinityVM/InfinityVM/issues/120"),
         };
 

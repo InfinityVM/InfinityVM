@@ -17,7 +17,7 @@ use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
-use zkvm_executor::service::{
+use ivm_abi::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
     OffchainResultWithMetadata, ResultWithMetadata,
 };

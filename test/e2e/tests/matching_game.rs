@@ -22,7 +22,7 @@ use matching_game_programs::MATCHING_GAME_ELF;
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use risc0_binfmt::compute_image_id;
 use std::rc::Rc;
-use zkvm_executor::service::OffchainResultWithMetadata;
+use ivm_abi::OffchainResultWithMetadata;
 
 fn program_id() -> Vec<u8> {
     compute_image_id(MATCHING_GAME_ELF).unwrap().as_bytes().to_vec()
