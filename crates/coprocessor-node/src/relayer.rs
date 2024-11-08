@@ -13,7 +13,7 @@ use alloy::{
 use contracts::i_job_manager::IJobManager;
 use ivm_db::tables::{Job, RequestType};
 use std::sync::Arc;
-use tracing::{error, info, instrument};
+use tracing::{error, info};
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
 
@@ -127,7 +127,7 @@ impl JobRelayer {
             .submitResult(job.result_with_metadata.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
-            error!(?error, id=hex::encode(&job.id), "tx broadcast failure");
+            error!(?error, id = hex::encode(&job.id), "tx broadcast failure");
             self.metrics.incr_relay_err(BROADCAST_ERROR);
             Error::TxBroadcast(error)
         })?;
@@ -137,7 +137,7 @@ impl JobRelayer {
             .get_receipt()
             .await
             .map_err(|error| {
-                error!(?error, id=hex::encode(&job.id), "tx inclusion failed");
+                error!(?error, id = hex::encode(&job.id), "tx inclusion failed");
                 self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
                 Error::TxInclusion(error)
             })?;

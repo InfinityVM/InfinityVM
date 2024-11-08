@@ -7921,6 +7921,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "eip4844",
+ "ivm-abi",
  "ivm-proto",
  "thiserror",
  "tokio",

@@ -1,12 +1,12 @@
 //! E2E tests and helpers.
 use alloy::eips::BlockNumberOrTag;
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
+use futures::future::FutureExt;
 use ivm_coprocessor_node::{
     job_processor::JobProcessorConfig,
     node::{NodeConfig, WsConfig},
     MAX_DA_PER_JOB,
 };
-use futures::future::FutureExt;
 use ivm_proto::coprocessor_node_client::CoprocessorNodeClient;
 use ivm_test_utils::{
     anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,

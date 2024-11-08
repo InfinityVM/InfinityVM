@@ -16,3 +16,4 @@ tokio = { workspace = true }
 ivm-proto = { workspace = true }
 zkvm = { workspace = true }
 eip4844 = { workspace = true }
+ivm-abi = { workspace = true }
