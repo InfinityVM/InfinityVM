@@ -76,7 +76,7 @@ where
         Ok(vm)
     }
 
-    /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
+    /// Executes a program on the given inputs, and returns signed output.
     /// Returns (`result_with_metadata`, `zkvm_operator_signature`)
     ///
     /// WARNING: this does not check the verifying key of the program. It is up to the caller to
