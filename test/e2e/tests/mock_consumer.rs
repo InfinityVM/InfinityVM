@@ -1,4 +1,3 @@
-use abi::{abi_encode_offchain_job_request, get_job_id, JobParams};
 use alloy::{
     network::EthereumWallet,
     primitives::{
@@ -12,15 +11,16 @@ use alloy::{
 };
 use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use e2e::{Args, E2E};
+use ivm_abi::{
+    abi_encode_offchain_job_request, abi_encode_offchain_result_with_metadata,
+    abi_encode_result_with_metadata, get_job_id, JobParams, OffchainResultWithMetadata,
+    ResultWithMetadata,
+};
+use ivm_proto::{GetResultRequest, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
-use proto::{GetResultRequest, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use risc0_zkp::core::digest::Digest;
-use zkvm_executor::service::{
-    abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata,
-    OffchainResultWithMetadata, ResultWithMetadata,
-};
 
 type MockConsumerOut = sol!((Address, U256));
 
@@ -229,7 +229,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
 
         // Check saved height
         let current_block_number = consumer_provider.get_block_number().await.unwrap();
-        let saved_height = db::get_last_block_height(args.db.clone()).unwrap().unwrap();
+        let saved_height = ivm_db::get_last_block_height(args.db.clone()).unwrap().unwrap();
         assert_ne!(current_block_number, 0);
         assert_eq!(current_block_number + 1, saved_height);
 

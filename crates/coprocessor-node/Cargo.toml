@@ -1,5 +1,5 @@
 [package]
-name = "coprocessor-node"
+name = "ivm-coprocessor-node"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -24,13 +24,13 @@ serde = { workspace = true }
 prometheus = { workspace = true }
 axum = { workspace = true }
 contracts = { workspace = true }
-abi = { workspace = true }
-db = { workspace = true }
-proto = { workspace = true }
+ivm-abi = { workspace = true }
+ivm-db = { workspace = true }
+ivm-proto = { workspace = true }
 zkvm-executor = { workspace = true }
 zkvm-tracing = { workspace = true }
 eip4844 = { workspace = true }
 
 [dev-dependencies]
-test-utils = { workspace = true }
+ivm-test-utils = { workspace = true }
 mock-consumer = { workspace = true }

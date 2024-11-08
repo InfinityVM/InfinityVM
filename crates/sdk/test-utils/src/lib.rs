@@ -3,7 +3,6 @@
 use std::net::TcpListener;
 
 use crate::wallet::Wallet;
-use abi::{abi_encode_offchain_job_request, JobParams};
 use alloy::{
     network::EthereumWallet,
     node_bindings::{Anvil, AnvilInstance},
@@ -19,6 +18,7 @@ use alloy::{
 use contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
+use ivm_abi::{abi_encode_offchain_job_request, JobParams};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};

@@ -1,4 +1,4 @@
-use proto::{JobResult, JobStatus, JobStatusType};
+use ivm_proto::{JobResult, JobStatus, JobStatusType};
 
 #[test]
 #[ignore]

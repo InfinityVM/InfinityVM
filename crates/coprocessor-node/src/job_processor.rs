@@ -1,14 +1,14 @@
 //! Job processor implementation.
 
 use crate::{metrics::Metrics, relayer::JobRelayer};
-use abi::abi_encode_offchain_job_request;
 use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::Receiver;
-use db::{
+use ivm_abi::abi_encode_offchain_job_request;
+use ivm_db::{
     delete_fail_relay_job, get_all_failed_jobs, put_fail_relay_job, put_job,
     tables::{ElfWithMeta, Job, RequestType},
 };
-use proto::{JobStatus, JobStatusType, VmType};
+use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
@@ -23,7 +23,7 @@ const JOB_RETRY_DELAY_MS: u64 = 250;
 pub enum Error {
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),
+    Database(#[from] ivm_db::Error),
     /// ELF with given verifying key already exists in DB
     #[error("elf with verifying key {0} already exists")]
     ElfAlreadyExists(String),
@@ -198,7 +198,7 @@ where
         job: &mut Job,
         metrics: &Arc<Metrics>,
     ) -> Result<ElfWithMeta, FailureReason> {
-        match db::get_elf(db.clone(), &job.program_id) {
+        match ivm_db::get_elf(db.clone(), &job.program_id) {
             Ok(Some(elf)) => Ok(elf),
             Ok(None) => {
                 metrics.incr_job_err(&FailureReason::MissingElf.to_string());

@@ -206,7 +206,7 @@ paste = "1"
 reqwest = { version = "0", features = ["json"] }
 
 # local
-abi = { path = "crates/sdk/abi" }
+ivm-abi = { path = "crates/sdk/abi" }
 clob-client ={ path = "examples/clob/client" }
 clob-contracts ={ path = "examples/clob/contracts" }
 clob-core = { path = "examples/clob/core" }
@@ -214,8 +214,8 @@ clob-node = { path = "examples/clob/node" }
 clob-programs = { path = "examples/clob/programs" }
 clob-test-utils = { path = "examples/clob/test-utils" }
 contracts = { path = "crates/contracts" }
-coprocessor-node = { path = "crates/coprocessor-node" }
-db = { path = "crates/db" }
+ivm-coprocessor-node = { path = "crates/coprocessor-node" }
+ivm-db = { path = "crates/db" }
 eip4844 = { path = "crates/eip4844" }
 matching-game-core = { path = "examples/matching-game/core" }
 matching-game-server = { path = "examples/matching-game/server" }
@@ -223,8 +223,8 @@ matching-game-programs = { path = "examples/matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
 mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
 intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
-proto = { path = "crates/sdk/proto" }
-test-utils = { path = "crates/sdk/test-utils" }
-zkvm = { path = "crates/zkvm" }
+ivm-proto = { path = "crates/sdk/proto" }
+ivm-test-utils = { path = "crates/sdk/test-utils" }
+ivm-zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
 zkvm-executor = { path = "crates/zkvm-executor" }

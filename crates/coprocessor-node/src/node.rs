@@ -11,10 +11,10 @@ use crate::{
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
-use db::tables::Job;
+use ivm_db::tables::Job;
+use ivm_proto::coprocessor_node_server::CoprocessorNodeServer;
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
-use proto::coprocessor_node_server::CoprocessorNodeServer;
 use reth_db::Database;
 use std::{
     net::{SocketAddr, SocketAddrV4},
@@ -34,7 +34,7 @@ pub enum Error {
     GrpcServer(#[from] tonic::transport::Error),
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),
+    Database(#[from] ivm_db::Error),
     /// task join error
     #[error("error handling failed")]
     ErrorHandlingFailed(#[from] tokio::task::JoinError),
@@ -183,7 +183,7 @@ where
 
     let grpc_server = {
         let reflector = tonic_reflection::server::Builder::configure()
-            .register_encoded_file_descriptor_set(proto::FILE_DESCRIPTOR_SET)
+            .register_encoded_file_descriptor_set(ivm_proto::FILE_DESCRIPTOR_SET)
             .build_v1()
             .expect("failed to build gRPC reflection service");
         let intake = IntakeHandlers::new(

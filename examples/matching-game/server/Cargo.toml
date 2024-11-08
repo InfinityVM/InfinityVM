@@ -19,12 +19,12 @@ bincode = { workspace = true }
 serde = { workspace = true }
 
 # local deps
-abi = { workspace = true }
+ivm-abi = { workspace = true }
 matching-game-core = { workspace = true }
 matching-game-programs = { workspace = true }
-proto = { workspace = true }
+ivm-proto = { workspace = true }
 kairos-trie = { workspace = true }
-test-utils = { workspace = true }
+ivm-test-utils = { workspace = true }
 
 # zkvm deps
 risc0-zkvm = { workspace = true }

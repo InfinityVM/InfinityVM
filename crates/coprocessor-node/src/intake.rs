@@ -7,8 +7,8 @@
 use std::sync::Arc;
 
 use alloy::{hex, primitives::Signature, signers::Signer};
-use db::{get_elf, get_job, put_elf, put_job, tables::Job};
-use proto::{JobStatus, JobStatusType, VmType};
+use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
+use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use zkvm_executor::service::ZkvmExecutorService;
 
@@ -20,7 +20,7 @@ pub enum Error {
     CreateElfFailed(#[from] zkvm_executor::service::Error),
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),
+    Database(#[from] ivm_db::Error),
     /// ELF with given verifying key already exists in DB
     #[error("elf with verifying key {0} already exists")]
     ElfAlreadyExists(String),

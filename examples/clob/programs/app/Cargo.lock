@@ -3,13 +3,6 @@
 version = 3
 
 [[package]]
-name = "abi"
-version = "0.0.1"
-dependencies = [
- "alloy",
-]
-
-[[package]]
 name = "ahash"
 version = "0.8.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -124,10 +117,10 @@ checksum = "b3d1d046238990b9cf5bcde22a3fb3584ee5cf65fb2765f454ed428c7a0063da"
 name = "app"
 version = "0.1.0"
 dependencies = [
- "abi",
  "alloy",
  "borsh",
  "clob-core",
+ "ivm-abi",
  "risc0-zkvm",
 ]
 
@@ -401,9 +394,9 @@ checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 name = "clob-core"
 version = "0.1.0"
 dependencies = [
- "abi",
  "alloy",
  "borsh",
+ "ivm-abi",
  "serde",
  "sha2",
 ]
@@ -602,6 +595,13 @@ name = "itoa"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "49f1f14873335454500d59611f1cf4a4b0f786f9ac11f4312a78e4cf2566695b"
+
+[[package]]
+name = "ivm-abi"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+]
 
 [[package]]
 name = "libc"

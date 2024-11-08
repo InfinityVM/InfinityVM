@@ -1,7 +1,6 @@
 //! Test the coprocessor node by submitting programs, submitting jobs with onchain and offchain
 //! inputs, and getting the result for both.
 
-use abi::StatefulAppOnchainInput;
 use alloy::{
     primitives::{hex, Address, FixedBytes},
     providers::ProviderBuilder,
@@ -10,6 +9,12 @@ use alloy::{
 };
 use clob_programs::CLOB_ELF;
 use contracts::mock_consumer::MockConsumer;
+use ivm_abi::StatefulAppOnchainInput;
+use ivm_proto::{
+    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
+    SubmitJobRequest, SubmitProgramRequest, VmType,
+};
+use ivm_test_utils::create_and_sign_offchain_request;
 use k256::ecdsa::SigningKey;
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
@@ -20,12 +25,7 @@ use matching_game_programs::{MATCHING_GAME_ELF, MATCHING_GAME_ID};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
-use proto::{
-    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
-    SubmitJobRequest, SubmitProgramRequest, VmType,
-};
 use std::rc::Rc;
-use test_utils::create_and_sign_offchain_request;
 use tracing::{error, info};
 
 const COPROCESSOR_IP: &str = "";

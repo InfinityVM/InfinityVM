@@ -1,6 +1,5 @@
 //! Utilities for setting testing with the `MockConsumer` contract.
 
-use abi::get_job_id;
 use alloy::{
     network::EthereumWallet,
     primitives::{keccak256, Address, U256},
@@ -9,10 +8,10 @@ use alloy::{
     sol_types::SolValue,
 };
 use contracts::mock_consumer::MockConsumer;
-use db::tables::{Job, RequestType};
-use proto::{JobStatus, JobStatusType};
-use test_utils::{get_signers, AnvilJobManager};
-use zkvm_executor::service::abi_encode_result_with_metadata;
+use ivm_abi::{abi_encode_result_with_metadata, get_job_id};
+use ivm_db::tables::{Job, RequestType};
+use ivm_proto::{JobStatus, JobStatusType};
+use ivm_test_utils::{get_signers, AnvilJobManager};
 
 /// Max cycles that the `MockContract` calls create job with.
 pub const MOCK_CONSUMER_MAX_CYCLES: u64 = 1_000_000;

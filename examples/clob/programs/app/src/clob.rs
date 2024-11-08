@@ -5,7 +5,7 @@ use clob_core::{
     api::Request,
     zkvm_stf, ClobState,
 };
-use abi::StatefulAppResult;
+use ivm_abi::StatefulAppResult;
 use risc0_zkvm::guest::env;
 
 // TODO: Update the CLOB zkVM program to use state root + merkle proofs instead of the entire state

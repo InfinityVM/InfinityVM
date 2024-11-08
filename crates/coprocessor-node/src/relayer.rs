@@ -11,9 +11,9 @@ use alloy::{
     transports::http::reqwest,
 };
 use contracts::i_job_manager::IJobManager;
-use db::tables::{Job, RequestType};
+use ivm_db::tables::{Job, RequestType};
 use std::sync::Arc;
-use tracing::{error, info, instrument};
+use tracing::{error, info};
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
 
@@ -118,7 +118,6 @@ pub struct JobRelayer {
 
 impl JobRelayer {
     /// Submit a completed job to the `JobManager` contract for an onchain job request.
-    #[instrument(skip(self, job), fields(job_id = ?job.id), err(Debug))]
     pub async fn relay_result_for_onchain_job(
         &self,
         job: Job,
@@ -128,7 +127,7 @@ impl JobRelayer {
             .submitResult(job.result_with_metadata.into(), job.zkvm_operator_signature.into());
 
         let pending_tx = call_builder.send().await.map_err(|error| {
-            error!(?error, ?job.id, "tx broadcast failure");
+            error!(?error, id = hex::encode(job.id), "tx broadcast failure");
             self.metrics.incr_relay_err(BROADCAST_ERROR);
             Error::TxBroadcast(error)
         })?;
@@ -138,7 +137,7 @@ impl JobRelayer {
             .get_receipt()
             .await
             .map_err(|error| {
-                error!(?error, ?job.id, "tx inclusion failed");
+                error!(?error, id = hex::encode(job.id), "tx inclusion failed");
                 self.metrics.incr_relay_err(TX_INCLUSION_ERROR);
                 Error::TxInclusion(error)
             })?;
@@ -235,7 +234,6 @@ mod test {
     use std::{collections::HashSet, sync::Arc};
 
     use crate::{metrics::Metrics, relayer::JobRelayerBuilder};
-    use abi::get_job_id;
     use alloy::{
         network::EthereumWallet,
         providers::{Provider, ProviderBuilder},
@@ -244,20 +242,21 @@ mod test {
         sol_types::SolEvent,
     };
     use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+    use ivm_abi::get_job_id;
     use mock_consumer::{
         anvil_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
         AnvilMockConsumer,
     };
     use prometheus::Registry;
 
-    use test_utils::{anvil_with_job_manager, get_localhost_port, AnvilJobManager};
+    use ivm_test_utils::{anvil_with_job_manager, get_localhost_port, AnvilJobManager};
     use tokio::task::JoinSet;
 
     const JOB_COUNT: usize = 30;
 
     #[tokio::test]
     async fn run_can_successfully_submit_results() {
-        test_utils::test_tracing();
+        ivm_test_utils::test_tracing();
 
         let anvil_port = get_localhost_port();
         let anvil = anvil_with_job_manager(anvil_port).await;
@@ -286,7 +285,7 @@ mod test {
         let mut join_set = JoinSet::new();
 
         for i in 0u8..JOB_COUNT as u8 {
-            let job: db::tables::Job =
+            let job: ivm_db::tables::Job =
                 mock_consumer_pending_job(i + 1, coprocessor_operator.clone(), mock_consumer).await;
 
             let mock_addr = mock_contract_input_addr();

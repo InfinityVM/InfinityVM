@@ -21,13 +21,12 @@ rand = { workspace = true }
 reth-db = { workspace = true }
 kairos-trie = { workspace = true }
 
-coprocessor-node = { workspace = true }
+ivm-coprocessor-node = { workspace = true }
 contracts = { workspace = true }
-proto = { workspace = true }
-zkvm-executor = { workspace = true }
-test-utils = { workspace = true }
-abi = { workspace = true }
-db = { workspace = true }
+ivm-proto = { workspace = true }
+ivm-test-utils = { workspace = true }
+ivm-abi = { workspace = true }
+ivm-db = { workspace = true }
 clob-contracts = { workspace = true }
 clob-programs = { workspace = true }
 clob-core = { workspace = true }
