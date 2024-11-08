@@ -24,7 +24,6 @@ kairos-trie = { workspace = true }
 ivm-coprocessor-node = { workspace = true }
 contracts = { workspace = true }
 ivm-proto = { workspace = true }
-zkvm-executor = { workspace = true }
 ivm-test-utils = { workspace = true }
 ivm-abi = { workspace = true }
 ivm-db = { workspace = true }

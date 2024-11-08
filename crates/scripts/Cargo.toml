@@ -37,7 +37,6 @@ reqwest = { workspace = true }
 tonic-build = { workspace = true }
 
 ivm-proto = { workspace = true }
-zkvm-executor = { workspace = true }
 ivm-abi = { workspace = true }
 ivm-test-utils = { workspace = true }
 clob-test-utils = { workspace = true }

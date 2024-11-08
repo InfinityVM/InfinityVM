@@ -15,5 +15,3 @@ contracts = { workspace = true }
 ivm-db = { workspace = true }
 ivm-proto = { workspace = true }
 ivm-test-utils = { workspace = true }
-zkvm-executor = { workspace = true }
-

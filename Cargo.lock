@@ -2568,7 +2568,6 @@ dependencies = [
  "tonic",
  "tracing 0.1.40",
  "tracing-subscriber 0.3.18",
- "zkvm-executor",
 ]
 
 [[package]]
@@ -4066,7 +4065,6 @@ dependencies = [
  "ivm-db",
  "ivm-proto",
  "ivm-test-utils",
- "zkvm-executor",
 ]
 
 [[package]]
@@ -6136,7 +6134,6 @@ dependencies = [
  "tracing 0.1.40",
  "tracing-subscriber 0.3.18",
  "url",
- "zkvm-executor",
 ]
 
 [[package]]
