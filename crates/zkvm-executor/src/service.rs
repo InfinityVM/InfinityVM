@@ -9,9 +9,9 @@ use alloy::{
 use eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_abi::{abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata};
 use ivm_proto::VmType;
+use ivm_zkvm::Zkvm;
 use std::marker::Send;
 use tracing::{error, info};
-use ivm_zkvm::Zkvm;
 
 /// Zkvm executor errors
 #[derive(thiserror::Error, Debug)]

@@ -17,12 +17,12 @@ use clob_programs::CLOB_ELF;
 use clob_test_utils::{mint_and_approve, mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
 use ivm_abi::{
-    abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput, StatefulAppResult,
+    abi_encode_offchain_job_request, JobParams, OffchainResultWithMetadata,
+    StatefulAppOnchainInput, StatefulAppResult,
 };
 use ivm_proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
-use ivm_abi::OffchainResultWithMetadata;
 
 fn program_id() -> Vec<u8> {
     compute_image_id(CLOB_ELF).unwrap().as_bytes().to_vec()

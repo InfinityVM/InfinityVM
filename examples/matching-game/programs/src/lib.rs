@@ -11,9 +11,9 @@ mod tests {
     };
 
     use ivm_abi::{StatefulAppOnchainInput, StatefulAppResult};
+    use ivm_zkvm::Zkvm;
     use kairos_trie::{stored::memory_db::MemoryDb, NodeHash, TrieRoot};
     use std::rc::Rc;
-    use ivm_zkvm::Zkvm;
 
     #[test]
     fn submit_number_cancel_number() {
