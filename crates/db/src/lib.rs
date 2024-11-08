@@ -11,7 +11,8 @@ use reth_db::{
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
 use tables::{
-    AddrKey, B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, QueueMetaTable, QueueNodeTable, RelayFailureJobs, Sha256Key
+    AddrKey, B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, QueueMetaTable,
+    QueueNodeTable, RelayFailureJobs, Sha256Key,
 };
 
 pub mod tables;
@@ -153,7 +154,7 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct QueueMeta {
     head: Option<B256Key>,
-    tail: Option<B256Key>
+    tail: Option<B256Key>,
 }
 
 /// A node in the queue.
@@ -165,7 +166,7 @@ pub struct QueueNode {
 }
 
 /// In memory handle to queue
-/// 
+///
 /// Note, if you add the some job_id to two different queues, you will break the queues.
 #[derive(Debug)]
 pub struct Queue<D> {
@@ -177,9 +178,8 @@ pub struct Queue<D> {
 impl<D: Database> Queue<D> {
     /// Load a queue handle from the DB
     pub fn load(db: Arc<D>, key: AddrKey) -> Result<Option<Self>, Error> {
-        let value = db
-            .view(|tx| tx.get::<QueueMetaTable>(key))??
-            .map(|meta| Self { meta, db, key });
+        let value =
+            db.view(|tx| tx.get::<QueueMetaTable>(key))??.map(|meta| Self { meta, db, key });
 
         Ok(value)
     }
@@ -218,16 +218,16 @@ impl<D: Database> Queue<D> {
         let (tail_node, result) = if let Some(tail) = self.meta.tail.clone() {
             let tail_node = self.db.view(|tx| tx.get::<QueueNodeTable>(tail))??.expect("todo");
             (tail_node, tail)
-
         } else {
             debug_assert!(self.meta.head.is_none());
-            return Ok(None)
+            return Ok(None);
         };
 
         if let Some(new_tail) = tail_node.prev {
             self.db.update(|tx| tx.delete::<QueueNodeTable>(B256Key(tail_node.job_id), None))??;
-            
-            let mut new_tail_node = self.db.view(|tx| tx.get::<QueueNodeTable>(new_tail.clone()))??.expect("todo");
+
+            let mut new_tail_node =
+                self.db.view(|tx| tx.get::<QueueNodeTable>(new_tail.clone()))??.expect("todo");
             new_tail_node.next = None;
 
             self.meta.tail = Some(new_tail.clone());
@@ -242,9 +242,8 @@ impl<D: Database> Queue<D> {
 
             self.meta.head = None;
             self.meta.tail = None;
-
         }
-        
+
         self.commit()?;
 
         Ok(Some(result.0))
@@ -252,11 +251,7 @@ impl<D: Database> Queue<D> {
 
     /// Commit the metadata to the DB.
     fn commit(&mut self) -> Result<(), Error> {
-        self.db
-            .update(|tx| 
-                tx.put::<QueueMetaTable>(self.key, self.meta.clone())
-            )??;
+        self.db.update(|tx| tx.put::<QueueMetaTable>(self.key, self.meta.clone()))??;
         Ok(())
     }
-    
 }

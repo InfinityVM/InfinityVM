@@ -1,5 +1,6 @@
 //! Database tables
 
+use super::QueueMeta;
 use crate::{Error, QueueNode};
 use alloy::{primitives::utils::keccak256, rlp::bytes};
 use eip4844::BlobTransactionSidecar;
@@ -11,7 +12,6 @@ use reth_db::{
 };
 use sha2::{Digest, Sha256};
 use std::fmt;
-use super::QueueMeta;
 
 macro_rules! impl_compress_decompress {
     ($name:ident) => {
@@ -33,7 +33,6 @@ macro_rules! impl_compress_decompress {
             }
         }
     };
-
 }
 
 impl_compress_decompress! { QueueMeta }
@@ -103,7 +102,9 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
 }
 
 /// Key to tables storing job metadata and failed jobs.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct B256Key(pub [u8; 32]);
 
 impl Encode for B256Key {
@@ -123,7 +124,9 @@ impl Decode for B256Key {
 }
 
 /// Key to a table storing ELFs. The first byte of the key is the vm type
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct Sha256Key(pub [u8; 32]);
 
 impl Sha256Key {
@@ -163,7 +166,9 @@ pub struct ElfWithMeta {
 impl_compress_decompress! { ElfWithMeta }
 
 /// Key representing an address
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 pub struct AddrKey(pub [u8; 20]);
 impl Encode for AddrKey {
     type Encoded = [u8; 20];
@@ -181,7 +186,6 @@ impl Decode for AddrKey {
     }
 }
 
-
 reth_db::tables! {
     /// Stores Elf files
     table ElfTable<Key = Sha256Key, Value = ElfWithMeta>;
@@ -196,4 +200,3 @@ reth_db::tables! {
     /// Queue node
     table QueueNodeTable<Key = B256Key, Value = QueueNode>;
 }
-
