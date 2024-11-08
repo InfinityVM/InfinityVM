@@ -1,6 +1,6 @@
 //! Database tables
 
-use crate::Error;
+use crate::{Error, QueueNode};
 use alloy::{primitives::utils::keccak256, rlp::bytes};
 use eip4844::BlobTransactionSidecar;
 use ivm_abi::JobParams;
@@ -11,6 +11,7 @@ use reth_db::{
 };
 use sha2::{Digest, Sha256};
 use std::fmt;
+use super::QueueMeta;
 
 macro_rules! impl_compress_decompress {
     ($name:ident) => {
@@ -32,7 +33,11 @@ macro_rules! impl_compress_decompress {
             }
         }
     };
+
 }
+
+impl_compress_decompress! { QueueMeta }
+impl_compress_decompress! { QueueNode }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 /// Request type for a job
@@ -98,10 +103,10 @@ impl<'a> TryFrom<&'a Job> for JobParams<'a> {
 }
 
 /// Key to tables storing job metadata and failed jobs.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub struct JobID(pub [u8; 32]);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct B256Key(pub [u8; 32]);
 
-impl Encode for JobID {
+impl Encode for B256Key {
     type Encoded = [u8; 32];
 
     fn encode(self) -> Self::Encoded {
@@ -109,7 +114,7 @@ impl Encode for JobID {
     }
 }
 
-impl Decode for JobID {
+impl Decode for B256Key {
     fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
         let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
 
@@ -118,10 +123,10 @@ impl Decode for JobID {
 }
 
 /// Key to a table storing ELFs. The first byte of the key is the vm type
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
-pub struct ElfKey(pub [u8; 32]);
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct Sha256Key(pub [u8; 32]);
 
-impl ElfKey {
+impl Sha256Key {
     /// New [Self]
     pub(crate) fn new(program_id: &[u8]) -> Self {
         let inner: [u8; 32] = Sha256::digest(program_id).into();
@@ -130,7 +135,7 @@ impl ElfKey {
     }
 }
 
-impl Encode for ElfKey {
+impl Encode for Sha256Key {
     type Encoded = [u8; 32];
 
     fn encode(self) -> Self::Encoded {
@@ -138,7 +143,7 @@ impl Encode for ElfKey {
     }
 }
 
-impl Decode for ElfKey {
+impl Decode for Sha256Key {
     fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
         let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
 
@@ -157,13 +162,38 @@ pub struct ElfWithMeta {
 
 impl_compress_decompress! { ElfWithMeta }
 
+/// Key representing an address
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
+pub struct AddrKey(pub [u8; 20]);
+impl Encode for AddrKey {
+    type Encoded = [u8; 20];
+
+    fn encode(self) -> Self::Encoded {
+        self.0
+    }
+}
+
+impl Decode for AddrKey {
+    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
+        let inner: [u8; 20] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
+
+        Ok(Self(inner))
+    }
+}
+
+
 reth_db::tables! {
     /// Stores Elf files
-    table ElfTable<Key = ElfKey, Value = ElfWithMeta>;
+    table ElfTable<Key = Sha256Key, Value = ElfWithMeta>;
     /// Stores jobs
-    table JobTable<Key = JobID, Value = Job>;
+    table JobTable<Key = B256Key, Value = Job>;
     /// Stores failed jobs
-    table RelayFailureJobs<Key = JobID, Value = Job>;
+    table RelayFailureJobs<Key = B256Key, Value = Job>;
     /// Last seen block height
     table LastBlockHeight<Key = u32, Value = u64>;
+    /// Queue metadata
+    table QueueMetaTable<Key = AddrKey, Value = QueueMeta>;
+    /// Queue node
+    table QueueNodeTable<Key = B256Key, Value = QueueNode>;
 }
+

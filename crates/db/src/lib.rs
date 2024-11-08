@@ -11,7 +11,7 @@ use reth_db::{
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
 use tables::{
-    ElfKey, ElfTable, ElfWithMeta, Job, JobID, JobTable, LastBlockHeight, RelayFailureJobs,
+    AddrKey, B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, QueueMetaTable, QueueNodeTable, RelayFailureJobs, Sha256Key
 };
 
 pub mod tables;
@@ -46,24 +46,24 @@ pub fn put_elf<D: Database>(
     elf: Vec<u8>,
 ) -> Result<(), Error> {
     let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
-    let key = ElfKey::new(program_id);
+    let key = Sha256Key::new(program_id);
 
     db.update(|tx| tx.put::<ElfTable>(key, elf_with_meta))?.map_err(Into::into)
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist
 pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfWithMeta>, Error> {
-    db.view(|tx| tx.get::<ElfTable>(ElfKey::new(program_id)))?.map_err(Into::into)
+    db.view(|tx| tx.get::<ElfTable>(Sha256Key::new(program_id)))?.map_err(Into::into)
 }
 
 /// Write a job to the database
 pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    db.update(|tx| tx.put::<JobTable>(JobID(job.id), job))?.map_err(Into::into)
+    db.update(|tx| tx.put::<JobTable>(B256Key(job.id), job))?.map_err(Into::into)
 }
 
 /// Read in an Job from the database. [None] if it does not exist
 pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-    db.view(|tx| tx.get::<JobTable>(JobID(job_id)))?.map_err(Into::into)
+    db.view(|tx| tx.get::<JobTable>(B256Key(job_id)))?.map_err(Into::into)
 }
 
 /// Write last block height to the database
@@ -87,17 +87,17 @@ pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Err
 /// for specified key will be deleted.
 /// We pass in [None] here since each `job_id` only maps to a single Job.
 pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
-    db.update(|tx| tx.delete::<JobTable>(JobID(job_id), None))?.map_err(Into::into)
+    db.update(|tx| tx.delete::<JobTable>(B256Key(job_id), None))?.map_err(Into::into)
 }
 
 /// Write a failed relayed job to the database
 pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    db.update(|tx| tx.put::<RelayFailureJobs>(JobID(job.id), job))?.map_err(Into::into)
+    db.update(|tx| tx.put::<RelayFailureJobs>(B256Key(job.id), job))?.map_err(Into::into)
 }
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist
 pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-    db.view(|tx| tx.get::<RelayFailureJobs>(JobID(job_id)))?.map_err(Into::into)
+    db.view(|tx| tx.get::<RelayFailureJobs>(B256Key(job_id)))?.map_err(Into::into)
 }
 
 /// Read all failed relayed Jobs from the database. [None] if it does not exist
@@ -117,7 +117,7 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
 
 /// Delete a failed relayed Job from the database. [None] if it does not exist.
 pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
-    db.update(|tx| tx.delete::<RelayFailureJobs>(JobID(job_id), None))?.map_err(Into::into)
+    db.update(|tx| tx.delete::<RelayFailureJobs>(B256Key(job_id), None))?.map_err(Into::into)
 }
 
 /// Open a DB at `path`. Creates the DB if it does not exist.
@@ -147,4 +147,116 @@ pub fn init_db<P: AsRef<Path>>(path: P) -> Result<Arc<DatabaseEnv>, Error> {
     }
 
     Ok(Arc::new(db))
+}
+
+/// Metadata for queue
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QueueMeta {
+    head: Option<B256Key>,
+    tail: Option<B256Key>
+}
+
+/// A node in the queue.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QueueNode {
+    job_id: [u8; 32],
+    prev: Option<B256Key>,
+    next: Option<B256Key>,
+}
+
+/// In memory handle to queue
+/// 
+/// Note, if you add the some job_id to two different queues, you will break the queues.
+#[derive(Debug)]
+pub struct Queue<D> {
+    meta: QueueMeta,
+    db: Arc<D>,
+    key: AddrKey,
+}
+
+impl<D: Database> Queue<D> {
+    /// Load a queue handle from the DB
+    pub fn load(db: Arc<D>, key: AddrKey) -> Result<Option<Self>, Error> {
+        let value = db
+            .view(|tx| tx.get::<QueueMetaTable>(key))??
+            .map(|meta| Self { meta, db, key });
+
+        Ok(value)
+    }
+
+    /// Push to the front of the queue.
+    pub fn push_front(&mut self, job_id: [u8; 32]) -> Result<(), Error> {
+        let new_node = if let Some(head) = self.meta.head {
+            // Update the current head to have a back pointer to the new node
+            let mut head_node = self.db.view(|tx| tx.get::<QueueNodeTable>(head))??.expect("todo");
+            head_node.prev = Some(B256Key(job_id));
+            self.db.update(|tx| tx.put::<QueueNodeTable>(head, head_node))??;
+
+            QueueNode { job_id, prev: None, next: Some(head) }
+        } else {
+            self.meta.tail = Some(B256Key(job_id));
+            QueueNode { job_id, prev: None, next: None }
+        };
+
+        // Always update the head.
+        self.db.update(|tx| tx.put::<QueueNodeTable>(B256Key(job_id), new_node))??;
+
+        // Update this metadata in the db.
+        self.meta.head = Some(job_id);
+        self.commit()?;
+
+        Ok(())
+    }
+
+    /// Get the value the value from the back without without removing it.
+    pub fn peek_back(&self) -> Option<[u8; 32]> {
+        self.meta.tail.clone().map(|k| k.0)
+    }
+
+    /// Remove the value from the back.
+    pub fn pop_back(&mut self) -> Result<Option<[u8; 32]>, Error> {
+        let (tail_node, result) = if let Some(tail) = self.meta.tail.clone() {
+            let tail_node = self.db.view(|tx| tx.get::<QueueNodeTable>(tail))??.expect("todo");
+            (tail_node, tail)
+
+        } else {
+            debug_assert!(self.meta.head.is_none());
+            return Ok(None)
+        };
+
+        if let Some(new_tail) = tail_node.prev {
+            self.db.update(|tx| tx.delete::<QueueNodeTable>(B256Key(tail_node.job_id), None))??;
+            
+            let mut new_tail_node = self.db.view(|tx| tx.get::<QueueNodeTable>(new_tail.clone()))??.expect("todo");
+            new_tail_node.next = None;
+
+            self.meta.tail = Some(new_tail.clone());
+
+            self.db.update(|tx| {
+                tx.delete::<QueueNodeTable>(B256Key(tail_node.job_id), None)?;
+                tx.put::<QueueNodeTable>(new_tail, new_tail_node)
+            })??;
+        } else {
+            // This was the only node. The queue is now empty
+            debug_assert_eq!(self.meta.head, self.meta.tail);
+
+            self.meta.head = None;
+            self.meta.tail = None;
+
+        }
+        
+        self.commit()?;
+
+        Ok(Some(result.0))
+    }
+
+    /// Commit the metadata to the DB.
+    fn commit(&mut self) -> Result<(), Error> {
+        self.db
+            .update(|tx| 
+                tx.put::<QueueMetaTable>(self.key, self.meta.clone())
+            )??;
+        Ok(())
+    }
+    
 }
