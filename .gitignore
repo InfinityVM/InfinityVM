@@ -32,3 +32,4 @@ my_flamegraph.svg
 
 # SP1 bin directories
 programs/sp1/mock-consumer/script/src/bin/
+programs/sp1/mock-consumer/program/elf/
