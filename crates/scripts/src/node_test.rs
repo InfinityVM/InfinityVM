@@ -153,11 +153,10 @@ async fn main() {
 
     // Wait for the job result to be relayed to anvil
     let mut inputs = vec![0u8; 32];
+    let fixed_size_job_id: [u8; 32] = job_id.as_slice().try_into().expect("Fixed size array");
+    let get_inputs_call = mock_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
     // If the inputs are all zero, then the job is not yet relayed
     while inputs.iter().all(|&x| x == 0) {
-        let fixed_size_job_id: [u8; 32] = job_id.as_slice().try_into().expect("Fixed size array");
-        let get_inputs_call =
-            mock_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
         match get_inputs_call.call().await {
             Ok(MockConsumer::getOnchainInputForJobReturn { _0: result }) => {
                 inputs = result.to_vec();
@@ -249,11 +248,10 @@ async fn main() {
 
     // Wait for the job result to be relayed to anvil
     let mut inputs = vec![0u8; 32];
+    let fixed_size_job_id: [u8; 32] = job_id.as_slice().try_into().expect("Fixed size array");
+    let get_inputs_call = matching_game_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
     // If the inputs are all zero, then the job is not yet relayed
     while inputs.iter().all(|&x| x == 0) {
-        let fixed_size_job_id: [u8; 32] = job_id.as_slice().try_into().expect("Fixed size array");
-        let get_inputs_call =
-            matching_game_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
         match get_inputs_call.call().await {
             Ok(MatchingGameConsumer::getOnchainInputForJobReturn { _0: result }) => {
                 inputs = result.to_vec();
