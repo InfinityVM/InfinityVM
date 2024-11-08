@@ -2842,7 +2842,7 @@ dependencies = [
  "matching-game-programs",
  "matching-game-server",
  "mock-consumer",
- "mock-consumer-methods",
+ "mock-consumer-risc0",
  "proto",
  "rand 0.8.5",
  "reth-db",
@@ -4514,7 +4514,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "mock-consumer-methods"
+name = "mock-consumer-risc0"
 version = "0.1.0"
 dependencies = [
  "risc0-build",
@@ -4533,6 +4533,7 @@ name = "mock-consumer-sp1-guest"
 version = "0.1.0"
 dependencies = [
  "alloy",
+ "sp1-helper",
  "sp1-zkvm",
 ]
 
@@ -7018,7 +7019,7 @@ dependencies = [
  "intensity-test-methods",
  "k256",
  "mock-consumer",
- "mock-consumer-methods",
+ "mock-consumer-risc0",
  "mock-consumer-sp1",
  "proto",
  "reqwest 0.12.9",

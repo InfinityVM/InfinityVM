@@ -22,7 +22,7 @@ members = [
 	"examples/matching-game/*",
 	"test/e2e",
 	"test/load-test",
-	"programs/risc0/mock-consumer/methods",
+	"programs/risc0/mock-consumer/risc0",
 	"programs/risc0/intensity-test/methods",
 	"programs/sp1/mock-consumer",
 	"programs/sp1/mock-consumer/program",
@@ -223,7 +223,7 @@ matching-game-core = { path = "examples/matching-game/core" }
 matching-game-server = { path = "examples/matching-game/server" }
 matching-game-programs = { path = "examples/matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
-mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
+mock-consumer-risc0 = { path = "programs/risc0/mock-consumer/risc0" }
 intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
 proto = { path = "crates/sdk/proto" }
 test-utils = { path = "crates/sdk/test-utils" }

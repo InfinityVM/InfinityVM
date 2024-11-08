@@ -139,15 +139,14 @@ mod test {
     use crate::{Risc0, Sp1, Zkvm};
     use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
-    use mock_consumer_sp1::SP1_MOCK_CONSUMER_GUEST_ELF;
+    use mock_consumer_sp1::MOCK_CONSUMER_SP1_GUEST_ELF;
     use sp1_sdk::HashableKey;
-
-    const MOCK_CONSUMER_ELF_PATH: &str =
-        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
-        let elf = std::fs::read(MOCK_CONSUMER_ELF_PATH).unwrap();
+        const MOCK_CONSUMER_RISCV_GUEST_ELF: &str =
+            "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
+        let elf = std::fs::read(MOCK_CONSUMER_RISCV_GUEST_ELF).unwrap();
 
         let input = mock_contract_input_addr();
         let raw_input = input.abi_encode();
@@ -159,16 +158,16 @@ mod test {
 
     #[test]
     fn risc0_is_correct_verifying_key() {
-        let elf = std::fs::read(MOCK_CONSUMER_ELF_PATH).unwrap();
-        let mut image_id = risc0_binfmt::compute_image_id(&elf).unwrap().as_bytes().to_vec();
+        let elf = MOCK_CONSUMER_SP1_GUEST_ELF;
+        let mut image_id = risc0_binfmt::compute_image_id(elf).unwrap().as_bytes().to_vec();
 
-        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(elf, &image_id).unwrap();
         assert!(correct);
 
         image_id.pop();
         image_id.push(255);
 
-        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(elf, &image_id).unwrap();
 
         assert!(!correct);
     }
@@ -178,7 +177,7 @@ mod test {
         let raw_input = input.abi_encode();
 
         let raw_result = &Sp1
-            .execute(SP1_MOCK_CONSUMER_GUEST_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
+            .execute(MOCK_CONSUMER_SP1_GUEST_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
             .unwrap();
 
         assert_eq!(*raw_result, mock_raw_output());
@@ -186,18 +185,18 @@ mod test {
 
     #[test]
     fn sp1_is_correct_verifying_key() {
-        let (_, vk) = sp1_sdk::ProverClient::new().setup(SP1_MOCK_CONSUMER_GUEST_ELF);
+        let (_, vk) = sp1_sdk::ProverClient::new().setup(MOCK_CONSUMER_SP1_GUEST_ELF);
         let mut vk_bytes = vk.hash_bytes().to_vec();
 
         let correct =
-            &Sp1.is_correct_verifying_key(SP1_MOCK_CONSUMER_GUEST_ELF, &vk_bytes).unwrap();
+            &Sp1.is_correct_verifying_key(MOCK_CONSUMER_SP1_GUEST_ELF, &vk_bytes).unwrap();
         assert!(correct);
 
         vk_bytes.pop();
         vk_bytes.push(255);
 
         let correct =
-            &Sp1.is_correct_verifying_key(SP1_MOCK_CONSUMER_GUEST_ELF, &vk_bytes).unwrap();
+            &Sp1.is_correct_verifying_key(MOCK_CONSUMER_SP1_GUEST_ELF, &vk_bytes).unwrap();
         assert!(!correct);
     }
 }
