@@ -6113,6 +6113,7 @@ name = "scripts"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "bincode",
  "clob-node",
  "clob-programs",
  "clob-test-utils",
@@ -6124,6 +6125,10 @@ dependencies = [
  "ivm-proto",
  "ivm-test-utils",
  "k256",
+ "kairos-trie",
+ "matching-game-core",
+ "matching-game-programs",
+ "matching-game-server",
  "mock-consumer",
  "mock-consumer-methods",
  "reqwest 0.11.27",
