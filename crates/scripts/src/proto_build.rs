@@ -37,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .field_attribute("relay_tx_hash", SERDE_BYTES_HEX)
         .file_descriptor_set_path(out_dir.join("descriptor.bin"))
         .out_dir(out_dir)
-        .compile(
+        .compile_protos(
             &[
                 "proto/coprocessor_node/v1/coprocessor_node.proto",
                 "proto/coprocessor_node/v1/job.proto",

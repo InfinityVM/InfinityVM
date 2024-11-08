@@ -204,6 +204,7 @@ pub struct SubmitProgramResponse {
 pub enum VmType {
     Risc0 = 0,
     Sp1 = 1,
+    // Sp1Executor = 2,
 }
 impl VmType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -214,6 +215,7 @@ impl VmType {
         match self {
             VmType::Risc0 => "Risc0",
             VmType::Sp1 => "Sp1",
+            // VmType::Sp1Executor => "Sp1Executor",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -221,6 +223,7 @@ impl VmType {
         match value {
             "Risc0" => Some(Self::Risc0),
             "Sp1" => Some(Self::Sp1),
+            // "Sp1Executor" => Some(Self::Sp1Executor),
             _ => None,
         }
     }
