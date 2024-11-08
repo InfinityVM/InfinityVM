@@ -152,16 +152,20 @@ async fn main() {
     info!("HTTP Gateway Result for mock consumer: {:?}", get_result_response);
 
     // Wait for the job result to be relayed to anvil
-    let mut inputs = vec![0u8; 32];
+    let mut inputs;
     let fixed_size_job_id: [u8; 32] = job_id.as_slice().try_into().expect("Fixed size array");
-    let get_inputs_call = mock_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
-    // If the inputs are all zero, then the job is not yet relayed
-    while inputs.iter().all(|&x| x == 0) {
+    let get_inputs_call =
+        mock_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
+    loop {
         match get_inputs_call.call().await {
             Ok(MockConsumer::getOnchainInputForJobReturn { _0: result }) => {
                 inputs = result.to_vec();
-                if inputs.iter().all(|&x| x == 0) {
+                // If the inputs are all zero, then the job is not yet relayed
+                if result.into_iter().all(|x| x == 0) {
                     tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+                } else {
+                    // result successfully submitted onchain
+                    break;
                 }
             }
             Err(e) => eprintln!("Error calling getOnchainInputForJob: {:?}", e),
@@ -247,16 +251,20 @@ async fn main() {
     info!("HTTP Gateway Result for matching game: {:?}", get_result_response);
 
     // Wait for the job result to be relayed to anvil
-    let mut inputs = vec![0u8; 32];
+    let mut inputs;
     let fixed_size_job_id: [u8; 32] = job_id.as_slice().try_into().expect("Fixed size array");
-    let get_inputs_call = matching_game_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
-    // If the inputs are all zero, then the job is not yet relayed
-    while inputs.iter().all(|&x| x == 0) {
+    let get_inputs_call =
+        matching_game_consumer_contract.getOnchainInputForJob(FixedBytes(fixed_size_job_id));
+    loop {
         match get_inputs_call.call().await {
             Ok(MatchingGameConsumer::getOnchainInputForJobReturn { _0: result }) => {
                 inputs = result.to_vec();
-                if inputs.iter().all(|&x| x == 0) {
+                // If the inputs are all zero, then the job is not yet relayed
+                if result.into_iter().all(|x| x == 0) {
                     tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+                } else {
+                    // result successfully submitted onchain
+                    break;
                 }
             }
             Err(e) => eprintln!("Error calling getOnchainInputForJob: {:?}", e),
