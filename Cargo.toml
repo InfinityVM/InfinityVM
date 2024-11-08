@@ -26,7 +26,6 @@ members = [
 	"programs/risc0/intensity-test/methods",
 	"programs/sp1/mock-consumer",
 	"programs/sp1/mock-consumer/program",
-	"programs/sp1/mock-consumer/script",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
