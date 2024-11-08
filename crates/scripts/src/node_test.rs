@@ -10,7 +10,7 @@ use clob_programs::CLOB_ELF;
 use contracts::mock_consumer::MockConsumer;
 use k256::ecdsa::SigningKey;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_methods::{MOCK_CONSUMER_RISC0_GUEST_ELF, MOCK_CONSUMER_RISC0_GUEST_ID};
+use mock_consumer_risc0::{MOCK_CONSUMER_RISC0_GUEST_ELF, MOCK_CONSUMER_RISC0_GUEST_ID};
 use proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitProgramRequest, VmType,
