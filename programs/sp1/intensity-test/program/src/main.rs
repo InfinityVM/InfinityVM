@@ -1,7 +1,9 @@
-use risc0_zkvm::guest::env;
+#![no_main]
+sp1_zkvm::entrypoint!(main);
+
 use alloy::primitives::U256;
 use borsh::{BorshDeserialize, BorshSerialize};
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 
 #[derive(BorshDeserialize, BorshSerialize)]
 struct IntensityInput {
@@ -11,24 +13,20 @@ struct IntensityInput {
 fn do_some_work(intensity: IntensityInput) -> U256 {
     let mut result = U256::ZERO;
     let mut hasher = Sha256::new();
-    
+
     for _ in 0..intensity.hash_rounds {
         hasher.update(result.to_be_bytes::<32>());
         let hash = hasher.finalize_reset();
         result = result.overflowing_add(U256::from_be_slice(&hash)).0;
     }
-    
+
     result
 }
 
 fn main() {
-    let onchain_input_len: u32 = env::read();
-    let mut onchain_input_buf = vec![0; onchain_input_len as usize];
-    env::read_slice(&mut onchain_input_buf);
-
-    let intensity: IntensityInput = BorshDeserialize::deserialize(&mut &onchain_input_buf[..]).unwrap();
-    // Do some very complicated aura points based math to derive
+    let input_bytes = sp1_zkvm::io::read_vec();
+    let intensity: IntensityInput = BorshDeserialize::deserialize(&mut &input_bytes[..]).unwrap();
     let result = do_some_work(intensity);
-    
-    env::commit_slice(&result.to_be_bytes::<32>());
+
+    sp1_zkvm::io::commit_slice(&result.to_be_bytes::<32>());
 }
