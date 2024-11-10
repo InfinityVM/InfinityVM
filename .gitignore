@@ -29,3 +29,6 @@ logs/
 # Load testing report
 report.html
 my_flamegraph.svg
+
+# SP1 bin directories
+programs/sp1/mock-consumer/script/src/bin/

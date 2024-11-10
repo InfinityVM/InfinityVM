@@ -1,7 +1,8 @@
 //! ZKVM trait and implementations. The trait should abstract over any complexities to specific VMs.
 
 use risc0_binfmt::compute_image_id;
-use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
+use risc0_zkvm::{Executor as Risc0Executor, ExecutorEnv, LocalProver};
+use sp1_sdk::{HashableKey, ProverClient};
 use thiserror::Error;
 
 /// The error
@@ -100,49 +101,52 @@ impl Zkvm for Risc0 {
     }
 }
 
-// TODO: https://github.com/InfinityVM/InfinityVM/issues/120
-// Sp1 impl of [Zkvm].
-// #[derive(Debug)]
-// pub struct Sp1;
-// impl Zkvm for Sp1 {
-//     fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-//         let (_, vk) = ProverClient::new().setup(program_elf);
+/// Sp1 impl of [Zkvm], includes the prover client.
+#[derive(Debug)]
+pub struct Sp1;
 
-//         Ok(vk.hash_bytes().to_vec())
-//     }
+impl Zkvm for Sp1 {
+    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
+        let (_, vk) = ProverClient::new().setup(program_elf);
+        Ok(vk.hash_bytes().to_vec())
+    }
 
-//     fn execute_onchain_job(
-//         &self,
-//         program_elf: &[u8],
-//         raw_input: &[u8],
-//         max_cycles: u64,
-//     ) -> Result<Vec<u8>, Error> {
-//         let mut stdin = SP1Stdin::new();
-//         stdin.write_slice(raw_input);
+    fn execute(
+        &self,
+        program_elf: &[u8],
+        onchain_input: &[u8],
+        offchain_input: &[u8],
+        max_cycles: u64,
+    ) -> Result<Vec<u8>, Error> {
+        use sp1_sdk::SP1Stdin;
+        let mut stdin = SP1Stdin::new();
+        stdin.write_slice(onchain_input);
+        stdin.write_slice(offchain_input);
 
-//         let client = ProverClient::new();
-//         let (public_values, _) = client
-//             .execute(program_elf, stdin)
-//             .max_cycles(max_cycles)
-//             .run()
-//             .map_err(|source| Error::Sp1 { source })?;
+        let client = ProverClient::new();
+        let (output, _) = client
+            .execute(program_elf, stdin)
+            .max_cycles(max_cycles)
+            .run()
+            .map_err(|e| Error::Sp1 { source: e })?;
 
-//         Ok(public_values.to_vec())
-//     }
-// }
+        Ok(output.to_vec())
+    }
+}
 
 #[cfg(test)]
 mod test {
-    use crate::{Risc0, Zkvm};
+    use crate::{Risc0, Sp1, Zkvm};
     use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
-
-    const MOCK_CONSUMER_ELF_PATH: &str =
-        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-guest";
+    use mock_consumer_sp1::MOCK_CONSUMER_SP1_GUEST_ELF;
+    use sp1_sdk::HashableKey;
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
-        let elf = std::fs::read(MOCK_CONSUMER_ELF_PATH).unwrap();
+        const MOCK_CONSUMER_RISC0_GUEST_ELF: &str =
+            "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
+        let elf = std::fs::read(MOCK_CONSUMER_RISC0_GUEST_ELF).unwrap();
 
         let input = mock_contract_input_addr();
         let raw_input = input.abi_encode();
@@ -154,17 +158,45 @@ mod test {
 
     #[test]
     fn risc0_is_correct_verifying_key() {
-        let elf = std::fs::read(MOCK_CONSUMER_ELF_PATH).unwrap();
-        let mut image_id = risc0_binfmt::compute_image_id(&elf).unwrap().as_bytes().to_vec();
+        let elf = MOCK_CONSUMER_SP1_GUEST_ELF;
+        let mut image_id = risc0_binfmt::compute_image_id(elf).unwrap().as_bytes().to_vec();
 
-        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(elf, &image_id).unwrap();
         assert!(correct);
 
         image_id.pop();
         image_id.push(255);
 
-        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(elf, &image_id).unwrap();
 
+        assert!(!correct);
+    }
+    #[test]
+    fn sp1_execute_can_correctly_execute_program() {
+        let input = mock_contract_input_addr();
+        let raw_input = input.abi_encode();
+
+        let raw_result = &Sp1
+            .execute(MOCK_CONSUMER_SP1_GUEST_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
+            .unwrap();
+
+        assert_eq!(*raw_result, mock_raw_output());
+    }
+
+    #[test]
+    fn sp1_is_correct_verifying_key() {
+        let (_, vk) = sp1_sdk::ProverClient::new().setup(MOCK_CONSUMER_SP1_GUEST_ELF);
+        let mut vk_bytes = vk.hash_bytes().to_vec();
+
+        let correct =
+            &Sp1.is_correct_verifying_key(MOCK_CONSUMER_SP1_GUEST_ELF, &vk_bytes).unwrap();
+        assert!(correct);
+
+        vk_bytes.pop();
+        vk_bytes.push(255);
+
+        let correct =
+            &Sp1.is_correct_verifying_key(MOCK_CONSUMER_SP1_GUEST_ELF, &vk_bytes).unwrap();
         assert!(!correct);
     }
 }

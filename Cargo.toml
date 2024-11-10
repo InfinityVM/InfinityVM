@@ -22,8 +22,10 @@ members = [
 	"examples/matching-game/*",
 	"test/e2e",
 	"test/load-test",
-	"programs/risc0/mock-consumer/methods",
+	"programs/risc0/mock-consumer/risc0",
 	"programs/risc0/intensity-test/methods",
+	"programs/sp1/mock-consumer",
+	"programs/sp1/mock-consumer/program",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -175,10 +177,10 @@ serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
-# TODO: https://github.com/InfinityVM/InfinityVM/issues/120
-# sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["libm"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
-# sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
-# sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", features = ["libm", "lib"], default-features = false }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", default-features = false }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", default-features = false }
+sp1-build = "3.1.0"
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
@@ -221,10 +223,11 @@ matching-game-core = { path = "examples/matching-game/core" }
 matching-game-server = { path = "examples/matching-game/server" }
 matching-game-programs = { path = "examples/matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
-mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
+mock-consumer-risc0 = { path = "programs/risc0/mock-consumer/risc0" }
 intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
 proto = { path = "crates/sdk/proto" }
 test-utils = { path = "crates/sdk/test-utils" }
 zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
 zkvm-executor = { path = "crates/zkvm-executor" }
+mock-consumer-sp1 = { path = "programs/sp1/mock-consumer" }

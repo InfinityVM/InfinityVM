@@ -151,7 +151,7 @@ impl Diff {
     ) {
         match self {
             Self::Withdraw { user, base, quote } => {
-                let delta = withdraws.entry(*user).or_insert(WithdrawDelta {
+                let delta = withdraws.entry(*user).or_insert_with(|| WithdrawDelta {
                     account: Address::from(user),
                     ..Default::default()
                 });
@@ -159,29 +159,33 @@ impl Diff {
                 delta.quote += U256::try_from(*quote).expect("works");
             }
             Self::Deposit { user, base, quote } => {
-                let delta = deposits
-                    .entry(*user)
-                    .or_insert(DepositDelta { account: Address::from(user), ..Default::default() });
+                let delta = deposits.entry(*user).or_insert_with(|| DepositDelta {
+                    account: Address::from(user),
+                    ..Default::default()
+                });
                 delta.base += U256::try_from(*base).expect("works");
                 delta.quote += U256::try_from(*quote).expect("works");
             }
             Self::Fill { buyer, seller, base, quote } => {
-                let buyer_delta = orders
-                    .entry(*buyer)
-                    .or_insert(OrderDelta { account: Address::from(buyer), ..Default::default() });
+                let buyer_delta = orders.entry(*buyer).or_insert_with(|| OrderDelta {
+                    account: Address::from(buyer),
+                    ..Default::default()
+                });
                 buyer_delta.locked_quote -= I256::try_from(*quote).expect("works");
                 buyer_delta.free_base += I256::try_from(*base).expect("works");
 
-                let seller_delta = orders
-                    .entry(*seller)
-                    .or_insert(OrderDelta { account: Address::from(seller), ..Default::default() });
+                let seller_delta = orders.entry(*seller).or_insert_with(|| OrderDelta {
+                    account: Address::from(seller),
+                    ..Default::default()
+                });
                 seller_delta.locked_base -= I256::try_from(*base).expect("works");
                 seller_delta.free_quote += I256::try_from(*quote).expect("works");
             }
             Self::Cancel { user, base, quote } => {
-                let delta = orders
-                    .entry(*user)
-                    .or_insert(OrderDelta { account: Address::from(user), ..Default::default() });
+                let delta = orders.entry(*user).or_insert_with(|| OrderDelta {
+                    account: Address::from(user),
+                    ..Default::default()
+                });
                 let base = I256::try_from(*base).expect("works");
                 let quote = I256::try_from(*quote).expect("works");
 
@@ -191,9 +195,10 @@ impl Diff {
                 delta.free_quote += quote;
             }
             Self::Create { user, base, quote } => {
-                let delta = orders
-                    .entry(*user)
-                    .or_insert(OrderDelta { account: Address::from(user), ..Default::default() });
+                let delta = orders.entry(*user).or_insert_with(|| OrderDelta {
+                    account: Address::from(user),
+                    ..Default::default()
+                });
                 let base = I256::try_from(*base).expect("works");
                 let quote = I256::try_from(*quote).expect("works");
 
