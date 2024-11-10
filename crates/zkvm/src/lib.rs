@@ -144,9 +144,9 @@ mod test {
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
-        const MOCK_CONSUMER_RISCV_GUEST_ELF: &str =
+        const MOCK_CONSUMER_RISC0_GUEST_ELF: &str =
             "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
-        let elf = std::fs::read(MOCK_CONSUMER_RISCV_GUEST_ELF).unwrap();
+        let elf = std::fs::read(MOCK_CONSUMER_RISC0_GUEST_ELF).unwrap();
 
         let input = mock_contract_input_addr();
         let raw_input = input.abi_encode();
