@@ -227,9 +227,8 @@ mod test {
 
         // Test SP1
         let start = std::time::Instant::now();
-        let sp1_result = Sp1
-            .execute(INTENSITY_TEST_SP1_GUEST_ELF, &input_bytes, &[], HIGH_CYCLE_LIMIT)
-            .unwrap();
+        let sp1_result =
+            Sp1.execute(INTENSITY_TEST_SP1_GUEST_ELF, &input_bytes, &[], HIGH_CYCLE_LIMIT).unwrap();
         let sp1_time = start.elapsed();
 
         assert_eq!(risc0_result, sp1_result, "Full outputs don't match");
