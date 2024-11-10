@@ -165,9 +165,9 @@ pub struct QueueNode {
     next: Option<B256Key>,
 }
 
-/// In memory handle to queue
+/// In memory handle to queue. This is the abstraction used for all queue interactions.
 ///
-/// Note, if you add the some job_id to two different queues, you will break the queues.
+/// WARNING: if you add the some job_id to two different queues, you will break the queues.
 #[derive(Debug)]
 pub struct Queue<D> {
     meta: QueueMeta,
