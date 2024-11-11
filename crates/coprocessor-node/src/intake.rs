@@ -73,7 +73,7 @@ where
     /// Submits job, saves it in DB, and pushes on the exec queue.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         if job.offchain_input.len() > self.max_da_per_job {
-            return Err(Error::OffchainInputOverMaxDAPerJob)
+            return Err(Error::OffchainInputOverMaxDAPerJob);
         };
 
         if get_job(self.db.clone(), job.id)?.is_some() {

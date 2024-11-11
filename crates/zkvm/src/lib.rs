@@ -141,8 +141,6 @@ mod test {
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
     use mock_consumer_sp1::MOCK_CONSUMER_SP1_GUEST_ELF;
     use sp1_sdk::HashableKey;
-    const HIGH_CYCLE_LIMIT: u64 = 100_000_000;
-    use borsh::BorshSerialize;
 
     #[test]
     fn risc0_execute_can_correctly_execute_program() {
@@ -200,46 +198,5 @@ mod test {
         let correct =
             &Sp1.is_correct_verifying_key(MOCK_CONSUMER_SP1_GUEST_ELF, &vk_bytes).unwrap();
         assert!(!correct);
-    }
-
-    #[test]
-    fn compare_vm_speeds() {
-        const INTENSITY_TEST_RISC0_GUEST_ELF: &[u8] = include_bytes!(
-            "../../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/intensity-test-guest"
-        );
-        const INTENSITY_TEST_SP1_GUEST_ELF: &[u8] =
-            include_bytes!("../../../programs/sp1/intensity-test/elf/riscv32im-succinct-zkvm-elf");
-
-        #[derive(BorshSerialize)]
-        struct IntensityInput {
-            hash_rounds: u32,
-        }
-
-        let input = IntensityInput { hash_rounds: 500 };
-        let input_bytes = borsh::to_vec(&input).unwrap();
-
-        // Test Risc0
-        let start = std::time::Instant::now();
-        let risc0_result = Risc0
-            .execute(INTENSITY_TEST_RISC0_GUEST_ELF, &input_bytes, &[], HIGH_CYCLE_LIMIT)
-            .unwrap();
-        let risc0_time = start.elapsed();
-
-        // Test SP1
-        let start = std::time::Instant::now();
-        let sp1_result =
-            Sp1.execute(INTENSITY_TEST_SP1_GUEST_ELF, &input_bytes, &[], HIGH_CYCLE_LIMIT).unwrap();
-        let sp1_time = start.elapsed();
-
-        assert_eq!(risc0_result, sp1_result, "Full outputs don't match");
-
-        let risc0_hash = &risc0_result[risc0_result.len() - 32..];
-        let sp1_hash = &sp1_result[sp1_result.len() - 32..];
-        assert_eq!(risc0_hash, sp1_hash, "Hash results don't match");
-
-        println!("Risc0 time: {:?}", risc0_time);
-        println!("SP1 time: {:?}", sp1_time);
-        println!("Risc0 output length: {}", risc0_result.len());
-        println!("SP1 output length: {}", sp1_result.len());
     }
 }

@@ -76,8 +76,12 @@ where
         Ok(vm)
     }
 
-    /// Checks the verifying key, executes a program on the given inputs, and returns signed output.
+    /// Executes a program on the given inputs, and returns signed output.
     /// Returns (`result_with_metadata`, `zkvm_operator_signature`)
+    ///
+    /// WARNING: this does not check the verifying key of the program. It is up to the caller to
+    /// ensure that they trust the ELF has the correct verifying key onchain before committing to
+    /// the result. Otherwise they risk being slashed because any proof will not verify.
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_onchain_job(
         &self,
@@ -88,14 +92,7 @@ where
         elf: Vec<u8>,
         vm_type: VmType,
     ) -> Result<(Vec<u8>, Vec<u8>), Error> {
-        let hex_program_id = hex::encode(program_id.as_slice());
         let vm = self.vm(vm_type)?;
-
-        if !vm.is_correct_verifying_key(&elf, &program_id)? {
-            return Err(Error::InvalidVerifyingKey(
-                format!("bad verifying key {}", hex_program_id,),
-            ));
-        }
 
         let onchain_input_hash = keccak256(&onchain_input);
         let raw_output = tokio::task::spawn_blocking(move || {
@@ -116,9 +113,13 @@ where
         Ok((result_with_metadata, zkvm_operator_signature))
     }
 
-    /// Checks the verifying key, executes an offchain job on the given inputs, and returns signed
+    /// Executes an offchain job on the given inputs, and returns signed
     /// output. Returns (`offchain_result_with_metadata`, `zkvm_operator_signature`,
     /// `maybe_blobs_sidecar`). If the offchain input is empty, the blobs sidecar will be None.
+    ///
+    /// WARNING: this does not check the verifying key of the program. It is up to the caller to
+    /// ensure that they trust the ELF has the correct verifying key onchain before committing to
+    /// the result. Otherwise they risk being slashed because any proof will not verify.
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_offchain_job(
         &self,
@@ -130,14 +131,7 @@ where
         elf: Vec<u8>,
         vm_type: VmType,
     ) -> Result<(Vec<u8>, Vec<u8>, Option<BlobTransactionSidecar>), Error> {
-        let hex_program_id = hex::encode(&program_id);
         let vm = self.vm(vm_type)?;
-
-        if !vm.is_correct_verifying_key(&elf, &program_id)? {
-            return Err(Error::InvalidVerifyingKey(
-                format!("bad verifying key {}", hex_program_id,),
-            ));
-        }
 
         let onchain_input_hash = keccak256(&onchain_input);
         let offchain_input_hash = keccak256(&offchain_input);
