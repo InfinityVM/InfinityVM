@@ -1,0 +1,32 @@
+FROM --platform=linux/amd64 rust:slim-bookworm as chef
+WORKDIR /app
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    clang \
+    curl \
+    libclang-dev  \
+    libssl-dev \
+    pkg-config \
+    git \
+    protobuf-compiler && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN rustup toolchain install nightly
+
+# Install and run sp1up
+RUN curl -L https://raw.githubusercontent.com/succinctlabs/sp1/main/sp1up/sp1up \
+  | bash
+
+# RUN cargo prove --version
+RUN cargo +succinct --version
+# Install the Risc0 toolchain
+# for amd64 & macOS
+# RUN cargo prove install-toolchain
+
+
