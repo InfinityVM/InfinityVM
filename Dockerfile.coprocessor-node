@@ -1,4 +1,4 @@
-FROM us-docker.pkg.dev/infinityvm-core-artifacts/docker/risc0-builder:1.80.1 AS base
+FROM --platform=linux/amd64 sp1 AS base
 WORKDIR /app
 
 COPY . .
@@ -12,7 +12,7 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=base /app/. .
 RUN cd contracts && forge build
-RUN cargo build --release --locked --bin coprocessor-node
+RUN cargo build --release --locked --bin ivm-coprocessor-node
 
 FROM debian:bookworm-slim
 WORKDIR /app
