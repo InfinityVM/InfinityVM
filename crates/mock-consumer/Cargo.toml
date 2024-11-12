@@ -10,10 +10,8 @@ workspace = true
 [dependencies]
 alloy = { workspace = true, features = ["provider-anvil-node", "full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 
-abi = { workspace = true }
+ivm-abi = { workspace = true }
 contracts = { workspace = true }
-db = { workspace = true }
-proto = { workspace = true }
-test-utils = { workspace = true }
-zkvm-executor = { workspace = true }
-
+ivm-db = { workspace = true }
+ivm-proto = { workspace = true }
+ivm-test-utils = { workspace = true }

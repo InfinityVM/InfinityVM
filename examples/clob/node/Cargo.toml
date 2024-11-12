@@ -25,10 +25,10 @@ reth-db-api = { workspace = true }
 reth-db = { workspace = true }
 
 # local deps
-abi = { workspace = true }
+ivm-abi = { workspace = true }
 clob-core = { workspace = true }
 clob-programs = { workspace = true }
-proto = { workspace = true }
+ivm-proto = { workspace = true }
 clob-contracts = { workspace = true }
 
 # zkvm deps

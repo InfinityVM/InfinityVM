@@ -1,10 +1,10 @@
 //! Database tables
 
 use crate::Error;
-use abi::JobParams;
 use alloy::{primitives::utils::keccak256, rlp::bytes};
 use eip4844::BlobTransactionSidecar;
-use proto::JobStatus;
+use ivm_abi::JobParams;
+use ivm_proto::JobStatus;
 use reth_db::{
     table::{Decode, Encode},
     tables, DatabaseError, TableType, TableViewer,

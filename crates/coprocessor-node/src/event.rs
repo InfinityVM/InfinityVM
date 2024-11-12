@@ -10,11 +10,11 @@ use alloy::{
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
-use db::{
+use ivm_db::{
     get_last_block_height, set_last_block_height,
     tables::{Job, RequestType},
 };
-use proto::{JobStatus, JobStatusType};
+use ivm_proto::{JobStatus, JobStatusType};
 use reth_db::Database;
 use tokio::{
     task::JoinHandle,
@@ -38,7 +38,7 @@ pub enum Error {
     UnexpectedExit,
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),
+    Database(#[from] ivm_db::Error),
 }
 
 /// Service to listen for job request events and push a corresponding [`Job`] onto the

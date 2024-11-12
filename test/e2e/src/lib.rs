@@ -1,21 +1,21 @@
 //! E2E tests and helpers.
 use alloy::eips::BlockNumberOrTag;
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
-use coprocessor_node::{
+use futures::future::FutureExt;
+use ivm_coprocessor_node::{
     job_processor::JobProcessorConfig,
     node::{NodeConfig, WsConfig},
     MAX_DA_PER_JOB,
 };
-use futures::future::FutureExt;
+use ivm_proto::coprocessor_node_client::CoprocessorNodeClient;
+use ivm_test_utils::{
+    anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
+};
 use matching_game_server::test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
 use mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
-use proto::coprocessor_node_client::CoprocessorNodeClient;
 use rand::Rng;
 use reth_db::DatabaseEnv;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
-use test_utils::{
-    anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
-};
 use tonic::transport::Channel;
 
 /// Arguments passed to the test function.
@@ -79,7 +79,7 @@ impl E2E {
         F: Fn(Args) -> R,
         R: Future<Output = ()>,
     {
-        test_utils::test_tracing();
+        ivm_test_utils::test_tracing();
 
         let mut rng = rand::thread_rng();
         let test_num: u32 = rng.gen();
@@ -102,7 +102,7 @@ impl E2E {
         let cn_grpc_client_url = format!("http://{coprocessor_node_grpc}");
 
         tracing::info!("💾 db initialized {}", coproc_db_dir.display());
-        let db = db::init_db(coproc_db_dir).unwrap();
+        let db = ivm_db::init_db(coproc_db_dir).unwrap();
         let config = NodeConfig {
             prom_addr: prometheus_addr.parse().unwrap(),
             grpc_addr: coprocessor_node_grpc.parse().unwrap(),
@@ -123,7 +123,7 @@ impl E2E {
             job_sync_start: BlockNumberOrTag::Earliest,
             max_da_per_job: MAX_DA_PER_JOB,
         };
-        tokio::spawn(async move { coprocessor_node::node::run(config).await });
+        tokio::spawn(async move { ivm_coprocessor_node::node::run(config).await });
         sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =
             CoprocessorNodeClient::connect(cn_grpc_client_url.clone()).await.unwrap();

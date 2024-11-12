@@ -12,7 +12,7 @@ use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
 use clob_test_utils::{mint_and_approve, AnvilClob};
 use contracts::get_default_deploy_info;
 use eyre::OptionExt;
-use test_utils::{get_account, get_signers};
+use ivm_test_utils::{get_account, get_signers};
 
 /// CLI for interacting with the CLOB
 #[derive(Parser, Debug)]

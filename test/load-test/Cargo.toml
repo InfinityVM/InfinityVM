@@ -15,9 +15,9 @@ once_cell = { workspace = true }
 dotenv = { workspace = true }
 reqwest = { workspace = true }
 url = { workspace = true }
-abi = { workspace = true }
-proto = { workspace = true }
-test-utils = { workspace = true }
+ivm-abi = { workspace = true }
+ivm-proto = { workspace = true }
+ivm-test-utils = { workspace = true }
 mock-consumer = { workspace = true }
 contracts = { workspace = true }
 borsh = { workspace = true }

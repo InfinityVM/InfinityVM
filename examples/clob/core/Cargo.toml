@@ -11,4 +11,4 @@ alloy = { workspace = true }
 borsh = { workspace = true }
 sha2 = { workspace = true }
 serde = { workspace = true }
-abi = { workspace = true }
+ivm-abi = { workspace = true }

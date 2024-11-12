@@ -1,17 +1,17 @@
 //! Load testing for the coprocessor node
-use abi::get_job_id;
 use alloy::{primitives::Address, providers::ProviderBuilder, sol_types::SolValue};
 use borsh::{BorshDeserialize, BorshSerialize};
 use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
 use intensity_test_methods::INTENSITY_TEST_GUEST_ID;
+use ivm_abi::get_job_id;
+use ivm_proto::{GetResultRequest, SubmitJobRequest};
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
     get_offchain_request, intensity_hash_rounds, num_users, report_file_name, run_time,
     should_wait_until_job_completed, startup_time, wait_until_job_completed,
 };
 use once_cell::sync::Lazy;
-use proto::{GetResultRequest, SubmitJobRequest};
 use std::{
     sync::atomic::{AtomicU64, Ordering},
     time::Duration,

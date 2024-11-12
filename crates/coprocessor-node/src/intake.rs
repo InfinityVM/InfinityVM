@@ -7,8 +7,8 @@
 use std::sync::Arc;
 
 use alloy::{hex, primitives::Signature, signers::Signer};
-use db::{get_elf, get_job, put_elf, put_job, tables::Job};
-use proto::{JobStatus, JobStatusType, VmType};
+use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
+use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use zkvm_executor::service::ZkvmExecutorService;
 
@@ -20,7 +20,7 @@ pub enum Error {
     CreateElfFailed(#[from] zkvm_executor::service::Error),
     /// database error
     #[error("database error: {0}")]
-    Database(#[from] db::Error),
+    Database(#[from] ivm_db::Error),
     /// ELF with given verifying key already exists in DB
     #[error("elf with verifying key {0} already exists")]
     ElfAlreadyExists(String),
@@ -73,7 +73,7 @@ where
     /// Submits job, saves it in DB, and pushes on the exec queue.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         if job.offchain_input.len() > self.max_da_per_job {
-            return Err(Error::OffchainInputOverMaxDAPerJob)
+            return Err(Error::OffchainInputOverMaxDAPerJob);
         };
 
         if get_job(self.db.clone(), job.id)?.is_some() {

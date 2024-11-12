@@ -17,8 +17,8 @@ mod tests {
     };
     use clob_test_utils::next_state;
 
-    use abi::{StatefulAppOnchainInput, StatefulAppResult};
-    use zkvm::Zkvm;
+    use ivm_abi::{StatefulAppOnchainInput, StatefulAppResult};
+    use ivm_zkvm::Zkvm;
 
     #[test]
     fn deposit_create_cancel_withdraw() {
@@ -133,7 +133,7 @@ mod tests {
         let onchain_input =
             StatefulAppOnchainInput { input_state_root: state_hash, onchain_input: [0].into() };
 
-        let out_bytes = zkvm::Risc0 {}
+        let out_bytes = ivm_zkvm::Risc0 {}
             .execute(
                 super::CLOB_ELF,
                 StatefulAppOnchainInput::abi_encode(&onchain_input).as_slice(),

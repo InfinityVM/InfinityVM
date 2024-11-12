@@ -1,5 +1,5 @@
 [package]
-name = "db"
+name = "ivm-db"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -16,7 +16,7 @@ reth-db-api = { workspace = true }
 eyre = { workspace = true }
 serde = { workspace = true }
 
-abi = { workspace = true }
+ivm-abi = { workspace = true }
 bincode = { workspace = true }
-proto = { workspace = true }
+ivm-proto = { workspace = true }
 eip4844 = { workspace = true }
