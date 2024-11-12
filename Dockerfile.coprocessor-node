@@ -14,8 +14,13 @@ RUN apt-get update && apt-get -y upgrade && \
   git && \
   apt-get clean && \
   rm -rf /var/lib/apt/lists/*
-RUN curl -L https://foundry.paradigm.xyz | bash && ~/.foundry/bin/foundryup
-ENV PATH=/root/.foundry/bin:$PATH
+# RUN curl -L https://foundry.paradigm.xyz | bash && ~/.foundry/bin/foundryup
+# ENV PATH=/root/.foundry/bin:$PATH
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=base /app/. .
+# RUN cd contracts && forge build
 RUN cargo build --release --locked --bin ivm-coprocessor-node
 
 FROM debian:bookworm-slim

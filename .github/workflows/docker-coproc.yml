@@ -15,7 +15,7 @@ env:
 jobs:
   docker-release:
     name: Docker release to Google Artifact Registry
-    runs-on: ubicloud-standard-16
+    runs-on: ubicloud-standard-30
 
     permissions:
       contents: 'read'
