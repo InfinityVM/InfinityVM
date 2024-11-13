@@ -12,9 +12,5 @@ name = "vm-comparison"
 path = "src/main.rs"
 
 [dependencies]
-risc0-zkvm = { workspace = true }
-sp1-zkvm = { workspace = true }
-alloy = { workspace = true }
-borsh = { workspace = true }
-sha2 = { version = "0.10", default-features = false }
 ivm-zkvm = { workspace = true }
+borsh = { workspace = true }
