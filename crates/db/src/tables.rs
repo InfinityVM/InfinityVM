@@ -1,7 +1,9 @@
 //! Database tables
 
-use super::QueueMeta;
-use crate::{Error, QueueNode};
+use crate::{
+    queue::{QueueMeta, QueueNode},
+    Error,
+};
 use alloy::{primitives::utils::keccak256, rlp::bytes};
 use eip4844::BlobTransactionSidecar;
 use ivm_abi::JobParams;
@@ -34,9 +36,6 @@ macro_rules! impl_compress_decompress {
         }
     };
 }
-
-impl_compress_decompress! { QueueMeta }
-impl_compress_decompress! { QueueNode }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 /// Request type for a job
@@ -79,8 +78,6 @@ pub struct Job {
     /// eip4844 blob transaction sidecar. Only should be present after executing an offchain job.
     pub blobs_sidecar: Option<BlobTransactionSidecar>,
 }
-
-impl_compress_decompress! { Job }
 
 impl<'a> TryFrom<&'a Job> for JobParams<'a> {
     type Error = Error;
@@ -163,6 +160,9 @@ pub struct ElfWithMeta {
     pub elf: Vec<u8>,
 }
 
+impl_compress_decompress! { QueueMeta }
+impl_compress_decompress! { QueueNode }
+impl_compress_decompress! { Job }
 impl_compress_decompress! { ElfWithMeta }
 
 /// Key representing an address
