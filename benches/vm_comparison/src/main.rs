@@ -2,8 +2,7 @@
 const INTENSITY_TEST_RISC0_GUEST_ELF: &[u8] = include_bytes!(
     "../../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/intensity-test-guest"
 );
-const INTENSITY_TEST_SP1_GUEST_ELF: &[u8] =
-    include_bytes!("../../../programs/sp1/intensity-test/elf/riscv32im-succinct-zkvm-elf");
+const INTENSITY_TEST_SP1_GUEST_ELF: &[u8] = include_bytes!("../../../elf/intensity-test-sp1-guest");
 
 fn main() {
     println!("Running VM speed comparison benchmark...\n");

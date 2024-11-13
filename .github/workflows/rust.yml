@@ -71,6 +71,12 @@ jobs:
         uses: ./.github/actions/setup
         if: env.GIT_DIFF
 
+      - name: Build SP1 programs
+        if: env.GIT_DIFF
+        run: |
+          cargo prove build --manifest-path programs/sp1/mock-consumer/program/Cargo.toml --elf-name mock-consumer-sp1-guest
+          cargo prove build --manifest-path programs/sp1/intensity-test/program/Cargo.toml --elf-name intensity-test-sp1-guest
+          
       - run: make test-all
         if: env.GIT_DIFF
 
