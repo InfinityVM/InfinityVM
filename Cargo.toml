@@ -125,6 +125,7 @@ borsh = { version = "1", features = ["derive", "std"], default-features = false 
 clap = { version = "4", features = ["derive"], default-features = false }
 
 # d
+dashmap = "6"
 dotenv = { version = "0.15.0", default-features = false }
 
 # e

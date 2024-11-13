@@ -3582,6 +3582,7 @@ dependencies = [
  "axum",
  "clap",
  "contracts",
+ "dashmap 6.0.1",
  "eip4844",
  "home",
  "ivm-abi",

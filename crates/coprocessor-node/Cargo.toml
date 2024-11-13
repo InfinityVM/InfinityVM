@@ -20,6 +20,7 @@ k256 = { workspace = true }
 reth-db = { workspace = true }
 async-channel = { workspace = true }
 serde = { workspace = true }
+dashmap = { workspace = true }
 
 prometheus = { workspace = true }
 axum = { workspace = true }

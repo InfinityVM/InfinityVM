@@ -7,10 +7,11 @@
 use std::sync::Arc;
 
 use alloy::{hex, primitives::Signature, signers::Signer};
-use ivm_db::{get_elf, get_job, put_elf, put_job, queue::Queue, tables::Job};
+use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
 use zkvm_executor::service::ZkvmExecutorService;
+use crate::queue::{self, Queues};
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -42,6 +43,9 @@ pub enum Error {
     /// Offchain input over max DA per job
     #[error("offchain input over max DA per job")]
     OffchainInputOverMaxDAPerJob,
+    /// Could not push the job id onto the relay queue
+    #[error("failed to push to queue: {0}")]
+    FailedToPushToQueue(#[from] queue::Error),
 }
 
 /// Job and program intake handlers.
@@ -53,6 +57,7 @@ pub struct IntakeHandlers<S, D> {
     exec_queue_sender: async_channel::Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
+    queues: Queues<D>,
 }
 
 impl<S, D> IntakeHandlers<S, D>
@@ -66,8 +71,9 @@ where
         exec_queue_sender: async_channel::Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
+        queues: Queues<D>,
     ) -> Self {
-        Self { db, exec_queue_sender, zk_executor, max_da_per_job }
+        Self { db, exec_queue_sender, zk_executor, max_da_per_job, queues }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
@@ -85,7 +91,11 @@ where
 
         put_job(self.db.clone(), job.clone())?;
 
-        if job.relay_strategy == RelayStrategy::Ordered {}
+        let consumer_address = job.consumer_address.clone().try_into().expect("we checked for valid address length");
+        if job.relay_strategy == RelayStrategy::Ordered { 
+            self.queues.push_front(consumer_address ,job.id)?;
+            // TODO spin up background task to poll for completed queue
+        };
 
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
 

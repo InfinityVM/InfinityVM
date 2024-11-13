@@ -8,6 +8,7 @@ use crate::{
     metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder},
     server::CoprocessorNodeServerInner,
+    queue::Queues,
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
@@ -137,6 +138,9 @@ where
     let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
         bounded(exec_queue_bound);
 
+    // Configure the queues handler
+    let queues = Queues::new(Arc::clone(&db));
+
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
 
@@ -167,6 +171,7 @@ where
             exec_queue_sender.clone(),
             executor.clone(),
             max_da_per_job,
+            queues.clone(),
         );
         // Configure the job listener
         let job_event_listener = JobEventListener::new(
@@ -191,6 +196,7 @@ where
             exec_queue_sender,
             executor.clone(),
             max_da_per_job,
+            queues.clone(),
         );
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake));
