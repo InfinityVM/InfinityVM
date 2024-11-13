@@ -1,235 +1,55 @@
-[workspace.package]
-version = "0.0.1"
-edition = "2021"
-rust-version = "1.78"
+[package]
+name = "scripts"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
-[workspace]
-members = [
-	"crates/contracts",
-	"crates/coprocessor-node",
-	"crates/db",
-	"crates/eip4844",
-	"crates/mock-consumer",
-	"crates/scripts",
-	"crates/sdk/abi",
-	"crates/sdk/proto",
-	"crates/sdk/test-utils",
-	"crates/tracing",
-	"crates/zkvm",
-	"crates/zkvm-executor",
-    "crates/tracing",
-	"examples/clob/*",
-	"examples/matching-game/*",
-	"test/e2e",
-	"test/load-test",
-	"programs/risc0/mock-consumer/risc0",
-	"programs/risc0/intensity-test/methods",
-	"programs/sp1/mock-consumer",
-	"programs/sp1/mock-consumer/program",
-	"programs/sp1/intensity-test/program",
-	"benches/vm_comparison",
-]
+[[bin]]
+name = "signer"
+path = "src/main.rs"
 
-# Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
-# https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html
-resolver = "2"
+[[bin]]
+name = "local"
+path = "src/local.rs"
 
-[workspace.lints]
-rust.missing_debug_implementations = "warn"
-rust.missing_docs = "warn"
-rust.unreachable_pub = "warn"
-rust.unused_must_use = "deny"
-rust.rust_2018_idioms = { level = "deny", priority = -1 }
-rustdoc.all = "warn"
+[[bin]]
+name = "node-test"
+path = "src/node_test.rs"
 
-[workspace.lints.clippy]
-# These are some of clippy's nursery (i.e., experimental) lints that we like.
-# By default, nursery lints are allowed. Some of the lints below have made good
-# suggestions which we fixed. The others didn't have any findings, so we can
-# assume they don't have that many false positives. Let's enable them to
-# prevent future problems.
-branches_sharing_code = "warn"
-clear_with_drain = "warn"
-derive_partial_eq_without_eq = "warn"
-empty_line_after_outer_attr = "warn"
-equatable_if_let = "warn"
-imprecise_flops = "warn"
-iter_on_empty_collections = "warn"
-iter_with_drain = "warn"
-large_stack_frames = "warn"
-manual_clamp = "warn"
-mutex_integer = "warn"
-needless_pass_by_ref_mut = "warn"
-nonstandard_macro_braces = "warn"
-or_fun_call = "warn"
-path_buf_push_overwrite = "warn"
-read_zero_byte_vec = "warn"
-redundant_clone = "warn"
-suboptimal_flops = "warn"
-suspicious_operation_groupings = "warn"
-trailing_empty_array = "warn"
-trait_duplication_in_bounds = "warn"
-transmute_undefined_repr = "warn"
-trivial_regex = "warn"
-tuple_array_conversions = "warn"
-uninhabited_references = "warn"
-unused_peekable = "warn"
-unused_rounding = "warn"
-useless_let_if_seq = "warn"
-use_self = "warn"
-missing_const_for_fn = "warn"
-empty_line_after_doc_comments = "warn"
-iter_on_single_items = "warn"
-match_same_arms = "warn"
-doc_markdown = "warn"
-unnecessary_struct_initialization = "warn"
-string_lit_as_bytes = "warn"
-explicit_into_iter_loop = "warn"
-explicit_iter_loop = "warn"
-type_repetition_in_bounds = "warn"
-flat_map_option = "warn"
-manual_assert = "warn"
-manual_string_new = "warn"
-naive_bytecount = "warn"
-needless_bitwise_bool = "warn"
-zero_sized_map_values = "warn"
-single_char_pattern = "warn"
-needless_continue = "warn"
-enum_glob_use = "warn"
+[[bin]]
+name = "proto-build"
+path = "src/proto_build.rs"
 
-# These are nursery lints which have findings. Allow them for now. Some are not
-# quite mature enough for use in our codebase and some we don't really want.
-# Explicitly listing should make it easier to fix in the future.
-as_ptr_cast_mut = "allow"
-blocks_in_conditions = "allow"
-cognitive_complexity = "allow"
-collection_is_never_read = "allow"
-debug_assert_with_mut_call = "allow"
-fallible_impl_from = "allow"
-future_not_send = "allow"
-needless_collect = "allow"
-non_send_fields_in_send_ty = "allow"
-redundant_pub_crate = "allow"
-significant_drop_in_scrutinee = "allow"
-significant_drop_tightening = "allow"
+[lints]
+workspace = true
 
-[workspace.dependencies]
-# a
-anyhow = { version = "1", default-features = false }
-axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
-# only include features that we know can be compiled into zkvm program
-alloy = { version = "0.2", features = ["sol-types"], default-features = false }
-async-channel = { version = "2", default-features = false }
+[dependencies]
+tokio = { workspace = true, features = ["signal"] }
+alloy = { workspace = true, features = ["provider-anvil-node", "full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+k256 = { workspace = true }
+dotenv = { workspace = true }
+tempfile = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+serde_json = { workspace = true }
+url = { workspace = true }
+reqwest = { workspace = true }
+tonic-build = { workspace = true }
+kairos-trie = { workspace = true }
+bincode = { workspace = true }
 
-# b
-bincode = { version = "1", default-features = false }
-borsh = { version = "1", features = ["derive", "std"], default-features = false }
-
-# c
-clap = { version = "4", features = ["derive"], default-features = false }
-
-# d
-dotenv = { version = "0.15.0", default-features = false }
-
-# e
-eyre = { version = "0.6", default-features = false }
-
-# f
-futures = { version = "0.3", default-features = false }
-futures-util = { version = "0.3", default-features = false }
-
-# g
-goose = { version = "0.17", default-features = false }
-
-# h
-hex = { version = "0.4", default-features = false }
-home = { version = "0.5", default-features = false }
-
-# i
-# j
-# k
-k256 = { version = "0.13", default-features = false }
-kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = ["serde"] }
-
-# l
-# m
-# n
-# o
-once_cell = { version = "1.8", default-features = false }
-
-# p
-prometheus = { version = "0.9", features = ["process"] }
-prost = { version = "0.13", features = ["derive", "std"], default-features = false }
-
-# q
-# r
-risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
-risc0-zkp = { version = "1", default-features = false } 
-risc0-build = { version = "1", default-features = false }
-risc0-binfmt = { version = "1", default-features = false }
-rand = { version = "0.8", default-features = false }
-reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["mdbx"], default-features = false}
-reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", default-features = false }
-reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["std", "alloy"], default-features = false }
-
-# s
-serde = { version = "1.0", features = ["derive", "std"], default-features = false }
-serde_with = {  version = "3", features = ["macros", "hex"], default-features = false }
-serde_json = { version = "1.0", default-features = false }
-sha2 = { version = "0.10", features = ["std"], default-features = false }
-strum = { version = "0.26.3", features = ["derive"], default-features = false}
-
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", features = ["libm", "lib"], default-features = false }
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", default-features = false }
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", default-features = false }
-sp1-build = "3.1.0"
-
-# t
-tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
-tonic = { version = "0.12", features = ["transport", "codegen", "prost", "channel", "server", "router"], default-features = false }
-tonic-reflection = { version = "0.12", features = ["server"], default-features = false }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "sync", "time", "tracing"], default-features = false }
-thiserror = { version = "1", default-features = false }
-tempfile = { version = "3", default-features = false }
-tracing = { version = "0.1.40", default-features = false}
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt","json"] , default-features = false }
-tracing-appender = { version = "0.2.3", default-features = false }
-
-# u
-url = { version = "2.4.0", default-features = false }
-
-# v
-# w
-# x
-# y
-# z
-
-# clob only deps
-bytes = "1.7"
-paste = "1"
-reqwest = { version = "0", features = ["json"] }
-
-# local
-ivm-abi = { path = "crates/sdk/abi" }
-clob-client ={ path = "examples/clob/client" }
-clob-contracts ={ path = "examples/clob/contracts" }
-clob-core = { path = "examples/clob/core" }
-clob-node = { path = "examples/clob/node" }
-clob-programs = { path = "examples/clob/programs" }
-clob-test-utils = { path = "examples/clob/test-utils" }
-contracts = { path = "crates/contracts" }
-ivm-coprocessor-node = { path = "crates/coprocessor-node" }
-ivm-db = { path = "crates/db" }
-eip4844 = { path = "crates/eip4844" }
-matching-game-core = { path = "examples/matching-game/core" }
-matching-game-server = { path = "examples/matching-game/server" }
-matching-game-programs = { path = "examples/matching-game/programs" }
-mock-consumer = { path = "crates/mock-consumer" }
-mock-consumer-risc0 = { path = "programs/risc0/mock-consumer/risc0" }
-intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
-ivm-proto = { path = "crates/sdk/proto" }
-ivm-test-utils = { path = "crates/sdk/test-utils" }
-ivm-zkvm = { path = "crates/zkvm" }
-zkvm-tracing = { package = "tracing", path = "crates/tracing" }
-zkvm-executor = { path = "crates/zkvm-executor" }
-mock-consumer-sp1 = { path = "programs/sp1/mock-consumer" }
+ivm-proto = { workspace = true }
+ivm-abi = { workspace = true }
+ivm-test-utils = { workspace = true }
+clob-test-utils = { workspace = true }
+clob-node = { workspace = true }
+clob-programs = { workspace = true }
+mock-consumer = { workspace = true }
+mock-consumer-risc0 = { workspace = true }
+matching-game-programs = { workspace = true }
+matching-game-core = { workspace = true }
+matching-game-server = { workspace = true }
+contracts = { workspace = true }
+intensity-test-methods = { workspace = true }
+eip4844 = { workspace = true }
+mock-consumer-sp1 = { workspace = true }
