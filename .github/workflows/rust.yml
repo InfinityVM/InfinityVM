@@ -35,6 +35,13 @@ jobs:
         if: env.GIT_DIFF
         uses: ./.github/actions/setup
 
+      - name: Build SP1 programs
+        if: env.GIT_DIFF
+        run: |
+          cd programs/sp1/mock-consumer/program && cargo prove build --elf-name mock-consumer-sp1-guest
+          cd ../../intensity-test/program && cargo prove build --elf-name intensity-test-sp1-guest
+          cd ../../..
+
       - run: cargo build --workspace --all-targets
         if: env.GIT_DIFF
 
@@ -128,6 +135,13 @@ jobs:
       - name: common setup
         uses: ./.github/actions/setup
         if: env.GIT_DIFF
+
+      - name: Build SP1 programs
+        if: env.GIT_DIFF
+        run: |
+          cd programs/sp1/mock-consumer/program && cargo prove build --elf-name mock-consumer-sp1-guest
+          cd ../../intensity-test/program && cargo prove build --elf-name intensity-test-sp1-guest
+          cd ../../..
 
       - run: make doc-ci
         if: env.GIT_DIFF
