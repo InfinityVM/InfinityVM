@@ -7,22 +7,11 @@ use reth_db::{
 };
 use std::sync::Arc;
 
-/// Metadata for queue
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct QueueMeta {
-    head: Option<B256Key>,
-    tail: Option<B256Key>,
-}
-
-/// A node in the queue.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-pub struct QueueNode {
-    job_id: [u8; 32],
-    prev: Option<B256Key>,
-    next: Option<B256Key>,
-}
-
 /// In memory handle to queue. This is the abstraction used for all queue interactions.
+///
+/// Each interaction reads the queue from the DB and writes any updates. If the queue
+/// is empty, it will be deleted from the DB. When using an empty queue, the first
+/// [Self::push_front] will write it to the DB.
 ///
 /// WARNING: if you add the some job_id to two different queues, you will break the queues.
 #[derive(Debug)]
@@ -119,57 +108,139 @@ impl<D: Database> Queue<D> {
         let meta = self.db.view(|tx| tx.get::<QueueMetaTable>(self.key))??.unwrap_or_default();
         Ok(meta)
     }
-  
+
     /// Commit the metadata to the DB.
     fn commit(&mut self, meta: QueueMeta) -> Result<(), crate::Error> {
+      if meta.tail.is_none() {
+        // The queue is empty so we can delete it from the DB.
+        debug_assert!(meta.head.is_none());
+        self.db.update(|tx| tx.delete::<QueueMetaTable>(self.key, None))??;
+      } else {
+        // There are some items in the queue, so make sure to update the existing entry.
         self.db.update(|tx| tx.put::<QueueMetaTable>(self.key, meta))??;
-        Ok(())
+      }
+
+      Ok(())
     }
 }
 
+/// Metadata for queue.
+#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
+pub struct QueueMeta {
+    head: Option<B256Key>,
+    tail: Option<B256Key>,
+}
+
+/// A node in the queue.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct QueueNode {
+    job_id: [u8; 32],
+    prev: Option<B256Key>,
+    next: Option<B256Key>,
+}
 
 #[cfg(test)]
 mod test {
-    use std::sync::Arc;
-    use reth_db::{DatabaseEnv};
-    use tempfile::TempDir;
     use crate::init_db;
-
+    use reth_db::DatabaseEnv;
+    use std::sync::Arc;
+    use tempfile::TempDir;
     use super::Queue;
 
     fn db() -> (Arc<DatabaseEnv>, TempDir) {
-      let tmp_dir = TempDir::new().unwrap();
-      let db = init_db(tmp_dir.path()).unwrap();
-      (db, tmp_dir)
+        let tmp_dir = TempDir::new().unwrap();
+        let db = init_db(tmp_dir.path()).unwrap();
+        (db, tmp_dir)
     }
 
+    #[test]
+    fn single_node_queue() {
+        let (db, dir) = db();
+        let addr0 = [0u8; 20];
+        let id0 = [0u8; 32];
 
-  #[test]
-  fn single_node_queue() {
-    let (db, dir) = db();
-    let addr0 = [0u8; 20];
-    let id0 = [0u8; 32];
+        let mut queue = Queue::new(db, addr0);
 
-    let mut queue = Queue::new(db, addr0);
+        // An unitialized queue is empty.
+        assert!(queue.peek_back().unwrap().is_none());
+        assert!(queue.pop_back().unwrap().is_none());
 
-    // An unitialized queue is empty.
-    assert!(queue.peek_back().unwrap().is_none());
-    assert!(queue.pop_back().unwrap().is_none());
+        // We can add an element to the queue
+        queue.push_front(id0).unwrap();
 
-    // We can add an element to the queue
-    queue.push_front(id0).unwrap();
+        // We can see the single element on the queue
+        assert_eq!(queue.peek_back().unwrap(), Some(id0));
 
-    // We can see the single element on the queue
-    assert_eq!(queue.peek_back().unwrap(), Some(id0));
+        // We can remove the single element from the queue
+        assert_eq!(queue.pop_back().unwrap(), Some(id0));
 
-    // We can remove the single element from the queue
-    assert_eq!(queue.pop_back().unwrap(), Some(id0));
+        // The queue is now empty
+        assert!(queue.peek_back().unwrap().is_none());
+        assert!(queue.pop_back().unwrap().is_none());
 
-    // The queue is now empty
-    assert!(queue.peek_back().unwrap().is_none());
-    assert!(queue.pop_back().unwrap().is_none());
+        // Explicitly remove the temp dir so we can catch any errors
+        dir.close().unwrap()
+    }
 
-    // Explicitly remove the temp dir so we can catch any errors
-    dir.close().unwrap()
-  }
+    #[test]
+    fn push_pop() {
+        let (db, dir) = db();
+        let addr0 = [0u8; 20];
+        let id0 = [0u8; 32];
+        let id1 = [1u8; 32];
+        let id2 = [2u8; 32];
+        let id3 = [3u8; 32];
+
+        let mut queue = Queue::new(db, addr0);
+
+        // We can perform consecutive pushes and peek back
+        queue.push_front(id0).unwrap();
+        assert_eq!(queue.peek_back().unwrap(), Some(id0));
+
+        queue.push_front(id1).unwrap();
+        assert_eq!(queue.peek_back().unwrap(), Some(id0));
+
+        queue.push_front(id2).unwrap();
+        assert_eq!(queue.peek_back().unwrap(), Some(id0));
+
+        queue.push_front(id3).unwrap();
+        assert_eq!(queue.peek_back().unwrap(), Some(id0));
+
+        // We can perform consecutive pops and peek back
+        assert_eq!(queue.pop_back().unwrap(), Some(id0));
+        assert_eq!(queue.peek_back().unwrap(), Some(id1));
+
+        assert_eq!(queue.pop_back().unwrap(), Some(id1));
+        assert_eq!(queue.peek_back().unwrap(), Some(id2));
+
+        assert_eq!(queue.pop_back().unwrap(), Some(id2));
+        assert_eq!(queue.peek_back().unwrap(), Some(id3));
+
+        assert_eq!(queue.pop_back().unwrap(), Some(id3));
+        assert_eq!(queue.peek_back().unwrap(), None);
+        assert_eq!(queue.pop_back().unwrap(), None);
+
+        // We can perform interweaving push and pops
+        queue.push_front(id3).unwrap();
+        assert_eq!(queue.peek_back().unwrap(), Some(id3));
+
+        queue.push_front(id2).unwrap();
+        assert_eq!(queue.peek_back().unwrap(), Some(id3));
+
+        assert_eq!(queue.pop_back().unwrap(), Some(id3));
+        assert_eq!(queue.peek_back().unwrap(), Some(id2));
+
+        queue.push_front(id1).unwrap();
+        assert_eq!(queue.peek_back().unwrap(), Some(id2));
+
+        assert_eq!(queue.pop_back().unwrap(), Some(id2));
+        assert_eq!(queue.peek_back().unwrap(), Some(id1));
+
+        assert_eq!(queue.pop_back().unwrap(), Some(id1));
+        assert_eq!(queue.peek_back().unwrap(), None);
+        assert_eq!(queue.pop_back().unwrap(), None);
+
+        // Explicitly remove the temp dir so we can catch any errors
+        dir.close().unwrap()
+    }
 }
