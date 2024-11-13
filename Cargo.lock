@@ -3591,6 +3591,7 @@ dependencies = [
  "ivm-test-utils",
  "k256",
  "mock-consumer",
+ "parking_lot",
  "prometheus",
  "reth-db",
  "serde",

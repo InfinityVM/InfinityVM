@@ -205,7 +205,7 @@ impl JobRelayer {
         })?;
 
         let receipt =
-            pending_tx.with_required_confirmations(1).get_receipt().await.map_err(|error| {
+            pending_tx.with_required_confirmations(0).get_receipt().await.map_err(|error| {
                 error!(
                     ?error,
                     job.nonce,

@@ -139,7 +139,6 @@ futures-util = { version = "0.3", default-features = false }
 goose = { version = "0.17", default-features = false }
 
 # h
-hex = { version = "0.4", default-features = false }
 home = { version = "0.5", default-features = false }
 
 # i
@@ -155,6 +154,7 @@ kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = 
 once_cell = { version = "1.8", default-features = false }
 
 # p
+parking_lot = { version = "0.12" }
 prometheus = { version = "0.9", features = ["process"] }
 prost = { version = "0.13", features = ["derive", "std"], default-features = false }
 

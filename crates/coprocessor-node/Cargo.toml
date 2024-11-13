@@ -21,6 +21,7 @@ reth-db = { workspace = true }
 async-channel = { workspace = true }
 serde = { workspace = true }
 dashmap = { workspace = true }
+parking_lot = { workspace = true }
 
 prometheus = { workspace = true }
 axum = { workspace = true }

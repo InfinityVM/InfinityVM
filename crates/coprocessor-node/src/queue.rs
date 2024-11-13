@@ -3,7 +3,8 @@
 use dashmap::DashMap;
 use ivm_db::queue::Queue;
 use reth_db::Database;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc};
+use parking_lot::Mutex;
 
 /// Error type for queue handle.
 #[derive(thiserror::Error, Debug)]
@@ -51,8 +52,7 @@ where
             None => return Ok(None),
             Some(mutex) => mutex,
         };
-
-        let queue = mutex.lock().expect("we don't handle poisoned locks.");
+        let queue = mutex.lock();
 
         (*queue).peek_back().map_err(Into::into)
     }
@@ -65,7 +65,7 @@ where
             Some(mutex) => mutex,
         };
         
-        let queue = mutex.lock().expect("we don't handle poisoned locks.");
+        let queue = mutex.lock();
         
         let back = queue.pop_back()?;
         let is_empty = queue.is_empty()?;
@@ -87,7 +87,6 @@ where
         self.inner.entry(consumer_address)
             .or_insert_with(|| Mutex::new(Queue::new(self.db.clone(), consumer_address)))
             .lock()
-            .expect("we don't handle poisoned locks")
             .push_front(job_id)
             .map_err(Into::into)
     }
