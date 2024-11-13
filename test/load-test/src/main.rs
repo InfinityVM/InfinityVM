@@ -5,7 +5,7 @@ use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
 use intensity_test_methods::INTENSITY_TEST_GUEST_ID;
 use ivm_abi::get_job_id;
-use ivm_proto::{GetResultRequest, SubmitJobRequest};
+use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest};
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
     get_offchain_request, intensity_hash_rounds, num_users, report_file_name, run_time,
@@ -100,6 +100,7 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
             request: encoded_job_request,
             signature,
             offchain_input: Vec::new(),
+            relay_strategy: RelayStrategy::Unordered as i32,
         };
 
         let client = reqwest::Client::new();
@@ -136,8 +137,12 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let (encoded_job_request, signature) =
         get_offchain_request(nonce, &program_id, &encoded_intensity).await;
 
-    let submit_job_request =
-        SubmitJobRequest { request: encoded_job_request, signature, offchain_input: Vec::new() };
+    let submit_job_request = SubmitJobRequest {
+        request: encoded_job_request,
+        signature,
+        offchain_input: Vec::new(),
+        relay_strategy: RelayStrategy::Unordered as i32,
+    };
     let _goose_metrics =
         user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;
 

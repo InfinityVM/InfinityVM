@@ -20,7 +20,7 @@ use ivm_abi::{
     abi_encode_offchain_job_request, JobParams, OffchainResultWithMetadata,
     StatefulAppOnchainInput, StatefulAppResult,
 };
-use ivm_proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
+use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType};
 use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
 
@@ -176,8 +176,12 @@ async fn state_job_submission_clob_consumer() {
             let request = abi_encode_offchain_job_request(params.clone());
             let signature =
                 clob.clob_signer.sign_message(&request).await.unwrap().as_bytes().to_vec();
-            let job_request =
-                SubmitJobRequest { request, signature, offchain_input: combined_offchain_input };
+            let job_request = SubmitJobRequest {
+                request,
+                signature,
+                offchain_input: combined_offchain_input,
+                relay_strategy: RelayStrategy::Ordered as i32,
+            };
             let submit_job_response =
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
