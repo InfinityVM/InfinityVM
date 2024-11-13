@@ -11,9 +11,9 @@ use std::sync::Arc;
 ///
 /// Each interaction reads the queue from the DB and writes any updates. If the queue
 /// is empty, it will be deleted from the DB. When using an empty queue, the first
-/// [Self::push_front] will write it to the DB.
+/// [`Self::push_front`] will write it to the DB.
 ///
-/// WARNING: if you add the some job_id to two different queues, you will break the queues.
+/// WARNING: if you add the some `job_id` to two different queues, you will break the queues.
 #[derive(Debug)]
 pub struct Queue<D> {
     db: Arc<D>,
@@ -28,8 +28,8 @@ impl<D: Database> Queue<D> {
 
     /// Push to the front of the queue.
     ///
-    /// Note, this always loads metadata from DB.
-    pub fn push_front(&mut self, job_id: [u8; 32]) -> Result<(), crate::Error> {
+    /// Note, this always loads metadata from DB and if none exists it will create it.
+    pub fn push_front(&self, job_id: [u8; 32]) -> Result<(), crate::Error> {
         let mut meta = self.load()?;
 
         let new_node = if let Some(head) = meta.head {
@@ -59,14 +59,14 @@ impl<D: Database> Queue<D> {
     /// Get the value the value from the back without without removing it.
     pub fn peek_back(&self) -> Result<Option<[u8; 32]>, crate::Error> {
         let meta = self.load()?;
-        Ok(meta.tail.clone().map(|k| k.0))
+        Ok(meta.tail.map(|k| k.0))
     }
 
     /// Remove the value from the back.
-    pub fn pop_back(&mut self) -> Result<Option<[u8; 32]>, crate::Error> {
+    pub fn pop_back(&self) -> Result<Option<[u8; 32]>, crate::Error> {
         let mut meta = self.load()?;
 
-        let (tail_node, result) = if let Some(tail) = meta.tail.clone() {
+        let (tail_node, result) = if let Some(tail) = meta.tail {
             let tail_node = self.db.view(|tx| tx.get::<QueueNodeTable>(tail))??.expect("todo");
             (tail_node, tail)
         } else {
@@ -81,11 +81,11 @@ impl<D: Database> Queue<D> {
 
             // Update the new to no longer point at anything
             let mut new_tail_node =
-                self.db.view(|tx| tx.get::<QueueNodeTable>(new_tail.clone()))??.expect("todo");
+                self.db.view(|tx| tx.get::<QueueNodeTable>(new_tail))??.expect("todo");
             new_tail_node.next = None;
 
             // Update the meta to point at the new tail
-            meta.tail = Some(new_tail.clone());
+            meta.tail = Some(new_tail);
 
             self.db.update(|tx| {
                 tx.delete::<QueueNodeTable>(B256Key(tail_node.job_id), None)?;
@@ -110,17 +110,17 @@ impl<D: Database> Queue<D> {
     }
 
     /// Commit the metadata to the DB.
-    fn commit(&mut self, meta: QueueMeta) -> Result<(), crate::Error> {
-      if meta.tail.is_none() {
-        // The queue is empty so we can delete it from the DB.
-        debug_assert!(meta.head.is_none());
-        self.db.update(|tx| tx.delete::<QueueMetaTable>(self.key, None))??;
-      } else {
-        // There are some items in the queue, so make sure to update the existing entry.
-        self.db.update(|tx| tx.put::<QueueMetaTable>(self.key, meta))??;
-      }
+    fn commit(&self, meta: QueueMeta) -> Result<(), crate::Error> {
+        if meta.tail.is_none() {
+            // The queue is empty so we can delete it from the DB.
+            debug_assert!(meta.head.is_none());
+            self.db.update(|tx| tx.delete::<QueueMetaTable>(self.key, None))??;
+        } else {
+            // There are some items in the queue, so make sure to update the existing entry.
+            self.db.update(|tx| tx.put::<QueueMetaTable>(self.key, meta))??;
+        }
 
-      Ok(())
+        Ok(())
     }
 }
 
@@ -141,11 +141,14 @@ pub struct QueueNode {
 
 #[cfg(test)]
 mod test {
-    use crate::init_db;
-    use reth_db::DatabaseEnv;
+    use super::Queue;
+    use crate::{
+        init_db,
+        tables::{AddrKey, QueueMetaTable},
+    };
+    use reth_db::{transaction::DbTx, Database, DatabaseEnv};
     use std::sync::Arc;
     use tempfile::TempDir;
-    use super::Queue;
 
     fn db() -> (Arc<DatabaseEnv>, TempDir) {
         let tmp_dir = TempDir::new().unwrap();
@@ -159,7 +162,7 @@ mod test {
         let addr0 = [0u8; 20];
         let id0 = [0u8; 32];
 
-        let mut queue = Queue::new(db, addr0);
+        let queue = Queue::new(db, addr0);
 
         // An unitialized queue is empty.
         assert!(queue.peek_back().unwrap().is_none());
@@ -191,7 +194,7 @@ mod test {
         let id2 = [2u8; 32];
         let id3 = [3u8; 32];
 
-        let mut queue = Queue::new(db, addr0);
+        let queue = Queue::new(db.clone(), addr0);
 
         // We can perform consecutive pushes and peek back
         queue.push_front(id0).unwrap();
@@ -236,9 +239,19 @@ mod test {
         assert_eq!(queue.pop_back().unwrap(), Some(id2));
         assert_eq!(queue.peek_back().unwrap(), Some(id1));
 
+        // Right before the queue is empty, the metadata exists
+        let meta =
+            db.view(|tx| tx.get::<QueueMetaTable>(AddrKey(addr0))).unwrap().unwrap().unwrap();
+        assert_eq!(meta.head, meta.tail);
+        assert!(meta.head.is_some());
+
         assert_eq!(queue.pop_back().unwrap(), Some(id1));
         assert_eq!(queue.peek_back().unwrap(), None);
         assert_eq!(queue.pop_back().unwrap(), None);
+
+        // Once the queue is empty, it no longer exists in the DB
+        let option = db.view(|tx| tx.get::<QueueMetaTable>(AddrKey(addr0))).unwrap().unwrap();
+        assert!(option.is_none());
 
         // Explicitly remove the temp dir so we can catch any errors
         dir.close().unwrap()
