@@ -7,8 +7,8 @@
 use std::sync::Arc;
 
 use alloy::{hex, primitives::Signature, signers::Signer};
-use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
-use ivm_proto::{JobStatus, JobStatusType, VmType};
+use ivm_db::{get_elf, get_job, put_elf, put_job, queue::Queue, tables::Job};
+use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
 use zkvm_executor::service::ZkvmExecutorService;
 
@@ -84,6 +84,8 @@ where
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
 
         put_job(self.db.clone(), job.clone())?;
+
+        if job.relay_strategy == RelayStrategy::Ordered {}
 
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
 

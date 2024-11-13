@@ -62,6 +62,11 @@ impl<D: Database> Queue<D> {
         Ok(meta.tail.map(|k| k.0))
     }
 
+    /// Returns true if the queue is empty.
+    pub fn is_empty(&self) -> Result<bool, crate::Error> {
+        self.peek_back().map(|tail| tail.is_none())
+    }
+
     /// Remove the value from the back.
     pub fn pop_back(&self) -> Result<Option<[u8; 32]>, crate::Error> {
         let mut meta = self.load()?;
@@ -164,7 +169,7 @@ mod test {
 
         let queue = Queue::new(db, addr0);
 
-        // An unitialized queue is empty.
+        // An uninitialized queue is empty.
         assert!(queue.peek_back().unwrap().is_none());
         assert!(queue.pop_back().unwrap().is_none());
 

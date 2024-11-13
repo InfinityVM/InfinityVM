@@ -83,6 +83,7 @@ where
 
         info!(job_id = hex::encode(job_id), "new job request");
 
+        let relay_strategy = req.relay_strategy();
         let job = Job {
             id: job_id,
             nonce,
@@ -101,6 +102,7 @@ where
             },
             relay_tx_hash: vec![],
             blobs_sidecar: None,
+            relay_strategy,
         };
 
         self.intake_service

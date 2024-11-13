@@ -7,7 +7,7 @@ use crate::{
 use alloy::{primitives::utils::keccak256, rlp::bytes};
 use eip4844::BlobTransactionSidecar;
 use ivm_abi::JobParams;
-use ivm_proto::JobStatus;
+use ivm_proto::{JobStatus, RelayStrategy};
 use reth_db::{
     table::{Decode, Encode},
     tables, DatabaseError, TableType, TableViewer,
@@ -77,6 +77,8 @@ pub struct Job {
     pub relay_tx_hash: Vec<u8>,
     /// eip4844 blob transaction sidecar. Only should be present after executing an offchain job.
     pub blobs_sidecar: Option<BlobTransactionSidecar>,
+    /// The strategy to use for relaying the job.
+    pub relay_strategy: RelayStrategy,
 }
 
 impl<'a> TryFrom<&'a Job> for JobParams<'a> {

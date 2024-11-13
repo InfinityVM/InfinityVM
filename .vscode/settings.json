@@ -3,7 +3,4 @@
     "RISC0_SKIP_BUILD": "true",
   },
   "rust-analyzer.cargo.targetDir": true,
-  "cSpell.words": [
-    "unitialized"
-  ],
 }

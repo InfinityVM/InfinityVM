@@ -14,7 +14,7 @@ use ivm_db::{
     get_last_block_height, set_last_block_height,
     tables::{Job, RequestType},
 };
-use ivm_proto::{JobStatus, JobStatusType};
+use ivm_proto::{JobStatus, JobStatusType, RelayStrategy};
 use reth_db::Database;
 use tokio::{
     task::JoinHandle,
@@ -142,6 +142,7 @@ where
                             },
                             relay_tx_hash: vec![],
                             blobs_sidecar: None,
+                            relay_strategy: RelayStrategy::Unordered,
                         };
                         if let Err(error) = self.intake.submit_job(job).await {
                             error!(?error, ?event.jobID, "failed while submitting to job processor");
