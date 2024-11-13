@@ -3,7 +3,7 @@
 
 use std::{net::SocketAddr, time::Duration};
 
-use proto::{
+use ivm_proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest, SubmitProgramResponse,
 };

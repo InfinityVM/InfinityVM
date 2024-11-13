@@ -10,13 +10,13 @@ use alloy::{
     sol_types::SolType,
 };
 
-use abi::StatefulAppResult;
 use api::{
     AddOrderRequest, AddOrderResponse, CancelOrderRequest, CancelOrderResponse, ClobResultDeltas,
     DepositDelta, DepositRequest, DepositResponse, Diff, OrderDelta, Request, Response,
     WithdrawDelta, WithdrawRequest, WithdrawResponse,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
+use ivm_abi::StatefulAppResult;
 use serde::{Deserialize, Serialize};
 
 pub mod api;

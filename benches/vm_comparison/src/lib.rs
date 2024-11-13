@@ -1,7 +1,7 @@
 //! VM comparison benchmarks for comparing RISC0 and SP1 performance.
 
 use borsh::{BorshDeserialize, BorshSerialize};
-use zkvm::{Risc0, Sp1, Zkvm};
+use ivm_zkvm::{Risc0, Sp1, Zkvm};
 
 const HIGH_CYCLE_LIMIT: u64 = 1_000_000_000;
 

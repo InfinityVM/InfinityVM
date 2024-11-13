@@ -17,4 +17,4 @@ sp1-zkvm = { workspace = true }
 alloy = { workspace = true }
 borsh = { workspace = true }
 sha2 = { version = "0.10", default-features = false }
-zkvm = { workspace = true }
+ivm-zkvm = { workspace = true }

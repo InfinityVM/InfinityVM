@@ -4,11 +4,11 @@ use crate::db::{
     tables::{ClobStateTable, GlobalIndexTable, RequestTable},
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
-use abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use clob_programs::CLOB_ID;
 use eyre::OptionExt;
-use proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
+use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
+use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;

@@ -10,7 +10,7 @@ use alloy::{
         local::{LocalSigner, PrivateKeySigner},
     },
 };
-use test_utils::{get_signers, AnvilJobManager};
+use ivm_test_utils::{get_signers, AnvilJobManager};
 
 /// Local Signer
 pub type K256LocalSigner = LocalSigner<SigningKey>;

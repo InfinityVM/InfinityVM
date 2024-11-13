@@ -3,16 +3,15 @@
 use alloy::{
     consensus::BlobTransactionSidecar,
     hex,
-    primitives::{keccak256, Address, FixedBytes, Signature},
+    primitives::{keccak256, Address, Signature},
     signers::Signer,
-    sol,
-    sol_types::SolValue,
 };
 use eip4844::{SidecarBuilder, SimpleCoder};
-use proto::VmType;
+use ivm_abi::{abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata};
+use ivm_proto::VmType;
+use ivm_zkvm::Zkvm;
 use std::marker::Send;
 use tracing::{error, info};
-use zkvm::Zkvm;
 
 /// Zkvm executor errors
 #[derive(thiserror::Error, Debug)]
@@ -34,7 +33,7 @@ pub enum Error {
     VerifyingKeyDerivationFailed(String),
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
-    ZkvmExecuteFailed(#[from] zkvm::Error),
+    ZkvmExecuteFailed(#[from] ivm_zkvm::Error),
     /// c-kzg logic had an error.
     #[error("c-kzg: {0}")]
     Kzg(#[from] eip4844::CKzgError),
@@ -68,8 +67,8 @@ where
     /// Returns the VM and VM type (enum) for the given VM type (i32)
     fn vm(&self, vm_type: VmType) -> Result<Box<dyn Zkvm + Send>, Error> {
         let vm: Box<dyn Zkvm + Send> = match vm_type {
-            VmType::Risc0 => Box::new(zkvm::Risc0),
-            VmType::Sp1 => Box::new(zkvm::Sp1),
+            VmType::Risc0 => Box::new(ivm_zkvm::Risc0),
+            VmType::Sp1 => Box::new(ivm_zkvm::Sp1),
             // VmType::Sp1Executor => Box::new(zkvm::Sp1Executor),
         };
 
@@ -188,84 +187,4 @@ where
 
         Ok(program_id)
     }
-}
-
-sol! {
-    /// The payload that gets signed to signify that the zkvm executor has faithfully
-    /// executed the job. Also the result payload the job manager contract expects.
-    #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
-    struct ResultWithMetadata {
-        /// Job ID.
-        bytes32 job_id;
-        /// Hash of onchain input passed to zkVM program for this job.
-        bytes32 onchain_input_hash;
-        /// Max cycles for the job.
-        uint64 max_cycles;
-        /// Program ID of program being executed.
-        bytes program_id;
-        /// Raw output (result) from zkVM program.
-        bytes raw_output;
-    }
-
-    /// The payload that gets signed to signify that the zkvm executor has faithfully
-    /// executed the offchian job. Also the result payload the job manager contract expects.
-    #[derive(Default, PartialEq, Eq, PartialOrd, Ord, Debug)]
-    struct OffchainResultWithMetadata {
-        /// Job ID.
-        bytes32 job_id;
-        /// Hash of onchain input passed to zkVM program for this job.
-        bytes32 onchain_input_hash;
-        /// Hash of offchain input passed to zkVM program for this job.
-        bytes32 offchain_input_hash;
-        /// Max cycles for the job.
-        uint64 max_cycles;
-        /// Program ID of program being executed.
-        bytes program_id;
-        /// Raw output (result) from zkVM program.
-        bytes raw_output;
-        /// Commitments to the blobs that will contain the offchain input.
-        bytes32[] versioned_blob_hashes;
-    }
-}
-
-/// Returns an ABI-encoded result with metadata. This ABI-encoded response will be
-/// signed by the operator.
-pub fn abi_encode_result_with_metadata(
-    job_id: [u8; 32],
-    onchain_input_hash: FixedBytes<32>,
-    max_cycles: u64,
-    program_id: &[u8],
-    raw_output: &[u8],
-) -> Vec<u8> {
-    ResultWithMetadata {
-        job_id: job_id.into(),
-        onchain_input_hash,
-        max_cycles,
-        program_id: program_id.to_vec().into(),
-        raw_output: raw_output.to_vec().into(),
-    }
-    .abi_encode()
-}
-
-/// Returns an ABI-encoded offchain result with metadata. This ABI-encoded response will be
-/// signed by the operator.
-pub fn abi_encode_offchain_result_with_metadata(
-    job_id: [u8; 32],
-    onchain_input_hash: FixedBytes<32>,
-    offchain_input_hash: FixedBytes<32>,
-    max_cycles: u64,
-    program_id: &[u8],
-    raw_output: &[u8],
-    versioned_blob_hashes: Vec<FixedBytes<32>>,
-) -> Vec<u8> {
-    OffchainResultWithMetadata {
-        job_id: job_id.into(),
-        onchain_input_hash,
-        offchain_input_hash,
-        max_cycles,
-        program_id: program_id.to_vec().into(),
-        raw_output: raw_output.to_vec().into(),
-        versioned_blob_hashes,
-    }
-    .abi_encode()
 }

@@ -35,16 +35,20 @@ serde_json = { workspace = true }
 url = { workspace = true }
 reqwest = { workspace = true }
 tonic-build = { workspace = true }
+kairos-trie = { workspace = true }
+bincode = { workspace = true }
 
-proto = { workspace = true }
-zkvm-executor = { workspace = true }
-abi = { workspace = true }
-test-utils = { workspace = true }
+ivm-proto = { workspace = true }
+ivm-abi = { workspace = true }
+ivm-test-utils = { workspace = true }
 clob-test-utils = { workspace = true }
 clob-node = { workspace = true }
 clob-programs = { workspace = true }
 mock-consumer = { workspace = true }
 mock-consumer-risc0 = { workspace = true }
+matching-game-programs = { workspace = true }
+matching-game-core = { workspace = true }
+matching-game-server = { workspace = true }
 contracts = { workspace = true }
 intensity-test-methods = { workspace = true }
 eip4844 = { workspace = true }

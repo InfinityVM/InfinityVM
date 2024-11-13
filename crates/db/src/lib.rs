@@ -1,6 +1,6 @@
 //! Coprocessor node database.
 
-use proto::VmType;
+use ivm_proto::VmType;
 use reth_db::{
     create_db,
     mdbx::{DatabaseArguments, DatabaseFlags},
