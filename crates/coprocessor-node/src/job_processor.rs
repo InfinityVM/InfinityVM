@@ -189,7 +189,12 @@ where
                 Err(_) => continue,
             };
 
-            let _ = Self::relay_job_result(job, &job_relayer, &db, &metrics).await;
+            let job_relayer2 = job_relayer.clone();
+            let db2 = db.clone();
+            let metrics2 = metrics.clone();
+            // tokio::spawn(async move {
+            let _ = Self::relay_job_result(job, job_relayer2, db2, metrics2).await;
+            // });
         }
     }
 
@@ -316,9 +321,9 @@ where
 
     async fn relay_job_result(
         mut job: Job,
-        job_relayer: &Arc<JobRelayer>,
-        db: &Arc<D>,
-        metrics: &Arc<Metrics>,
+        job_relayer: Arc<JobRelayer>,
+        db: Arc<D>,
+        metrics: Arc<Metrics>,
     ) -> Result<(), FailureReason> {
         let id = job.id;
         let relay_receipt_result = match job.request_type {
