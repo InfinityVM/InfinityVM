@@ -1,4 +1,4 @@
-FROM --platform=linux/amd64 rust:slim-bookworm as chef
+FROM --platform=linux/amd64 rust:slim-bookworm AS chef
 WORKDIR /app
 ENV DEBIAN_FRONTEND=noninteractive
 
