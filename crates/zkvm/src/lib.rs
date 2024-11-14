@@ -158,17 +158,18 @@ mod test {
 
     #[test]
     fn risc0_is_correct_verifying_key() {
-        let elf = MOCK_CONSUMER_SP1_GUEST_ELF;
-        let mut image_id = risc0_binfmt::compute_image_id(elf).unwrap().as_bytes().to_vec();
+        const MOCK_CONSUMER_RISC0_GUEST_ELF: &str =
+            "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
+        let elf = std::fs::read(MOCK_CONSUMER_RISC0_GUEST_ELF).unwrap();
+        let mut image_id = risc0_binfmt::compute_image_id(&elf).unwrap().as_bytes().to_vec();
 
-        let correct = &Risc0.is_correct_verifying_key(elf, &image_id).unwrap();
+        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
         assert!(correct);
 
         image_id.pop();
         image_id.push(255);
 
-        let correct = &Risc0.is_correct_verifying_key(elf, &image_id).unwrap();
-
+        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
         assert!(!correct);
     }
     #[test]

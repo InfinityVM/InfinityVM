@@ -7,10 +7,6 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
-[[bin]]
-name = "vm-comparison"
-path = "src/main.rs"
-
 [dependencies]
 ivm-zkvm = { workspace = true }
 borsh = { workspace = true }
