@@ -12,7 +12,7 @@ use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
-use tracing::{error, info};
+use tracing::{error, info, span, Instrument, Level};
 use zkvm_executor::service::ZkvmExecutorService;
 
 /// Delay between retrying failed jobs, in milliseconds.m
@@ -192,8 +192,9 @@ where
             if job.relay_strategy == RelayStrategy::Unordered {
                 let job_relayer2 = job_relayer.clone();
                 let db2 = db.clone();
+
                 tokio::spawn(async move {
-                    let _ = relay_job_result(job, job_relayer2, db2).await;
+                    let _ = relay_job_result(job, job_relayer2, db2).instrument(span!(Level::INFO, "unordered_relay")).await;
                 });
             };
             // otherwise, there should be a background task that relays it

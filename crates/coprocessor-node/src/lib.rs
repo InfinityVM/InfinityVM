@@ -10,6 +10,7 @@ pub mod node;
 pub mod queue;
 pub mod relayer;
 pub mod server;
+pub mod writer;
 
 /// Default maximum bytes of DA allowed per job.
 pub const MAX_DA_PER_JOB: usize =

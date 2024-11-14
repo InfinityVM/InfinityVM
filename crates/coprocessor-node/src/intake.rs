@@ -16,6 +16,7 @@ use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
 use tokio::time::interval;
+use tracing::{span, Instrument, Level};
 use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors from job processor
@@ -131,7 +132,9 @@ where
                                     consumer = hex::encode(consumer_address),
                                     "relaying ordered"
                                 );
-                                let _ = relay_job_result(job, relayer2.clone(), db2.clone()).await;
+                                let _ = relay_job_result(job, relayer2.clone(), db2.clone())
+                                    .instrument(span!(Level::INFO, "ordered_relay"))
+                                    .await;
                             }
                             JobStatusType::Relayed => {
                                 tracing::error!(

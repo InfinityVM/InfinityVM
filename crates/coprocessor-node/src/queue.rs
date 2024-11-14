@@ -4,6 +4,7 @@ use dashmap::DashMap;
 use ivm_db::queue::Queue;
 use parking_lot::Mutex;
 use reth_db::Database;
+use tracing::instrument;
 use std::sync::Arc;
 
 /// Error type for queue handle.
@@ -41,6 +42,7 @@ where
     }
 
     /// Peek the back of the relay queue for `consumer_address`.
+    #[instrument(skip_all)]
     pub fn peek_back(&self, consumer_address: [u8; 20]) -> Result<Option<[u8; 32]>, Error> {
         let mutex = match self.inner.get(&consumer_address) {
             None => return Ok(None),
@@ -52,6 +54,7 @@ where
     }
 
     /// Pop the element off back of the relay queue for `consumer_address`.
+    #[instrument(skip_all)]
     pub fn pop_back(&self, consumer_address: [u8; 20]) -> Result<Option<[u8; 32]>, Error> {
         let mutex = match self.inner.get(&consumer_address) {
             // If we don't have an entry for the queue, we know there is nothing in it.
@@ -77,6 +80,7 @@ where
     }
 
     /// Push an element onto the front of the queue for the given address
+    #[instrument(skip_all)]
     pub fn push_front(&self, consumer_address: [u8; 20], job_id: [u8; 32]) -> Result<(), Error> {
         self.inner
             .entry(consumer_address)
