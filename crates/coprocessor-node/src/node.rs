@@ -157,7 +157,7 @@ where
     let mut job_processor = JobProcessorService::new(
         Arc::clone(&db),
         exec_queue_receiver,
-        job_relayer,
+        job_relayer.clone(),
         executor.clone(),
         metrics,
         job_proc_config,
@@ -172,6 +172,7 @@ where
             executor.clone(),
             max_da_per_job,
             queues.clone(),
+            job_relayer.clone()
         );
         // Configure the job listener
         let job_event_listener = JobEventListener::new(
@@ -197,6 +198,7 @@ where
             executor.clone(),
             max_da_per_job,
             queues.clone(),
+            job_relayer.clone()
         );
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake));

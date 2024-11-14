@@ -8,7 +8,7 @@ use ivm_db::{
     delete_fail_relay_job, get_all_failed_jobs, put_fail_relay_job, put_job,
     tables::{ElfWithMeta, Job, RequestType},
 };
-use ivm_proto::{JobStatus, JobStatusType, VmType};
+use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
@@ -189,12 +189,14 @@ where
                 Err(_) => continue,
             };
 
-            let job_relayer2 = job_relayer.clone();
-            let db2 = db.clone();
-            let metrics2 = metrics.clone();
-            tokio::spawn(async move {
-                let _ = Self::relay_job_result(job, job_relayer2, db2, metrics2).await;
-            });
+            if job.relay_strategy == RelayStrategy::Unordered {
+                let job_relayer2 = job_relayer.clone();
+                let db2 = db.clone();
+                tokio::spawn(async move {
+                    let _ = relay_job_result(job, job_relayer2, db2).await;
+                });
+            };
+            // otherwise, there should be a background task that relays it
         }
     }
 
@@ -319,48 +321,6 @@ where
         }
     }
 
-    async fn relay_job_result(
-        mut job: Job,
-        job_relayer: Arc<JobRelayer>,
-        db: Arc<D>,
-        metrics: Arc<Metrics>,
-    ) -> Result<(), FailureReason> {
-        let id = job.id;
-        let relay_receipt_result = match job.request_type {
-            RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
-            RequestType::Offchain(_) => {
-                let job_params = (&job).try_into().map_err(|_| FailureReason::RelayErr)?;
-                let job_request_payload = abi_encode_offchain_job_request(job_params);
-                job_relayer.relay_result_for_offchain_job(job.clone(), job_request_payload).await
-            }
-        };
-
-        let relay_tx_hash = match relay_receipt_result {
-            Ok(receipt) => receipt.transaction_hash,
-            Err(e) => {
-                error!("report this error: failed to relay job {:?}: {:?}", id, e);
-                if let Err(e) = put_fail_relay_job(db.clone(), job) {
-                    error!("report this error: failed to save relay err {:?}: {:?}", id, e);
-                    metrics.incr_job_err(&FailureReason::DbRelayErr.to_string());
-                    return Err(FailureReason::DbRelayErr);
-                }
-                return Err(FailureReason::RelayErr);
-            }
-        };
-
-        // Save the relay tx hash and status to DB
-        job.relay_tx_hash = relay_tx_hash.to_vec();
-        job.status =
-            JobStatus { status: JobStatusType::Relayed as i32, failure_reason: None, retries: 0 };
-        if let Err(e) = put_job(db.clone(), job) {
-            error!("report this error: failed to save relayed job {:?}: {:?}", id, e);
-            metrics.incr_job_err(&FailureReason::DbErrStatusRelayed.to_string());
-            return Err(FailureReason::DbErrStatusRelayed);
-        }
-
-        Ok(())
-    }
-
     /// Retry jobs that failed to relay
     async fn start_job_retry_task(
         db: Arc<D>,
@@ -460,4 +420,44 @@ where
             tokio::time::sleep(Duration::from_secs(30)).await;
         }
     }
+}
+
+pub async fn relay_job_result<D: Database>(
+    mut job: Job,
+    job_relayer: Arc<JobRelayer>,
+    db: Arc<D>,
+    // metrics: Arc<Metrics>,
+) -> Result<(), FailureReason> {
+    let id = job.id;
+    let relay_receipt_result = match job.request_type {
+        RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
+        RequestType::Offchain(_) => {
+            let job_params = (&job).try_into().map_err(|_| FailureReason::RelayErr)?;
+            let job_request_payload = abi_encode_offchain_job_request(job_params);
+            job_relayer.relay_result_for_offchain_job(job.clone(), job_request_payload).await
+        }
+    };
+
+    let relay_tx_hash = match relay_receipt_result {
+        Ok(receipt) => receipt.transaction_hash,
+        Err(e) => {
+            error!("report this error: failed to relay job {:?}: {:?}", id, e);
+            if let Err(e) = put_fail_relay_job(db.clone(), job) {
+                error!("report this error: failed to save relay err {:?}: {:?}", id, e);
+                return Err(FailureReason::DbRelayErr);
+            }
+            return Err(FailureReason::RelayErr);
+        }
+    };
+
+    // Save the relay tx hash and status to DB
+    job.relay_tx_hash = relay_tx_hash.to_vec();
+    job.status =
+        JobStatus { status: JobStatusType::Relayed as i32, failure_reason: None, retries: 0 };
+    if let Err(e) = put_job(db.clone(), job) {
+        error!("report this error: failed to save relayed job {:?}: {:?}", id, e);
+        return Err(FailureReason::DbErrStatusRelayed);
+    }
+
+    Ok(())
 }
