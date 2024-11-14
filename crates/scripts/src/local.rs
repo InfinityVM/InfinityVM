@@ -66,7 +66,7 @@ async fn main() {
         .env("RUST_LOG_FILE", "coproc_log_file.json")
         .env("RUST_LOG_DIR", "./logs")
         .env("RUST_LOG_FORMAT", "json")
-        .env("RUST_LOG", "ivm_coprocessor_node=info,zkvm_executor=info,risc0_zkvm=warn")
+        .env("RUST_LOG", "libmdbx=info,ivm_coprocessor_node=info")
         .arg("--grpc-address")
         .arg(&coproc_grpc)
         .arg("--http-address")
