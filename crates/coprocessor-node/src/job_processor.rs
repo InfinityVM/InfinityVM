@@ -423,11 +423,11 @@ where
     }
 }
 
+/// Relay job result to the EVM.
 pub async fn relay_job_result<D: Database>(
     mut job: Job,
     job_relayer: Arc<JobRelayer>,
     db: Arc<D>,
-    // metrics: Arc<Metrics>,
 ) -> Result<(), FailureReason> {
     let id = job.id;
     let relay_receipt_result = match job.request_type {

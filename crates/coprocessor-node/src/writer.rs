@@ -1,47 +1,58 @@
+//! Synchronous database writer.
+
 use std::sync::{mpsc, Arc};
 
-use ivm_db::{put_fail_relay_job, put_job, tables::{Job, JobTable}};
+use ivm_db::{put_fail_relay_job, put_job, tables::{Job}};
 use reth_db::Database;
 use tokio::sync::oneshot;
 
-pub type JobWriterMsg = (Job, JobWriteTarget, oneshot::Sender<()>);
+/// A write request to the [`Writer`].
+pub type WriterMsg = (WriteTarget, oneshot::Sender<()>);
 
 /// Job write module errors
 #[derive(thiserror::Error, Debug)]
-enum Error {
+pub enum Error {
+  /// Channel receiver broken
    #[error("job write receiver errored")]
   JobWriteReceiver,
+  /// DB error
   #[error("db: {0}")]
   Db(#[from] ivm_db::Error)
 }
 
 /// Table to write job too
 #[derive(Debug)]
-pub enum JobWriteTarget {
-  RelayFailureJobs,
-  JobTable
+pub enum WriteTarget {
+  /// Write to relay failure jobs table
+  RelayFailureJobs(Job),
+  /// Write to jobs table
+  JobTable(Job)
 }
 
 /// All job writes go through this writer.
-pub struct JobWriter<D> {
+#[derive(Debug)]
+pub struct Writer<D> {
   db: Arc<D>,
-  rx: mpsc::Receiver<JobWriterMsg>
+  rx: mpsc::Receiver<WriterMsg>
 }
 
 
-impl<D> JobWriter<D>
+impl<D> Writer<D>
 where 
     D: Database + 'static,
 {
-  pub fn new(db: Arc<D>,  rx: mpsc::Receiver<JobWriterMsg>) -> Self {
+  /// Create a new instance of [`Self`]
+  pub fn new(db: Arc<D>,  rx: mpsc::Receiver<WriterMsg>) -> Self {
     Self { db, rx }
   }
 
-  pub fn start(self) -> Result<(), Error> {
-      while let Ok((job, target, resp)) = self.rx.recv() {
+  /// Start the job writer.
+  pub fn start_blocking(self) -> Result<(), Error> {
+      while let Ok((target, resp)) = self.rx.recv() {
+          // TODO: don't clone db
           match target {
-            JobWriteTarget::JobTable => put_job(self.db.clone(), job)?,
-            JobWriteTarget::RelayFailureJobs => put_fail_relay_job(self.db.clone(), job)?,
+            WriteTarget::JobTable(job) => put_job(self.db.clone(), job)?,
+            WriteTarget::RelayFailureJobs(job) => put_fail_relay_job(self.db.clone(), job)?,
           }
           let _ = resp.send(());
       }
