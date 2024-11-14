@@ -51,7 +51,7 @@ async fn main() -> Result<(), GooseError> {
         )
         .register_scenario(
             scenario!("LoadtestSubmitJob")
-                .set_wait_time(Duration::from_secs(1), Duration::from_secs(3))?
+                .set_wait_time(Duration::from_secs(0), Duration::from_secs(0))?
                 .register_transaction(transaction!(loadtest_submit_job)),
         )
         .set_default(
@@ -141,7 +141,8 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
         request: encoded_job_request,
         signature,
         offchain_input: Vec::new(),
-        relay_strategy: RelayStrategy::Unordered as i32,
+        // If we want to just test max throughput, convert this to Unordered.
+        relay_strategy: RelayStrategy::Ordered as i32,
     };
     let _goose_metrics =
         user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;

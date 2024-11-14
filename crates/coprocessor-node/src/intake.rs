@@ -93,6 +93,7 @@ where
 
         let consumer_address = job.consumer_address.clone().try_into().expect("we checked for valid address length");
         if job.relay_strategy == RelayStrategy::Ordered { 
+            tracing::info!(id=hex::encode(job.id), "received ordered request");
             self.queues.push_front(consumer_address ,job.id)?;
             // TODO spin up background task to poll for completed queue
         };

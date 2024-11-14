@@ -192,9 +192,9 @@ where
             let job_relayer2 = job_relayer.clone();
             let db2 = db.clone();
             let metrics2 = metrics.clone();
-            // tokio::spawn(async move {
-            let _ = Self::relay_job_result(job, job_relayer2, db2, metrics2).await;
-            // });
+            tokio::spawn(async move {
+                let _ = Self::relay_job_result(job, job_relayer2, db2, metrics2).await;
+            });
         }
     }
 
