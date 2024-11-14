@@ -21,4 +21,5 @@ ivm-test-utils = { workspace = true }
 mock-consumer = { workspace = true }
 contracts = { workspace = true }
 borsh = { workspace = true }
-intensity-test-methods = { workspace = true }
+intensity-test-sp1 = { workspace = true }
+mock-consumer-sp1 = { workspace = true }

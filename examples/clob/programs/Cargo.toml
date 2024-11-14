@@ -3,19 +3,16 @@ name = "clob-programs"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+path = "src/lib.rs"
+
 [dependencies]
+clob-sp1 = { path = "sp1" }
 
 [dev-dependencies]
-risc0-zkvm = { workspace = true }
 clob-core = { workspace = true }
 borsh = { workspace = true }
 alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 ivm-zkvm = { workspace = true }
-clob-test-utils = { workspace = true }
 ivm-abi = { workspace = true }
-
-[build-dependencies]
-risc0-build = { workspace = true }
-
-[package.metadata.risc0]
-methods = ["app"]
+clob-test-utils = { workspace = true }

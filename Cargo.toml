@@ -22,13 +22,13 @@ members = [
 	"examples/matching-game/*",
 	"test/e2e",
 	"test/load-test",
-	"programs/risc0/mock-consumer/risc0",
-	"programs/risc0/intensity-test/methods",
 	"programs/sp1/mock-consumer",
 	"programs/sp1/mock-consumer/program",
 	"programs/sp1/intensity-test/program",
 	"benches/vm-comparison",
 	"programs/sp1/intensity-test",
+	"examples/matching-game/programs/sp1",
+	"examples/clob/programs/sp1",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -164,10 +164,6 @@ prost = { version = "0.13", features = ["derive", "std"], default-features = fal
 
 # q
 # r
-risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
-risc0-zkp = { version = "1", default-features = false } 
-risc0-build = { version = "1", default-features = false }
-risc0-binfmt = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
 reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["mdbx"], default-features = false}
 reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", default-features = false }
@@ -226,11 +222,10 @@ matching-game-core = { path = "examples/matching-game/core" }
 matching-game-server = { path = "examples/matching-game/server" }
 matching-game-programs = { path = "examples/matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
-mock-consumer-risc0 = { path = "programs/risc0/mock-consumer/risc0" }
-intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
 ivm-proto = { path = "crates/sdk/proto" }
 ivm-test-utils = { path = "crates/sdk/test-utils" }
 ivm-zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
 zkvm-executor = { path = "crates/zkvm-executor" }
 mock-consumer-sp1 = { path = "programs/sp1/mock-consumer" }
+intensity-test-sp1 = { path = "programs/sp1/intensity-test" }

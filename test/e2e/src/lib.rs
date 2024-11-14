@@ -150,7 +150,7 @@ impl E2E {
             delete_dirs.push(clob_db_dir.clone());
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
-            let batcher_duration_ms = 1000;
+            let batcher_duration_ms = 5000;
 
             let clob_consumer_addr = clob_consumer.clob_consumer;
             let listen_addr2 = listen_addr.clone();
@@ -182,7 +182,7 @@ impl E2E {
             delete_dirs.push(matching_game_db_dir.clone());
             let listen_port = get_localhost_port();
             let listen_addr = format!("{LOCALHOST}:{listen_port}");
-            let batcher_duration_ms = 1000;
+            let batcher_duration_ms = 5000;
 
             let matching_game_consumer_addr = matching_game_consumer.matching_game_consumer;
             let listen_addr2 = listen_addr.clone();

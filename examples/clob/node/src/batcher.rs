@@ -5,13 +5,12 @@ use crate::db::{
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
-use clob_programs::CLOB_ID;
+use clob_programs::get_clob_elf_id;
 use eyre::OptionExt;
 use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
-use risc0_zkvm::sha::Digest;
 use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
@@ -64,7 +63,7 @@ where
 {
     // Wait for the system to have at least one processed request from the CLOB server
     ensure_initialized(Arc::clone(&db)).await?;
-    let program_id = Digest::from(CLOB_ID).as_bytes().to_vec();
+    let program_id = get_clob_elf_id();
 
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
     let mut interval = tokio::time::interval(sleep_duration);

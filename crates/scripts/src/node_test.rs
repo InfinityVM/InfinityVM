@@ -21,10 +21,10 @@ use matching_game_core::{
     api::{Request, SubmitNumberRequest},
     get_merkle_root_bytes, next_state,
 };
-use matching_game_programs::{MATCHING_GAME_ELF, MATCHING_GAME_ID};
+use matching_game_programs::{get_matching_game_elf_id, MATCHING_GAME_ELF};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_risc0::{MOCK_CONSUMER_RISC0_GUEST_ELF, MOCK_CONSUMER_RISC0_GUEST_ID};
+use mock_consumer_sp1::{get_mock_consumer_sp1_guest_elf_id, MOCK_CONSUMER_SP1_GUEST_ELF};
 use std::rc::Rc;
 use tracing::{error, info};
 
@@ -51,7 +51,7 @@ async fn main() {
 
     info!("Trying to submit CLOB ELF to coprocessor node");
     let submit_program_request =
-        SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
+        SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into() };
     // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
         Ok(submit_program_response) => {
@@ -64,8 +64,8 @@ async fn main() {
 
     info!("Trying to submit MockConsumer ELF to coprocessor node");
     let submit_program_request = SubmitProgramRequest {
-        program_elf: MOCK_CONSUMER_RISC0_GUEST_ELF.to_vec(),
-        vm_type: VmType::Risc0.into(),
+        program_elf: MOCK_CONSUMER_SP1_GUEST_ELF.to_vec(),
+        vm_type: VmType::Sp1.into(),
     };
     // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
@@ -80,7 +80,7 @@ async fn main() {
     info!("Trying to submit MatchingGameConsumer ELF to coprocessor node");
     let submit_program_request = SubmitProgramRequest {
         program_elf: MATCHING_GAME_ELF.to_vec(),
-        vm_type: VmType::Risc0.into(),
+        vm_type: VmType::Sp1.into(),
     };
     // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
@@ -114,7 +114,7 @@ async fn main() {
         MOCK_CONSUMER_MAX_CYCLES,
         mock_consumer_addr,
         Address::abi_encode(&mock_consumer_addr).as_slice(),
-        &MOCK_CONSUMER_RISC0_GUEST_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
+        &get_mock_consumer_sp1_guest_elf_id(),
         offchain_signer.clone(),
         &[],
     )
@@ -208,12 +208,14 @@ async fn main() {
     };
     let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
+    let matching_game_program_id = get_matching_game_elf_id();
+
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
         nonce,
         MOCK_CONSUMER_MAX_CYCLES,
         matching_game_consumer_addr,
         onchain_input_abi_encoded.as_slice(),
-        &MATCHING_GAME_ID.iter().flat_map(|&x| x.to_le_bytes()).collect::<Vec<u8>>(),
+        &matching_game_program_id,
         offchain_signer.clone(),
         &combined_offchain_input,
     )

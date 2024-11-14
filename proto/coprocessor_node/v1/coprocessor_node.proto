@@ -19,8 +19,7 @@ service CoprocessorNode {
 
 // Type of ZKVM to execute
 enum VmType {
-  Risc0 = 0;
-  Sp1 = 1;
+  Sp1 = 0;
 }
 
 // SubmitJobRequest defines the request structure to submit a job to the

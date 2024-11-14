@@ -255,7 +255,7 @@ where
                     job.program_id.clone(),
                     job.onchain_input.clone(),
                     elf_with_meta.elf,
-                    VmType::Risc0,
+                    VmType::Sp1,
                 )
                 .await
                 .map(|(result_with_metadata, signature)| (result_with_metadata, signature, None)),
@@ -268,7 +268,7 @@ where
                         job.onchain_input.clone(),
                         job.offchain_input.clone(),
                         elf_with_meta.elf,
-                        VmType::Risc0,
+                        VmType::Sp1,
                     )
                     .await
             }

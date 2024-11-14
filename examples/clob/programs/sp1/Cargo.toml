@@ -1,5 +1,5 @@
 [package]
-name = "mock-consumer-sp1"
+name = "clob-sp1"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,11 +7,10 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
-ivm-zkvm = { workspace = true }
+alloy = { workspace = true }
 sp1-sdk = { workspace = true }
 once_cell = { workspace = true }
 
 [build-dependencies]
 sp1-helper = { workspace = true }
-sp1-build = { workspace = true }
-
+sp1-build = { workspace = true } 

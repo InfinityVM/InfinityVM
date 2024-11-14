@@ -202,9 +202,7 @@ pub struct SubmitProgramResponse {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum VmType {
-    Risc0 = 0,
-    Sp1 = 1,
-    // Sp1Executor = 2,
+    Sp1 = 0,
 }
 impl VmType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -213,17 +211,13 @@ impl VmType {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            VmType::Risc0 => "Risc0",
             VmType::Sp1 => "Sp1",
-            // VmType::Sp1Executor => "Sp1Executor",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "Risc0" => Some(Self::Risc0),
             "Sp1" => Some(Self::Sp1),
-            // "Sp1Executor" => Some(Self::Sp1Executor),
             _ => None,
         }
     }

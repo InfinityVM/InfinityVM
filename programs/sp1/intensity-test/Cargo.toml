@@ -7,6 +7,9 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
+ivm-zkvm = { workspace = true }
+sp1-sdk = { workspace = true }
+once_cell = { workspace = true }
 
 [build-dependencies]
 sp1-helper = { workspace = true }

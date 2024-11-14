@@ -18,23 +18,9 @@ use ivm_abi::{
 };
 use ivm_proto::{GetResultRequest, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_risc0::{MOCK_CONSUMER_RISC0_GUEST_ELF, MOCK_CONSUMER_RISC0_GUEST_ID};
-use risc0_binfmt::compute_image_id;
-use risc0_zkp::core::digest::Digest;
+use mock_consumer_sp1::{get_mock_consumer_sp1_guest_elf_id, MOCK_CONSUMER_SP1_GUEST_ELF};
 
 type MockConsumerOut = sol!((Address, U256));
-
-fn mock_consumer_program_id() -> Digest {
-    compute_image_id(MOCK_CONSUMER_RISC0_GUEST_ELF).unwrap()
-}
-
-#[test]
-#[ignore]
-fn invariants() {
-    let image_id = mock_consumer_program_id();
-
-    assert_eq!(&MOCK_CONSUMER_RISC0_GUEST_ID, image_id.as_words());
-}
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
@@ -42,15 +28,15 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
         let anvil = args.anvil;
-        let program_id = mock_consumer_program_id().as_bytes().to_vec();
+        let program_id = get_mock_consumer_sp1_guest_elf_id();
         let mock_user_address = Address::repeat_byte(69);
 
         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
-            program_elf: MOCK_CONSUMER_RISC0_GUEST_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
+            program_elf: MOCK_CONSUMER_SP1_GUEST_ELF.to_vec(),
+            vm_type: VmType::Sp1.into(),
         };
         let submit_program_response = args
             .coprocessor_node
@@ -175,7 +161,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
         let anvil = args.anvil;
-        let program_id = mock_consumer_program_id().as_bytes().to_vec();
+        let program_id = get_mock_consumer_sp1_guest_elf_id();
         let mock_user_address = Address::repeat_byte(69);
 
         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
@@ -183,8 +169,8 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
-            program_elf: MOCK_CONSUMER_RISC0_GUEST_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
+            program_elf: MOCK_CONSUMER_SP1_GUEST_ELF.to_vec(),
+            vm_type: VmType::Sp1.into(),
         };
         let submit_program_response = args
             .coprocessor_node

@@ -26,9 +26,6 @@ ivm-proto = { workspace = true }
 kairos-trie = { workspace = true }
 ivm-test-utils = { workspace = true }
 
-# zkvm deps
-risc0-zkvm = { workspace = true }
-
 [dev-dependencies]
 tower = { version = "0.4", features = ["util"] }
 http-body-util = "0"

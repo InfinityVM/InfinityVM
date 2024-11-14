@@ -1,20 +1,11 @@
 //! ZKVM trait and implementations. The trait should abstract over any complexities to specific VMs.
 
-use risc0_binfmt::compute_image_id;
-use risc0_zkvm::{Executor as Risc0Executor, ExecutorEnv, LocalProver};
-use sp1_sdk::{HashableKey, ProverClient};
+use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
 use thiserror::Error;
 
 /// The error
 #[derive(Error, Debug)]
 pub enum Error {
-    /// Error from the Risc0
-    #[error("Risc0 error: {source}")]
-    Risc0 {
-        /// The underlying error from Risc0
-        source: anyhow::Error,
-    },
-
     /// Error from the Sp1
     #[error("Sp1 error: {source}")]
     Sp1 {
@@ -59,50 +50,8 @@ pub trait Zkvm {
     // fn verify()
 }
 
-/// Risc0 impl of [Zkvm].
-#[derive(Debug)]
-pub struct Risc0;
-
-impl Zkvm for Risc0 {
-    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-        let image_id = compute_image_id(program_elf)
-            .map_err(|source| Error::Risc0 { source })?
-            .as_bytes()
-            .to_vec();
-
-        Ok(image_id)
-    }
-
-    fn execute(
-        &self,
-        program_elf: &[u8],
-        onchain_input: &[u8],
-        offchain_input: &[u8],
-        max_cycles: u64,
-    ) -> Result<Vec<u8>, Error> {
-        let onchain_input_len = onchain_input.len() as u32;
-        let offchain_input_len = offchain_input.len() as u32;
-        let env = ExecutorEnv::builder()
-            .session_limit(Some(max_cycles))
-            .write(&onchain_input_len)
-            .map_err(|source| Error::Risc0 { source })?
-            .write_slice(onchain_input)
-            .write(&offchain_input_len)
-            .map_err(|source| Error::Risc0 { source })?
-            .write_slice(offchain_input)
-            .build()
-            .map_err(|source| Error::Risc0 { source })?;
-
-        let prover = LocalProver::new("locals only");
-        let prove_info =
-            prover.execute(env, program_elf).map_err(|source| Error::Risc0 { source })?;
-
-        Ok(prove_info.journal.bytes)
-    }
-}
-
 /// Sp1 impl of [Zkvm], includes the prover client.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Sp1;
 
 impl Zkvm for Sp1 {
@@ -118,7 +67,6 @@ impl Zkvm for Sp1 {
         offchain_input: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
-        use sp1_sdk::SP1Stdin;
         let mut stdin = SP1Stdin::new();
         stdin.write_slice(onchain_input);
         stdin.write_slice(offchain_input);
@@ -136,42 +84,12 @@ impl Zkvm for Sp1 {
 
 #[cfg(test)]
 mod test {
-    use crate::{Risc0, Sp1, Zkvm};
+    use crate::{Sp1, Zkvm};
     use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
     use mock_consumer_sp1::MOCK_CONSUMER_SP1_GUEST_ELF;
     use sp1_sdk::HashableKey;
 
-    #[test]
-    fn risc0_execute_can_correctly_execute_program() {
-        const MOCK_CONSUMER_RISC0_GUEST_ELF: &str =
-            "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
-        let elf = std::fs::read(MOCK_CONSUMER_RISC0_GUEST_ELF).unwrap();
-
-        let input = mock_contract_input_addr();
-        let raw_input = input.abi_encode();
-
-        let raw_result = &Risc0.execute(&elf, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES).unwrap();
-
-        assert_eq!(*raw_result, mock_raw_output());
-    }
-
-    #[test]
-    fn risc0_is_correct_verifying_key() {
-        const MOCK_CONSUMER_RISC0_GUEST_ELF: &str =
-            "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-risc0-guest";
-        let elf = std::fs::read(MOCK_CONSUMER_RISC0_GUEST_ELF).unwrap();
-        let mut image_id = risc0_binfmt::compute_image_id(&elf).unwrap().as_bytes().to_vec();
-
-        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
-        assert!(correct);
-
-        image_id.pop();
-        image_id.push(255);
-
-        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
-        assert!(!correct);
-    }
     #[test]
     fn sp1_execute_can_correctly_execute_program() {
         let input = mock_contract_input_addr();

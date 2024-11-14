@@ -31,9 +31,6 @@ clob-programs = { workspace = true }
 ivm-proto = { workspace = true }
 clob-contracts = { workspace = true }
 
-# zkvm deps
-risc0-zkvm = { workspace = true }
-
 [dev-dependencies]
 tower = { version = "0.4", features = ["util"] }
 http-body-util = "0"

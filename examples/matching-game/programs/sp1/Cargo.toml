@@ -1,5 +1,5 @@
 [package]
-name = "mock-consumer-sp1"
+name = "matching-game-sp1"
 version = "0.1.0"
 edition = "2021"
 
@@ -13,5 +13,4 @@ once_cell = { workspace = true }
 
 [build-dependencies]
 sp1-helper = { workspace = true }
-sp1-build = { workspace = true }
-
+sp1-build = { workspace = true } 

@@ -9,7 +9,7 @@ use alloy::{
 use eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_abi::{abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata};
 use ivm_proto::VmType;
-use ivm_zkvm::Zkvm;
+use ivm_zkvm::{Sp1, Zkvm};
 use std::marker::Send;
 use tracing::{error, info};
 
@@ -66,13 +66,9 @@ where
 
     /// Returns the VM and VM type (enum) for the given VM type (i32)
     fn vm(&self, vm_type: VmType) -> Result<Box<dyn Zkvm + Send>, Error> {
-        let vm: Box<dyn Zkvm + Send> = match vm_type {
-            VmType::Risc0 => Box::new(ivm_zkvm::Risc0),
-            VmType::Sp1 => Box::new(ivm_zkvm::Sp1),
-            // VmType::Sp1Executor => Box::new(zkvm::Sp1Executor),
-        };
-
-        Ok(vm)
+        match vm_type {
+            VmType::Sp1 => Ok(Box::new(Sp1)),
+        }
     }
 
     /// Executes a program on the given inputs, and returns signed output.
