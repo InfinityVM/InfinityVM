@@ -7,7 +7,7 @@ use reth_db::Database;
 use tokio::sync::oneshot;
 
 /// A write request to the [`Writer`].
-pub type WriterMsg = (WriteTarget, oneshot::Sender<()>);
+pub type WriterMsg = (WriteTarget, Option<oneshot::Sender<()>>);
 
 /// Job write module errors
 #[derive(thiserror::Error, Debug)]
@@ -26,7 +26,9 @@ pub enum WriteTarget {
   /// Write to relay failure jobs table
   RelayFailureJobs(Job),
   /// Write to jobs table
-  JobTable(Job)
+  JobTable(Job),
+  /// Kill this thread
+  Kill,
 }
 
 /// All job writes go through this writer.
@@ -53,8 +55,11 @@ where
           match target {
             WriteTarget::JobTable(job) => put_job(self.db.clone(), job)?,
             WriteTarget::RelayFailureJobs(job) => put_fail_relay_job(self.db.clone(), job)?,
+            WriteTarget::Kill => return Ok(())
           }
-          let _ = resp.send(());
+          if let Some(resp) = resp {
+            let _ = resp.send(());
+          }
       }
 
       Err(Error::JobWriteReceiver)

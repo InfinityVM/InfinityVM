@@ -8,7 +8,7 @@ use crate::{
     metrics::{MetricServer, Metrics},
     queue::Queues,
     relayer::{self, JobRelayerBuilder},
-    server::CoprocessorNodeServerInner,
+    server::CoprocessorNodeServerInner, writer::{self, WriteTarget, Writer},
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
@@ -18,12 +18,12 @@ use k256::ecdsa::SigningKey;
 use prometheus::Registry;
 use reth_db::Database;
 use std::{
-    net::{SocketAddr, SocketAddrV4},
-    sync::Arc,
+    any::Any, net::{SocketAddr, SocketAddrV4}, sync::Arc, time::Duration
 };
 use tokio::{task::JoinHandle, try_join};
 use tracing::info;
 use zkvm_executor::service::ZkvmExecutorService;
+use crate::writer::WriterMsg;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -51,6 +51,12 @@ pub enum Error {
     /// relayer error
     #[error("relayer error: {0}")]
     Relayer(#[from] relayer::Error),
+    /// writer error
+    #[error("writer error: {0}")]
+    Writer(#[from] writer::Error),
+    /// thread join error
+    #[error("thread join error: ")]
+    StdJoin(Box<dyn Any + Send + 'static>)
 }
 
 /// Configuration for ETH RPC websocket connection.
@@ -137,12 +143,19 @@ where
     // Initialize the async channels
     let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
         bounded(exec_queue_bound);
+    //
+    let (writer_tx, writer_rx) = std::sync::mpsc::sync_channel::<WriterMsg>(4096);
 
     // Configure the queues handler
     let queues = Queues::new(Arc::clone(&db));
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
+
+    let writer = Writer::new(Arc::clone(&db), writer_rx);
+    let writer_handle = std::thread::spawn(move||{
+        writer.start_blocking()
+    });
 
     // Configure the job relayer
     let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
@@ -216,13 +229,29 @@ where
     let http_grpc_gateway = HttpGrpcGateway::new(grpc_addr.to_string(), http_listen_addr);
     let http_grpc_gateway_server = tokio::spawn(async move { http_grpc_gateway.serve().await });
 
-    try_join!(
+        // Async-ify awaiting the std thread handles and ensure sure we bubble up any errors
+    let threads = tokio::spawn(async {
+        loop {
+            if writer_handle.is_finished() {
+                return writer_handle.join().map_err(|e| Error::StdJoin(e))
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
+
+    let result = try_join!(
         flatten(job_event_listener),
         flatten(grpc_server),
         flatten(prometheus_server),
-        flatten(http_grpc_gateway_server)
+        flatten(http_grpc_gateway_server),
+        flatten(threads)
     )
-    .map(|_| ())
+    .map(|_| ());
+
+    // We need to manually shutdown any standard threads
+    let _ = writer_tx.send((WriteTarget::Kill, None));
+    
+    result
 }
 
 async fn flatten<T, E: Into<Error>>(handle: JoinHandle<Result<T, E>>) -> Result<T, Error> {
