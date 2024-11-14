@@ -6,13 +6,17 @@
 
 use std::{sync::Arc, time::Duration};
 
+use crate::{
+    job_processor::relay_job_result,
+    queue::{self, Queues},
+    relayer::JobRelayer,
+};
 use alloy::{hex, primitives::Signature, signers::Signer};
 use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
 use tokio::time::interval;
 use zkvm_executor::service::ZkvmExecutorService;
-use crate::{job_processor::relay_job_result, queue::{self, Queues}, relayer::JobRelayer};
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -59,7 +63,7 @@ pub struct IntakeHandlers<S, D> {
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
     queues: Queues<D>,
-    relayer: Arc<JobRelayer>
+    relayer: Arc<JobRelayer>,
 }
 
 impl<S, D> IntakeHandlers<S, D>
@@ -74,7 +78,7 @@ where
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
         queues: Queues<D>,
-        relayer: Arc<JobRelayer>
+        relayer: Arc<JobRelayer>,
     ) -> Self {
         Self { db, exec_queue_sender, zk_executor, max_da_per_job, queues, relayer }
     }
@@ -94,40 +98,52 @@ where
 
         put_job(self.db.clone(), job.clone())?;
 
-        let consumer_address = job.consumer_address.clone().try_into().expect("we checked for valid address length");
-        if job.relay_strategy == RelayStrategy::Ordered { 
+        let consumer_address =
+            job.consumer_address.clone().try_into().expect("we checked for valid address length");
+        if job.relay_strategy == RelayStrategy::Ordered {
             let is_empty = self.queues.peek_back(consumer_address)?.is_none();
-            self.queues.push_front(consumer_address ,job.id)?;
+            self.queues.push_front(consumer_address, job.id)?;
 
             if is_empty {
                 // If the queue was empty we assume there is no background task
                 let queues2 = self.queues.clone();
                 let db2 = self.db.clone();
                 let relayer2 = self.relayer.clone();
-                tokio::spawn(async  move {
+                tokio::spawn(async move {
                     let mut interval = interval(Duration::from_millis(100));
-                    while let Some(job_id) = queues2.peek_back(consumer_address).expect("queue is broken.") {
+                    while let Some(job_id) =
+                        queues2.peek_back(consumer_address).expect("queue is broken.")
+                    {
                         interval.tick().await;
 
-                        let job = get_job(db2.clone(), job_id).expect("job get db error").expect("queued job exists");
+                        let job = get_job(db2.clone(), job_id)
+                            .expect("job get db error")
+                            .expect("queued job exists");
 
                         match job.status.status() {
                             JobStatusType::Done => {
-                                let _job_id = queues2.pop_back(consumer_address).expect(" queue is broken").expect("queue is unexpected empty");
+                                let _job_id = queues2
+                                    .pop_back(consumer_address)
+                                    .expect(" queue is broken")
+                                    .expect("queue is unexpected empty");
                                 debug_assert_eq!(job_id, _job_id);
-                                tracing::info!(consumer=hex::encode(consumer_address), "relaying ordered");
+                                tracing::info!(
+                                    consumer = hex::encode(consumer_address),
+                                    "relaying ordered"
+                                );
                                 let _ = relay_job_result(job, relayer2.clone(), db2.clone()).await;
                             }
                             JobStatusType::Relayed => {
-                                tracing::error!("logical error: a job in the queue was already relayed");
+                                tracing::error!(
+                                    "logical error: a job in the queue was already relayed"
+                                );
                                 continue;
                             }
-                            _ => continue
+                            _ => continue,
                         }
-                    };
+                    }
                 });
             }
-
         };
 
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;

@@ -2,9 +2,9 @@
 
 use dashmap::DashMap;
 use ivm_db::queue::Queue;
-use reth_db::Database;
-use std::sync::{Arc};
 use parking_lot::Mutex;
+use reth_db::Database;
+use std::sync::Arc;
 
 /// Error type for queue handle.
 #[derive(thiserror::Error, Debug)]
@@ -15,7 +15,7 @@ pub enum Error {
 }
 
 /// A global handle to all the existing relay queues.
-/// 
+///
 /// We never want two tasks to use a queue at the same time because we risk corrupting the
 /// queue. To solve this, we maintain a mutex for each queue, forcing only 1 user at a time.
 #[derive(Debug)]
@@ -27,10 +27,7 @@ pub struct Queues<D> {
 
 impl<D> Clone for Queues<D> {
     fn clone(&self) -> Self {
-        Self {
-            inner: Arc::clone(&self.inner),
-            db: Arc::clone(&self.db),
-        }
+        Self { inner: Arc::clone(&self.inner), db: Arc::clone(&self.db) }
     }
 }
 
@@ -40,10 +37,7 @@ where
 {
     /// Create a new instance of [Self].
     pub fn new(db: Arc<D>) -> Self {
-        Self {
-            inner: Arc::new(DashMap::new()),
-            db
-        }
+        Self { inner: Arc::new(DashMap::new()), db }
     }
 
     /// Peek the back of the relay queue for `consumer_address`.
@@ -64,9 +58,9 @@ where
             None => return Ok(None),
             Some(mutex) => mutex,
         };
-        
+
         let queue = mutex.lock();
-        
+
         let back = queue.pop_back()?;
         let is_empty = queue.is_empty()?;
         // Drop the mutex guard
@@ -84,7 +78,8 @@ where
 
     /// Push an element onto the front of the queue for the given address
     pub fn push_front(&self, consumer_address: [u8; 20], job_id: [u8; 32]) -> Result<(), Error> {
-        self.inner.entry(consumer_address)
+        self.inner
+            .entry(consumer_address)
             .or_insert_with(|| Mutex::new(Queue::new(self.db.clone(), consumer_address)))
             .lock()
             .push_front(job_id)

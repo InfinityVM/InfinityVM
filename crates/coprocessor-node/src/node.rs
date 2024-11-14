@@ -6,9 +6,9 @@ use crate::{
     intake::IntakeHandlers,
     job_processor::{JobProcessorConfig, JobProcessorService},
     metrics::{MetricServer, Metrics},
+    queue::Queues,
     relayer::{self, JobRelayerBuilder},
     server::CoprocessorNodeServerInner,
-    queue::Queues,
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
@@ -172,7 +172,7 @@ where
             executor.clone(),
             max_da_per_job,
             queues.clone(),
-            job_relayer.clone()
+            job_relayer.clone(),
         );
         // Configure the job listener
         let job_event_listener = JobEventListener::new(
@@ -198,7 +198,7 @@ where
             executor.clone(),
             max_da_per_job,
             queues.clone(),
-            job_relayer.clone()
+            job_relayer.clone(),
         );
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake));
