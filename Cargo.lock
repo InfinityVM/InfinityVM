@@ -187,7 +187,7 @@ dependencies = [
  "alloy-transport",
  "futures",
  "futures-util",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -310,7 +310,7 @@ dependencies = [
  "alloy-sol-types 0.7.7",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
 ]
 
@@ -324,7 +324,7 @@ dependencies = [
  "alloy-sol-types 0.8.12",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
 ]
 
@@ -346,7 +346,7 @@ dependencies = [
  "async-trait",
  "auto_impl",
  "futures-utils-wasm",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -367,7 +367,7 @@ dependencies = [
  "async-trait",
  "auto_impl",
  "futures-utils-wasm",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -404,7 +404,7 @@ dependencies = [
  "k256",
  "serde_json",
  "tempfile",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
  "url",
 ]
@@ -606,7 +606,7 @@ dependencies = [
  "jsonwebtoken",
  "rand 0.8.5",
  "serde",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -625,7 +625,7 @@ dependencies = [
  "itertools 0.13.0",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -660,7 +660,7 @@ dependencies = [
  "alloy-serde 0.2.1",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -696,7 +696,7 @@ dependencies = [
  "auto_impl",
  "elliptic-curve",
  "k256",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -710,7 +710,7 @@ dependencies = [
  "auto_impl",
  "elliptic-curve",
  "k256",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -728,7 +728,7 @@ dependencies = [
  "eth-keystore",
  "k256",
  "rand 0.8.5",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -746,7 +746,7 @@ dependencies = [
  "coins-bip39",
  "k256",
  "rand 0.8.5",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -892,7 +892,7 @@ dependencies = [
  "futures-utils-wasm",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.69",
  "tokio",
  "tower 0.4.13",
  "tracing 0.1.40",
@@ -1700,7 +1700,7 @@ dependencies = [
  "maybe-async",
  "reqwest 0.12.9",
  "serde",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -1827,7 +1827,7 @@ dependencies = [
  "semver 1.0.23",
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2049,7 +2049,7 @@ dependencies = [
  "k256",
  "serde",
  "sha2",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2065,7 +2065,7 @@ dependencies = [
  "pbkdf2 0.12.2",
  "rand 0.8.5",
  "sha2",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2084,7 +2084,7 @@ dependencies = [
  "serde",
  "sha2",
  "sha3",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -2733,7 +2733,7 @@ dependencies = [
  "futures",
  "rand 0.8.5",
  "reqwest 0.12.9",
- "thiserror",
+ "thiserror 1.0.69",
  "tokio",
 ]
 
@@ -2966,7 +2966,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "sha3",
- "thiserror",
+ "thiserror 1.0.69",
  "uuid",
 ]
 
@@ -4031,6 +4031,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "intensity-test-sp1"
+version = "0.1.0"
+dependencies = [
+ "sp1-build 3.2.1",
+ "sp1-helper",
+]
+
+[[package]]
+name = "intensity-test-sp1-guest"
+version = "0.1.0"
+dependencies = [
+ "alloy",
+ "borsh",
+ "sha2",
+ "sp1-build 3.2.1",
+ "sp1-helper",
+ "sp1-zkvm",
+]
+
+[[package]]
 name = "interprocess"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4132,7 +4152,7 @@ dependencies = [
  "prometheus",
  "reth-db",
  "serde",
- "thiserror",
+ "thiserror 1.0.69",
  "tokio",
  "tonic",
  "tonic-reflection",
@@ -4155,7 +4175,7 @@ dependencies = [
  "reth-db-api",
  "serde",
  "sha2",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -4195,7 +4215,7 @@ dependencies = [
  "risc0-binfmt",
  "risc0-zkvm",
  "sp1-sdk",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -5139,7 +5159,7 @@ checksum = "b15813163c1d831bf4a13c3610c05c0d03b39feb07f7e09fa234dac9b15aaf39"
 [[package]]
 name = "p3-air"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "p3-field",
  "p3-matrix",
@@ -5148,7 +5168,7 @@ dependencies = [
 [[package]]
 name = "p3-baby-bear"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "num-bigint 0.4.6",
  "p3-field",
@@ -5162,7 +5182,7 @@ dependencies = [
 [[package]]
 name = "p3-blake3"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "blake3",
  "p3-symmetric",
@@ -5171,7 +5191,7 @@ dependencies = [
 [[package]]
 name = "p3-bn254-fr"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "ff 0.13.0",
  "num-bigint 0.4.6",
@@ -5185,7 +5205,7 @@ dependencies = [
 [[package]]
 name = "p3-challenger"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "p3-field",
  "p3-maybe-rayon",
@@ -5198,7 +5218,7 @@ dependencies = [
 [[package]]
 name = "p3-commit"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "itertools 0.12.1",
  "p3-challenger",
@@ -5211,7 +5231,7 @@ dependencies = [
 [[package]]
 name = "p3-dft"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "p3-field",
  "p3-matrix",
@@ -5223,7 +5243,7 @@ dependencies = [
 [[package]]
 name = "p3-field"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "itertools 0.12.1",
  "num-bigint 0.4.6",
@@ -5236,7 +5256,7 @@ dependencies = [
 [[package]]
 name = "p3-fri"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "itertools 0.12.1",
  "p3-challenger",
@@ -5254,7 +5274,7 @@ dependencies = [
 [[package]]
 name = "p3-interpolation"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "p3-field",
  "p3-matrix",
@@ -5264,7 +5284,7 @@ dependencies = [
 [[package]]
 name = "p3-keccak-air"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "p3-air",
  "p3-field",
@@ -5277,7 +5297,7 @@ dependencies = [
 [[package]]
 name = "p3-matrix"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "itertools 0.12.1",
  "p3-field",
@@ -5291,7 +5311,7 @@ dependencies = [
 [[package]]
 name = "p3-maybe-rayon"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "rayon",
 ]
@@ -5299,7 +5319,7 @@ dependencies = [
 [[package]]
 name = "p3-mds"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "itertools 0.12.1",
  "p3-dft",
@@ -5313,7 +5333,7 @@ dependencies = [
 [[package]]
 name = "p3-merkle-tree"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "itertools 0.12.1",
  "p3-commit",
@@ -5329,7 +5349,7 @@ dependencies = [
 [[package]]
 name = "p3-poseidon2"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "gcd",
  "p3-field",
@@ -5342,7 +5362,7 @@ dependencies = [
 [[package]]
 name = "p3-symmetric"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "itertools 0.12.1",
  "p3-field",
@@ -5352,7 +5372,7 @@ dependencies = [
 [[package]]
 name = "p3-uni-stark"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "itertools 0.12.1",
  "p3-air",
@@ -5370,7 +5390,7 @@ dependencies = [
 [[package]]
 name = "p3-util"
 version = "0.1.0"
-source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#db3d45d4ec899efaf8f7234a8573f285fbdda5db"
+source = "git+https://github.com/Plonky3/Plonky3?branch=sp1-v4#d33eaa69b1ef96ad678ebd96ae8e75aef3508b2a"
 dependencies = [
  "serde",
 ]
@@ -5531,7 +5551,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "879952a81a83930934cbf1786752d6dedc3b1f29e8f8fb2ad1d0a36f377cf442"
 dependencies = [
  "memchr",
- "thiserror",
+ "thiserror 1.0.69",
  "ucd-trie",
 ]
 
@@ -5782,7 +5802,7 @@ dependencies = [
  "procfs",
  "protobuf",
  "spin 0.5.2",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -5924,9 +5944,9 @@ checksum = "a1d01941d82fa2ab50be1e79e6714289dd7cde78eba4c074bc5a4374f650dfe0"
 
 [[package]]
 name = "quinn"
-version = "0.11.5"
+version = "0.11.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c7c5fdde3cdae7203427dc4f0a68fe0ed09833edc525a03456b153b79828684"
+checksum = "62e96808277ec6f97351a2380e6c25114bc9e67037775464979f3037c92d05ef"
 dependencies = [
  "bytes",
  "pin-project-lite",
@@ -5935,26 +5955,29 @@ dependencies = [
  "rustc-hash 2.0.0",
  "rustls",
  "socket2",
- "thiserror",
+ "thiserror 2.0.3",
  "tokio",
  "tracing 0.1.40",
 ]
 
 [[package]]
 name = "quinn-proto"
-version = "0.11.8"
+version = "0.11.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fadfaed2cd7f389d0161bb73eeb07b7b78f8691047a6f3e73caaeae55310a4a6"
+checksum = "a2fe5ef3495d7d2e377ff17b1a8ce2ee2ec2a18cde8b6ad6619d65d0701c135d"
 dependencies = [
  "bytes",
+ "getrandom 0.2.15",
  "rand 0.8.5",
  "ring",
  "rustc-hash 2.0.0",
  "rustls",
+ "rustls-pki-types",
  "slab",
- "thiserror",
+ "thiserror 2.0.3",
  "tinyvec",
  "tracing 0.1.40",
+ "web-time",
 ]
 
 [[package]]
@@ -6125,7 +6148,7 @@ checksum = "ba009ff324d1fc1b900bd1fdb31564febe58a8ccc8a6fdbb93b543d33b13ca43"
 dependencies = [
  "getrandom 0.2.15",
  "libredox",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -6321,7 +6344,7 @@ dependencies = [
  "serde",
  "strum 0.26.3",
  "sysinfo",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -6368,7 +6391,7 @@ source = "git+https://github.com/paradigmxyz/reth.git?rev=v1.0.5#603e39ab74509e0
 dependencies = [
  "serde",
  "serde_json",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -6383,7 +6406,7 @@ dependencies = [
  "indexmap 2.6.0",
  "parking_lot",
  "reth-mdbx-sys",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
 ]
 
@@ -6431,7 +6454,7 @@ dependencies = [
  "reth-fs-util",
  "serde",
  "sucds",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
  "zstd",
 ]
@@ -6458,7 +6481,7 @@ dependencies = [
  "reth-trie-common",
  "revm-primitives",
  "serde",
- "thiserror",
+ "thiserror 1.0.69",
  "zstd",
 ]
 
@@ -6493,7 +6516,7 @@ dependencies = [
  "modular-bitfield",
  "reth-codecs",
  "serde",
- "thiserror",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -7054,6 +7077,9 @@ name = "rustls-pki-types"
 version = "1.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "16f1201b3c9a7ee8039bcadc17b7e605e2945b27eee7631788c1bd2b0643674b"
+dependencies = [
+ "web-time",
+]
 
 [[package]]
 name = "rustls-webpki"
@@ -7508,7 +7534,7 @@ checksum = "adc4e5204eb1910f40f9cfa375f6f05b68c3abac4b6fd879c8ff5e7ae8a0a085"
 dependencies = [
  "num-bigint 0.4.6",
  "num-traits",
- "thiserror",
+ "thiserror 1.0.69",
  "time",
 ]
 
@@ -7618,7 +7644,7 @@ dependencies = [
  "sp1-stark",
  "strum 0.26.3",
  "strum_macros 0.26.4",
- "thiserror",
+ "thiserror 1.0.69",
  "tiny-keccak",
  "tracing 0.1.40",
  "typenum",
@@ -7664,7 +7690,7 @@ dependencies = [
  "strum 0.26.3",
  "strum_macros 0.26.4",
  "tempfile",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
  "tracing-forest",
  "tracing-subscriber 0.3.18",
@@ -7773,7 +7799,7 @@ dependencies = [
  "sp1-stark",
  "subtle-encoding",
  "tempfile",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
  "tracing-subscriber 0.3.18",
 ]
@@ -7861,7 +7887,7 @@ dependencies = [
  "sp1-primitives",
  "sp1-stark",
  "static_assertions",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
  "vec_map",
  "zkhash",
@@ -7929,7 +7955,7 @@ dependencies = [
  "strum 0.26.3",
  "strum_macros 0.26.4",
  "tempfile",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
  "vergen",
 ]
@@ -7965,7 +7991,7 @@ dependencies = [
  "strum 0.26.3",
  "strum_macros 0.26.4",
  "sysinfo",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
 ]
 
@@ -8265,7 +8291,16 @@ version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6aaf5339b578ea85b50e080feb250a3e8ae8cfcdff9a461c9ec2904bc923f52"
 dependencies = [
- "thiserror-impl",
+ "thiserror-impl 1.0.69",
+]
+
+[[package]]
+name = "thiserror"
+version = "2.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c006c85c7651b3cf2ada4584faa36773bd07bac24acfb39f3c431b36d7e667aa"
+dependencies = [
+ "thiserror-impl 2.0.3",
 ]
 
 [[package]]
@@ -8273,6 +8308,17 @@ name = "thiserror-impl"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4fee6c4efc90059e10f81e6d42c60a18f76588c3d74cb83a0b242a2b6c7504c1"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.87",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "2.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f077553d607adc1caf65430528a576c757a71ed73944b66ebb58ef2bbd243568"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -8649,7 +8695,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3566e8ce28cc0a3fe42519fc80e6b4c943cc4c8cef275620eb8dac2d3d4e06cf"
 dependencies = [
  "crossbeam-channel",
- "thiserror",
+ "thiserror 1.0.69",
  "time",
  "tracing-subscriber 0.3.18",
 ]
@@ -8683,7 +8729,7 @@ checksum = "ee40835db14ddd1e3ba414292272eddde9dad04d3d4b65509656414d1c42592f"
 dependencies = [
  "ansi_term",
  "smallvec",
- "thiserror",
+ "thiserror 1.0.69",
  "tracing 0.1.40",
  "tracing-subscriber 0.3.18",
 ]
@@ -8782,7 +8828,7 @@ dependencies = [
  "log",
  "rand 0.8.5",
  "sha1",
- "thiserror",
+ "thiserror 1.0.69",
  "url",
  "utf-8",
 ]
@@ -8803,7 +8849,7 @@ dependencies = [
  "rustls",
  "rustls-pki-types",
  "sha1",
- "thiserror",
+ "thiserror 1.0.69",
  "utf-8",
 ]
 
@@ -9024,6 +9070,14 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
+
+[[package]]
+name = "vm-comparison"
+version = "0.0.1"
+dependencies = [
+ "borsh",
+ "ivm-zkvm",
+]
 
 [[package]]
 name = "wait-timeout"
@@ -9469,7 +9523,7 @@ dependencies = [
  "pharos",
  "rustc_version 0.4.1",
  "send_wrapper",
- "thiserror",
+ "thiserror 1.0.69",
  "wasm-bindgen",
  "wasm-bindgen-futures",
  "web-sys",
@@ -9620,7 +9674,7 @@ dependencies = [
  "flate2",
  "indexmap 2.6.0",
  "memchr",
- "thiserror",
+ "thiserror 1.0.69",
  "zopfli",
 ]
 
@@ -9660,7 +9714,7 @@ dependencies = [
  "ivm-abi",
  "ivm-proto",
  "ivm-zkvm",
- "thiserror",
+ "thiserror 1.0.69",
  "tokio",
  "tracing 0.1.40",
 ]

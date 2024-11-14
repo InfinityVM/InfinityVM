@@ -122,6 +122,7 @@ jobs:
         uses: ./.github/actions/setup
         if: env.GIT_DIFF
 
+
       - run: make doc-ci
         if: env.GIT_DIFF
 

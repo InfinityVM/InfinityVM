@@ -30,5 +30,5 @@ logs/
 report.html
 my_flamegraph.svg
 
-# SP1 bin directories
-programs/sp1/mock-consumer/script/src/bin/
+# SP1 ELF files
+/elf-compilation/
