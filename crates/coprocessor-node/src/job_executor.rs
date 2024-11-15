@@ -2,7 +2,7 @@
 
 use crate::{
     metrics::Metrics,
-    relayer::JobRelayer,
+    relayer::{JobRelayer, Relay},
     writer::{Write, WriterMsg},
 };
 use alloy::{hex, primitives::Signature, signers::Signer};
@@ -12,7 +12,7 @@ use ivm_db::{
     get_all_failed_jobs,
     tables::{ElfWithMeta, Job, RequestType},
 };
-use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
+use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{
     marker::Send,
@@ -20,7 +20,7 @@ use std::{
     time::Duration,
 };
 use tokio::{sync::oneshot, task::JoinSet};
-use tracing::{error, info, span, Instrument, Level};
+use tracing::{error, info};
 use zkvm_executor::service::ZkvmExecutorService;
 
 /// Delay between retrying failed jobs, in milliseconds.m
@@ -92,7 +92,7 @@ pub enum FailureReason {
 
 /// Job processor config.
 #[derive(Debug)]
-pub struct JobProcessorConfig {
+pub struct JobExecutorConfig {
     /// Number of worker threads to run.
     pub num_workers: usize,
     /// Maximum number of retries for a job.
@@ -103,19 +103,20 @@ pub struct JobProcessorConfig {
 ///
 /// This stores a `JoinSet` with a handle to each job processor worker and the job retry task.
 #[derive(Debug)]
-pub struct JobProcessorService<S, D> {
+pub struct JobExecutor<S, D> {
     db: Arc<D>,
     exec_queue_receiver: Receiver<Job>,
     job_relayer: Arc<JobRelayer>,
     zk_executor: ZkvmExecutorService<S>,
     task_handles: JoinSet<Result<(), Error>>,
     metrics: Arc<Metrics>,
-    config: JobProcessorConfig,
+    config: JobExecutorConfig,
     writer_tx: SyncSender<WriterMsg>,
+    relay_tx: tokio::sync::mpsc::Sender<Relay>,
 }
 
-// The DB functions in JobProcessorService are async so they yield in the tokio task.
-impl<S, D> JobProcessorService<S, D>
+// The DB functions in JobExecutor are async so they yield in the tokio task.
+impl<S, D> JobExecutor<S, D>
 where
     S: Signer<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
@@ -127,8 +128,9 @@ where
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
-        config: JobProcessorConfig,
+        config: JobExecutorConfig,
         writer_tx: SyncSender<WriterMsg>,
+        relay_tx: tokio::sync::mpsc::Sender<Relay>,
     ) -> Self {
         Self {
             db,
@@ -139,6 +141,7 @@ where
             metrics,
             config,
             writer_tx,
+            relay_tx
         }
     }
 
@@ -149,18 +152,18 @@ where
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
-            let job_relayer = Arc::clone(&self.job_relayer);
             let metrics = Arc::clone(&self.metrics);
             let writer_tx = self.writer_tx.clone();
+            let relay_tx = self.relay_tx.clone();
 
             self.task_handles.spawn(async move {
                 Self::start_processor_worker(
                     exec_queue_receiver,
                     db,
-                    job_relayer,
                     zk_executor,
                     metrics,
                     writer_tx,
+                    relay_tx,
                 )
                 .await
             });
@@ -181,10 +184,10 @@ where
     async fn start_processor_worker(
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
-        job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
         writer_tx: SyncSender<WriterMsg>,
+        relay_tx: tokio::sync::mpsc::Sender<Relay>,
     ) -> Result<(), Error> {
         loop {
             let writer_tx2 = writer_tx.clone();
@@ -210,18 +213,10 @@ where
             {
                 Ok(updated_job) => updated_job,
                 Err(_) => continue,
+                
             };
 
-            if job.relay_strategy == RelayStrategy::Unordered {
-                let job_relayer2 = job_relayer.clone();
-
-                tokio::spawn(async move {
-                    let _ = relay_job_result(job, job_relayer2, writer_tx2.clone())
-                        .instrument(span!(Level::INFO, "unordered_relay"))
-                        .await;
-                });
-            };
-            // otherwise, there should be a background task that relays it
+            relay_tx.send(Relay::Now(Box::new(job))).await.expect("relay channel is broken");
         }
     }
 

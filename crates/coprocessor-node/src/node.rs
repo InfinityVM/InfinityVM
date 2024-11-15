@@ -4,9 +4,9 @@ use crate::{
     event::{self, JobEventListener},
     gateway::{self, HttpGrpcGateway},
     intake::IntakeHandlers,
-    job_processor::{JobProcessorConfig, JobProcessorService},
+    job_executor::{JobExecutor, JobExecutorConfig},
     metrics::{MetricServer, Metrics},
-    relayer::{self, JobRelayerBuilder, Relay},
+    relayer::{self, JobRelayerBuilder, Relay, RelayCoordinator},
     server::CoprocessorNodeServerInner,
     writer::{self, Write, Writer, WriterMsg},
 };
@@ -96,7 +96,7 @@ pub struct NodeConfig<D> {
     /// Number of tx confirmations to wait for when submitting transactions.
     pub confirmations: u64,
     /// Job processor config values
-    pub job_proc_config: JobProcessorConfig,
+    pub job_proc_config: JobExecutorConfig,
     /// Configuration for ETH RPC websocket connection.
     pub ws_config: WsConfig,
     /// Block number to start reading job requests from.
@@ -147,7 +147,7 @@ where
         bounded(exec_queue_bound);
     // Initialize the writer channel
     let (writer_tx, writer_rx) = std::sync::mpsc::sync_channel::<WriterMsg>(4096);
-    let (relay_tx, relay_rx) = std::sync::mpsc::sync_channel::<Relay>(4096);
+    let (relay_tx, relay_rx) = tokio::sync::mpsc::channel::<Relay>(4096);
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
@@ -164,8 +164,21 @@ where
     )?;
     let job_relayer = Arc::new(job_relayer);
 
+    let relay_coordinator = {
+        let relay_coordinator = RelayCoordinator::new(
+            writer_tx.clone(),
+            relay_rx,
+            job_relayer.clone(),
+            
+            db.clone(),
+        );
+        tokio::spawn(async move {
+            relay_coordinator.start().await
+        })
+    };
+
     // Configure the job processor
-    let mut job_processor = JobProcessorService::new(
+    let mut job_executor = JobExecutor::new(
         Arc::clone(&db),
         exec_queue_receiver,
         job_relayer.clone(),
@@ -173,9 +186,10 @@ where
         metrics,
         job_proc_config,
         writer_tx.clone(),
+        relay_tx.clone(),
     );
     // Start the job processor workers
-    job_processor.start().await;
+    job_executor.start().await;
 
     let intake = IntakeHandlers::new(
         Arc::clone(&db),
@@ -238,6 +252,7 @@ where
         flatten(grpc_server),
         flatten(prometheus_server),
         flatten(http_grpc_gateway_server),
+        flatten(relay_coordinator),
         flatten(threads)
     )
     .map(|_| ());

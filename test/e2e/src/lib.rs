@@ -3,7 +3,7 @@ use alloy::eips::BlockNumberOrTag;
 use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
 use futures::future::FutureExt;
 use ivm_coprocessor_node::{
-    job_processor::JobProcessorConfig,
+    job_executor::JobExecutorConfig,
     node::{NodeConfig, WsConfig},
     MAX_DA_PER_JOB,
 };
@@ -114,7 +114,7 @@ impl E2E {
             http_eth_rpc: http_rpc_url.clone(),
             job_manager_address: anvil.job_manager,
             confirmations: 1,
-            job_proc_config: JobProcessorConfig { num_workers: 2, max_retries: 1 },
+            job_proc_config: JobExecutorConfig { num_workers: 2, max_retries: 1 },
             ws_config: WsConfig {
                 ws_eth_rpc: ws_rpc_url.clone(),
                 backoff_limit_ms: 1000,

@@ -9,7 +9,7 @@
 //! The actual relaying logic is encapsulated by the [`JobRelayer`] abstraction.
 
 use crate::{
-    job_processor::FailureReason,
+    job_executor::FailureReason,
     metrics::Metrics,
     queue::Queues2,
     writer::{Write, WriterMsg},
@@ -215,7 +215,7 @@ where
                             });
                         }
                         RelayStrategy::Ordered => {
-                            // There should already be background task
+                            // There should already be a background task
                         }
                     }
                 }

@@ -4,7 +4,7 @@ pub mod cli;
 pub mod event;
 pub mod gateway;
 pub mod intake;
-pub mod job_processor;
+pub mod job_executor;
 pub mod metrics;
 pub mod node;
 pub mod queue;

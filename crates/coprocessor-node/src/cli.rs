@@ -1,7 +1,7 @@
 //! CLI for coprocessor-node.
 
 use crate::{
-    job_processor::JobProcessorConfig,
+    job_executor::JobExecutorConfig,
     node::{self, NodeConfig, WsConfig},
     MAX_DA_PER_JOB,
 };
@@ -242,7 +242,7 @@ impl Cli {
             http_eth_rpc: opts.http_eth_rpc,
             job_manager_address: opts.job_manager_address,
             confirmations: opts.confirmations,
-            job_proc_config: JobProcessorConfig {
+            job_proc_config: JobExecutorConfig {
                 num_workers: opts.worker_count,
                 max_retries: opts.max_retries as u32,
             },
