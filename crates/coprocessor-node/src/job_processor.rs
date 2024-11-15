@@ -1,17 +1,25 @@
-//! Job processor implementation.
+//! The job processor is responsible for coordinating job execution.
 
-use crate::{metrics::Metrics, relayer::JobRelayer};
+use crate::{
+    metrics::Metrics,
+    relayer::JobRelayer,
+    writer::{WriteTarget, WriterMsg},
+};
 use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::Receiver;
 use ivm_abi::abi_encode_offchain_job_request;
-use ivm_db::{
-    delete_fail_relay_job, get_all_failed_jobs, put_fail_relay_job, put_job,
-    tables::{ElfWithMeta, Job, RequestType},
-};
+use ivm_db::{get_all_failed_jobs, tables::{ElfWithMeta, Job, RequestType}};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
-use std::{marker::Send, sync::Arc, time::Duration};
-use tokio::task::JoinSet;
+use std::{
+    marker::Send,
+    sync::{
+        mpsc::SyncSender,
+        Arc,
+    },
+    time::Duration,
+};
+use tokio::{sync::oneshot, task::JoinSet};
 use tracing::{error, info, span, Instrument, Level};
 use zkvm_executor::service::ZkvmExecutorService;
 
@@ -103,6 +111,7 @@ pub struct JobProcessorService<S, D> {
     task_handles: JoinSet<Result<(), Error>>,
     metrics: Arc<Metrics>,
     config: JobProcessorConfig,
+    writer_tx: SyncSender<WriterMsg>,
 }
 
 // The DB functions in JobProcessorService are async so they yield in the tokio task.
@@ -119,6 +128,7 @@ where
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
         config: JobProcessorConfig,
+        writer_tx: SyncSender<WriterMsg>,
     ) -> Self {
         Self {
             db,
@@ -128,6 +138,7 @@ where
             task_handles: JoinSet::new(),
             metrics,
             config,
+            writer_tx,
         }
     }
 
@@ -140,6 +151,7 @@ where
             let zk_executor = self.zk_executor.clone();
             let job_relayer = Arc::clone(&self.job_relayer);
             let metrics = Arc::clone(&self.metrics);
+            let writer_tx = self.writer_tx.clone();
 
             self.task_handles.spawn({
                 async move {
@@ -149,6 +161,7 @@ where
                         job_relayer,
                         zk_executor,
                         metrics,
+                        writer_tx,
                     )
                     .await
                 }
@@ -159,9 +172,10 @@ where
         let job_relayer = Arc::clone(&self.job_relayer);
         let metrics = Arc::clone(&self.metrics);
         let max_retries = self.config.max_retries;
+        let writer_tx = self.writer_tx.clone();
 
         self.task_handles.spawn(async move {
-            Self::start_job_retry_task(db, job_relayer, metrics, max_retries).await
+            Self::start_job_retry_task(db, job_relayer, metrics, max_retries, writer_tx).await
         });
     }
 
@@ -172,29 +186,41 @@ where
         job_relayer: Arc<JobRelayer>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
+        writer_tx: SyncSender<WriterMsg>,
     ) -> Result<(), Error> {
         loop {
+            let writer_tx2 = writer_tx.clone();
             let mut job =
                 exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
             let id = job.id;
             info!("executing job {:?}", hex::encode(id));
 
-            let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics).await {
-                Ok(elf) => elf,
-                Err(_) => continue,
-            };
+            let elf_with_meta =
+                match Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone()).await {
+                    Ok(elf) => elf,
+                    Err(_) => continue,
+                };
 
-            job = match Self::execute_job(job, &zk_executor, elf_with_meta, &db, &metrics).await {
+            job = match Self::execute_job(
+                job,
+                &zk_executor,
+                elf_with_meta,
+                &metrics,
+                writer_tx2.clone(),
+            )
+            .await
+            {
                 Ok(updated_job) => updated_job,
                 Err(_) => continue,
             };
 
             if job.relay_strategy == RelayStrategy::Unordered {
                 let job_relayer2 = job_relayer.clone();
-                let db2 = db.clone();
 
                 tokio::spawn(async move {
-                    let _ = relay_job_result(job, job_relayer2, db2).instrument(span!(Level::INFO, "unordered_relay")).await;
+                    let _ = relay_job_result(job, job_relayer2, writer_tx2.clone())
+                        .instrument(span!(Level::INFO, "unordered_relay"))
+                        .await;
                 });
             };
             // otherwise, there should be a background task that relays it
@@ -205,44 +231,24 @@ where
         db: &Arc<D>,
         job: &mut Job,
         metrics: &Arc<Metrics>,
+        writer_tx: SyncSender<WriterMsg>,
     ) -> Result<ElfWithMeta, FailureReason> {
-        match ivm_db::get_elf(db.clone(), &job.program_id) {
-            Ok(Some(elf)) => Ok(elf),
-            Ok(None) => {
+        match ivm_db::get_elf(db.clone(), &job.program_id).expect("DB reads cannot fail") {
+            Some(elf) => Ok(elf),
+            None => {
+                // TODO: include job ID in metrics
                 metrics.incr_job_err(&FailureReason::MissingElf.to_string());
+                // Update the job status
                 job.status = JobStatus {
                     status: JobStatusType::Failed as i32,
                     failure_reason: Some(FailureReason::MissingElf.to_string()),
                     retries: 0,
                 };
+                writer_tx
+                    .send((WriteTarget::JobTable(job.clone()), None))
+                    .expect("db writer broken");
 
-                if let Err(e) = put_job(db.clone(), job.clone()) {
-                    error!("report this error: failed to save job {:?}: {:?}", job.id, e);
-                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
-                    return Err(FailureReason::DbErrStatusFailed);
-                }
                 Err(FailureReason::DbErrMissingElf)
-            }
-            Err(error) => {
-                error!(
-                    error = ?error,
-                    "DB read error for job {:?} with program ID {:?}",
-                    job.id,
-                    job.program_id
-                );
-                metrics.incr_job_err(&FailureReason::DbErrGetElf.to_string());
-                job.status = JobStatus {
-                    status: JobStatusType::Failed as i32,
-                    failure_reason: Some(FailureReason::DbErrGetElf.to_string()),
-                    retries: 0,
-                };
-
-                if let Err(e) = put_job(db.clone(), job.clone()) {
-                    error!("report this error: failed to save job {:?}: {:?}", job.id, e);
-                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
-                    return Err(FailureReason::DbErrStatusFailed);
-                }
-                Err(FailureReason::DbErrGetElf)
             }
         }
     }
@@ -251,8 +257,8 @@ where
         mut job: Job,
         zk_executor: &ZkvmExecutorService<S>,
         elf_with_meta: ElfWithMeta,
-        db: &Arc<D>,
         metrics: &Arc<Metrics>,
+        writer_tx: SyncSender<WriterMsg>,
     ) -> Result<Job, FailureReason> {
         let id = job.id;
         let result = match job.request_type {
@@ -284,7 +290,6 @@ where
 
         match result {
             Ok((result_with_metadata, zkvm_operator_signature, sidecar)) => {
-                tracing::debug!("job {:?} executed successfully", id);
                 job.status = JobStatus {
                     status: JobStatusType::Done as i32,
                     failure_reason: None,
@@ -293,17 +298,18 @@ where
                 job.result_with_metadata = result_with_metadata;
                 job.zkvm_operator_signature = zkvm_operator_signature;
                 job.blobs_sidecar = sidecar;
-                if let Err(e) = put_job(db.clone(), job.clone()) {
-                    error!("report this error: failed to save job {:?}: {:?}", id, e);
-                    metrics.incr_job_err(&FailureReason::DbErrStatusDone.to_string());
-                    return Err(FailureReason::DbErrStatusDone);
-                }
+
+                writer_tx
+                    .send((WriteTarget::JobTable(job.clone()), None))
+                    .expect("db writer broken");
+
                 Ok(job)
             }
             Err(e) => {
                 // TODO: We need to relay failed results to make sure we can charge people
                 // [ref: https://github.com/InfinityVM/InfinityVM/issues/78]
                 error!("failed to execute job {:?}: {:?}", id, e);
+                // TODO: record job ID.
                 metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
                 job.status = JobStatus {
@@ -312,11 +318,10 @@ where
                     retries: 0,
                 };
 
-                if let Err(e) = put_job(db.clone(), job) {
-                    error!("report this error: failed to save job {:?}: {:?}", id, e);
-                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
-                    return Err(FailureReason::DbErrStatusFailed);
-                }
+                writer_tx
+                    .send((WriteTarget::JobTable(job.clone()), None))
+                    .expect("db writer broken");
+
                 Err(FailureReason::ExecErr)
             }
         }
@@ -328,10 +333,11 @@ where
         job_relayer: Arc<JobRelayer>,
         metrics: Arc<Metrics>,
         max_retries: u32,
+        writer_tx: SyncSender<WriterMsg>,
     ) -> Result<(), Error> {
         loop {
             // Jobs that we no longer want to retry
-            let mut jobs_to_delete: Vec<[u8; 32]> = Vec::new();
+            let mut jobs_to_delete= Vec::new();
 
             let retry_jobs = match get_all_failed_jobs(db.clone()) {
                 Ok(jobs) => jobs,
@@ -364,19 +370,15 @@ where
 
                         // Save the relay tx hash and status to DB
                         job.relay_tx_hash = receipt.transaction_hash.to_vec();
-                        job.status = JobStatus {
-                            status: JobStatusType::Relayed as i32,
-                            failure_reason: None,
-                            retries: 0,
-                        };
-                        if let Err(e) = put_job(db.clone(), job) {
-                            error!(
-                                "report this error: failed to save relayed job {:?}: {:?}",
-                                hex::encode(id),
-                                e
-                            );
-                            metrics.incr_job_err(&FailureReason::DbErrStatusRelayed.to_string());
-                        }
+                        job.status.status = JobStatusType::Relayed as i32;
+                        job.status.failure_reason = None;
+
+                        // We are not in a rush, so we can wait for the write
+                        let (tx, rx) = oneshot::channel();
+                        writer_tx
+                            .send((WriteTarget::JobTable(job.clone()), Some(tx)))
+                            .expect("db writer broken");
+                        let _ = rx.await;
                     }
                     Err(e) => {
                         if job.status.retries == max_retries {
@@ -388,19 +390,18 @@ where
                             );
                         } else {
                             error!(
-                                "report this error: failed to retry relaying job {:?}: {:?}",
-                                hex::encode(id),
-                                e
+                                id = hex::encode(id),
+                                ?e,
+                                "report this error: failed to retry relaying job",
                             );
                             job.status.retries += 1;
-                            if let Err(e) = put_fail_relay_job(db.clone(), job) {
-                                error!(
-                                    "report this error: failed to save retried job {:?}: {:?}",
-                                    hex::encode(id),
-                                    e
-                                );
-                                metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
-                            }
+
+                            // We are not in a rush, so we can wait for the write
+                            let (tx, rx) = oneshot::channel();
+                            writer_tx
+                                .send((WriteTarget::FailureJobs(job.clone()), Some(tx)))
+                                .expect("db writer broken");
+                            let _ = rx.await;
                         }
                     }
                 }
@@ -410,13 +411,12 @@ where
             }
 
             for job_id in &jobs_to_delete {
-                if let Err(e) = delete_fail_relay_job(db.clone(), *job_id) {
-                    error!("report this error: failed to delete retried job {:?}: {:?}", job_id, e);
-                    metrics.incr_job_err(&FailureReason::DbErrStatusFailed.to_string());
-                }
-                // There could potentially be a lot of jobs to delete, so in order to not block for
-                // too long we make sure to yield to the tokio runtime.
-                tokio::task::yield_now().await;
+                // We are not in a rush, so we can wait for the write
+                let (tx, rx) = oneshot::channel();
+                writer_tx
+                    .send((WriteTarget::FailureJobsDelete(*job_id), Some(tx)))
+                    .expect("db writer broken");
+                let _ = rx.await;
             }
             tokio::time::sleep(Duration::from_secs(30)).await;
         }
@@ -424,12 +424,14 @@ where
 }
 
 /// Relay job result to the EVM.
-pub async fn relay_job_result<D: Database>(
+pub async fn relay_job_result
+(
     mut job: Job,
     job_relayer: Arc<JobRelayer>,
-    db: Arc<D>,
+    writer_tx: SyncSender<WriterMsg>,
 ) -> Result<(), FailureReason> {
     let id = job.id;
+
     let relay_receipt_result = match job.request_type {
         RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
         RequestType::Offchain(_) => {
@@ -442,23 +444,18 @@ pub async fn relay_job_result<D: Database>(
     let relay_tx_hash = match relay_receipt_result {
         Ok(receipt) => receipt.transaction_hash,
         Err(e) => {
-            error!("report this error: failed to relay job {:?}: {:?}", id, e);
-            if let Err(e) = put_fail_relay_job(db.clone(), job) {
-                error!("report this error: failed to save relay err {:?}: {:?}", id, e);
-                return Err(FailureReason::DbRelayErr);
-            }
+            error!("failed to relay job {:?}: {:?}", id, e);
+            writer_tx.send((WriteTarget::FailureJobs(job), None)).expect("db writer broken");
+
             return Err(FailureReason::RelayErr);
         }
     };
 
     // Save the relay tx hash and status to DB
     job.relay_tx_hash = relay_tx_hash.to_vec();
-    job.status =
-        JobStatus { status: JobStatusType::Relayed as i32, failure_reason: None, retries: 0 };
-    if let Err(e) = put_job(db.clone(), job) {
-        error!("report this error: failed to save relayed job {:?}: {:?}", id, e);
-        return Err(FailureReason::DbErrStatusRelayed);
-    }
+    job.status.status = JobStatusType::Relayed as i32;
+
+    writer_tx.send((WriteTarget::FailureJobs(job), None)).expect("db writer broken");
 
     Ok(())
 }

@@ -4,12 +4,12 @@
 //!
 //! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
 
-use std::{sync::Arc, time::Duration};
+use std::{sync::{mpsc::SyncSender, Arc}, time::Duration};
 
 use crate::{
     job_processor::relay_job_result,
     queue::{self, Queues},
-    relayer::JobRelayer,
+    relayer::JobRelayer, writer::WriterMsg,
 };
 use alloy::{hex, primitives::Signature, signers::Signer};
 use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
@@ -65,6 +65,7 @@ pub struct IntakeHandlers<S, D> {
     max_da_per_job: usize,
     queues: Queues<D>,
     relayer: Arc<JobRelayer>,
+    writer_tx: SyncSender<WriterMsg>,
 }
 
 impl<S, D> IntakeHandlers<S, D>
@@ -80,8 +81,9 @@ where
         max_da_per_job: usize,
         queues: Queues<D>,
         relayer: Arc<JobRelayer>,
+        writer_tx: SyncSender<WriterMsg>,
     ) -> Self {
-        Self { db, exec_queue_sender, zk_executor, max_da_per_job, queues, relayer }
+        Self { db, exec_queue_sender, zk_executor, max_da_per_job, queues, relayer, writer_tx }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
@@ -110,6 +112,7 @@ where
                 let queues2 = self.queues.clone();
                 let db2 = self.db.clone();
                 let relayer2 = self.relayer.clone();
+                let writer_tx2 = self.writer_tx.clone();
                 tokio::spawn(async move {
                     let mut interval = interval(Duration::from_millis(100));
                     while let Some(job_id) =
@@ -132,7 +135,7 @@ where
                                     consumer = hex::encode(consumer_address),
                                     "relaying ordered"
                                 );
-                                let _ = relay_job_result(job, relayer2.clone(), db2.clone())
+                                let _ = relay_job_result(job, relayer2.clone(), writer_tx2.clone())
                                     .instrument(span!(Level::INFO, "ordered_relay"))
                                     .await;
                             }

@@ -8,7 +8,8 @@ use crate::{
     metrics::{MetricServer, Metrics},
     queue::Queues,
     relayer::{self, JobRelayerBuilder},
-    server::CoprocessorNodeServerInner, writer::{self, WriteTarget, Writer},
+    server::CoprocessorNodeServerInner,
+    writer::{self, WriteTarget, Writer, WriterMsg},
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
@@ -18,12 +19,14 @@ use k256::ecdsa::SigningKey;
 use prometheus::Registry;
 use reth_db::Database;
 use std::{
-    any::Any, net::{SocketAddr, SocketAddrV4}, sync::Arc, time::Duration
+    any::Any,
+    net::{SocketAddr, SocketAddrV4},
+    sync::Arc,
+    time::Duration,
 };
 use tokio::{task::JoinHandle, try_join};
 use tracing::info;
 use zkvm_executor::service::ZkvmExecutorService;
-use crate::writer::WriterMsg;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -56,7 +59,7 @@ pub enum Error {
     Writer(#[from] writer::Error),
     /// thread join error
     #[error("thread join error: ")]
-    StdJoin(Box<dyn Any + Send + 'static>)
+    StdJoin(Box<dyn Any + Send + 'static>),
 }
 
 /// Configuration for ETH RPC websocket connection.
@@ -143,7 +146,7 @@ where
     // Initialize the async channels
     let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
         bounded(exec_queue_bound);
-    //
+    // Initialize the writer channel
     let (writer_tx, writer_rx) = std::sync::mpsc::sync_channel::<WriterMsg>(4096);
 
     // Configure the queues handler
@@ -153,9 +156,7 @@ where
     let executor = ZkvmExecutorService::new(zkvm_operator);
 
     let writer = Writer::new(Arc::clone(&db), writer_rx);
-    let writer_handle = std::thread::spawn(move||{
-        writer.start_blocking()
-    });
+    let writer_handle = std::thread::spawn(move || writer.start_blocking());
 
     // Configure the job relayer
     let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
@@ -174,6 +175,7 @@ where
         executor.clone(),
         metrics,
         job_proc_config,
+        writer_tx.clone(),
     );
     // Start the job processor workers
     job_processor.start().await;
@@ -186,6 +188,7 @@ where
             max_da_per_job,
             queues.clone(),
             job_relayer.clone(),
+            writer_tx.clone(),
         );
         // Configure the job listener
         let job_event_listener = JobEventListener::new(
@@ -212,6 +215,8 @@ where
             max_da_per_job,
             queues.clone(),
             job_relayer.clone(),
+            writer_tx.clone(),
+            
         );
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake));
@@ -229,11 +234,11 @@ where
     let http_grpc_gateway = HttpGrpcGateway::new(grpc_addr.to_string(), http_listen_addr);
     let http_grpc_gateway_server = tokio::spawn(async move { http_grpc_gateway.serve().await });
 
-        // Async-ify awaiting the std thread handles and ensure sure we bubble up any errors
+    // Async-ify awaiting the std thread handles and ensure sure we bubble up any errors
     let threads = tokio::spawn(async {
         loop {
             if writer_handle.is_finished() {
-                return writer_handle.join().map_err(|e| Error::StdJoin(e))
+                return writer_handle.join().map_err(Error::StdJoin)
             }
             tokio::time::sleep(Duration::from_secs(10)).await;
         }
@@ -250,7 +255,7 @@ where
 
     // We need to manually shutdown any standard threads
     let _ = writer_tx.send((WriteTarget::Kill, None));
-    
+
     result
 }
 

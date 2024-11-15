@@ -4,8 +4,8 @@ use dashmap::DashMap;
 use ivm_db::queue::Queue;
 use parking_lot::Mutex;
 use reth_db::Database;
-use tracing::instrument;
 use std::sync::Arc;
+use tracing::instrument;
 
 /// Error type for queue handle.
 #[derive(thiserror::Error, Debug)]
