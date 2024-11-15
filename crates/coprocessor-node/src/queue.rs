@@ -6,6 +6,7 @@ use parking_lot::Mutex;
 use reth_db::Database;
 use std::sync::Arc;
 use tracing::instrument;
+use std::collections::VecDeque;
 
 /// Error type for queue handle.
 #[derive(thiserror::Error, Debug)]
@@ -89,4 +90,76 @@ where
             .push_front(job_id)
             .map_err(Into::into)
     }
+}
+
+
+/// In memory collection of queues
+#[derive(Debug)]
+
+pub struct Queues2 {
+    inner: Arc<DashMap<[u8; 20], Mutex<VecDeque<[u8; 32]>>>>,
+}
+
+impl Clone for Queues2
+ {
+    fn clone(&self) -> Self {
+        Self { inner: Arc::clone(&self.inner) 
+        }
+    }
+}
+
+impl Queues2 {
+    /// Create a new instance of [Self].
+    pub fn new() -> Self {
+        Self { inner: Arc::new(DashMap::new()) }
+    }
+
+     /// Peek the back of the relay queue for `consumer_address`.
+    #[instrument(skip_all)]
+    pub fn peek_back(&self, consumer_address: [u8; 20]) -> Option<[u8; 32]>{
+        let mutex = match self.inner.get(&consumer_address) {
+            None => return None,
+            Some(mutex) => mutex,
+        };
+        let queue = mutex.lock();
+
+        (*queue).back().copied
+        ()
+    }
+
+    /// Pop the element off back of the relay queue for `consumer_address`.
+    #[instrument(skip_all)]
+    pub fn pop_back(&self, consumer_address: [u8; 20]) -> Option<[u8; 32]> {
+        let mutex = match self.inner.get(&consumer_address) {
+            // If we don't have an entry for the queue, we know there is nothing in it.
+            None => return None,
+            Some(mutex) => mutex,
+        };
+        let mut queue = mutex.lock();
+
+        let back = queue.pop_back();
+        let is_empty = queue.is_empty();
+        // Drop the mutex guard
+        drop(queue);
+        // Drop the entry so we release the lock on the map
+        drop(mutex);
+
+        if is_empty {
+            // To prevent memory leaks we need to remove the queue from the map
+            self.inner.remove(&consumer_address);
+        }
+
+        back
+    }
+
+    /// Push an element onto the front of the queue for the given address
+    #[instrument(skip_all)]
+    pub fn push_front(&self, consumer_address: [u8; 20], job_id: [u8; 32]) {
+        self.inner
+            .entry(consumer_address)
+            .or_insert_with(|| Mutex::new(VecDeque::new()))
+            .lock()
+            .push_front(job_id)
+    }
+
 }

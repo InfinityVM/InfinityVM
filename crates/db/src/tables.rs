@@ -1,4 +1,4 @@
-//! Database tables
+//! Database tables and persisted types.
 
 use crate::{
     queue::{QueueMeta, QueueNode},
@@ -122,7 +122,7 @@ impl Decode for B256Key {
     }
 }
 
-/// Key to a table storing ELFs. The first byte of the key is the vm type
+/// Key to a table storing ELFs. The first byte of the key is the vm type.
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]

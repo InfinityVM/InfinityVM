@@ -6,7 +6,7 @@ use crate::{
     intake::IntakeHandlers,
     job_processor::{JobProcessorConfig, JobProcessorService},
     metrics::{MetricServer, Metrics},
-    queue::Queues,
+    queue::Queues2,
     relayer::{self, JobRelayerBuilder},
     server::CoprocessorNodeServerInner,
     writer::{self, Write, Writer, WriterMsg},
@@ -150,7 +150,9 @@ where
     let (writer_tx, writer_rx) = std::sync::mpsc::sync_channel::<WriterMsg>(4096);
 
     // Configure the queues handler
-    let queues = Queues::new(Arc::clone(&db));
+    let queues = Queues2::new(
+        
+    );
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);

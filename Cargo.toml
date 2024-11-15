@@ -123,6 +123,7 @@ borsh = { version = "1", features = ["derive", "std"], default-features = false 
 
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
+crossbeam = { version = "0",  default-features = false }
 
 # d
 dashmap = "6"

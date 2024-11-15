@@ -6,7 +6,7 @@
 
 use crate::{
     job_processor::relay_job_result,
-    queue::{self, Queues},
+    queue::{self, Queues2},
     relayer::JobRelayer,
     writer::{Write, WriterMsg},
 };
@@ -63,7 +63,7 @@ pub struct IntakeHandlers<S, D> {
     exec_queue_sender: async_channel::Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
-    queues: Queues<D>,
+    queues: Queues2,
     relayer: Arc<JobRelayer>,
     writer_tx: SyncSender<WriterMsg>,
 }
@@ -79,7 +79,7 @@ where
         exec_queue_sender: async_channel::Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
-        queues: Queues<D>,
+        queues: Queues2,
         relayer: Arc<JobRelayer>,
         writer_tx: SyncSender<WriterMsg>,
     ) -> Self {
@@ -105,8 +105,8 @@ where
         let consumer_address =
             job.consumer_address.clone().try_into().expect("we checked for valid address length");
         if job.relay_strategy == RelayStrategy::Ordered {
-            let is_empty = self.queues.peek_back(consumer_address)?.is_none();
-            self.queues.push_front(consumer_address, job.id)?;
+            let is_empty = self.queues.peek_back(consumer_address).is_none();
+            self.queues.push_front(consumer_address, job.id);
 
             if is_empty {
                 // If the queue was empty we assume there is no background task
@@ -117,19 +117,21 @@ where
                 tokio::spawn(async move {
                     let mut interval = interval(Duration::from_millis(100));
                     while let Some(job_id) =
-                        queues2.peek_back(consumer_address).expect("queue is broken.")
+                        queues2.peek_back(consumer_address)
                     {
                         interval.tick().await;
 
-                        let job = get_job(db2.clone(), job_id)
-                            .expect("job get db error")
-                            .expect("queued job exists");
+                        let job = match get_job(db2.clone(), job_id).expect("job get db error") {
+                            Some(job) => job,
+                            // Edge case where the job has not been written yet
+                            None => continue
+                        };
+                        
 
                         match job.status.status() {
                             JobStatusType::Done => {
                                 let _job_id = queues2
                                     .pop_back(consumer_address)
-                                    .expect(" queue is broken")
                                     .expect("queue is unexpected empty");
                                 debug_assert_eq!(job_id, _job_id);
                                 tracing::info!(
