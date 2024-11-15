@@ -3,7 +3,7 @@
 use crate::{
     metrics::Metrics,
     relayer::JobRelayer,
-    writer::{WriteTarget, WriterMsg},
+    writer::{Write, WriterMsg},
 };
 use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::Receiver;
@@ -244,9 +244,7 @@ where
                     failure_reason: Some(FailureReason::MissingElf.to_string()),
                     retries: 0,
                 };
-                writer_tx
-                    .send((WriteTarget::JobTable(job.clone()), None))
-                    .expect("db writer broken");
+                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
 
                 Err(FailureReason::DbErrMissingElf)
             }
@@ -299,9 +297,7 @@ where
                 job.zkvm_operator_signature = zkvm_operator_signature;
                 job.blobs_sidecar = sidecar;
 
-                writer_tx
-                    .send((WriteTarget::JobTable(job.clone()), None))
-                    .expect("db writer broken");
+                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
 
                 Ok(job)
             }
@@ -318,9 +314,7 @@ where
                     retries: 0,
                 };
 
-                writer_tx
-                    .send((WriteTarget::JobTable(job.clone()), None))
-                    .expect("db writer broken");
+                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
 
                 Err(FailureReason::ExecErr)
             }
@@ -376,7 +370,7 @@ where
                         // We are not in a rush, so we can wait for the write
                         let (tx, rx) = oneshot::channel();
                         writer_tx
-                            .send((WriteTarget::JobTable(job.clone()), Some(tx)))
+                            .send((Write::JobTable(job.clone()), Some(tx)))
                             .expect("db writer broken");
                         let _ = rx.await;
                     }
@@ -399,7 +393,7 @@ where
                             // We are not in a rush, so we can wait for the write
                             let (tx, rx) = oneshot::channel();
                             writer_tx
-                                .send((WriteTarget::FailureJobs(job.clone()), Some(tx)))
+                                .send((Write::FailureJobs(job.clone()), Some(tx)))
                                 .expect("db writer broken");
                             let _ = rx.await;
                         }
@@ -414,7 +408,7 @@ where
                 // We are not in a rush, so we can wait for the write
                 let (tx, rx) = oneshot::channel();
                 writer_tx
-                    .send((WriteTarget::FailureJobsDelete(*job_id), Some(tx)))
+                    .send((Write::FailureJobsDelete(*job_id), Some(tx)))
                     .expect("db writer broken");
                 let _ = rx.await;
             }
@@ -444,7 +438,7 @@ pub async fn relay_job_result(
         Ok(receipt) => receipt.transaction_hash,
         Err(e) => {
             error!("failed to relay job {:?}: {:?}", id, e);
-            writer_tx.send((WriteTarget::FailureJobs(job), None)).expect("db writer broken");
+            writer_tx.send((Write::FailureJobs(job), None)).expect("db writer broken");
 
             return Err(FailureReason::RelayErr);
         }
@@ -453,7 +447,7 @@ pub async fn relay_job_result(
     // Save the relay tx hash and status to DB
     job.relay_tx_hash = relay_tx_hash.to_vec();
     job.status.status = JobStatusType::Relayed as i32;
-    writer_tx.send((WriteTarget::JobTable(job), None)).expect("db writer broken");
+    writer_tx.send((Write::JobTable(job), None)).expect("db writer broken");
 
     Ok(())
 }

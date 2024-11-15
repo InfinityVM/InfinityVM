@@ -1,7 +1,11 @@
 //! Job request event listener.
 
 use std::sync::Arc;
-
+use crate::{
+    intake::IntakeHandlers,
+    node::WsConfig,
+    writer::{Write, WriterMsg},
+};
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
@@ -11,18 +15,17 @@ use alloy::{
 };
 use contracts::job_manager::JobManager;
 use ivm_db::{
-    get_last_block_height, set_last_block_height,
+    get_last_block_height,
     tables::{Job, RequestType},
 };
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy};
 use reth_db::Database;
+use std::sync::mpsc::SyncSender;
 use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
 };
 use tracing::error;
-
-use crate::{intake::IntakeHandlers, node::WsConfig};
 
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
@@ -50,6 +53,7 @@ pub struct JobEventListener<S, D> {
     from_block: BlockNumberOrTag,
     ws_config: WsConfig,
     db: Arc<D>,
+    writer_tx: SyncSender<WriterMsg>,
 }
 
 impl<S, D> JobEventListener<S, D>
@@ -64,8 +68,9 @@ where
         from_block: BlockNumberOrTag,
         ws_config: WsConfig,
         db: Arc<D>,
+        writer_tx: SyncSender<WriterMsg>,
     ) -> Self {
-        Self { job_manager, intake, from_block, ws_config, db }
+        Self { job_manager, intake, from_block, ws_config, db, writer_tx }
     }
 
     /// Run the job event listener
@@ -151,9 +156,9 @@ where
 
                     // update the last seen block height after processing the events
                     last_seen_block += 1;
-                    if let Err(error) = set_last_block_height(self.db.clone(), last_seen_block) {
-                        error!(?error, "failed to set last seen block height");
-                    }
+                    self.writer_tx
+                        .send((Write::LastBlockHeight(last_seen_block), None))
+                        .expect("db writer tx failed");
                 }
             }
         }

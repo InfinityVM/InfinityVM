@@ -13,7 +13,7 @@ use crate::{
     job_processor::relay_job_result,
     queue::{self, Queues},
     relayer::JobRelayer,
-    writer::{WriteTarget, WriterMsg},
+    writer::{Write, WriterMsg},
 };
 use alloy::{hex, primitives::Signature, signers::Signer};
 use ivm_db::{get_elf, get_job, put_elf, tables::Job};
@@ -104,7 +104,7 @@ where
 
         job.status =
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
-        self.writer_tx.send((WriteTarget::JobTable(job.clone()), None)).expect("db writer broken");
+        self.writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
 
         let consumer_address =
             job.consumer_address.clone().try_into().expect("we checked for valid address length");

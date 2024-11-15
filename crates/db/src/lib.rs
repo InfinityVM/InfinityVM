@@ -17,7 +17,8 @@ use tables::{
 pub mod queue;
 pub mod tables;
 
-const LAST_HEIGHT_KEY: u32 = 0;
+/// Key for the last seen block height
+pub const LAST_HEIGHT_KEY: u32 = 0;
 
 /// DB module errors
 #[derive(thiserror::Error, Debug)]
@@ -62,11 +63,6 @@ pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>,
     db.view(|tx| tx.get::<JobTable>(B256Key(job_id)))?.map_err(Into::into)
 }
 
-/// Write last block height to the database
-pub fn set_last_block_height<D: Database>(db: Arc<D>, height: u64) -> Result<(), Error> {
-    db.update(|tx| tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY, height))?.map_err(Into::into)
-}
-
 /// Read last block height from the database.
 pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Error> {
     db.view(|tx| tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY))?.map_err(Into::into)
@@ -90,11 +86,6 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
         Ok(failed_jobs)
     })?
     .map_err(Into::into)
-}
-
-/// Delete a failed relayed Job from the database. [None] if it does not exist.
-pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
-    db.update(|tx| tx.delete::<RelayFailureJobs>(B256Key(job_id), None))?.map_err(Into::into)
 }
 
 /// Open a DB at `path`. Creates the DB if it does not exist.

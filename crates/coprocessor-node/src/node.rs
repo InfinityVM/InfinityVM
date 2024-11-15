@@ -9,7 +9,7 @@ use crate::{
     queue::Queues,
     relayer::{self, JobRelayerBuilder},
     server::CoprocessorNodeServerInner,
-    writer::{self, WriteTarget, Writer, WriterMsg},
+    writer::{self, Write, Writer, WriterMsg},
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
 use async_channel::{bounded, Receiver, Sender};
@@ -197,6 +197,7 @@ where
             job_sync_start,
             ws_config,
             db.clone(),
+            writer_tx.clone(),
         );
 
         // Run the job listener
@@ -253,7 +254,7 @@ where
     .map(|_| ());
 
     // We need to manually shutdown any standard threads
-    let _ = writer_tx.send((WriteTarget::Kill, None));
+    let _ = writer_tx.send((Write::Kill, None));
 
     result
 }
