@@ -57,11 +57,6 @@ pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfW
     db.view(|tx| tx.get::<ElfTable>(Sha256Key::new(program_id)))?.map_err(Into::into)
 }
 
-/// Write a job to the database
-pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    db.update(|tx| tx.put::<JobTable>(B256Key(job.id), job))?.map_err(Into::into)
-}
-
 /// Read in an Job from the database. [None] if it does not exist
 pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     db.view(|tx| tx.get::<JobTable>(B256Key(job_id)))?.map_err(Into::into)
@@ -75,25 +70,6 @@ pub fn set_last_block_height<D: Database>(db: Arc<D>, height: u64) -> Result<(),
 /// Read last block height from the database.
 pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Error> {
     db.view(|tx| tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY))?.map_err(Into::into)
-}
-
-// /// Delete in an Job from the database. [None] if it does not exist.
-// ///
-// /// Returns `true` if the key/value pair was present.
-// ///
-// /// Docs from libmdbx-rs: `Transaction::<RW>::del`:
-// /// The data parameter is NOT ignored regardless of whether the database supports
-// /// sorted duplicate data items or not. If the data parameter is [Some] only the matching
-// /// data item will be deleted. Otherwise, if data parameter is [None], any/all value(s)
-// /// for specified key will be deleted.
-// /// We pass in [None] here since each `job_id` only maps to a single Job.
-// pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
-//     db.update(|tx| tx.delete::<JobTable>(B256Key(job_id), None))?.map_err(Into::into)
-// }
-
-/// Write a failed relayed job to the database
-pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    db.update(|tx| tx.put::<RelayFailureJobs>(B256Key(job.id), job))?.map_err(Into::into)
 }
 
 /// Read in a failed relayed Job from the database. [None] if it does not exist

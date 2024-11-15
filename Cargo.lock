@@ -3584,6 +3584,7 @@ dependencies = [
  "contracts",
  "dashmap 6.0.1",
  "eip4844",
+ "eyre",
  "home",
  "ivm-abi",
  "ivm-db",

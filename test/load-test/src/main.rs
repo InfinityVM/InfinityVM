@@ -142,7 +142,8 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
         signature,
         offchain_input: Vec::new(),
         // If we want to just test max throughput, convert this to Unordered.
-        relay_strategy: RelayStrategy::Ordered as i32,
+        // relay_strategy: RelayStrategy::Ordered as i32,
+        relay_strategy: RelayStrategy::Unordered as i32,
     };
     let _goose_metrics =
         user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;

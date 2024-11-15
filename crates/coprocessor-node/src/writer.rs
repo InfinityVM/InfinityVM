@@ -1,9 +1,11 @@
-//! Synchronous database writer.
+//! Synchronous database writer. All writes DB writes should go through this.
 
+use ivm_db::tables::{B256Key, Job, JobTable, RelayFailureJobs};
+use reth_db::{
+    transaction::{DbTx, DbTxMut},
+    Database, DatabaseError,
+};
 use std::sync::{mpsc, Arc};
-
-use ivm_db::{delete_fail_relay_job, put_fail_relay_job, put_job, tables::Job};
-use reth_db::Database;
 use tokio::sync::oneshot;
 
 /// A write request to the [`Writer`].
@@ -12,12 +14,19 @@ pub type WriterMsg = (WriteTarget, Option<oneshot::Sender<()>>);
 /// Job write module errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    /// Channel receiver broken
+    /// channel receiver broken
     #[error("job write receiver errored")]
     JobWriteReceiver,
-    /// DB error
-    #[error("db: {0}")]
-    Db(#[from] ivm_db::Error),
+    /// reth-mdbx lib error
+    #[error("mdbx (database): {0}")]
+    GenericRethMdbx(#[from] eyre::Report),
+    /// reth mdbx database backend error
+    #[error("mdbx (database): {0}")]
+    RethMdbx(#[from] reth_db::mdbx::Error),
+
+    /// eth database error
+    #[error("reth database: {0}")]
+    RethDbError(#[from] DatabaseError),
 }
 
 /// Table to write job too
@@ -52,15 +61,20 @@ where
     /// Start the job writer.
     pub fn start_blocking(self) -> Result<(), Error> {
         while let Ok((target, resp)) = self.rx.recv() {
-            // TODO: don't clone db
+            let tx = self.db.tx_mut()?;
             match target {
-                WriteTarget::JobTable(job) => put_job(self.db.clone(), job)?,
-                WriteTarget::FailureJobs(job) => put_fail_relay_job(self.db.clone(), job)?,
-                WriteTarget::FailureJobsDelete(job_id) => {
-                    delete_fail_relay_job(self.db.clone(), job_id).map(|_| ())?
+                WriteTarget::JobTable(job) => tx.put::<JobTable>(B256Key(job.id), job)?,
+                WriteTarget::FailureJobs(job) => {
+                    tx.put::<RelayFailureJobs>(B256Key(job.id), job)?
                 }
+                WriteTarget::FailureJobsDelete(job_id) => {
+                    tx.delete::<RelayFailureJobs>(B256Key(job_id), None).map(|_| ())?
+                }
+                // Flush receiver before exiting
                 WriteTarget::Kill => return Ok(()),
             };
+            tx.commit()?;
+
             if let Some(resp) = resp {
                 let _ = resp.send(());
             }

@@ -13,10 +13,10 @@ use crate::{
     job_processor::relay_job_result,
     queue::{self, Queues},
     relayer::JobRelayer,
-    writer::WriterMsg,
+    writer::{WriteTarget, WriterMsg},
 };
 use alloy::{hex, primitives::Signature, signers::Signer};
-use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
+use ivm_db::{get_elf, get_job, put_elf, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
 use tokio::time::interval;
@@ -96,14 +96,15 @@ where
             return Err(Error::OffchainInputOverMaxDAPerJob);
         };
 
+        // TODO: add new table for just job ID so we can avoid writing full job here and reading
+        // full job https://github.com/InfinityVM/InfinityVM/issues/354
         if get_job(self.db.clone(), job.id)?.is_some() {
             return Err(Error::JobAlreadyExists);
         }
 
         job.status =
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
-
-        put_job(self.db.clone(), job.clone())?;
+        self.writer_tx.send((WriteTarget::JobTable(job.clone()), None)).expect("db writer broken");
 
         let consumer_address =
             job.consumer_address.clone().try_into().expect("we checked for valid address length");
