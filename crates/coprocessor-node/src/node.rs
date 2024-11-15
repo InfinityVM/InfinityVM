@@ -165,8 +165,14 @@ where
     let job_relayer = Arc::new(job_relayer);
 
     let relay_coordinator = {
-        let relay_coordinator =
-            RelayCoordinator::new(writer_tx.clone(), relay_rx, job_relayer.clone(), db.clone());
+        let relay_coordinator = RelayCoordinator::new(
+            writer_tx.clone(),
+            relay_rx,
+            job_relayer.clone(),
+            db.clone(),
+            job_proc_config.max_retries,
+            metrics.clone(),
+        );
         tokio::spawn(async move { relay_coordinator.start().await })
     };
 
@@ -174,10 +180,9 @@ where
     let mut job_executor = JobExecutor::new(
         Arc::clone(&db),
         exec_queue_receiver,
-        job_relayer.clone(),
         executor.clone(),
         metrics,
-        job_proc_config,
+        job_proc_config.num_workers,
         writer_tx.clone(),
         relay_tx.clone(),
     );
