@@ -424,8 +424,7 @@ where
 }
 
 /// Relay job result to the EVM.
-pub async fn relay_job_result
-(
+pub async fn relay_job_result(
     mut job: Job,
     job_relayer: Arc<JobRelayer>,
     writer_tx: SyncSender<WriterMsg>,
@@ -454,8 +453,7 @@ pub async fn relay_job_result
     // Save the relay tx hash and status to DB
     job.relay_tx_hash = relay_tx_hash.to_vec();
     job.status.status = JobStatusType::Relayed as i32;
-
-    writer_tx.send((WriteTarget::FailureJobs(job), None)).expect("db writer broken");
+    writer_tx.send((WriteTarget::JobTable(job), None)).expect("db writer broken");
 
     Ok(())
 }
