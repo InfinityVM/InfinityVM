@@ -91,10 +91,12 @@ where
     }
 }
 
+type MutexQueue = Mutex<VecDeque<[u8; 32]>>;
+
 /// In memory collection of queues
 #[derive(Debug)]
 pub struct Queues2 {
-    inner: Arc<DashMap<[u8; 20], Mutex<VecDeque<[u8; 32]>>>>,
+    inner: Arc<DashMap<[u8; 20], MutexQueue>>,
 }
 
 impl Clone for Queues2 {

@@ -1,6 +1,6 @@
 //! Logic to broadcast job result onchain.
 
-use crate::metrics::Metrics;
+use crate::{job_processor::FailureReason, metrics::Metrics, queue::Queues2, writer::{Write, WriterMsg}};
 use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
@@ -11,9 +11,12 @@ use alloy::{
     transports::http::reqwest,
 };
 use contracts::i_job_manager::IJobManager;
+use ivm_abi::abi_encode_offchain_job_request;
 use ivm_db::tables::{Job, RequestType};
-use std::sync::Arc;
+use ivm_proto::{JobStatusType, RelayStrategy};
+use std::sync::{mpsc::SyncSender, Arc};
 use tracing::{error, info};
+use tokio::sync::mpsc::Receiver;
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
 
@@ -56,6 +59,9 @@ pub enum Error {
     /// invalid job request type
     #[error("invalid job request type")]
     InvalidJobRequestType,
+    /// relay channel closed
+     #[error("relay receiver dropped")]
+    RelayRxDropped
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
@@ -114,6 +120,106 @@ pub struct JobRelayer {
     job_manager: JobManagerContract,
     confirmations: u64,
     metrics: Arc<Metrics>,
+}
+
+/// A message to the job relayer
+#[derive(Debug)]
+pub enum Relay {
+    /// Queue a job, setting the order it should be relayed in.
+    Queue {
+        /// Consumer address.
+        consumer: [u8; 20],
+        /// Job ID.
+        job_id: [u8; 32]
+    },
+    /// The given job is ready to be relayed now
+    Now(Box<Job>),
+}
+
+/// The service in charge of handling all routines related to relay transactions onchain.
+#[derive(Debug)]
+pub struct RelayCoordinator {
+    writer_tx: SyncSender<WriterMsg>,
+    relay_rx: Receiver<Relay>, 
+    job_relayer: Arc<JobRelayer>
+}
+
+impl RelayCoordinator {
+    /// Create a new instance of [Self].
+    pub fn new(writer_tx: SyncSender<WriterMsg>, relay_rx: Receiver<Relay>, job_relayer: Arc<JobRelayer>) -> Self {
+        Self {
+            writer_tx,
+            relay_rx,
+            job_relayer
+        }
+    }
+
+    /// Start the relay coordinator
+    pub async fn start(self) -> Result<(), Error> {
+        let queues = Queues2::new();
+        let mut relay_rx = self.relay_rx;
+        while let Some(relay) = relay_rx.recv().await {
+            match relay {
+                Relay::Queue { consumer, job_id } => {
+                    let _is_empty = queues.peek_back(consumer).is_none();
+                    queues.push_front(consumer, job_id);
+                    
+                },
+                Relay::Now(job) => {
+                    match &job.relay_strategy {
+                        RelayStrategy::Unordered => {
+                            // error metrics are handled internally and the job is written to the failed table.
+                            let job_relayer2 = self.job_relayer.clone();
+                            let writer_tx2 = self.writer_tx.clone();
+                            tokio::spawn(async  move {
+                                relay_job_result(*job, job_relayer2, writer_tx2.clone()).await
+                            });
+                        }
+                        RelayStrategy::Ordered => {
+                            // There should already be background task
+                        } 
+                    }
+                }
+            };
+        }
+
+        Err(Error::RelayRxDropped)
+    }
+}
+
+/// Relay the job result, and if the job fails record it in the DLQ.
+async fn relay_job_result(
+    mut job: Job,
+    job_relayer: Arc<JobRelayer>,
+    writer_tx: SyncSender<WriterMsg>,
+) -> Result<(), FailureReason> {
+    let id = job.id;
+
+    let relay_receipt_result = match job.request_type {
+        RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
+        RequestType::Offchain(_) => {
+            let job_params = (&job).try_into().map_err(|_| FailureReason::RelayErr)?;
+            let job_request_payload = abi_encode_offchain_job_request(job_params);
+            job_relayer.relay_result_for_offchain_job(job.clone(), job_request_payload).await
+        }
+    };
+
+    let relay_tx_hash = match relay_receipt_result {
+        Ok(receipt) => receipt.transaction_hash,
+        Err(e) => {
+            error!("failed to relay job {:?}: {:?}", id, e);
+            writer_tx.send((Write::FailureJobs(job), None)).expect("db writer broken");
+
+            return Err(FailureReason::RelayErr);
+        }
+    };
+
+    // Save the relay tx hash and status to DB
+    job.relay_tx_hash = relay_tx_hash.to_vec();
+    job.status.status = JobStatusType::Relayed as i32;
+    writer_tx.send((Write::JobTable(job), None)).expect("db writer broken");
+
+    Ok(())
 }
 
 impl JobRelayer {
