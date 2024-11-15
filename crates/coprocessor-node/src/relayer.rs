@@ -1,6 +1,11 @@
 //! Logic to broadcast job result onchain.
 
-use crate::{job_processor::FailureReason, metrics::Metrics, queue::Queues2, writer::{Write, WriterMsg}};
+use crate::{
+    job_processor::FailureReason,
+    metrics::Metrics,
+    queue::Queues2,
+    writer::{Write, WriterMsg},
+};
 use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
@@ -12,11 +17,18 @@ use alloy::{
 };
 use contracts::i_job_manager::IJobManager;
 use ivm_abi::abi_encode_offchain_job_request;
-use ivm_db::tables::{Job, RequestType};
+use ivm_db::{
+    get_job,
+    tables::{Job, RequestType},
+};
 use ivm_proto::{JobStatusType, RelayStrategy};
-use std::sync::{mpsc::SyncSender, Arc};
-use tracing::{error, info};
-use tokio::sync::mpsc::Receiver;
+use reth_db::Database;
+use std::{
+    sync::{mpsc::SyncSender, Arc},
+    time::Duration,
+};
+use tokio::{sync::mpsc::Receiver, time::interval};
+use tracing::{error, info, span, Instrument, Level};
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
 
@@ -60,8 +72,8 @@ pub enum Error {
     #[error("invalid job request type")]
     InvalidJobRequestType,
     /// relay channel closed
-     #[error("relay receiver dropped")]
-    RelayRxDropped
+    #[error("relay receiver dropped")]
+    RelayRxDropped,
 }
 
 /// [Builder](https://rust-unofficial.github.io/patterns/patterns/creational/builder.html) for `JobRelayer`.
@@ -130,7 +142,7 @@ pub enum Relay {
         /// Consumer address.
         consumer: [u8; 20],
         /// Job ID.
-        job_id: [u8; 32]
+        job_id: [u8; 32],
     },
     /// The given job is ready to be relayed now
     Now(Box<Job>),
@@ -138,52 +150,107 @@ pub enum Relay {
 
 /// The service in charge of handling all routines related to relay transactions onchain.
 #[derive(Debug)]
-pub struct RelayCoordinator {
+pub struct RelayCoordinator<D> {
     writer_tx: SyncSender<WriterMsg>,
-    relay_rx: Receiver<Relay>, 
-    job_relayer: Arc<JobRelayer>
+    relay_rx: Receiver<Relay>,
+    job_relayer: Arc<JobRelayer>,
+    db: Arc<D>,
 }
 
-impl RelayCoordinator {
+impl<D> RelayCoordinator<D>
+where
+    D: Database + 'static,
+{
     /// Create a new instance of [Self].
-    pub fn new(writer_tx: SyncSender<WriterMsg>, relay_rx: Receiver<Relay>, job_relayer: Arc<JobRelayer>) -> Self {
-        Self {
-            writer_tx,
-            relay_rx,
-            job_relayer
-        }
+    pub fn new(
+        writer_tx: SyncSender<WriterMsg>,
+        relay_rx: Receiver<Relay>,
+        job_relayer: Arc<JobRelayer>,
+        db: Arc<D>,
+    ) -> Self {
+        Self { writer_tx, relay_rx, job_relayer, db }
     }
 
     /// Start the relay coordinator
     pub async fn start(self) -> Result<(), Error> {
         let queues = Queues2::new();
         let mut relay_rx = self.relay_rx;
+
         while let Some(relay) = relay_rx.recv().await {
             match relay {
                 Relay::Queue { consumer, job_id } => {
-                    let _is_empty = queues.peek_back(consumer).is_none();
+                    let no_queue = queues.peek_back(consumer).is_none();
                     queues.push_front(consumer, job_id);
-                    
-                },
+
+                    // Queue pollers exit once a queue is empty. So we know that if the queue is
+                    // empty then we need to start a new queue poller.
+                    if no_queue {
+                        let queues2 = queues.clone();
+                        let db2 = self.db.clone();
+                        let relayer2 = self.job_relayer.clone();
+                        let writer_tx2 = self.writer_tx.clone();
+                        tokio::spawn(async move {
+                            Self::run_queue_poller(consumer, queues2, relayer2, writer_tx2, db2)
+                                .await
+                        });
+                    };
+                }
                 Relay::Now(job) => {
                     match &job.relay_strategy {
                         RelayStrategy::Unordered => {
-                            // error metrics are handled internally and the job is written to the failed table.
+                            // error metrics are handled internally and the job is written to the
+                            // failed table.
                             let job_relayer2 = self.job_relayer.clone();
                             let writer_tx2 = self.writer_tx.clone();
-                            tokio::spawn(async  move {
+                            tokio::spawn(async move {
                                 relay_job_result(*job, job_relayer2, writer_tx2.clone()).await
                             });
                         }
                         RelayStrategy::Ordered => {
                             // There should already be background task
-                        } 
+                        }
                     }
                 }
             };
         }
 
         Err(Error::RelayRxDropped)
+    }
+
+    async fn run_queue_poller(
+        consumer: [u8; 20],
+        queues: Queues2,
+        relayer: Arc<JobRelayer>,
+        writer_tx: SyncSender<WriterMsg>,
+        db: Arc<D>,
+    ) {
+        let mut interval = interval(Duration::from_millis(100));
+        interval.tick().await;
+        while let Some(job_id) = queues.peek_back(consumer) {
+            interval.tick().await;
+            let job = match get_job(db.clone(), job_id).expect("job get db error") {
+                Some(job) => job,
+                // Edge case where the job has not been written yet
+                None => continue,
+            };
+
+            match job.status.status() {
+                JobStatusType::Done => {
+                    let _job_id = queues.pop_back(consumer).expect("queue is unexpected empty");
+                    debug_assert_eq!(job_id, _job_id);
+                    // relay the job below
+                }
+                JobStatusType::Relayed => {
+                    tracing::error!("logical error: a job in the queue was already relayed");
+                    continue;
+                }
+                _ => continue,
+            }
+
+            let _ = relay_job_result(job, relayer.clone(), writer_tx.clone())
+                .instrument(span!(Level::INFO, "ordered_relay"))
+                .await;
+        }
     }
 }
 

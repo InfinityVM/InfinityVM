@@ -1,5 +1,5 @@
 //! Load testing for the coprocessor node
-use alloy::primitives::Address;
+use alloy::{hex, primitives::Address};
 use contracts::get_default_deploy_info;
 use goose::prelude::*;
 use ivm_abi::get_job_id;
@@ -7,7 +7,6 @@ use ivm_proto::{GetResultRequest, GetResultResponse};
 use ivm_test_utils::{create_and_sign_offchain_request, get_signers};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use std::env;
-use alloy::hex;
 
 /// Get the Anvil IP address env var.
 pub fn anvil_ip() -> String {
@@ -123,7 +122,7 @@ pub async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) -> Trans
         tokio::time::sleep(tokio::time::Duration::from_millis(RETRY_TIMEOUT_MS)).await;
     }
 
-    tracing::error!(job_id=hex::encode(job_id), "get result timed out after {MAX_RETRY_MS}ms.");
+    tracing::error!(job_id = hex::encode(job_id), "get result timed out after {MAX_RETRY_MS}ms.");
     // TODO: dial in this error type; just using this error because its the easiest
     // to construct
     Err(Box::new(TransactionError::InvalidMethod { method: reqwest::Method::GET }))
@@ -133,7 +132,7 @@ pub async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) -> Trans
 async fn get_result_status(
     user: &mut GooseUser,
     job_id: [u8; 32],
-) -> Result<i64,  Box<TransactionError>> {
+) -> Result<i64, Box<TransactionError>> {
     let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
     let response = user.post_json("/v1/coprocessor_node/get_result", &get_result_request).await?;
     let get_result_response: GetResultResponse = response

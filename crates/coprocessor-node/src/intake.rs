@@ -133,10 +133,6 @@ where
                                     .pop_back(consumer_address)
                                     .expect("queue is unexpected empty");
                                 debug_assert_eq!(job_id, _job_id);
-                                tracing::info!(
-                                    consumer = hex::encode(consumer_address),
-                                    "relaying ordered"
-                                );
                                 let _ = relay_job_result(job, relayer2.clone(), writer_tx2.clone())
                                     .instrument(span!(Level::INFO, "ordered_relay"))
                                     .await;
