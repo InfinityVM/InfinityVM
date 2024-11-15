@@ -153,18 +153,16 @@ where
             let metrics = Arc::clone(&self.metrics);
             let writer_tx = self.writer_tx.clone();
 
-            self.task_handles.spawn({
-                async move {
-                    Self::start_processor_worker(
-                        exec_queue_receiver,
-                        db,
-                        job_relayer,
-                        zk_executor,
-                        metrics,
-                        writer_tx,
-                    )
-                    .await
-                }
+            self.task_handles.spawn(async move {
+                Self::start_processor_worker(
+                    exec_queue_receiver,
+                    db,
+                    job_relayer,
+                    zk_executor,
+                    metrics,
+                    writer_tx,
+                )
+                .await
             });
         }
 

@@ -130,7 +130,7 @@ pub struct Sha256Key(pub [u8; 32]);
 
 impl Sha256Key {
     /// New [Self]
-    pub(crate) fn new(program_id: &[u8]) -> Self {
+    pub fn new(program_id: &[u8]) -> Self {
         let inner: [u8; 32] = Sha256::digest(program_id).into();
 
         Self(inner)

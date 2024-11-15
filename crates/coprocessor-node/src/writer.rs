@@ -1,6 +1,9 @@
 //! Synchronous database writer. All writes DB writes should go through this.
 
-use ivm_db::tables::{B256Key, Job, JobTable, LastBlockHeight, RelayFailureJobs};
+use ivm_db::tables::{
+    B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, RelayFailureJobs, Sha256Key,
+};
+use ivm_proto::VmType;
 use reth_db::{
     transaction::{DbTx, DbTxMut},
     Database, DatabaseError,
@@ -8,7 +11,8 @@ use reth_db::{
 use std::sync::{mpsc, Arc};
 use tokio::sync::oneshot;
 
-/// A write request to the [`Writer`].
+/// A write request to the [`Writer`]. If a sender is included, the writer
+/// will respond once the write has been completed.
 pub type WriterMsg = (Write, Option<oneshot::Sender<()>>);
 
 /// Job write module errors
@@ -37,8 +41,17 @@ pub enum Write {
     JobTable(Job),
     /// Delete a job from the relay failure jobs table.
     FailureJobsDelete([u8; 32]),
-    /// Set the last block where events where processed
+    /// Set the last block where events where processed.
     LastBlockHeight(u64),
+    /// Write an ELF to the ELF table.
+    Elf {
+        /// Type of VM the elf targets.
+        vm_type: VmType,
+        /// Verifying key associated with the ELF.
+        program_id: Vec<u8>,
+        /// ELF.
+        elf: Vec<u8>,
+    },
     /// Kill this thread
     Kill,
 }
@@ -71,6 +84,11 @@ where
                 }
                 Write::LastBlockHeight(height) => {
                     tx.put::<LastBlockHeight>(ivm_db::LAST_HEIGHT_KEY, height)?
+                }
+                Write::Elf { vm_type, program_id, elf } => {
+                    let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
+                    let key = Sha256Key::new(&program_id);
+                    tx.put::<ElfTable>(key, elf_with_meta)?;
                 }
                 // TODO: flush receiver before exiting
                 Write::Kill => return Ok(()),

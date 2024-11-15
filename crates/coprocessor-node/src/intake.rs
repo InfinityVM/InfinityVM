@@ -4,11 +4,6 @@
 //!
 //! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
 
-use std::{
-    sync::{mpsc::SyncSender, Arc},
-    time::Duration,
-};
-
 use crate::{
     job_processor::relay_job_result,
     queue::{self, Queues},
@@ -16,10 +11,14 @@ use crate::{
     writer::{Write, WriterMsg},
 };
 use alloy::{hex, primitives::Signature, signers::Signer};
-use ivm_db::{get_elf, get_job, put_elf, tables::Job};
+use ivm_db::{get_elf, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
-use tokio::time::interval;
+use std::{
+    sync::{mpsc::SyncSender, Arc},
+    time::Duration,
+};
+use tokio::{sync::oneshot, time::interval};
 use tracing::{span, Instrument, Level};
 use zkvm_executor::service::ZkvmExecutorService;
 
@@ -44,9 +43,6 @@ pub enum Error {
     /// Could not read ELF from DB
     #[error("failed reading elf: {0}")]
     ElfReadFailed(String),
-    /// Could not write ELF to DB
-    #[error("failed writing elf: {0}")]
-    ElfWriteFailed(String),
     /// Invalid VM type
     #[error("invalid VM type")]
     InvalidVmType,
@@ -164,10 +160,8 @@ where
 
     /// Submit program ELF, save it in DB, and return verifying key.
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
-        let program_id = self
-            .zk_executor
-            .create_elf(&elf, VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?)
-            .await?;
+        let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
+        let program_id = self.zk_executor.create_elf(&elf, vm_type).await?;
 
         if get_elf(self.db.clone(), &program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
@@ -179,13 +173,10 @@ where
             )));
         }
 
-        put_elf(
-            self.db.clone(),
-            VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
-            &program_id,
-            elf,
-        )
-        .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
+        // Write the elf and make sure it completes before responding to the user.
+        let (tx, rx) = oneshot::channel();
+        self.writer_tx.send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx))).expect("writer channel broken");
+        let _ = rx.await;
 
         Ok(program_id)
     }

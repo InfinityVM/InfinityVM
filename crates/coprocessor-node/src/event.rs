@@ -1,6 +1,5 @@
 //! Job request event listener.
 
-use std::sync::Arc;
 use crate::{
     intake::IntakeHandlers,
     node::WsConfig,
@@ -20,7 +19,7 @@ use ivm_db::{
 };
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy};
 use reth_db::Database;
-use std::sync::mpsc::SyncSender;
+use std::sync::{mpsc::SyncSender, Arc};
 use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
