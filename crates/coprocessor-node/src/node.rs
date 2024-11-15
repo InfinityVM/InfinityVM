@@ -150,9 +150,7 @@ where
     let (writer_tx, writer_rx) = std::sync::mpsc::sync_channel::<WriterMsg>(4096);
 
     // Configure the queues handler
-    let queues = Queues2::new(
-        
-    );
+    let queues = Queues2::new();
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);

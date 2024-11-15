@@ -68,7 +68,10 @@ impl IntoResponse for ErrorResponse {
             Code::Unimplemented => StatusCode::NOT_FOUND,
             Code::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
             Code::Unknown => StatusCode::INTERNAL_SERVER_ERROR,
-            _ => StatusCode::CONFLICT,
+            _ => {
+                tracing::warn!(grpc_error=?self);
+                 StatusCode::CONFLICT
+            },
         };
 
         (http, Json(self)).into_response()

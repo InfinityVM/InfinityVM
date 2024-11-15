@@ -22,3 +22,4 @@ mock-consumer = { workspace = true }
 contracts = { workspace = true }
 borsh = { workspace = true }
 intensity-test-methods = { workspace = true }
+tracing = { workspace = true }

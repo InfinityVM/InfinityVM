@@ -4,9 +4,8 @@ use dashmap::DashMap;
 use ivm_db::queue::Queue;
 use parking_lot::Mutex;
 use reth_db::Database;
-use std::sync::Arc;
+use std::{collections::VecDeque, sync::Arc};
 use tracing::instrument;
-use std::collections::VecDeque;
 
 /// Error type for queue handle.
 #[derive(thiserror::Error, Debug)]
@@ -92,19 +91,21 @@ where
     }
 }
 
-
 /// In memory collection of queues
 #[derive(Debug)]
-
 pub struct Queues2 {
     inner: Arc<DashMap<[u8; 20], Mutex<VecDeque<[u8; 32]>>>>,
 }
 
-impl Clone for Queues2
- {
+impl Clone for Queues2 {
     fn clone(&self) -> Self {
-        Self { inner: Arc::clone(&self.inner) 
-        }
+        Self { inner: Arc::clone(&self.inner) }
+    }
+}
+
+impl Default for Queues2 {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -114,17 +115,16 @@ impl Queues2 {
         Self { inner: Arc::new(DashMap::new()) }
     }
 
-     /// Peek the back of the relay queue for `consumer_address`.
+    /// Peek the back of the relay queue for `consumer_address`.
     #[instrument(skip_all)]
-    pub fn peek_back(&self, consumer_address: [u8; 20]) -> Option<[u8; 32]>{
+    pub fn peek_back(&self, consumer_address: [u8; 20]) -> Option<[u8; 32]> {
         let mutex = match self.inner.get(&consumer_address) {
             None => return None,
             Some(mutex) => mutex,
         };
         let queue = mutex.lock();
 
-        (*queue).back().copied
-        ()
+        (*queue).back().copied()
     }
 
     /// Pop the element off back of the relay queue for `consumer_address`.
@@ -161,5 +161,4 @@ impl Queues2 {
             .lock()
             .push_front(job_id)
     }
-
 }

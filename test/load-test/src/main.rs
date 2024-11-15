@@ -46,9 +46,9 @@ async fn main() -> Result<(), GooseError> {
     let _ = submit_first_job().await;
 
     GooseAttack::initialize()?
-        .register_scenario(
-            scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
-        )
+        // .register_scenario(
+        //     scenario!("LoadtestGetResult").register_transaction(transaction!
+        // (loadtest_get_result)), )
         .register_scenario(
             scenario!("LoadtestSubmitJob")
                 .set_wait_time(Duration::from_secs(0), Duration::from_secs(0))?
@@ -149,7 +149,7 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
         user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;
 
     if should_wait_until_job_completed() {
-        wait_until_job_completed(user, nonce).await;
+        wait_until_job_completed(user, nonce).await?;
     }
     Ok(())
 }

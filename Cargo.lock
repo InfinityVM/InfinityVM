@@ -3864,6 +3864,7 @@ dependencies = [
  "once_cell",
  "reqwest 0.11.27",
  "tokio",
+ "tracing 0.1.40",
  "url",
 ]
 

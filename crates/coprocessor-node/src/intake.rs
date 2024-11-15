@@ -92,7 +92,8 @@ where
             return Err(Error::OffchainInputOverMaxDAPerJob);
         };
 
-        // TODO: add new table for just job ID so we can avoid writing full job here and reading
+        // TODO: add new table for just job ID so we can avoid writing full job here and reading.
+        // We can just pass the job itself along the channel
         // full job https://github.com/InfinityVM/InfinityVM/issues/354
         if get_job(self.db.clone(), job.id)?.is_some() {
             return Err(Error::JobAlreadyExists);
@@ -100,7 +101,8 @@ where
 
         job.status =
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
-        self.writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
+        let (tx, db_write_complete_rx) = oneshot::channel();
+        self.writer_tx.send((Write::JobTable(job.clone()), Some(tx))).expect("db writer broken");
 
         let consumer_address =
             job.consumer_address.clone().try_into().expect("we checked for valid address length");
@@ -116,17 +118,14 @@ where
                 let writer_tx2 = self.writer_tx.clone();
                 tokio::spawn(async move {
                     let mut interval = interval(Duration::from_millis(100));
-                    while let Some(job_id) =
-                        queues2.peek_back(consumer_address)
-                    {
+                    while let Some(job_id) = queues2.peek_back(consumer_address) {
                         interval.tick().await;
 
                         let job = match get_job(db2.clone(), job_id).expect("job get db error") {
                             Some(job) => job,
                             // Edge case where the job has not been written yet
-                            None => continue
+                            None => continue,
                         };
-                        
 
                         match job.status.status() {
                             JobStatusType::Done => {
@@ -156,6 +155,7 @@ where
         };
 
         self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
+        let _ = db_write_complete_rx.await;
 
         Ok(())
     }
@@ -177,7 +177,9 @@ where
 
         // Write the elf and make sure it completes before responding to the user.
         let (tx, rx) = oneshot::channel();
-        self.writer_tx.send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx))).expect("writer channel broken");
+        self.writer_tx
+            .send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
+            .expect("writer channel broken");
         let _ = rx.await;
 
         Ok(program_id)
