@@ -6,8 +6,7 @@ use crate::{
     intake::IntakeHandlers,
     job_processor::{JobProcessorConfig, JobProcessorService},
     metrics::{MetricServer, Metrics},
-    queue::Queues2,
-    relayer::{self, JobRelayerBuilder},
+    relayer::{self, JobRelayerBuilder, Relay},
     server::CoprocessorNodeServerInner,
     writer::{self, Write, Writer, WriterMsg},
 };
@@ -148,9 +147,7 @@ where
         bounded(exec_queue_bound);
     // Initialize the writer channel
     let (writer_tx, writer_rx) = std::sync::mpsc::sync_channel::<WriterMsg>(4096);
-
-    // Configure the queues handler
-    let queues = Queues2::new();
+    let (relay_tx, relay_rx) = std::sync::mpsc::sync_channel::<Relay>(4096);
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
@@ -180,20 +177,20 @@ where
     // Start the job processor workers
     job_processor.start().await;
 
+    let intake = IntakeHandlers::new(
+        Arc::clone(&db),
+        exec_queue_sender.clone(),
+        executor.clone(),
+        max_da_per_job,
+        writer_tx.clone(),
+        relay_tx.clone(),
+    );
+
     let job_event_listener = {
-        let intake = IntakeHandlers::new(
-            Arc::clone(&db),
-            exec_queue_sender.clone(),
-            executor.clone(),
-            max_da_per_job,
-            queues.clone(),
-            job_relayer.clone(),
-            writer_tx.clone(),
-        );
         // Configure the job listener
         let job_event_listener = JobEventListener::new(
             job_manager_address,
-            intake,
+            intake.clone(),
             job_sync_start,
             ws_config,
             db.clone(),
@@ -209,17 +206,9 @@ where
             .register_encoded_file_descriptor_set(ivm_proto::FILE_DESCRIPTOR_SET)
             .build_v1()
             .expect("failed to build gRPC reflection service");
-        let intake = IntakeHandlers::new(
-            Arc::clone(&db),
-            exec_queue_sender,
-            executor.clone(),
-            max_da_per_job,
-            queues.clone(),
-            job_relayer.clone(),
-            writer_tx.clone(),
-        );
+
         let coprocessor_node_server =
-            CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake));
+            CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake.clone()));
 
         tokio::spawn(async move {
             info!("🚥 starting gRPC server at {}", grpc_addr);

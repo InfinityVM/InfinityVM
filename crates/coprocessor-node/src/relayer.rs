@@ -1,4 +1,12 @@
 //! Logic to broadcast job result onchain.
+//!
+//! The primary type is the [`RelayCoordinator`]. The [`RelayCoordinator`] is in charge of managing
+//! broadcast queues on a per consumer basis, managing tasks queue polling tasks, and all final
+//! broadcasting logic. Other subsystems communicate with the [`RelayCoordinator`] by sending the
+//! [Relay] message over a mpsc channel. While the [Relay] channel its the only public API of this
+//! subsystem its important to note that this systems updates job statuses in the DB.
+//!
+//! The actual relaying logic is encapsulated by the [`JobRelayer`] abstraction.
 
 use crate::{
     job_processor::FailureReason,
@@ -179,12 +187,12 @@ where
         while let Some(relay) = relay_rx.recv().await {
             match relay {
                 Relay::Queue { consumer, job_id } => {
-                    let no_queue = queues.peek_back(consumer).is_none();
+                    let empty_queue = queues.peek_back(consumer).is_none();
                     queues.push_front(consumer, job_id);
 
                     // Queue pollers exit once a queue is empty. So we know that if the queue is
                     // empty then we need to start a new queue poller.
-                    if no_queue {
+                    if empty_queue {
                         let queues2 = queues.clone();
                         let db2 = self.db.clone();
                         let relayer2 = self.job_relayer.clone();
