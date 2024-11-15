@@ -15,6 +15,7 @@ use tables::{
 };
 
 pub mod tables;
+pub mod queue;
 
 const LAST_HEIGHT_KEY: u32 = 0;
 
