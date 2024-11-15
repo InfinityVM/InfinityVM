@@ -216,7 +216,6 @@ where
             queues.clone(),
             job_relayer.clone(),
             writer_tx.clone(),
-            
         );
         let coprocessor_node_server =
             CoprocessorNodeServer::new(CoprocessorNodeServerInner::new(intake));

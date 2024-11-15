@@ -8,15 +8,15 @@ use crate::{
 use alloy::{hex, primitives::Signature, signers::Signer};
 use async_channel::Receiver;
 use ivm_abi::abi_encode_offchain_job_request;
-use ivm_db::{get_all_failed_jobs, tables::{ElfWithMeta, Job, RequestType}};
+use ivm_db::{
+    get_all_failed_jobs,
+    tables::{ElfWithMeta, Job, RequestType},
+};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
 use std::{
     marker::Send,
-    sync::{
-        mpsc::SyncSender,
-        Arc,
-    },
+    sync::{mpsc::SyncSender, Arc},
     time::Duration,
 };
 use tokio::{sync::oneshot, task::JoinSet};
@@ -337,7 +337,7 @@ where
     ) -> Result<(), Error> {
         loop {
             // Jobs that we no longer want to retry
-            let mut jobs_to_delete= Vec::new();
+            let mut jobs_to_delete = Vec::new();
 
             let retry_jobs = match get_all_failed_jobs(db.clone()) {
                 Ok(jobs) => jobs,

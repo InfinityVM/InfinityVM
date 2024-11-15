@@ -4,12 +4,16 @@
 //!
 //! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
 
-use std::{sync::{mpsc::SyncSender, Arc}, time::Duration};
+use std::{
+    sync::{mpsc::SyncSender, Arc},
+    time::Duration,
+};
 
 use crate::{
     job_processor::relay_job_result,
     queue::{self, Queues},
-    relayer::JobRelayer, writer::WriterMsg,
+    relayer::JobRelayer,
+    writer::WriterMsg,
 };
 use alloy::{hex, primitives::Signature, signers::Signer};
 use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
