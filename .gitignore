@@ -32,3 +32,4 @@ my_flamegraph.svg
 
 # SP1 ELF files
 **/elf-compilation/
+**/riscv32im-succinct-zkvm-elf/

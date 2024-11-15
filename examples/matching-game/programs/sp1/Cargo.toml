@@ -10,7 +10,10 @@ path = "src/lib.rs"
 ivm-zkvm = { workspace = true }
 sp1-sdk = { workspace = true }
 once_cell = { workspace = true }
+bincode = { workspace = true }
 
 [build-dependencies]
 sp1-helper = { workspace = true }
-sp1-build = { workspace = true } 
+sp1-build = { workspace = true }
+sp1-sdk = { workspace = true }
+bincode = { workspace = true }
