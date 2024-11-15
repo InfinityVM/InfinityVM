@@ -1860,7 +1860,6 @@ dependencies = [
 name = "clob-sp1"
 version = "0.1.0"
 dependencies = [
- "alloy",
  "bincode",
  "once_cell",
  "sp1-build 3.2.1",
@@ -3704,7 +3703,6 @@ name = "intensity-test-sp1"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "ivm-zkvm",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
@@ -4172,7 +4170,6 @@ dependencies = [
  "alloy",
  "bincode",
  "ivm-abi",
- "ivm-zkvm",
  "kairos-trie",
  "matching-game-core",
  "matching-game-sp1",
@@ -4209,7 +4206,6 @@ name = "matching-game-sp1"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "ivm-zkvm",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
@@ -4303,7 +4299,6 @@ name = "mock-consumer-sp1"
 version = "0.1.0"
 dependencies = [
  "bincode",
- "ivm-zkvm",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
@@ -6386,7 +6381,6 @@ dependencies = [
  "ivm-abi",
  "ivm-proto",
  "ivm-test-utils",
- "ivm-zkvm",
  "k256",
  "kairos-trie",
  "matching-game-core",

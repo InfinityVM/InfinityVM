@@ -8,7 +8,6 @@ path = "src/lib.rs"
 
 [dependencies]
 matching-game-sp1 = { path = "sp1" }
-ivm-zkvm = { workspace = true }
 
 [dev-dependencies]
 matching-game-core = { workspace = true }
