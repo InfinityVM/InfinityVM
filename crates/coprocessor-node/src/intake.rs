@@ -120,7 +120,8 @@ where
                 .try_into()
                 .expect("we checked for valid address length");
             self.relay_tx
-                .send(Relay::Queue { consumer, job_id: job.id }).await
+                .send(Relay::Queue { consumer, job_id: job.id })
+                .await
                 .expect("relay channel broken");
         };
 

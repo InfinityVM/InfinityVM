@@ -141,7 +141,7 @@ where
             metrics,
             config,
             writer_tx,
-            relay_tx
+            relay_tx,
         }
     }
 
@@ -213,7 +213,6 @@ where
             {
                 Ok(updated_job) => updated_job,
                 Err(_) => continue,
-                
             };
 
             relay_tx.send(Relay::Now(Box::new(job))).await.expect("relay channel is broken");
