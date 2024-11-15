@@ -5,7 +5,6 @@
 //! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
 
 use crate::{
-    queue::{self},
     relayer::Relay,
     writer::{Write, WriterMsg},
 };
@@ -44,9 +43,6 @@ pub enum Error {
     /// Offchain input over max DA per job
     #[error("offchain input over max DA per job")]
     OffchainInputOverMaxDAPerJob,
-    /// Could not push the job id onto the relay queue
-    #[error("failed to push to queue: {0}")]
-    FailedToPushToQueue(#[from] queue::Error),
 }
 
 /// Job and program intake handlers.

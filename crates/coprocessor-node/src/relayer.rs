@@ -11,7 +11,7 @@
 use crate::{
     job_executor::FailureReason,
     metrics::Metrics,
-    queue::Queues2,
+    queue::Queues,
     writer::{Write, WriterMsg},
 };
 use alloy::{
@@ -145,7 +145,7 @@ where
             Self::start_job_retry_task(db, job_relayer, metrics, max_retries, writer_tx).await
         });
 
-        let queues = Queues2::new();
+        let queues = Queues::new();
         let mut relay_rx = self.relay_rx;
 
         while let Some(relay) = relay_rx.recv().await {
@@ -191,7 +191,8 @@ where
 
     async fn start_queue_poller(
         consumer: [u8; 20],
-        queues: Queues2,
+        queues: Queues
+        ,
         relayer: Arc<JobRelayer>,
         writer_tx: SyncSender<WriterMsg>,
         db: Arc<D>,
