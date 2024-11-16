@@ -1,4 +1,4 @@
-//! The job processor is responsible for coordinating job execution.
+//! [`JobExecutor`] handles the execution of jobs.
 
 use crate::{
     metrics::Metrics,
@@ -18,7 +18,7 @@ use tokio::task::JoinSet;
 use tracing::{error, info, instrument};
 use zkvm_executor::service::ZkvmExecutorService;
 
-/// Errors from job processor
+/// Errors for this module.
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     /// database error
@@ -38,7 +38,7 @@ pub enum Error {
     ExecQueueChannelClosed,
 }
 
-/// `JobStatus` Failure Reasons
+/// `JobStatus` failure reasons. These are used in metrics to record failure reasons.
 #[derive(thiserror::Error, Debug)]
 pub enum FailureReason {
     /// Job submitted with unknown or missing ELF
@@ -103,7 +103,7 @@ where
     S: Signer<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
-    /// Create a new job processor service.
+    /// Create a new instance of [Self].
     pub fn new(
         db: Arc<D>,
         exec_queue_receiver: Receiver<Job>,
@@ -149,7 +149,7 @@ where
         }
     }
 
-    /// Start a single queue puller worker task.
+    /// Start a worker.
     async fn start_processor_worker(
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,

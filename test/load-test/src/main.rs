@@ -46,9 +46,9 @@ async fn main() -> Result<(), GooseError> {
     let _ = submit_first_job().await;
 
     GooseAttack::initialize()?
-        // .register_scenario(
-        //     scenario!("LoadtestGetResult").register_transaction(transaction!
-        // (loadtest_get_result)), )
+        .register_scenario(
+            scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
+        )
         .register_scenario(
             scenario!("LoadtestSubmitJob")
                 .set_wait_time(Duration::from_secs(0), Duration::from_secs(0))?
