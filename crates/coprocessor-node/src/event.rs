@@ -1,5 +1,6 @@
 //! Job request event listener.
 
+use std::sync::Arc;
 use crate::{
     intake::IntakeHandlers,
     node::WsConfig,
@@ -9,17 +10,17 @@ use alloy::{
     eips::BlockNumberOrTag,
     primitives::Address,
     providers::{Provider, ProviderBuilder, WsConnect},
-    signers::{Signature, Signer},
+    signers::{Signature, Signer, SignerSync},
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
+use crossbeam::channel::Sender;
 use ivm_db::{
     get_last_block_height,
     tables::{Job, RequestType},
 };
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy};
 use reth_db::Database;
-use std::sync::{mpsc::SyncSender, Arc};
 use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
@@ -52,12 +53,12 @@ pub struct JobEventListener<S, D> {
     from_block: BlockNumberOrTag,
     ws_config: WsConfig,
     db: Arc<D>,
-    writer_tx: SyncSender<WriterMsg>,
+    writer_tx: Sender<WriterMsg>,
 }
 
 impl<S, D> JobEventListener<S, D>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<Signature> + Send + Sync + Clone + 'static + SignerSync<Signature>,
     D: Database + 'static,
 {
     /// Create a new instance of [Self].
@@ -67,7 +68,7 @@ where
         from_block: BlockNumberOrTag,
         ws_config: WsConfig,
         db: Arc<D>,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
     ) -> Self {
         Self { job_manager, intake, from_block, ws_config, db, writer_tx }
     }

@@ -154,8 +154,9 @@ struct Opts {
     #[command(subcommand)]
     operator_key: Option<Operator>,
 
-    /// Number of worker threads to use for processing jobs
-    #[arg(long, default_value_t = 4)]
+    /// Number of worker threads to use for processing jobs. Defaults to the number of cores - 3.
+    /// We leave 2 threads for tokio and 1 thread for the DB writer.
+    #[arg(long, default_value_t = 3.max(num_cpus::get_physical() - 3))]
     worker_count: usize,
 
     /// Max number of retries for relaying a job

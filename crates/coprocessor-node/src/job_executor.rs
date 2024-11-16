@@ -5,17 +5,20 @@ use crate::{
     relayer::Relay,
     writer::{Write, WriterMsg},
 };
-use alloy::{hex, primitives::Signature, signers::Signer};
-use async_channel::Receiver;
+use alloy::{
+    primitives::Signature,
+    signers::{Signer, SignerSync},
+};
+use crossbeam::channel::Receiver;
 use ivm_db::tables::{ElfWithMeta, Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
 use std::{
     marker::Send,
-    sync::{mpsc::SyncSender, Arc},
+    sync::{ Arc},
 };
-use tokio::task::JoinSet;
-use tracing::{error, info, instrument};
+use tracing::{error, instrument};
+use crossbeam::channel::Sender;
 use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors for this module.
@@ -90,16 +93,15 @@ pub struct JobExecutor<S, D> {
     db: Arc<D>,
     exec_queue_receiver: Receiver<Job>,
     zk_executor: ZkvmExecutorService<S>,
-    task_handles: JoinSet<Result<(), Error>>,
     metrics: Arc<Metrics>,
     num_workers: usize,
-    writer_tx: SyncSender<WriterMsg>,
+    writer_tx: Sender<WriterMsg>,
     relay_tx: tokio::sync::mpsc::Sender<Relay>,
 }
 
 impl<S, D> JobExecutor<S, D>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create a new instance of [Self].
@@ -109,23 +111,15 @@ where
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
         num_workers: usize,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         relay_tx: tokio::sync::mpsc::Sender<Relay>,
     ) -> Self {
-        Self {
-            db,
-            exec_queue_receiver,
-            zk_executor,
-            task_handles: JoinSet::new(),
-            metrics,
-            num_workers,
-            writer_tx,
-            relay_tx,
-        }
+        Self { db, exec_queue_receiver, zk_executor, metrics, num_workers, writer_tx, relay_tx }
     }
 
     /// Spawns `num_workers` worker tasks.
-    pub async fn start(&mut self) {
+    pub async fn start(&self) {
+        let mut threads = vec![];
         for _ in 0..self.num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let db = Arc::clone(&self.db);
@@ -134,7 +128,7 @@ where
             let writer_tx = self.writer_tx.clone();
             let relay_tx = self.relay_tx.clone();
 
-            self.task_handles.spawn(async move {
+            threads.push(std::thread::spawn(|| {
                 Self::start_executor_worker(
                     exec_queue_receiver,
                     db,
@@ -143,55 +137,51 @@ where
                     writer_tx,
                     relay_tx,
                 )
-                .await
-            });
+            }));
         }
     }
 
     /// Start a worker.
-    async fn start_executor_worker(
+    fn start_executor_worker(
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         relay_tx: tokio::sync::mpsc::Sender<Relay>,
     ) -> Result<(), Error> {
-        loop {
-            let writer_tx2 = writer_tx.clone();
-            let mut job =
-                exec_queue_receiver.recv().await.map_err(|_| Error::ExecQueueChannelClosed)?;
-            let id = job.id;
-            info!("executing job {:?}", hex::encode(id));
+        let writer_tx2 = writer_tx;
 
-            let elf_with_meta =
-                match Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone()).await {
-                    Ok(elf) => elf,
-                    Err(_) => continue,
-                };
+        while let Ok(mut job) = exec_queue_receiver.recv() {
+            let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone()) {
+                Ok(elf) => elf,
+                Err(_) => continue,
+            };
 
-            job = match Self::execute_job(
+            let updated_job = match Self::execute_job(
                 job,
                 &zk_executor,
                 elf_with_meta,
                 &metrics,
                 writer_tx2.clone(),
-            )
-            .await
-            {
+            ) {
                 Ok(updated_job) => updated_job,
                 Err(_) => continue,
             };
 
-            relay_tx.send(Relay::Now(Box::new(job))).await.expect("relay channel is broken");
+            relay_tx
+                .blocking_send(Relay::Now(Box::new(updated_job)))
+                .expect("relay channel is broken");
         }
+
+        Err(Error::ExecQueueChannelClosed)
     }
 
-    async fn get_elf(
+    fn get_elf(
         db: &Arc<D>,
         job: &mut Job,
         metrics: &Arc<Metrics>,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
     ) -> Result<ElfWithMeta, FailureReason> {
         match ivm_db::get_elf(db.clone(), &job.program_id).expect("DB reads cannot fail") {
             Some(elf) => Ok(elf),
@@ -212,12 +202,12 @@ where
     }
 
     #[instrument(skip_all, level = "debug")]
-    async fn execute_job(
+    fn execute_job(
         mut job: Job,
         zk_executor: &ZkvmExecutorService<S>,
         elf_with_meta: ElfWithMeta,
         metrics: &Arc<Metrics>,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
     ) -> Result<Job, FailureReason> {
         let id = job.id;
         let result = match job.request_type {
@@ -230,21 +220,16 @@ where
                     elf_with_meta.elf,
                     VmType::Risc0,
                 )
-                .await
                 .map(|(result_with_metadata, signature)| (result_with_metadata, signature, None)),
-            RequestType::Offchain(_) => {
-                zk_executor
-                    .execute_offchain_job(
-                        id,
-                        job.max_cycles,
-                        job.program_id.clone(),
-                        job.onchain_input.clone(),
-                        job.offchain_input.clone(),
-                        elf_with_meta.elf,
-                        VmType::Risc0,
-                    )
-                    .await
-            }
+            RequestType::Offchain(_) => zk_executor.execute_offchain_job(
+                id,
+                job.max_cycles,
+                job.program_id.clone(),
+                job.onchain_input.clone(),
+                job.offchain_input.clone(),
+                elf_with_meta.elf,
+                VmType::Risc0,
+            ),
         };
 
         match result {
@@ -275,7 +260,7 @@ where
                     retries: 0,
                 };
 
-                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
+                writer_tx.send((Write::JobTable(job), None)).expect("db writer broken");
 
                 Err(FailureReason::ExecErr)
             }

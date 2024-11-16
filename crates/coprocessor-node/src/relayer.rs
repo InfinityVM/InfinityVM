@@ -32,7 +32,7 @@ use ivm_db::{
 use ivm_proto::{JobStatusType, RelayStrategy};
 use reth_db::Database;
 use std::{
-    sync::{mpsc::SyncSender, Arc},
+    sync::{Arc},
     time::Duration,
 };
 use tokio::{
@@ -40,6 +40,7 @@ use tokio::{
     time::interval,
 };
 use tracing::{error, info, span, Instrument, Level};
+use crossbeam::channel::Sender;
 
 /// Delay between retrying failed jobs, in milliseconds.m
 const JOB_RETRY_DELAY_MS: u64 = 250;
@@ -110,7 +111,7 @@ pub enum Relay {
 /// The service in charge of handling all routines related to relay transactions onchain.
 #[derive(Debug)]
 pub struct RelayCoordinator<D> {
-    writer_tx: SyncSender<WriterMsg>,
+    writer_tx: Sender<WriterMsg>,
     relay_rx: Receiver<Relay>,
     job_relayer: Arc<JobRelayer>,
     db: Arc<D>,
@@ -124,7 +125,7 @@ where
 {
     /// Create a new instance of [Self].
     pub fn new(
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         relay_rx: Receiver<Relay>,
         job_relayer: Arc<JobRelayer>,
         db: Arc<D>,
@@ -193,7 +194,7 @@ where
         consumer: [u8; 20],
         queues: Queues,
         relayer: Arc<JobRelayer>,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         db: Arc<D>,
     ) {
         let mut interval = interval(Duration::from_millis(100));
@@ -231,7 +232,7 @@ where
         job_relayer: Arc<JobRelayer>,
         metrics: Arc<Metrics>,
         max_retries: u32,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
     ) -> Result<(), Error> {
         loop {
             // Jobs that we no longer want to retry
@@ -324,7 +325,7 @@ where
     async fn relay_job_result(
         mut job: Job,
         job_relayer: Arc<JobRelayer>,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
     ) -> Result<(), FailureReason> {
         let id = job.id;
 
