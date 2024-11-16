@@ -32,7 +32,7 @@ pub enum Error {
     RethDbError(#[from] DatabaseError),
 }
 
-/// Table to write job too
+/// Write targets.
 #[derive(Debug)]
 pub enum Write {
     /// Write to relay failure jobs table
