@@ -168,7 +168,7 @@ async fn state_job_submission_matching_game_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn matching_game_server_e2e() {
     async fn test(mut args: Args) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
         interval.tick().await; // First tick processes immediately
 
         let anvil = args.anvil;
@@ -234,8 +234,6 @@ async fn matching_game_server_e2e() {
         );
 
         // Give the batcher some time to process
-        interval.tick().await;
-        interval.tick().await;
         interval.tick().await;
         sleep(Duration::from_secs(15)).await;
 

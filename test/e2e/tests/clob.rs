@@ -217,8 +217,8 @@ async fn state_job_submission_clob_consumer() {
             nonce += 1;
         }
         interval.tick().await;
-        interval.tick().await;
 
+        sleep(Duration::from_secs(15)).await;
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));
         let bob_base_bal = alice_base.balanceOf(bob.into()).call().await.unwrap()._0;
@@ -236,7 +236,7 @@ async fn state_job_submission_clob_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn clob_node_e2e() {
     async fn test(mut args: Args) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
         interval.tick().await; // First tick processes immediately
 
         let anvil = args.anvil;
