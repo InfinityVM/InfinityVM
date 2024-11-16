@@ -73,7 +73,7 @@ pub enum FailureReason {
     RelayErrExceedRetry,
 }
 
-/// Job processor config.
+/// Job executor config.
 #[derive(Debug)]
 pub struct JobExecutorConfig {
     /// Number of worker threads to run.
@@ -82,9 +82,9 @@ pub struct JobExecutorConfig {
     pub max_retries: u32,
 }
 
-/// Job processor service.
+/// Job executor service.
 ///
-/// This stores a `JoinSet` with a handle to each job processor worker and the job retry task.
+/// This stores a `JoinSet` with a handle to each job executor worker.
 #[derive(Debug)]
 pub struct JobExecutor<S, D> {
     db: Arc<D>,
@@ -97,7 +97,6 @@ pub struct JobExecutor<S, D> {
     relay_tx: tokio::sync::mpsc::Sender<Relay>,
 }
 
-// The DB functions in JobExecutor are async so they yield in the tokio task.
 impl<S, D> JobExecutor<S, D>
 where
     S: Signer<Signature> + Send + Sync + Clone + 'static,
@@ -136,7 +135,7 @@ where
             let relay_tx = self.relay_tx.clone();
 
             self.task_handles.spawn(async move {
-                Self::start_processor_worker(
+                Self::start_executor_worker(
                     exec_queue_receiver,
                     db,
                     zk_executor,
@@ -150,7 +149,7 @@ where
     }
 
     /// Start a worker.
-    async fn start_processor_worker(
+    async fn start_executor_worker(
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,

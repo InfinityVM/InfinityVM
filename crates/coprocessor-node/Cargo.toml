@@ -25,7 +25,6 @@ parking_lot = { workspace = true }
 eyre = { workspace = true }
 prometheus = { workspace = true }
 axum = { workspace = true }
-crossbeam = { workspace = true }
 
 contracts = { workspace = true }
 ivm-abi = { workspace = true }
