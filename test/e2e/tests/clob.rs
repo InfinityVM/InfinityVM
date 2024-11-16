@@ -407,7 +407,7 @@ async fn clob_node_e2e() {
         interval.tick().await;
 
         // Check that balances have been updated on chain from the batch.
-        sleep(Duration::from_secs(10)).await;
+        sleep(Duration::from_secs(15)).await;
         let bob_free_base = consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_free_base, U256::from(100));
         let bob_free_quote =
@@ -439,6 +439,7 @@ async fn clob_node_e2e() {
 
         // Wait for batches to hit the chain
         interval.tick().await;
+        sleep(Duration::from_secs(15)).await;
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));

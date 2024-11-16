@@ -13,14 +13,16 @@ fn main() {
     };
     build_program_with_args("program", args);
 
-    let elf_path = PathBuf::from("../../../../target").join(output_dir).join(elf_name);
+    let elf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../target")
+        .join(output_dir)
+        .join(elf_name);
 
     println!("cargo:rerun-if-changed={}", elf_path.display());
 
     if let Ok(program_elf) = fs::read(&elf_path) {
         let (_, vk) = ProverClient::new().setup(&program_elf);
         let vk_bytes = vk.hash_bytes().to_vec();
-
         let vk_path = elf_path.with_extension("vkey");
 
         bincode::serialize_into(

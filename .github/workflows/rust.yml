@@ -71,7 +71,7 @@ jobs:
         uses: ./.github/actions/setup
         if: env.GIT_DIFF
 
-      - run: make test-all
+      - run: make BUILD=release test-all
         if: env.GIT_DIFF
 
   fmt:

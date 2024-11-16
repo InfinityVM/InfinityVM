@@ -22,6 +22,7 @@ use matching_game_core::{
 use matching_game_programs::{get_matching_game_elf_id, MATCHING_GAME_ELF};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use std::rc::Rc;
+use tokio::time::{sleep, Duration};
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
@@ -236,6 +237,7 @@ async fn matching_game_server_e2e() {
         interval.tick().await;
         interval.tick().await;
         interval.tick().await;
+        sleep(Duration::from_secs(15)).await;
 
         // Check that partners have been updated on chain from the batch.
         let partner = consumer_contract.getPartner(alice.into()).call().await.unwrap()._0;

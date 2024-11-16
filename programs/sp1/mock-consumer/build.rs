@@ -13,7 +13,10 @@ fn main() {
     };
     build_program_with_args("program", args);
 
-    let elf_path = PathBuf::from("../../../../target").join(output_dir).join(elf_name);
+    let elf_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../target")
+        .join(output_dir)
+        .join(elf_name);
 
     println!("cargo:rerun-if-changed={}", elf_path.display());
 
