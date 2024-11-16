@@ -1,9 +1,6 @@
 //! Database tables and persisted types.
 
-use crate::{
-    queue::{QueueMeta, QueueNode},
-    Error,
-};
+use crate::Error;
 use alloy::{primitives::utils::keccak256, rlp::bytes};
 use eip4844::BlobTransactionSidecar;
 use ivm_abi::JobParams;
@@ -162,8 +159,6 @@ pub struct ElfWithMeta {
     pub elf: Vec<u8>,
 }
 
-impl_compress_decompress! { QueueMeta }
-impl_compress_decompress! { QueueNode }
 impl_compress_decompress! { Job }
 impl_compress_decompress! { ElfWithMeta }
 
@@ -197,8 +192,4 @@ reth_db::tables! {
     table RelayFailureJobs<Key = B256Key, Value = Job>;
     /// Last seen block height
     table LastBlockHeight<Key = u32, Value = u64>;
-    /// Queue metadata
-    table QueueMetaTable<Key = AddrKey, Value = QueueMeta>;
-    /// Queue node
-    table QueueNodeTable<Key = B256Key, Value = QueueNode>;
 }

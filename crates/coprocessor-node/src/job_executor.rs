@@ -15,7 +15,7 @@ use std::{
     sync::{mpsc::SyncSender, Arc},
 };
 use tokio::task::JoinSet;
-use tracing::{error, info};
+use tracing::{error, info, instrument};
 use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors from job processor
@@ -212,6 +212,7 @@ where
         }
     }
 
+    #[instrument(skip_all, level = "debug")]
     async fn execute_job(
         mut job: Job,
         zk_executor: &ZkvmExecutorService<S>,

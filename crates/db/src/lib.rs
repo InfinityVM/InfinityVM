@@ -14,7 +14,6 @@ use tables::{
     B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, RelayFailureJobs, Sha256Key,
 };
 
-pub mod queue;
 pub mod tables;
 
 /// Key for the last seen block height

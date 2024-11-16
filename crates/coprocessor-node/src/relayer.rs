@@ -191,8 +191,7 @@ where
 
     async fn start_queue_poller(
         consumer: [u8; 20],
-        queues: Queues
-        ,
+        queues: Queues,
         relayer: Arc<JobRelayer>,
         writer_tx: SyncSender<WriterMsg>,
         db: Arc<D>,

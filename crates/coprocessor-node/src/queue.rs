@@ -7,7 +7,7 @@ use tracing::instrument;
 
 type MutexQueue = Mutex<VecDeque<[u8; 32]>>;
 
-/// In memory collection of queues
+/// A thread safe in memory collection of job id queues, keyed by consumer contract address.
 #[derive(Debug)]
 pub struct Queues {
     inner: Arc<DashMap<[u8; 20], MutexQueue>>,
@@ -32,7 +32,7 @@ impl Queues {
     }
 
     /// Peek the back of the relay queue for `consumer_address`.
-    #[instrument(skip_all)]
+    #[instrument(skip_all, level = "debug")]
     pub fn peek_back(&self, consumer_address: [u8; 20]) -> Option<[u8; 32]> {
         let mutex = match self.inner.get(&consumer_address) {
             None => return None,
@@ -44,7 +44,7 @@ impl Queues {
     }
 
     /// Pop the element off back of the relay queue for `consumer_address`.
-    #[instrument(skip_all)]
+    #[instrument(skip_all, level = "debug")]
     pub fn pop_back(&self, consumer_address: [u8; 20]) -> Option<[u8; 32]> {
         let mutex = match self.inner.get(&consumer_address) {
             // If we don't have an entry for the queue, we know there is nothing in it.
@@ -69,7 +69,7 @@ impl Queues {
     }
 
     /// Push an element onto the front of the queue for the given address
-    #[instrument(skip_all)]
+    #[instrument(skip_all, level = "debug")]
     pub fn push_front(&self, consumer_address: [u8; 20], job_id: [u8; 32]) {
         self.inner
             .entry(consumer_address)
@@ -79,11 +79,10 @@ impl Queues {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::Queues;
- 
+
     #[test]
     fn single_node_queue() {
         let addr0 = [0u8; 20];
@@ -147,7 +146,7 @@ mod test {
         assert_eq!(queue.pop_back(addr0), None);
 
         // We can perform interweaving push and pops
-        queue.push_front(addr0,id3);
+        queue.push_front(addr0, id3);
         assert_eq!(queue.peek_back(addr0), Some(id3));
 
         queue.push_front(addr0, id2);
