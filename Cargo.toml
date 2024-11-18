@@ -25,7 +25,6 @@ members = [
 	"programs/sp1/mock-consumer",
 	"programs/sp1/mock-consumer/program",
 	"programs/sp1/intensity-test/program",
-	"benches/vm-comparison",
 	"programs/sp1/intensity-test",
 	"examples/matching-game/programs/sp1",
 	"examples/clob/programs/sp1",

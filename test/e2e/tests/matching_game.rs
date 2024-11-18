@@ -19,7 +19,7 @@ use matching_game_core::{
     },
     get_merkle_root_bytes, next_state,
 };
-use matching_game_programs::{get_matching_game_elf_id, MATCHING_GAME_ELF};
+use matching_game_programs::{get_matching_game_program_id, MATCHING_GAME_ELF};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use std::rc::Rc;
 use tokio::time::{sleep, Duration};
@@ -30,7 +30,7 @@ async fn state_job_submission_matching_game_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let matching_game = args.matching_game_consumer.unwrap();
-        let program_id = get_matching_game_elf_id();
+        let program_id = get_matching_game_program_id();
         let matching_game_signer_wallet =
             EthereumWallet::from(matching_game.matching_game_signer.clone());
 
@@ -168,12 +168,12 @@ async fn state_job_submission_matching_game_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn matching_game_server_e2e() {
     async fn test(mut args: Args) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
         interval.tick().await; // First tick processes immediately
 
         let anvil = args.anvil;
         let matching_game = args.matching_game_consumer.unwrap();
-        let program_id = get_matching_game_elf_id();
+        let program_id = get_matching_game_program_id();
         let matching_game_signer_wallet =
             EthereumWallet::from(matching_game.matching_game_signer.clone());
         let matching_game_endpoint = args.matching_game_endpoint.unwrap();
@@ -233,7 +233,7 @@ async fn matching_game_server_e2e() {
             }
         );
 
-        // Give the batcher some time to process
+        // Give the batcher some time to process.
         interval.tick().await;
         sleep(Duration::from_secs(15)).await;
 

@@ -3,7 +3,7 @@ use sp1_sdk::{HashableKey, ProverClient};
 use std::{fs, path::PathBuf};
 
 fn main() {
-    let output_dir = "riscv32im-succinct-zkvm-elf/";
+    let output_dir = "elf/";
     let elf_name = "matching-game-sp1-guest";
 
     let args = BuildArgs {

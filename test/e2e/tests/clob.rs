@@ -135,7 +135,7 @@ async fn state_job_submission_clob_consumer() {
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
 
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(10));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(8));
         interval.tick().await; // First tick processes immediately
         interval.tick().await;
         let mut nonce = 2;
@@ -175,23 +175,10 @@ async fn state_job_submission_clob_consumer() {
             let job_request =
                 SubmitJobRequest { request, signature, offchain_input: combined_offchain_input };
 
-            let mut submit_job_response = None;
-            let mut retries = 3;
-            while retries > 0 {
-                match args.coprocessor_node.submit_job(job_request.clone()).await {
-                    Ok(response) => {
-                        submit_job_response = Some(response.into_inner());
-                        interval.tick().await;
-                        break;
-                    }
-                    Err(_) => {
-                        retries -= 1;
-                        interval.tick().await;
-                    }
-                }
-            }
+            let submit_job_response = args.coprocessor_node.submit_job(job_request).await.unwrap();
+            interval.tick().await;
 
-            let job_id = submit_job_response.unwrap().job_id;
+            let job_id = submit_job_response.into_inner().job_id;
             let offchain_result_with_metadata = args
                 .coprocessor_node
                 .get_result(GetResultRequest { job_id })
@@ -236,7 +223,7 @@ async fn state_job_submission_clob_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn clob_node_e2e() {
     async fn test(mut args: Args) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(30));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
         interval.tick().await; // First tick processes immediately
 
         let anvil = args.anvil;

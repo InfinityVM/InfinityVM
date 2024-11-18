@@ -103,7 +103,7 @@ mod test {
     }
 
     #[test]
-    fn sp1_is_correct_verifying_key() {
+    fn sp1_is_correct_program_id() {
         let (_, vk) = sp1_sdk::ProverClient::new().setup(MOCK_CONSUMER_SP1_GUEST_ELF);
         let mut vk_bytes = vk.hash_bytes().to_vec();
 

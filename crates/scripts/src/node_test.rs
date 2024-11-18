@@ -21,7 +21,7 @@ use matching_game_core::{
     api::{Request, SubmitNumberRequest},
     get_merkle_root_bytes, next_state,
 };
-use matching_game_programs::{get_matching_game_elf_id, MATCHING_GAME_ELF};
+use matching_game_programs::{get_matching_game_program_id, MATCHING_GAME_ELF};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_sp1::{get_mock_consumer_sp1_guest_elf_id, MOCK_CONSUMER_SP1_GUEST_ELF};
@@ -208,7 +208,7 @@ async fn main() {
     };
     let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
-    let matching_game_program_id = get_matching_game_elf_id();
+    let matching_game_program_id = get_matching_game_program_id();
 
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
         nonce,
