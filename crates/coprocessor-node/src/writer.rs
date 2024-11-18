@@ -1,5 +1,6 @@
 //! Synchronous database writer. All writes DB writes should go through this.
 
+use crossbeam::channel;
 use ivm_db::tables::{
     B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, RelayFailureJobs, Sha256Key,
 };
@@ -8,7 +9,7 @@ use reth_db::{
     transaction::{DbTx, DbTxMut},
     Database, DatabaseError,
 };
-use std::sync::{mpsc, Arc};
+use std::sync::Arc;
 use tokio::sync::oneshot;
 
 /// A write request to the [`Writer`]. If a sender is included, the writer
@@ -60,7 +61,7 @@ pub enum Write {
 #[derive(Debug)]
 pub struct Writer<D> {
     db: Arc<D>,
-    rx: mpsc::Receiver<WriterMsg>,
+    rx: channel::Receiver<WriterMsg>,
 }
 
 impl<D> Writer<D>
@@ -68,7 +69,7 @@ where
     D: Database + 'static,
 {
     /// Create a new instance of [`Self`]
-    pub fn new(db: Arc<D>, rx: mpsc::Receiver<WriterMsg>) -> Self {
+    pub fn new(db: Arc<D>, rx: channel::Receiver<WriterMsg>) -> Self {
         Self { db, rx }
     }
 

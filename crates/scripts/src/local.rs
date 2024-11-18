@@ -83,8 +83,6 @@ async fn main() {
         .arg(chain_id)
         .arg("--db-dir")
         .arg(coproc_db_dir.path())
-        .arg("--worker-count")
-        .arg("32")
         .stdout(coproc_stdout_logs)
         .stderr(coproc_stderr_logs)
         .spawn()

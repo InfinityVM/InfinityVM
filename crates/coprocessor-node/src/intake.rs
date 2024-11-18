@@ -8,11 +8,16 @@ use crate::{
     relayer::Relay,
     writer::{Write, WriterMsg},
 };
-use alloy::{hex, primitives::Signature, signers::Signer};
+use alloy::{
+    hex,
+    primitives::Signature,
+    signers::{Signer, SignerSync},
+};
+use crossbeam::channel::Sender;
 use ivm_db::{get_elf, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
-use std::sync::{mpsc::SyncSender, Arc};
+use std::sync::Arc;
 use tokio::sync::oneshot;
 use zkvm_executor::service::ZkvmExecutorService;
 
@@ -51,10 +56,10 @@ pub enum Error {
 #[derive(Debug)]
 pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
-    exec_queue_sender: async_channel::Sender<Job>,
+    exec_queue_sender: crossbeam::channel::Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
-    writer_tx: SyncSender<WriterMsg>,
+    writer_tx: Sender<WriterMsg>,
     relay_tx: tokio::sync::mpsc::Sender<Relay>,
 }
 
@@ -76,16 +81,16 @@ where
 
 impl<S, D> IntakeHandlers<S, D>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create an instance of [Self].
     pub const fn new(
         db: Arc<D>,
-        exec_queue_sender: async_channel::Sender<Job>,
+        exec_queue_sender: crossbeam::channel::Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
-        writer_tx: SyncSender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         relay_tx: tokio::sync::mpsc::Sender<Relay>,
     ) -> Self {
         Self { db, exec_queue_sender, zk_executor, max_da_per_job, writer_tx, relay_tx }
@@ -121,7 +126,7 @@ where
                 .expect("relay channel broken");
         };
 
-        self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
+        self.exec_queue_sender.send(job).map_err(|_| Error::ExecQueueSendFailed)?;
         let _ = db_write_complete_rx.await;
 
         Ok(())
@@ -130,7 +135,7 @@ where
     /// Submit program ELF, save it in DB, and return verifying key.
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
-        let program_id = self.zk_executor.create_elf(&elf, vm_type).await?;
+        let program_id = self.zk_executor.create_elf(&elf, vm_type)?;
 
         if get_elf(self.db.clone(), &program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?

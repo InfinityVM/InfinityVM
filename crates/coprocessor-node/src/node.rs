@@ -6,13 +6,11 @@ use crate::{
     intake::IntakeHandlers,
     job_executor::{JobExecutor, JobExecutorConfig},
     metrics::{MetricServer, Metrics},
-    relayer::{self, JobRelayerBuilder, Relay, RelayCoordinator},
+    relayer::{self, JobRelayerBuilder, RelayCoordinator},
     server::CoprocessorNodeServerInner,
-    writer::{self, Write, Writer, WriterMsg},
+    writer::{self, Write, Writer},
 };
 use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
-use async_channel::{bounded, Receiver, Sender};
-use ivm_db::tables::Job;
 use ivm_proto::coprocessor_node_server::CoprocessorNodeServer;
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
@@ -143,11 +141,11 @@ where
     });
 
     // Initialize the async channels
-    let (exec_queue_sender, exec_queue_receiver): (Sender<Job>, Receiver<Job>) =
-        bounded(exec_queue_bound);
+    let (exec_queue_sender, exec_queue_receiver) = crossbeam::channel::bounded(exec_queue_bound);
     // Initialize the writer channel
-    let (writer_tx, writer_rx) = std::sync::mpsc::sync_channel::<WriterMsg>(4096);
-    let (relay_tx, relay_rx) = tokio::sync::mpsc::channel::<Relay>(4096);
+    let (writer_tx, writer_rx) = crossbeam::channel::bounded(4096);
+    // Initialize channel to relay coordinator
+    let (relay_tx, relay_rx) = tokio::sync::mpsc::channel(4096);
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
@@ -177,7 +175,7 @@ where
     };
 
     // Configure the job processor
-    let mut job_executor = JobExecutor::new(
+    let job_executor = JobExecutor::new(
         Arc::clone(&db),
         exec_queue_receiver,
         executor.clone(),
