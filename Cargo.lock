@@ -1865,6 +1865,7 @@ dependencies = [
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
+ "sp1-utils",
 ]
 
 [[package]]
@@ -3702,11 +3703,11 @@ dependencies = [
 name = "intensity-test-sp1"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
+ "sp1-utils",
 ]
 
 [[package]]
@@ -4223,8 +4224,8 @@ dependencies = [
  "bincode",
  "once_cell",
  "sp1-build 3.2.1",
- "sp1-helper",
  "sp1-sdk",
+ "sp1-utils",
 ]
 
 [[package]]
@@ -4313,11 +4314,11 @@ dependencies = [
 name = "mock-consumer-sp1"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
+ "sp1-utils",
 ]
 
 [[package]]
@@ -7182,6 +7183,15 @@ dependencies = [
  "sysinfo",
  "thiserror",
  "tracing 0.1.40",
+]
+
+[[package]]
+name = "sp1-utils"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "sp1-build 3.2.1",
+ "sp1-sdk",
 ]
 
 [[package]]

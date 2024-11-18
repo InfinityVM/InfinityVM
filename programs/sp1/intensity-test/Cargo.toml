@@ -8,10 +8,10 @@ path = "src/lib.rs"
 
 [dependencies]
 once_cell = { workspace = true, features = ["std"] }
-bincode = { workspace = true }
+sp1-utils = { path = "../../../crates/sp1-utils" }
 
 [build-dependencies]
 sp1-helper = { workspace = true }
 sp1-build = { workspace = true }
 sp1-sdk = { workspace = true }
-bincode = { workspace = true }
+sp1-utils = { path = "../../../crates/sp1-utils" }

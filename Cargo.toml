@@ -17,6 +17,7 @@ members = [
 	"crates/tracing",
 	"crates/zkvm",
 	"crates/zkvm-executor",
+	"crates/sp1-utils",
     "crates/tracing",
 	"examples/clob/*",
 	"examples/matching-game/*",
@@ -179,6 +180,7 @@ sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b88
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", default-features = false }
 sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", default-features = false }
 sp1-build = "3.1.0"
+sp1-utils = { path = "crates/sp1-utils" }
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
