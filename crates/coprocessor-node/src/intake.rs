@@ -81,7 +81,7 @@ where
 
 impl<S, D> IntakeHandlers<S, D>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static + SignerSync<Signature>,
+    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create an instance of [Self].

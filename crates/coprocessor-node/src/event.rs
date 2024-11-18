@@ -1,6 +1,5 @@
 //! Job request event listener.
 
-use std::sync::Arc;
 use crate::{
     intake::IntakeHandlers,
     node::WsConfig,
@@ -21,6 +20,7 @@ use ivm_db::{
 };
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy};
 use reth_db::Database;
+use std::sync::Arc;
 use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
@@ -58,7 +58,7 @@ pub struct JobEventListener<S, D> {
 
 impl<S, D> JobEventListener<S, D>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static + SignerSync<Signature>,
+    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create a new instance of [Self].

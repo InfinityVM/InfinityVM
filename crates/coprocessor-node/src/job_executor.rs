@@ -9,16 +9,12 @@ use alloy::{
     primitives::Signature,
     signers::{Signer, SignerSync},
 };
-use crossbeam::channel::Receiver;
+use crossbeam::channel::{Receiver, Sender};
 use ivm_db::tables::{ElfWithMeta, Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
-use std::{
-    marker::Send,
-    sync::{ Arc},
-};
+use std::{marker::Send, sync::Arc};
 use tracing::{error, instrument};
-use crossbeam::channel::Sender;
 use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors for this module.
@@ -158,19 +154,19 @@ where
                 Err(_) => continue,
             };
 
-            let updated_job = match Self::execute_job(
+            let executed_job = match Self::execute_job(
                 job,
                 &zk_executor,
                 elf_with_meta,
                 &metrics,
                 writer_tx2.clone(),
             ) {
-                Ok(updated_job) => updated_job,
+                Ok(executed_job) => executed_job,
                 Err(_) => continue,
             };
 
             relay_tx
-                .blocking_send(Relay::Now(Box::new(updated_job)))
+                .blocking_send(Relay::Now(Box::new(executed_job)))
                 .expect("relay channel is broken");
         }
 

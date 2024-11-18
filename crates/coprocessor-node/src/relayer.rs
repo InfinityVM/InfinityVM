@@ -24,6 +24,7 @@ use alloy::{
     transports::http::reqwest,
 };
 use contracts::i_job_manager::IJobManager;
+use crossbeam::channel::Sender;
 use ivm_abi::abi_encode_offchain_job_request;
 use ivm_db::{
     get_all_failed_jobs, get_job,
@@ -31,16 +32,12 @@ use ivm_db::{
 };
 use ivm_proto::{JobStatusType, RelayStrategy};
 use reth_db::Database;
-use std::{
-    sync::{Arc},
-    time::Duration,
-};
+use std::{sync::Arc, time::Duration};
 use tokio::{
     sync::{mpsc::Receiver, oneshot},
     time::interval,
 };
 use tracing::{error, info, span, Instrument, Level};
-use crossbeam::channel::Sender;
 
 /// Delay between retrying failed jobs, in milliseconds.m
 const JOB_RETRY_DELAY_MS: u64 = 250;
