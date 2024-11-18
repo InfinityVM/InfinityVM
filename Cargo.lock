@@ -3812,6 +3812,7 @@ dependencies = [
  "ivm-db",
  "ivm-proto",
  "ivm-test-utils",
+ "ivm-zkvm-executor",
  "k256",
  "mock-consumer",
  "prometheus",
@@ -3823,7 +3824,6 @@ dependencies = [
  "tonic-reflection",
  "tracing 0.0.1",
  "tracing 0.1.40",
- "zkvm-executor",
 ]
 
 [[package]]
@@ -3879,6 +3879,20 @@ dependencies = [
  "mock-consumer-sp1",
  "sp1-sdk",
  "thiserror",
+]
+
+[[package]]
+name = "ivm-zkvm-executor"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "eip4844",
+ "ivm-abi",
+ "ivm-proto",
+ "ivm-zkvm",
+ "thiserror",
+ "tokio",
+ "tracing 0.1.40",
 ]
 
 [[package]]
@@ -8743,20 +8757,6 @@ dependencies = [
  "sha2",
  "sha3",
  "subtle",
-]
-
-[[package]]
-name = "zkvm-executor"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "eip4844",
- "ivm-abi",
- "ivm-proto",
- "ivm-zkvm",
- "thiserror",
- "tokio",
- "tracing 0.1.40",
 ]
 
 [[package]]

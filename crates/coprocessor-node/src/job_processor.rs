@@ -9,11 +9,11 @@ use ivm_db::{
     tables::{ElfWithMeta, Job, RequestType},
 };
 use ivm_proto::{JobStatus, JobStatusType, VmType};
+use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use tracing::{error, info};
-use zkvm_executor::service::ZkvmExecutorService;
 
 /// Delay between retrying failed jobs, in milliseconds.m
 const JOB_RETRY_DELAY_MS: u64 = 250;

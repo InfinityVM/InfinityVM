@@ -225,6 +225,6 @@ ivm-proto = { path = "crates/sdk/proto" }
 ivm-test-utils = { path = "crates/sdk/test-utils" }
 ivm-zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
-zkvm-executor = { path = "crates/zkvm-executor" }
+ivm-zkvm-executor = { path = "crates/zkvm-executor" }
 mock-consumer-sp1 = { path = "programs/sp1/mock-consumer" }
 intensity-test-sp1 = { path = "programs/sp1/intensity-test" }
