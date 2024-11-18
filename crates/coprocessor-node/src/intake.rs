@@ -9,15 +9,15 @@ use std::sync::Arc;
 use alloy::{hex, primitives::Signature, signers::Signer};
 use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
+use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
-use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     /// Could not create ELF in zkvm executor
     #[error("failed to create ELF in zkvm executor: {0}")]
-    CreateElfFailed(#[from] zkvm_executor::service::Error),
+    CreateElfFailed(#[from] ivm_zkvm_executor::service::Error),
     /// database error
     #[error("database error: {0}")]
     Database(#[from] ivm_db::Error),

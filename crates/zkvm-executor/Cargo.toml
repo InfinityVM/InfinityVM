@@ -1,5 +1,5 @@
 [package]
-name = "zkvm-executor"
+name = "ivm-zkvm-executor"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

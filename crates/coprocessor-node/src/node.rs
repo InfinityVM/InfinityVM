@@ -13,6 +13,7 @@ use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSi
 use async_channel::{bounded, Receiver, Sender};
 use ivm_db::tables::Job;
 use ivm_proto::coprocessor_node_server::CoprocessorNodeServer;
+use ivm_zkvm_executor::service::ZkvmExecutorService;
 use k256::ecdsa::SigningKey;
 use prometheus::Registry;
 use reth_db::Database;
@@ -22,7 +23,6 @@ use std::{
 };
 use tokio::{task::JoinHandle, try_join};
 use tracing::info;
-use zkvm_executor::service::ZkvmExecutorService;
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
