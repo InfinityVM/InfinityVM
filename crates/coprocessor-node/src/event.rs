@@ -28,6 +28,9 @@ use tokio::{
 };
 use tracing::error;
 
+const SUBMIT_JOB_RETRIES: usize = 4;
+const SUBMIT_JOB_BACKOFF_BASE_MS: usize = 500;
+
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -151,13 +154,14 @@ where
                             relay_strategy: RelayStrategy::Unordered,
                         };
 
-                        for _ in 0..4 {
+                        for i in 1..SUBMIT_JOB_RETRIES + 1 {
                             match self.intake.submit_job(job.clone()).await {
                                 Err(error) => error!(?error, id=hex::encode(event.jobID), "failed while submitting to job processor - execution queue may be full"),
                                 Ok(_) => break
                              }
 
-                            sleep(Duration::from_millis(100)).await;
+                            let backoff = i * SUBMIT_JOB_BACKOFF_BASE_MS;
+                            sleep(Duration::from_millis(backoff as u64)).await;
                         }
 
                         error!(
