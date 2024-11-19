@@ -36,6 +36,11 @@ pub fn max_cycles() -> u64 {
     }
 }
 
+/// Get the max cycles env var.
+pub fn relay_strategy_is_ordered() -> bool {
+    env::var("RELAY_STRATEGY_ORDERED").unwrap_or_default() != String::new()
+}
+
 /// Get the consumer address env var. If not set, try to get the consumer address from the deploy
 /// info. If that fails, use the default consumer address.
 pub fn consumer_addr() -> String {

@@ -7,13 +7,14 @@ use crate::{
 };
 use alloy::{
     eips::BlockNumberOrTag,
+    hex,
     primitives::Address,
     providers::{Provider, ProviderBuilder, WsConnect},
     signers::{Signature, Signer, SignerSync},
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
-use crossbeam::channel::Sender;
+use flume::Sender;
 use ivm_db::{
     get_last_block_height,
     tables::{Job, RequestType},
@@ -149,9 +150,20 @@ where
                             blobs_sidecar: None,
                             relay_strategy: RelayStrategy::Unordered,
                         };
-                        if let Err(error) = self.intake.submit_job(job).await {
-                            error!(?error, ?event.jobID, "failed while submitting to job processor");
+
+                        for _ in 0..4 {
+                            match self.intake.submit_job(job.clone()).await {
+                                Err(error) => error!(?error, id=hex::encode(event.jobID), "failed while submitting to job processor - execution queue may be full"),
+                                Ok(_) => break
+                             }
+
+                            sleep(Duration::from_millis(100)).await;
                         }
+
+                        error!(
+                            id = hex::encode(event.jobID),
+                            "skipping event due to submit_job failing"
+                        );
                     }
 
                     // update the last seen block height after processing the events

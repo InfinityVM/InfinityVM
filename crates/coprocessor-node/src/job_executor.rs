@@ -9,7 +9,7 @@ use alloy::{
     primitives::Signature,
     signers::{Signer, SignerSync},
 };
-use crossbeam::channel::{Receiver, Sender};
+use flume::{Receiver, Sender};
 use ivm_db::tables::{ElfWithMeta, Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use reth_db::Database;
@@ -72,7 +72,6 @@ pub enum FailureReason {
     RelayErrExceedRetry,
 }
 
-
 /// Job executor service.
 ///
 /// This stores a `JoinSet` with a handle to each job executor worker.
@@ -84,7 +83,7 @@ pub struct JobExecutor<S, D> {
     metrics: Arc<Metrics>,
     num_workers: usize,
     writer_tx: Sender<WriterMsg>,
-    relay_tx: tokio::sync::mpsc::Sender<Relay>,
+    relay_tx: Sender<Relay>,
 }
 
 impl<S, D> JobExecutor<S, D>
@@ -100,7 +99,7 @@ where
         metrics: Arc<Metrics>,
         num_workers: usize,
         writer_tx: Sender<WriterMsg>,
-        relay_tx: tokio::sync::mpsc::Sender<Relay>,
+        relay_tx: Sender<Relay>,
     ) -> Self {
         Self { db, exec_queue_receiver, zk_executor, metrics, num_workers, writer_tx, relay_tx }
     }
@@ -136,7 +135,7 @@ where
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
         writer_tx: Sender<WriterMsg>,
-        relay_tx: tokio::sync::mpsc::Sender<Relay>,
+        relay_tx: Sender<Relay>,
     ) -> Result<(), Error> {
         let writer_tx2 = writer_tx;
 
@@ -157,9 +156,7 @@ where
                 Err(_) => continue,
             };
 
-            relay_tx
-                .blocking_send(Relay::Now(Box::new(executed_job)))
-                .expect("relay channel is broken");
+            relay_tx.send(Relay::Now(Box::new(executed_job))).expect("relay channel is broken");
         }
 
         Err(Error::ExecQueueChannelClosed)
@@ -175,6 +172,7 @@ where
             Some(elf) => Ok(elf),
             None => {
                 // TODO: include job ID in metrics
+                // https://github.com/InfinityVM/InfinityVM/issues/362
                 metrics.incr_job_err(&FailureReason::MissingElf.to_string());
                 // Update the job status
                 job.status = JobStatus {

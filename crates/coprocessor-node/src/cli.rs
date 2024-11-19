@@ -1,6 +1,10 @@
 //! CLI for coprocessor-node.
 
-use crate::{node::{self, NodeConfig, WsConfig}, relayer::RelayConfig, MAX_DA_PER_JOB};
+use crate::{
+    node::{self, NodeConfig, WsConfig},
+    relayer::RelayConfig,
+    MAX_DA_PER_JOB,
+};
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::{hex, Address},

@@ -1,6 +1,6 @@
 //! Synchronous database writer. All writes DB writes should go through this.
 
-use crossbeam::channel;
+use flume::Receiver;
 use ivm_db::tables::{
     B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, RelayFailureJobs, Sha256Key,
 };
@@ -61,7 +61,7 @@ pub enum Write {
 #[derive(Debug)]
 pub struct Writer<D> {
     db: Arc<D>,
-    rx: channel::Receiver<WriterMsg>,
+    rx: Receiver<WriterMsg>,
 }
 
 impl<D> Writer<D>
@@ -69,7 +69,7 @@ where
     D: Database + 'static,
 {
     /// Create a new instance of [`Self`]
-    pub fn new(db: Arc<D>, rx: channel::Receiver<WriterMsg>) -> Self {
+    pub fn new(db: Arc<D>, rx: Receiver<WriterMsg>) -> Self {
         Self { db, rx }
     }
 

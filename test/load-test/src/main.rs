@@ -8,8 +8,9 @@ use ivm_abi::get_job_id;
 use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest};
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
-    get_offchain_request, intensity_hash_rounds, num_users, report_file_name, run_time,
-    should_wait_until_job_completed, startup_time, wait_until_job_completed,
+    get_offchain_request, intensity_hash_rounds, num_users, relay_strategy_is_ordered,
+    report_file_name, run_time, should_wait_until_job_completed, startup_time,
+    wait_until_job_completed,
 };
 use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -132,13 +133,14 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let (encoded_job_request, signature) =
         get_offchain_request(nonce, &program_id, &encoded_intensity).await;
 
+    let relay_strategy =
+        if relay_strategy_is_ordered() { RelayStrategy::Ordered } else { RelayStrategy::Unordered };
+
     let submit_job_request = SubmitJobRequest {
         request: encoded_job_request,
         signature,
         offchain_input: Vec::new(),
-        // If we want to just test max throughput, convert this to Unordered.
-        // relay_strategy: RelayStrategy::Ordered as i32,
-        relay_strategy: RelayStrategy::Unordered as i32,
+        relay_strategy: relay_strategy as i32,
     };
     let _goose_metrics =
         user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;

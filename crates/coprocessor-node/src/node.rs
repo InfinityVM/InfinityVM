@@ -4,7 +4,7 @@ use crate::{
     event::{self, JobEventListener},
     gateway::{self, HttpGrpcGateway},
     intake::IntakeHandlers,
-    job_executor::{JobExecutor,},
+    job_executor::JobExecutor,
     metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder, RelayConfig, RelayCoordinator},
     server::CoprocessorNodeServerInner,
@@ -141,11 +141,11 @@ where
     });
 
     // Initialize the async channels
-    let (exec_queue_sender, exec_queue_receiver) = crossbeam::channel::bounded(exec_queue_bound);
+    let (exec_queue_sender, exec_queue_receiver) = flume::bounded(exec_queue_bound);
     // Initialize the writer channel
-    let (writer_tx, writer_rx) = crossbeam::channel::bounded(4096);
+    let (writer_tx, writer_rx) = flume::bounded(exec_queue_bound * 4);
     // Initialize channel to relay coordinator
-    let (relay_tx, relay_rx) = tokio::sync::mpsc::channel(4096);
+    let (relay_tx, relay_rx) = flume::bounded(exec_queue_bound * 4);
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
@@ -254,7 +254,7 @@ where
     .map(|_| ());
 
     // We need to manually shutdown any standard threads
-    let _ = writer_tx.send((Write::Kill, None));
+    let _ = writer_tx.send_async((Write::Kill, None)).await;
 
     result
 }

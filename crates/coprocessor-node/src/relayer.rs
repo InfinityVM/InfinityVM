@@ -24,7 +24,7 @@ use alloy::{
     transports::http::reqwest,
 };
 use contracts::i_job_manager::IJobManager;
-use crossbeam::channel::Sender;
+use flume::{Receiver, Sender};
 use ivm_abi::abi_encode_offchain_job_request;
 use ivm_db::{
     get_all_failed_jobs, get_job,
@@ -33,11 +33,8 @@ use ivm_db::{
 use ivm_proto::{JobStatusType, RelayStrategy};
 use reth_db::Database;
 use std::{sync::Arc, time::Duration};
-use tokio::{
-    sync::{mpsc::Receiver, oneshot},
-    time::interval,
-};
-use tracing::{error, info, span, Instrument, Level};
+use tokio::{sync::oneshot, time::interval};
+use tracing::{error, info};
 
 /// Delay between retrying failed jobs, in milliseconds.
 const JOB_RETRY_DELAY_MS: u64 = 250;
@@ -153,9 +150,9 @@ where
         });
 
         let queues = Queues::new();
-        let mut relay_rx = self.relay_rx;
+        let relay_rx = self.relay_rx;
 
-        while let Some(relay) = relay_rx.recv().await {
+        while let Ok(relay) = relay_rx.recv_async().await {
             match relay {
                 Relay::Queue { consumer, job_id } => {
                     let empty_queue = queues.peek_back(consumer).is_none();
@@ -204,7 +201,9 @@ where
         db: Arc<D>,
     ) {
         let mut interval = interval(Duration::from_millis(100));
+        // The first tick is immediate
         interval.tick().await;
+
         while let Some(job_id) = queues.peek_back(consumer) {
             interval.tick().await;
             let job = match get_job(db.clone(), job_id).expect("job get db error") {
@@ -217,7 +216,6 @@ where
                 JobStatusType::Done => {
                     let _job_id = queues.pop_back(consumer).expect("queue is unexpected empty");
                     debug_assert_eq!(job_id, _job_id);
-                    // relay the job below
                 }
                 JobStatusType::Relayed => {
                     tracing::error!("logical error: a job in the queue was already relayed");
@@ -226,9 +224,7 @@ where
                 _ => continue,
             }
 
-            let _ = Self::relay_job_result(job, relayer.clone(), writer_tx.clone())
-                .instrument(span!(Level::INFO, "ordered_relay"))
-                .await;
+            let _ = Self::relay_job_result(job, relayer.clone(), writer_tx.clone()).await;
         }
     }
 
@@ -281,7 +277,8 @@ where
                         // We are not in a rush, so we can wait for the write
                         let (tx, rx) = oneshot::channel();
                         writer_tx
-                            .send((Write::JobTable(job.clone()), Some(tx)))
+                            .send_async((Write::JobTable(job.clone()), Some(tx)))
+                            .await
                             .expect("db writer broken");
                         let _ = rx.await;
                     }
@@ -348,7 +345,10 @@ where
             Ok(receipt) => receipt.transaction_hash,
             Err(e) => {
                 error!("failed to relay job {:?}: {:?}", id, e);
-                writer_tx.send((Write::FailureJobs(job), None)).expect("db writer broken");
+                writer_tx
+                    .send_async((Write::FailureJobs(job), None))
+                    .await
+                    .expect("db writer broken");
 
                 return Err(FailureReason::RelayErr);
             }
@@ -357,7 +357,7 @@ where
         // Save the relay tx hash and status to DB
         job.relay_tx_hash = relay_tx_hash.to_vec();
         job.status.status = JobStatusType::Relayed as i32;
-        writer_tx.send((Write::JobTable(job), None)).expect("db writer broken");
+        writer_tx.send_async((Write::JobTable(job), None)).await.expect("db writer broken");
 
         Ok(())
     }
@@ -509,8 +509,11 @@ impl JobRelayer {
             Error::TxBroadcast(error)
         })?;
 
-        let receipt =
-            pending_tx.with_required_confirmations(self.confirmations).get_receipt().await.map_err(|error| {
+        let receipt = pending_tx
+            .with_required_confirmations(self.confirmations)
+            .get_receipt()
+            .await
+            .map_err(|error| {
                 error!(
                     ?error,
                     job.nonce,

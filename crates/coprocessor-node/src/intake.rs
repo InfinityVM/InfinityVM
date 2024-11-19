@@ -13,7 +13,7 @@ use alloy::{
     primitives::Signature,
     signers::{Signer, SignerSync},
 };
-use crossbeam::channel::Sender;
+use flume::Sender;
 use ivm_db::{get_elf, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
@@ -56,11 +56,11 @@ pub enum Error {
 #[derive(Debug)]
 pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
-    exec_queue_sender: crossbeam::channel::Sender<Job>,
+    exec_queue_sender: Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
     writer_tx: Sender<WriterMsg>,
-    relay_tx: tokio::sync::mpsc::Sender<Relay>,
+    relay_tx: Sender<Relay>,
 }
 
 impl<S, D> Clone for IntakeHandlers<S, D>
@@ -87,11 +87,11 @@ where
     /// Create an instance of [Self].
     pub const fn new(
         db: Arc<D>,
-        exec_queue_sender: crossbeam::channel::Sender<Job>,
+        exec_queue_sender: Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
         writer_tx: Sender<WriterMsg>,
-        relay_tx: tokio::sync::mpsc::Sender<Relay>,
+        relay_tx: Sender<Relay>,
     ) -> Self {
         Self { db, exec_queue_sender, zk_executor, max_da_per_job, writer_tx, relay_tx }
     }
@@ -112,7 +112,10 @@ where
         job.status =
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
         let (tx, db_write_complete_rx) = oneshot::channel();
-        self.writer_tx.send((Write::JobTable(job.clone()), Some(tx))).expect("db writer broken");
+        self.writer_tx
+            .send_async((Write::JobTable(job.clone()), Some(tx)))
+            .await
+            .expect("db writer broken");
 
         if job.relay_strategy == RelayStrategy::Ordered {
             let consumer = job
@@ -121,12 +124,12 @@ where
                 .try_into()
                 .expect("we checked for valid address length");
             self.relay_tx
-                .send(Relay::Queue { consumer, job_id: job.id })
+                .send_async(Relay::Queue { consumer, job_id: job.id })
                 .await
                 .expect("relay channel broken");
         };
 
-        self.exec_queue_sender.send(job).map_err(|_| Error::ExecQueueSendFailed)?;
+        self.exec_queue_sender.send_async(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
         let _ = db_write_complete_rx.await;
 
         Ok(())
