@@ -233,7 +233,7 @@ where
     let http_grpc_gateway = HttpGrpcGateway::new(grpc_addr.to_string(), http_listen_addr);
     let http_grpc_gateway_server = tokio::spawn(async move { http_grpc_gateway.serve().await });
 
-    // Async-ify awaiting the std thread handles and ensure sure we bubble up any errors
+    // Check std thread handles to ensure any errors are bubbled up
     let threads = tokio::spawn(async {
         loop {
             if writer_handle.is_finished() {
