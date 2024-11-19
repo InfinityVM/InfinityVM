@@ -46,7 +46,9 @@ message SubmitJobRequest {
   bytes signature = 2;
   // Value of offchain input passed into program (this isn't signed over)
   bytes offchain_input = 3;
-  // The strategy used to relay results to the consumer. 
+  // The strategy used to relay results to the consumer. This is not directly signed by the user
+  // so to avoid risks of it getting maliciously modified in transit one should ensure to use
+  // TLS with the coprocessor node.
   RelayStrategy relay_strategy = 4;
 }
 

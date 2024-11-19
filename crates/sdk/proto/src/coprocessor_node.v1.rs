@@ -132,7 +132,9 @@ pub struct SubmitJobRequest {
     /// Value of offchain input passed into program (this isn't signed over)
     #[prost(bytes = "vec", tag = "3")]
     pub offchain_input: ::prost::alloc::vec::Vec<u8>,
-    /// The strategy used to relay results to the consumer.
+    /// The strategy used to relay results to the consumer. This is not directly signed by the user
+    /// so to avoid risks of it getting maliciously modified in transit one should ensure to use
+    /// TLS with the coprocessor node.
     #[prost(enumeration = "RelayStrategy", tag = "4")]
     pub relay_strategy: i32,
 }
