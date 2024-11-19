@@ -136,7 +136,7 @@ where
     }
 
     /// Submit program ELF, save it in DB, and return verifying key.
-    pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
+    pub fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
         let program_id = self.zk_executor.create_elf(&elf, vm_type)?;
 
@@ -155,7 +155,7 @@ where
         self.writer_tx
             .send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
             .expect("writer channel broken");
-        let _ = rx.await;
+        let _ = rx.blocking_recv();
 
         Ok(program_id)
     }

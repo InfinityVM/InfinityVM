@@ -168,7 +168,6 @@ where
     pub fn create_elf(&self, elf: &[u8], vm_type: VmType) -> Result<Vec<u8>, Error> {
         let vm = self.vm(vm_type)?;
 
-        // TODO: put this in a blocking task
         let program_id = vm
             .derive_verifying_key(elf)
             .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
