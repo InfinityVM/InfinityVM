@@ -59,6 +59,15 @@ type JobManagerContract = IJobManager::IJobManagerInstance<ReqwestTransport, Rel
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
 
+/// Relay config.
+#[derive(Debug)]
+pub struct RelayConfig {
+    /// Number of required confirmations to wait before considering a result tx included on chain.
+    pub confirmations: u64,
+    /// Maximum number of retries for a job.
+    pub max_retries: u32,
+}
+
 /// Relayer errors
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -501,7 +510,7 @@ impl JobRelayer {
         })?;
 
         let receipt =
-            pending_tx.with_required_confirmations(0).get_receipt().await.map_err(|error| {
+            pending_tx.with_required_confirmations(self.confirmations).get_receipt().await.map_err(|error| {
                 error!(
                     ?error,
                     job.nonce,

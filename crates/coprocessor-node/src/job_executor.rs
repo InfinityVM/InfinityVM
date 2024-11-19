@@ -72,14 +72,6 @@ pub enum FailureReason {
     RelayErrExceedRetry,
 }
 
-/// Job executor config.
-#[derive(Debug)]
-pub struct JobExecutorConfig {
-    /// Number of worker threads to run.
-    pub num_workers: usize,
-    /// Maximum number of retries for a job.
-    pub max_retries: u32,
-}
 
 /// Job executor service.
 ///

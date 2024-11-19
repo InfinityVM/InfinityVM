@@ -1,10 +1,6 @@
 //! CLI for coprocessor-node.
 
-use crate::{
-    job_executor::JobExecutorConfig,
-    node::{self, NodeConfig, WsConfig},
-    MAX_DA_PER_JOB,
-};
+use crate::{node::{self, NodeConfig, WsConfig}, relayer::RelayConfig, MAX_DA_PER_JOB};
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::{hex, Address},
@@ -242,9 +238,9 @@ impl Cli {
             exec_queue_bound: opts.exec_queue_bound,
             http_eth_rpc: opts.http_eth_rpc,
             job_manager_address: opts.job_manager_address,
-            confirmations: opts.confirmations,
-            job_proc_config: JobExecutorConfig {
-                num_workers: opts.worker_count,
+            worker_count: opts.worker_count,
+            relay_config: RelayConfig {
+                confirmations: opts.confirmations,
                 max_retries: opts.max_retries as u32,
             },
             ws_config: WsConfig {

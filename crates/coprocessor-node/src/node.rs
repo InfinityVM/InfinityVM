@@ -4,9 +4,9 @@ use crate::{
     event::{self, JobEventListener},
     gateway::{self, HttpGrpcGateway},
     intake::IntakeHandlers,
-    job_executor::{JobExecutor, JobExecutorConfig},
+    job_executor::{JobExecutor,},
     metrics::{MetricServer, Metrics},
-    relayer::{self, JobRelayerBuilder, RelayCoordinator},
+    relayer::{self, JobRelayerBuilder, RelayConfig, RelayCoordinator},
     server::CoprocessorNodeServerInner,
     writer::{self, Write, Writer},
 };
@@ -92,9 +92,9 @@ pub struct NodeConfig<D> {
     /// `JobManager` contract address.
     pub job_manager_address: Address,
     /// Number of tx confirmations to wait for when submitting transactions.
-    pub confirmations: u64,
+    pub worker_count: usize,
     /// Job processor config values
-    pub job_proc_config: JobExecutorConfig,
+    pub relay_config: RelayConfig,
     /// Configuration for ETH RPC websocket connection.
     pub ws_config: WsConfig,
     /// Block number to start reading job requests from.
@@ -115,8 +115,8 @@ pub async fn run<D>(
         exec_queue_bound,
         http_eth_rpc,
         job_manager_address,
-        confirmations,
-        job_proc_config,
+        worker_count,
+        relay_config,
         ws_config,
         job_sync_start,
         max_da_per_job,
@@ -157,7 +157,7 @@ where
     let job_relayer = JobRelayerBuilder::new().signer(relayer).build(
         http_eth_rpc.clone(),
         job_manager_address,
-        confirmations,
+        relay_config.confirmations,
         metrics.clone(),
     )?;
     let job_relayer = Arc::new(job_relayer);
@@ -168,7 +168,7 @@ where
             relay_rx,
             job_relayer.clone(),
             db.clone(),
-            job_proc_config.max_retries,
+            relay_config.max_retries,
             metrics.clone(),
         );
         tokio::spawn(async move { relay_coordinator.start().await })
@@ -180,7 +180,7 @@ where
         exec_queue_receiver,
         executor.clone(),
         metrics,
-        job_proc_config.num_workers,
+        worker_count,
         writer_tx.clone(),
         relay_tx.clone(),
     );
