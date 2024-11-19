@@ -16,7 +16,9 @@ use ivm_abi::{
     abi_encode_result_with_metadata, get_job_id, JobParams, OffchainResultWithMetadata,
     ResultWithMetadata,
 };
-use ivm_proto::{GetResultRequest, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType};
+use ivm_proto::{
+    GetResultRequest, JobStatusType, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
+};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_methods::{MOCK_CONSUMER_GUEST_ELF, MOCK_CONSUMER_GUEST_ID};
 use risc0_binfmt::compute_image_id;
@@ -86,6 +88,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             request: job_request_payload,
             signature: request_signature.into(),
             offchain_input: vec![],
+            relay_strategy: RelayStrategy::Unordered as i32,
         };
         let submit_job_response =
             args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
@@ -100,8 +103,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let job_result = get_result_response.job_result.unwrap();
 
         // Verify the job status
-        let relayed_status: i32 = JobStatusType::Relayed.into();
-        assert_eq!(job_result.status.unwrap().status, relayed_status);
+        assert_eq!(job_result.status.unwrap().status(), JobStatusType::Relayed);
 
         // Verify the relay tx hash is not empty
         assert!(!job_result.relay_tx_hash.is_empty());

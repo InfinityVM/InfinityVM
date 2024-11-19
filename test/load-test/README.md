@@ -40,6 +40,7 @@ We have a few parameters we can set in `load-test/.env` (an `example.env` is pro
 9. `STARTUP_TIME`: Time required for all users to be spawned when starting tests
 10. `RUN_TIME`: Time for which we want the load tests to run (in addition to the `STARTUP_TIME`)
 11: `WAIT_UNTIL_JOB_COMPLETED`: Set to false to not poll for job results after submitting the job. Defaults to true.
+11: `RELAY_STRATEGY_ORDERED`: Set to true to use `RelayStrategy::Ordered`. Defaults to `RelayStrategy::Unordered` when not set.
 
 There are other parameters that we can modify, these are detailed in the [Goose docs](https://book.goose.rs/getting-started/common.html).
 

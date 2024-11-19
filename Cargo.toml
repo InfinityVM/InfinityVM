@@ -115,7 +115,6 @@ anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 # only include features that we know can be compiled into zkvm program
 alloy = { version = "0.2", features = ["sol-types"], default-features = false }
-async-channel = { version = "2", default-features = false }
 
 # b
 bincode = { version = "1", default-features = false }
@@ -123,8 +122,10 @@ borsh = { version = "1", features = ["derive", "std"], default-features = false 
 
 # c
 clap = { version = "4", features = ["derive"], default-features = false }
+crossbeam = { version = "0.8" }
 
 # d
+dashmap = "6"
 dotenv = { version = "0.15.0", default-features = false }
 
 # e
@@ -133,12 +134,12 @@ eyre = { version = "0.6", default-features = false }
 # f
 futures = { version = "0.3", default-features = false }
 futures-util = { version = "0.3", default-features = false }
+flume = { version = "0", features = ["async"], default-features = false }
 
 # g
 goose = { version = "0.17", default-features = false }
 
 # h
-hex = { version = "0.4", default-features = false }
 home = { version = "0.5", default-features = false }
 
 # i
@@ -150,10 +151,13 @@ kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = 
 # l
 # m
 # n
+num_cpus = { version = "1" }
+
 # o
 once_cell = { version = "1.8", default-features = false }
 
 # p
+parking_lot = { version = "0.12" }
 prometheus = { version = "0.9", features = ["process"] }
 prost = { version = "0.13", features = ["derive", "std"], default-features = false }
 
@@ -164,7 +168,7 @@ risc0-zkp = { version = "1", default-features = false }
 risc0-build = { version = "1", default-features = false }
 risc0-binfmt = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
-reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["mdbx"], default-features = false}
+reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["mdbx"], default-features = false }
 reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", default-features = false }
 reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["std", "alloy"], default-features = false }
 

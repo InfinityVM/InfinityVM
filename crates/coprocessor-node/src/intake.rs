@@ -4,12 +4,21 @@
 //!
 //! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
 
-use std::sync::Arc;
-
-use alloy::{hex, primitives::Signature, signers::Signer};
-use ivm_db::{get_elf, get_job, put_elf, put_job, tables::Job};
-use ivm_proto::{JobStatus, JobStatusType, VmType};
+use crate::{
+    relayer::Relay,
+    writer::{Write, WriterMsg},
+};
+use alloy::{
+    hex,
+    primitives::Signature,
+    signers::{Signer, SignerSync},
+};
+use flume::Sender;
+use ivm_db::{get_elf, get_job, tables::Job};
+use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use reth_db::Database;
+use std::sync::Arc;
+use tokio::sync::oneshot;
 use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors from job processor
@@ -33,9 +42,6 @@ pub enum Error {
     /// Could not read ELF from DB
     #[error("failed reading elf: {0}")]
     ElfReadFailed(String),
-    /// Could not write ELF to DB
-    #[error("failed writing elf: {0}")]
-    ElfWriteFailed(String),
     /// Invalid VM type
     #[error("invalid VM type")]
     InvalidVmType,
@@ -50,24 +56,44 @@ pub enum Error {
 #[derive(Debug)]
 pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
-    exec_queue_sender: async_channel::Sender<Job>,
+    exec_queue_sender: Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
+    writer_tx: Sender<WriterMsg>,
+    relay_tx: Sender<Relay>,
+}
+
+impl<S, D> Clone for IntakeHandlers<S, D>
+where
+    S: Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            db: self.db.clone(),
+            exec_queue_sender: self.exec_queue_sender.clone(),
+            zk_executor: self.zk_executor.clone(),
+            max_da_per_job: self.max_da_per_job,
+            writer_tx: self.writer_tx.clone(),
+            relay_tx: self.relay_tx.clone(),
+        }
+    }
 }
 
 impl<S, D> IntakeHandlers<S, D>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create an instance of [Self].
     pub const fn new(
         db: Arc<D>,
-        exec_queue_sender: async_channel::Sender<Job>,
+        exec_queue_sender: Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
+        writer_tx: Sender<WriterMsg>,
+        relay_tx: Sender<Relay>,
     ) -> Self {
-        Self { db, exec_queue_sender, zk_executor, max_da_per_job }
+        Self { db, exec_queue_sender, zk_executor, max_da_per_job, writer_tx, relay_tx }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
@@ -76,26 +102,43 @@ where
             return Err(Error::OffchainInputOverMaxDAPerJob);
         };
 
+        // TODO: add new table for just job ID so we can avoid writing full job here and reading.
+        // We can just pass the job itself along the channel
+        // full job https://github.com/InfinityVM/InfinityVM/issues/354
         if get_job(self.db.clone(), job.id)?.is_some() {
             return Err(Error::JobAlreadyExists);
         }
 
         job.status =
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
+        let (tx, db_write_complete_rx) = oneshot::channel();
+        self.writer_tx
+            .send_async((Write::JobTable(job.clone()), Some(tx)))
+            .await
+            .expect("db writer broken");
 
-        put_job(self.db.clone(), job.clone())?;
+        if job.relay_strategy == RelayStrategy::Ordered {
+            let consumer = job
+                .consumer_address
+                .clone()
+                .try_into()
+                .expect("we checked for valid address length");
+            self.relay_tx
+                .send_async(Relay::Queue { consumer, job_id: job.id })
+                .await
+                .expect("relay channel broken");
+        };
 
-        self.exec_queue_sender.send(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
+        self.exec_queue_sender.send_async(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
+        let _ = db_write_complete_rx.await;
 
         Ok(())
     }
 
     /// Submit program ELF, save it in DB, and return verifying key.
-    pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
-        let program_id = self
-            .zk_executor
-            .create_elf(&elf, VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?)
-            .await?;
+    pub fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
+        let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
+        let program_id = self.zk_executor.create_elf(&elf, vm_type)?;
 
         if get_elf(self.db.clone(), &program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
@@ -107,13 +150,12 @@ where
             )));
         }
 
-        put_elf(
-            self.db.clone(),
-            VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?,
-            &program_id,
-            elf,
-        )
-        .map_err(|e| Error::ElfWriteFailed(e.to_string()))?;
+        // Write the elf and make sure it completes before responding to the user.
+        let (tx, rx) = oneshot::channel();
+        self.writer_tx
+            .send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
+            .expect("writer channel broken");
+        let _ = rx.blocking_recv();
 
         Ok(program_id)
     }

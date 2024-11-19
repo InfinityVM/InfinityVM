@@ -1,28 +1,35 @@
 //! Job request event listener.
 
-use std::sync::Arc;
-
+use crate::{
+    intake::IntakeHandlers,
+    node::WsConfig,
+    writer::{Write, WriterMsg},
+};
 use alloy::{
     eips::BlockNumberOrTag,
+    hex,
     primitives::Address,
     providers::{Provider, ProviderBuilder, WsConnect},
-    signers::{Signature, Signer},
+    signers::{Signature, Signer, SignerSync},
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
+use flume::Sender;
 use ivm_db::{
-    get_last_block_height, set_last_block_height,
+    get_last_block_height,
     tables::{Job, RequestType},
 };
-use ivm_proto::{JobStatus, JobStatusType};
+use ivm_proto::{JobStatus, JobStatusType, RelayStrategy};
 use reth_db::Database;
+use std::sync::Arc;
 use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
 };
 use tracing::error;
 
-use crate::{intake::IntakeHandlers, node::WsConfig};
+const SUBMIT_JOB_RETRIES: usize = 4;
+const SUBMIT_JOB_BACKOFF_BASE_MS: usize = 500;
 
 /// Errors from the job request event listener
 #[derive(thiserror::Error, Debug)]
@@ -50,11 +57,12 @@ pub struct JobEventListener<S, D> {
     from_block: BlockNumberOrTag,
     ws_config: WsConfig,
     db: Arc<D>,
+    writer_tx: Sender<WriterMsg>,
 }
 
 impl<S, D> JobEventListener<S, D>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create a new instance of [Self].
@@ -64,8 +72,9 @@ where
         from_block: BlockNumberOrTag,
         ws_config: WsConfig,
         db: Arc<D>,
+        writer_tx: Sender<WriterMsg>,
     ) -> Self {
-        Self { job_manager, intake, from_block, ws_config, db }
+        Self { job_manager, intake, from_block, ws_config, db, writer_tx }
     }
 
     /// Run the job event listener
@@ -142,17 +151,30 @@ where
                             },
                             relay_tx_hash: vec![],
                             blobs_sidecar: None,
+                            relay_strategy: RelayStrategy::Unordered,
                         };
-                        if let Err(error) = self.intake.submit_job(job).await {
-                            error!(?error, ?event.jobID, "failed while submitting to job processor");
+
+                        for i in 1..SUBMIT_JOB_RETRIES + 1 {
+                            match self.intake.submit_job(job.clone()).await {
+                                Err(error) => error!(?error, id=hex::encode(event.jobID), "failed while submitting to job processor - execution queue may be full"),
+                                Ok(_) => break
+                             }
+
+                            let backoff = i * SUBMIT_JOB_BACKOFF_BASE_MS;
+                            sleep(Duration::from_millis(backoff as u64)).await;
                         }
+
+                        error!(
+                            id = hex::encode(event.jobID),
+                            "skipping event due to submit_job failing"
+                        );
                     }
 
                     // update the last seen block height after processing the events
                     last_seen_block += 1;
-                    if let Err(error) = set_last_block_height(self.db.clone(), last_seen_block) {
-                        error!(?error, "failed to set last seen block height");
-                    }
+                    self.writer_tx
+                        .send((Write::LastBlockHeight(last_seen_block), None))
+                        .expect("db writer tx failed");
                 }
             }
         }

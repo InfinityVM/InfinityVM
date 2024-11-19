@@ -106,5 +106,6 @@ pub async fn mock_consumer_pending_job(
         zkvm_operator_signature: operator_signature,
         relay_tx_hash: vec![],
         blobs_sidecar: None,
+        relay_strategy: ivm_proto::RelayStrategy::Unordered,
     }
 }

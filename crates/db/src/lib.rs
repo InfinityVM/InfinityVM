@@ -11,12 +11,13 @@ use reth_db::{
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
 use tables::{
-    ElfKey, ElfTable, ElfWithMeta, Job, JobID, JobTable, LastBlockHeight, RelayFailureJobs,
+    B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, RelayFailureJobs, Sha256Key,
 };
 
 pub mod tables;
 
-const LAST_HEIGHT_KEY: u32 = 0;
+/// Key for the last seen block height
+pub const LAST_HEIGHT_KEY: u32 = 0;
 
 /// DB module errors
 #[derive(thiserror::Error, Debug)]
@@ -46,29 +47,19 @@ pub fn put_elf<D: Database>(
     elf: Vec<u8>,
 ) -> Result<(), Error> {
     let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
-    let key = ElfKey::new(program_id);
+    let key = Sha256Key::new(program_id);
 
     db.update(|tx| tx.put::<ElfTable>(key, elf_with_meta))?.map_err(Into::into)
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist
 pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfWithMeta>, Error> {
-    db.view(|tx| tx.get::<ElfTable>(ElfKey::new(program_id)))?.map_err(Into::into)
-}
-
-/// Write a job to the database
-pub fn put_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    db.update(|tx| tx.put::<JobTable>(JobID(job.id), job))?.map_err(Into::into)
+    db.view(|tx| tx.get::<ElfTable>(Sha256Key::new(program_id)))?.map_err(Into::into)
 }
 
 /// Read in an Job from the database. [None] if it does not exist
 pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-    db.view(|tx| tx.get::<JobTable>(JobID(job_id)))?.map_err(Into::into)
-}
-
-/// Write last block height to the database
-pub fn set_last_block_height<D: Database>(db: Arc<D>, height: u64) -> Result<(), Error> {
-    db.update(|tx| tx.put::<LastBlockHeight>(LAST_HEIGHT_KEY, height))?.map_err(Into::into)
+    db.view(|tx| tx.get::<JobTable>(B256Key(job_id)))?.map_err(Into::into)
 }
 
 /// Read last block height from the database.
@@ -76,28 +67,9 @@ pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Err
     db.view(|tx| tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY))?.map_err(Into::into)
 }
 
-/// Delete in an Job from the database. [None] if it does not exist.
-///
-/// Returns `true` if the key/value pair was present.
-///
-/// Docs from libmdbx-rs: `Transaction::<RW>::del`:
-/// The data parameter is NOT ignored regardless of whether the database supports
-/// sorted duplicate data items or not. If the data parameter is [Some] only the matching
-/// data item will be deleted. Otherwise, if data parameter is [None], any/all value(s)
-/// for specified key will be deleted.
-/// We pass in [None] here since each `job_id` only maps to a single Job.
-pub fn delete_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
-    db.update(|tx| tx.delete::<JobTable>(JobID(job_id), None))?.map_err(Into::into)
-}
-
-/// Write a failed relayed job to the database
-pub fn put_fail_relay_job<D: Database>(db: Arc<D>, job: Job) -> Result<(), Error> {
-    db.update(|tx| tx.put::<RelayFailureJobs>(JobID(job.id), job))?.map_err(Into::into)
-}
-
 /// Read in a failed relayed Job from the database. [None] if it does not exist
 pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-    db.view(|tx| tx.get::<RelayFailureJobs>(JobID(job_id)))?.map_err(Into::into)
+    db.view(|tx| tx.get::<RelayFailureJobs>(B256Key(job_id)))?.map_err(Into::into)
 }
 
 /// Read all failed relayed Jobs from the database. [None] if it does not exist
@@ -113,11 +85,6 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
         Ok(failed_jobs)
     })?
     .map_err(Into::into)
-}
-
-/// Delete a failed relayed Job from the database. [None] if it does not exist.
-pub fn delete_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<bool, Error> {
-    db.update(|tx| tx.delete::<RelayFailureJobs>(JobID(job_id), None))?.map_err(Into::into)
 }
 
 /// Open a DB at `path`. Creates the DB if it does not exist.

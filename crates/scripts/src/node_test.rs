@@ -12,7 +12,7 @@ use contracts::mock_consumer::MockConsumer;
 use ivm_abi::StatefulAppOnchainInput;
 use ivm_proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
-    SubmitJobRequest, SubmitProgramRequest, VmType,
+    RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use ivm_test_utils::create_and_sign_offchain_request;
 use k256::ecdsa::SigningKey;
@@ -121,8 +121,12 @@ async fn main() {
     .await;
 
     // Submit a job to the coprocessor node
-    let submit_job_request =
-        SubmitJobRequest { request: encoded_job_request, signature, offchain_input: Vec::new() };
+    let submit_job_request = SubmitJobRequest {
+        request: encoded_job_request,
+        signature,
+        offchain_input: Vec::new(),
+        relay_strategy: RelayStrategy::Unordered as i32,
+    };
 
     let submit_job_response = coproc_client.submit_job(submit_job_request).await.unwrap();
     info!("Submitted job for mock consumer: {:?}", submit_job_response);
@@ -224,6 +228,7 @@ async fn main() {
         request: encoded_job_request,
         signature,
         offchain_input: combined_offchain_input,
+        relay_strategy: RelayStrategy::Unordered as i32,
     };
 
     let submit_job_response = coproc_client.submit_job(submit_job_request).await.unwrap();

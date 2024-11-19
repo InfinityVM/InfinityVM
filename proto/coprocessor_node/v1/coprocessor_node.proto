@@ -23,6 +23,20 @@ enum VmType {
   Sp1 = 1;
 }
 
+// Strategy for relaying results
+enum RelayStrategy {
+  // Relay the result on chain as soon as the job is done. This means that
+  // this may be relayed before prior requests.
+  Unordered = 0;
+  // Relay the result on chain in the order the job requests where submitted.
+  // This means that if a job takes awhile, it may block other completed jobs
+  // that where submitted after.
+  //
+  // Stateful jobs that verify their state root onchain likely want to use this
+  // option.
+  Ordered = 1;
+}
+
 // SubmitJobRequest defines the request structure to submit a job to the
 // coprocessing coprocessor_node.
 message SubmitJobRequest {
@@ -32,6 +46,10 @@ message SubmitJobRequest {
   bytes signature = 2;
   // Value of offchain input passed into program (this isn't signed over)
   bytes offchain_input = 3;
+  // The strategy used to relay results to the consumer. This is not directly signed by the user
+  // so to avoid risks of it getting maliciously modified in transit one should ensure to use
+  // TLS with the coprocessor node.
+  RelayStrategy relay_strategy = 4;
 }
 
 // SubmitJobResponse defines the response structure to submit a job to the

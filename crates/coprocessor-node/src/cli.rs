@@ -1,8 +1,8 @@
 //! CLI for coprocessor-node.
 
 use crate::{
-    job_processor::JobProcessorConfig,
     node::{self, NodeConfig, WsConfig},
+    relayer::RelayConfig,
     MAX_DA_PER_JOB,
 };
 use alloy::{
@@ -154,8 +154,9 @@ struct Opts {
     #[command(subcommand)]
     operator_key: Option<Operator>,
 
-    /// Number of worker threads to use for processing jobs
-    #[arg(long, default_value_t = 4)]
+    /// Number of worker threads to use for processing jobs. Defaults to the number of cores - 3.
+    /// We leave 2 threads for tokio and 1 thread for the DB writer.
+    #[arg(long, default_value_t = 3.max(num_cpus::get_physical() - 3))]
     worker_count: usize,
 
     /// Max number of retries for relaying a job
@@ -241,9 +242,9 @@ impl Cli {
             exec_queue_bound: opts.exec_queue_bound,
             http_eth_rpc: opts.http_eth_rpc,
             job_manager_address: opts.job_manager_address,
-            confirmations: opts.confirmations,
-            job_proc_config: JobProcessorConfig {
-                num_workers: opts.worker_count,
+            worker_count: opts.worker_count,
+            relay_config: RelayConfig {
+                confirmations: opts.confirmations,
                 max_retries: opts.max_retries as u32,
             },
             ws_config: WsConfig {

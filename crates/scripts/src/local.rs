@@ -15,7 +15,7 @@ use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
 use std::{fs::File, process::Command};
 use tokio::signal::unix::{signal, SignalKind};
-use tracing::info;
+use tracing::{info, warn};
 
 const ANVIL_PORT: u16 = 8545;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
@@ -45,25 +45,28 @@ async fn main() {
     let coproc_db_dir =
         tempfile::Builder::new().prefix("infinity-coproc-local-db").tempdir().unwrap();
     std::fs::create_dir_all("./logs").unwrap();
-    let coproc_log_file = "./logs/coprocessor_node.log".to_string();
-    info!(?coproc_log_file, "Writing coprocessor logs to: ");
-    let coproc_logs = File::create(coproc_log_file).expect("failed to open log");
-    let coproc_logs2 = coproc_logs.try_clone().unwrap();
+    let coproc_stdout = "./logs/coproc_stdout.log".to_string();
+    info!(?coproc_stdout, "Writing coprocessor logs to: ");
+    let coproc_stdout_logs = File::create(&coproc_stdout).expect("failed to open log");
+    let coproc_stderr = "./logs/coproc_stderr.log".to_string();
+    let coproc_stderr_logs = File::create(&coproc_stderr).expect("failed to stderr open log");
     info!("Starting coprocessor node");
     info!(?coproc_prometheus, ?coproc_grpc, "Coprocessor listening on");
     info!(?coproc_relayer_private, ?coproc_operator_private, "Coprocessor keys");
     info!(?http_gateway_listen_address, "REST gRPC gateway listening on");
 
+    warn!("Starting coprocessor node, if this takes awhile check {}", &coproc_stdout);
     let proc: ProcKill = Command::new("cargo")
         .arg("run")
         .arg("-p")
-        .arg("coprocessor-node")
+        .arg("ivm-coprocessor-node")
         .arg("--")
         .env("RELAYER_PRIVATE_KEY", coproc_relayer_private)
         .env("ZKVM_OPERATOR_PRIV_KEY", coproc_operator_private)
-        .env("RUST_LOG_FILE", "coproc_tracing.log")
+        .env("RUST_LOG_FILE", "coproc_log_file.json")
         .env("RUST_LOG_DIR", "./logs")
-        .env("RUST_LOG_FORMAT", "text")
+        .env("RUST_LOG_FORMAT", "json")
+        .env("RUST_LOG", "libmdbx=info,ivm_coprocessor_node=debug")
         .arg("--grpc-address")
         .arg(&coproc_grpc)
         .arg("--http-address")
@@ -80,15 +83,13 @@ async fn main() {
         .arg(chain_id)
         .arg("--db-dir")
         .arg(coproc_db_dir.path())
-        .arg("--worker-count")
-        .arg("32")
-        .stdout(coproc_logs)
-        .stderr(coproc_logs2)
+        .stdout(coproc_stdout_logs)
+        .stderr(coproc_stderr_logs)
         .spawn()
         .unwrap()
         .into();
     sleep_until_bound_config(COPROCESSOR_GRPC_PORT, 5 * 60).await.unwrap();
-    info!("coproc-node process ID: {}", proc.0.id());
+    info!("coprocessor-node process ID: {}", proc.0.id());
 
     info!("Deploying MockConsumer contract");
     let mock_consumer = anvil_with_mock_consumer(&job_manager_deploy).await;

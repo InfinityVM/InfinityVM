@@ -5,17 +5,15 @@ use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
 use intensity_test_methods::INTENSITY_TEST_GUEST_ID;
 use ivm_abi::get_job_id;
-use ivm_proto::{GetResultRequest, SubmitJobRequest};
+use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest};
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,
-    get_offchain_request, intensity_hash_rounds, num_users, report_file_name, run_time,
-    should_wait_until_job_completed, startup_time, wait_until_job_completed,
+    get_offchain_request, intensity_hash_rounds, num_users, relay_strategy_is_ordered,
+    report_file_name, run_time, should_wait_until_job_completed, startup_time,
+    wait_until_job_completed,
 };
 use once_cell::sync::Lazy;
-use std::{
-    sync::atomic::{AtomicU64, Ordering},
-    time::Duration,
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::OnceCell;
 
 static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
@@ -50,9 +48,7 @@ async fn main() -> Result<(), GooseError> {
             scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
         )
         .register_scenario(
-            scenario!("LoadtestSubmitJob")
-                .set_wait_time(Duration::from_secs(1), Duration::from_secs(3))?
-                .register_transaction(transaction!(loadtest_submit_job)),
+            scenario!("LoadtestSubmitJob").register_transaction(transaction!(loadtest_submit_job)),
         )
         .set_default(
             GooseDefault::Host,
@@ -100,6 +96,7 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
             request: encoded_job_request,
             signature,
             offchain_input: Vec::new(),
+            relay_strategy: RelayStrategy::Unordered as i32,
         };
 
         let client = reqwest::Client::new();
@@ -136,13 +133,20 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let (encoded_job_request, signature) =
         get_offchain_request(nonce, &program_id, &encoded_intensity).await;
 
-    let submit_job_request =
-        SubmitJobRequest { request: encoded_job_request, signature, offchain_input: Vec::new() };
+    let relay_strategy =
+        if relay_strategy_is_ordered() { RelayStrategy::Ordered } else { RelayStrategy::Unordered };
+
+    let submit_job_request = SubmitJobRequest {
+        request: encoded_job_request,
+        signature,
+        offchain_input: Vec::new(),
+        relay_strategy: relay_strategy as i32,
+    };
     let _goose_metrics =
         user.post_json("/v1/coprocessor_node/submit_job", &submit_job_request).await?;
 
     if should_wait_until_job_completed() {
-        wait_until_job_completed(user, nonce).await;
+        wait_until_job_completed(user, nonce).await?;
     }
     Ok(())
 }

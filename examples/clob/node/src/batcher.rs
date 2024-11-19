@@ -1,14 +1,17 @@
 //! Collects requests into batches and submits them to the coprocessor node at some regular
 //! cadence.
-use crate::db::{
-    tables::{ClobStateTable, GlobalIndexTable, RequestTable},
-    NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
+use crate::{
+    db::{
+        tables::{ClobStateTable, GlobalIndexTable, RequestTable},
+        NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
+    },
+    K256LocalSigner,
 };
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use clob_programs::CLOB_ID;
 use eyre::OptionExt;
 use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
-use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
+use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, RelayStrategy, SubmitJobRequest};
 use reth_db::transaction::{DbTx, DbTxMut};
 use reth_db_api::Database;
 use risc0_zkvm::sha::Digest;
@@ -16,8 +19,6 @@ use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
 use tracing::{debug, info, instrument, warn};
-
-use crate::K256LocalSigner;
 
 const MAX_CYCLES: u64 = 32 * 1000 * 1000;
 /// First global index that a request will get.
@@ -131,8 +132,12 @@ where
         };
         let request = abi_encode_offchain_job_request(job_params);
         let signature = signer.sign_message(&request).await?.as_bytes().to_vec();
-        let job_request =
-            SubmitJobRequest { request, signature, offchain_input: combined_offchain_input };
+        let job_request = SubmitJobRequest {
+            request,
+            signature,
+            offchain_input: combined_offchain_input,
+            relay_strategy: RelayStrategy::Ordered as i32,
+        };
 
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
