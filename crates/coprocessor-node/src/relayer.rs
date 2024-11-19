@@ -39,7 +39,7 @@ use tokio::{
 };
 use tracing::{error, info, span, Instrument, Level};
 
-/// Delay between retrying failed jobs, in milliseconds.m
+/// Delay between retrying failed jobs, in milliseconds.
 const JOB_RETRY_DELAY_MS: u64 = 250;
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
