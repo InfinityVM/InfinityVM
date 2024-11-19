@@ -45,7 +45,7 @@ impl Queues {
 
     /// Pop the element off back of the relay queue for `consumer_address`.
     #[instrument(skip_all, level = "debug")]
-    pub fn pop_back(&self, consumer_address: [u8; 20]) -> Option<[u8; 32]> {
+    pub fn pop_front(&self, consumer_address: [u8; 20]) -> Option<[u8; 32]> {
         let mutex = match self.inner.get(&consumer_address) {
             // If we don't have an entry for the queue, we know there is nothing in it.
             None => return None,
@@ -53,7 +53,7 @@ impl Queues {
         };
         let mut queue = mutex.lock();
 
-        let back = queue.pop_back();
+        let back = queue.pop_front();
         let is_empty = queue.is_empty();
         // Drop the mutex guard
         drop(queue);
@@ -70,12 +70,12 @@ impl Queues {
 
     /// Push an element onto the front of the queue for the given address
     #[instrument(skip_all, level = "debug")]
-    pub fn push_front(&self, consumer_address: [u8; 20], job_id: [u8; 32]) {
+    pub fn push_back(&self, consumer_address: [u8; 20], job_id: [u8; 32]) {
         self.inner
             .entry(consumer_address)
             .or_insert_with(|| Mutex::new(VecDeque::new()))
             .lock()
-            .push_front(job_id)
+            .push_back(job_id)
     }
 }
 
@@ -92,20 +92,20 @@ mod test {
 
         // An uninitialized queue is empty.
         assert!(queue.peek_back(addr0).is_none());
-        assert!(queue.pop_back(addr0).is_none());
+        assert!(queue.pop_front(addr0).is_none());
 
         // We can add an element to the queue
-        queue.push_front(addr0, id0);
+        queue.push_back(addr0, id0);
 
         // We can see the single element on the queue
         assert_eq!(queue.peek_back(addr0), Some(id0));
 
         // We can remove the single element from the queue
-        assert_eq!(queue.pop_back(addr0), Some(id0));
+        assert_eq!(queue.pop_front(addr0), Some(id0));
 
         // The queue is now empty
         assert!(queue.peek_back(addr0).is_none());
-        assert!(queue.pop_back(addr0).is_none());
+        assert!(queue.pop_front(addr0).is_none());
     }
 
     #[test]
@@ -119,50 +119,50 @@ mod test {
         let queue = Queues::new();
 
         // We can perform consecutive pushes and peek back
-        queue.push_front(addr0, id0);
+        queue.push_back(addr0, id0);
         assert_eq!(queue.peek_back(addr0), Some(id0));
 
-        queue.push_front(addr0, id1);
+        queue.push_back(addr0, id1);
         assert_eq!(queue.peek_back(addr0), Some(id0));
 
-        queue.push_front(addr0, id2);
+        queue.push_back(addr0, id2);
         assert_eq!(queue.peek_back(addr0), Some(id0));
 
-        queue.push_front(addr0, id3);
+        queue.push_back(addr0, id3);
         assert_eq!(queue.peek_back(addr0), Some(id0));
 
         // We can perform consecutive pops and peek back
-        assert_eq!(queue.pop_back(addr0), Some(id0));
+        assert_eq!(queue.pop_front(addr0), Some(id0));
         assert_eq!(queue.peek_back(addr0), Some(id1));
 
-        assert_eq!(queue.pop_back(addr0), Some(id1));
+        assert_eq!(queue.pop_front(addr0), Some(id1));
         assert_eq!(queue.peek_back(addr0), Some(id2));
 
-        assert_eq!(queue.pop_back(addr0), Some(id2));
+        assert_eq!(queue.pop_front(addr0), Some(id2));
         assert_eq!(queue.peek_back(addr0), Some(id3));
 
-        assert_eq!(queue.pop_back(addr0), Some(id3));
+        assert_eq!(queue.pop_front(addr0), Some(id3));
         assert_eq!(queue.peek_back(addr0), None);
-        assert_eq!(queue.pop_back(addr0), None);
+        assert_eq!(queue.pop_front(addr0), None);
 
         // We can perform interweaving push and pops
-        queue.push_front(addr0, id3);
+        queue.push_back(addr0, id3);
         assert_eq!(queue.peek_back(addr0), Some(id3));
 
-        queue.push_front(addr0, id2);
+        queue.push_back(addr0, id2);
         assert_eq!(queue.peek_back(addr0), Some(id3));
 
-        assert_eq!(queue.pop_back(addr0), Some(id3));
+        assert_eq!(queue.pop_front(addr0), Some(id3));
         assert_eq!(queue.peek_back(addr0), Some(id2));
 
-        queue.push_front(addr0, id1);
+        queue.push_back(addr0, id1);
         assert_eq!(queue.peek_back(addr0), Some(id2));
 
-        assert_eq!(queue.pop_back(addr0), Some(id2));
+        assert_eq!(queue.pop_front(addr0), Some(id2));
         assert_eq!(queue.peek_back(addr0), Some(id1));
 
-        assert_eq!(queue.pop_back(addr0), Some(id1));
+        assert_eq!(queue.pop_front(addr0), Some(id1));
         assert_eq!(queue.peek_back(addr0), None);
-        assert_eq!(queue.pop_back(addr0), None);
+        assert_eq!(queue.pop_front(addr0), None);
     }
 }

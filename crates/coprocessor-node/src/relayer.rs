@@ -156,7 +156,7 @@ where
             match relay {
                 Relay::Queue { consumer, job_id } => {
                     let empty_queue = queues.peek_back(consumer).is_none();
-                    queues.push_front(consumer, job_id);
+                    queues.push_back(consumer, job_id);
 
                     // Queue pollers exit once a queue is empty. So we know that if the queue is
                     // empty then we need to start a new queue poller.
@@ -214,7 +214,7 @@ where
 
             match job.status.status() {
                 JobStatusType::Done => {
-                    let _job_id = queues.pop_back(consumer).expect("queue is unexpected empty");
+                    let _job_id = queues.pop_front(consumer).expect("queue is unexpected empty");
                     debug_assert_eq!(job_id, _job_id);
                 }
                 JobStatusType::Relayed => {
