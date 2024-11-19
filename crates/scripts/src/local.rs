@@ -8,11 +8,11 @@ use clob_node::{
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
 use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
-use intensity_test_sp1::INTENSITY_TEST_ELF;
+use intensity_test_programs::INTENSITY_TEST_ELF;
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use ivm_test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
 use mock_consumer::anvil_with_mock_consumer;
-use mock_consumer_sp1::MOCK_CONSUMER_ELF;
+use mock_consumer_programs::MOCK_CONSUMER_ELF;
 use std::{fs::File, process::Command};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::info;

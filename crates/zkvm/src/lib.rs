@@ -83,7 +83,7 @@ mod test {
     use crate::{Sp1, Zkvm};
     use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
-    use mock_consumer_sp1::MOCK_CONSUMER_ELF;
+    use mock_consumer_programs::MOCK_CONSUMER_ELF;
     use sp1_sdk::HashableKey;
 
     #[test]

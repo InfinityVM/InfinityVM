@@ -1847,13 +1847,6 @@ dependencies = [
 name = "clob-programs"
 version = "0.1.0"
 dependencies = [
- "clob-sp1",
-]
-
-[[package]]
-name = "clob-sp1"
-version = "0.1.0"
-dependencies = [
  "alloy",
  "bincode",
  "borsh",
@@ -2531,7 +2524,7 @@ dependencies = [
  "matching-game-programs",
  "matching-game-server",
  "mock-consumer",
- "mock-consumer-sp1",
+ "mock-consumer-programs",
  "rand 0.8.5",
  "reth-db",
  "serde_json",
@@ -3703,13 +3696,6 @@ dependencies = [
 name = "intensity-test-programs"
 version = "0.1.0"
 dependencies = [
- "intensity-test-sp1",
-]
-
-[[package]]
-name = "intensity-test-sp1"
-version = "0.1.0"
-dependencies = [
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
@@ -3884,7 +3870,7 @@ dependencies = [
  "alloy",
  "anyhow",
  "mock-consumer",
- "mock-consumer-sp1",
+ "mock-consumer-programs",
  "sp1-sdk",
  "thiserror",
 ]
@@ -4121,12 +4107,12 @@ dependencies = [
  "contracts",
  "dotenv",
  "goose",
- "intensity-test-sp1",
+ "intensity-test-programs",
  "ivm-abi",
  "ivm-proto",
  "ivm-test-utils",
  "mock-consumer",
- "mock-consumer-sp1",
+ "mock-consumer-programs",
  "once_cell",
  "reqwest 0.12.9",
  "tokio",
@@ -4189,7 +4175,16 @@ dependencies = [
 name = "matching-game-programs"
 version = "0.1.0"
 dependencies = [
- "matching-game-sp1",
+ "alloy",
+ "bincode",
+ "ivm-abi",
+ "ivm-zkvm",
+ "kairos-trie",
+ "matching-game-core",
+ "once_cell",
+ "sp1-build 3.2.1",
+ "sp1-sdk",
+ "sp1-utils",
 ]
 
 [[package]]
@@ -4216,22 +4211,6 @@ dependencies = [
  "tower 0.4.13",
  "tracing 0.1.40",
  "tracing-subscriber",
-]
-
-[[package]]
-name = "matching-game-sp1"
-version = "0.1.0"
-dependencies = [
- "alloy",
- "bincode",
- "ivm-abi",
- "ivm-zkvm",
- "kairos-trie",
- "matching-game-core",
- "once_cell",
- "sp1-build 3.2.1",
- "sp1-sdk",
- "sp1-utils",
 ]
 
 [[package]]
@@ -4318,13 +4297,6 @@ dependencies = [
 
 [[package]]
 name = "mock-consumer-programs"
-version = "0.1.0"
-dependencies = [
- "mock-consumer-sp1",
-]
-
-[[package]]
-name = "mock-consumer-sp1"
 version = "0.1.0"
 dependencies = [
  "once_cell",
@@ -6406,7 +6378,7 @@ dependencies = [
  "contracts",
  "dotenv",
  "eip4844",
- "intensity-test-sp1",
+ "intensity-test-programs",
  "ivm-abi",
  "ivm-proto",
  "ivm-test-utils",
@@ -6416,7 +6388,7 @@ dependencies = [
  "matching-game-programs",
  "matching-game-server",
  "mock-consumer",
- "mock-consumer-sp1",
+ "mock-consumer-programs",
  "reqwest 0.12.9",
  "serde_json",
  "tempfile",

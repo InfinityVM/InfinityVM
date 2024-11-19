@@ -24,7 +24,7 @@ use matching_game_core::{
 use matching_game_programs::{get_matching_game_program_id, MATCHING_GAME_ELF};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_sp1::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
+use mock_consumer_programs::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
 use std::rc::Rc;
 use tracing::{error, info};
 

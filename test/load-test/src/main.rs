@@ -3,7 +3,7 @@ use alloy::{primitives::Address, providers::ProviderBuilder, sol_types::SolValue
 use borsh::{BorshDeserialize, BorshSerialize};
 use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
-use intensity_test_sp1::get_intensity_test_program_id;
+use intensity_test_programs::get_intensity_test_program_id;
 use ivm_abi::get_job_id;
 use ivm_proto::{GetResultRequest, SubmitJobRequest};
 use load_test::{
@@ -11,7 +11,7 @@ use load_test::{
     get_offchain_request, intensity_hash_rounds, num_users, report_file_name, run_time,
     should_wait_until_job_completed, startup_time, wait_until_job_completed,
 };
-use mock_consumer_sp1::get_mock_consumer_program_id;
+use mock_consumer_programs::get_mock_consumer_program_id;
 use once_cell::sync::Lazy;
 use std::{
     sync::atomic::{AtomicU64, Ordering},

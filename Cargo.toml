@@ -24,13 +24,11 @@ members = [
 	"test/e2e",
 	"test/load-test",
 	"programs/mock-consumer",
-	"programs/mock-consumer/sp1",
-	"programs/mock-consumer/sp1/program",
+	"programs/mock-consumer/program",
 	"programs/intensity-test",
-	"programs/intensity-test/sp1",
-	"programs/intensity-test/sp1/program",
-	"examples/matching-game/programs/sp1",
-	"examples/clob/programs/sp1",
+	"programs/intensity-test/program",
+	"examples/matching-game/programs",
+	"examples/clob/programs",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -230,5 +228,5 @@ ivm-test-utils = { path = "crates/sdk/test-utils" }
 ivm-zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
 ivm-zkvm-executor = { path = "crates/zkvm-executor" }
-mock-consumer-sp1 = { path = "programs/mock-consumer/sp1" }
-intensity-test-sp1 = { path = "programs/intensity-test/sp1" }
+mock-consumer-programs = { path = "programs/mock-consumer" }
+intensity-test-programs = { path = "programs/intensity-test" }

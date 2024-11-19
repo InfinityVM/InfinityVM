@@ -18,7 +18,7 @@ use ivm_abi::{
 };
 use ivm_proto::{GetResultRequest, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_sp1::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
+use mock_consumer_programs::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
 
 type MockConsumerOut = sol!((Address, U256));
 

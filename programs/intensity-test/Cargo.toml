@@ -7,4 +7,11 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
-intensity-test-sp1 = { path = "sp1" }
+once_cell = { workspace = true, features = ["std"] }
+sp1-utils = { path = "../../crates/sp1-utils" }
+
+[build-dependencies]
+sp1-helper = { workspace = true }
+sp1-build = { workspace = true }
+sp1-sdk = { workspace = true }
+sp1-utils = { path = "../../crates/sp1-utils" }
