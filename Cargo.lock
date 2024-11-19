@@ -1847,20 +1847,20 @@ dependencies = [
 name = "clob-programs"
 version = "0.1.0"
 dependencies = [
- "alloy",
- "borsh",
- "clob-core",
  "clob-sp1",
- "clob-test-utils",
- "ivm-abi",
- "ivm-zkvm",
 ]
 
 [[package]]
 name = "clob-sp1"
 version = "0.1.0"
 dependencies = [
+ "alloy",
  "bincode",
+ "borsh",
+ "clob-core",
+ "clob-test-utils",
+ "ivm-abi",
+ "ivm-zkvm",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
@@ -4182,12 +4182,6 @@ dependencies = [
 name = "matching-game-programs"
 version = "0.1.0"
 dependencies = [
- "alloy",
- "bincode",
- "ivm-abi",
- "ivm-zkvm",
- "kairos-trie",
- "matching-game-core",
  "matching-game-sp1",
 ]
 
@@ -4221,7 +4215,12 @@ dependencies = [
 name = "matching-game-sp1"
 version = "0.1.0"
 dependencies = [
+ "alloy",
  "bincode",
+ "ivm-abi",
+ "ivm-zkvm",
+ "kairos-trie",
+ "matching-game-core",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-sdk",
