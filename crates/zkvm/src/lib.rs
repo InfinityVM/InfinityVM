@@ -35,11 +35,7 @@ pub trait Zkvm {
     ) -> Result<Vec<u8>, Error>;
 
     /// Check if the program ID can be derived from program elf.
-    fn is_correct_program_id(
-        &self,
-        program_elf: &[u8],
-        program_id: &[u8],
-    ) -> Result<bool, Error> {
+    fn is_correct_program_id(&self, program_elf: &[u8], program_id: &[u8]) -> Result<bool, Error> {
         let derived_program_id = self.derive_program_id(program_elf)?;
 
         Ok(derived_program_id == program_id)
@@ -95,9 +91,8 @@ mod test {
         let input = mock_contract_input_addr();
         let raw_input = input.abi_encode();
 
-        let raw_result = &Sp1
-            .execute(MOCK_CONSUMER_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
-            .unwrap();
+        let raw_result =
+            &Sp1.execute(MOCK_CONSUMER_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES).unwrap();
 
         assert_eq!(*raw_result, mock_raw_output());
     }
@@ -107,15 +102,13 @@ mod test {
         let (_, program_id) = sp1_sdk::ProverClient::new().setup(MOCK_CONSUMER_ELF);
         let mut program_id_bytes = program_id.hash_bytes().to_vec();
 
-        let correct =
-            &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
+        let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(correct);
 
         program_id_bytes.pop();
         program_id_bytes.push(255);
 
-        let correct =
-            &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
+        let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(!correct);
     }
 }

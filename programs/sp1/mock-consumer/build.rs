@@ -4,6 +4,6 @@ fn main() {
     build_sp1_program(
         "mock-consumer-sp1-guest",
         "program",
-        "elf-compilation/riscv32im-succinct-zkvm-elf/release/",
+        "programs/sp1/mock-consumer/program/elf/",
     );
 }
