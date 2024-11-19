@@ -4,6 +4,6 @@ fn main() {
     build_sp1_program(
         "intensity-test-sp1-guest",
         "program",
-        "programs/sp1/intensity-test/program/elf",
+        "programs/intensity-test/sp1/program/elf",
     );
 }

@@ -1,0 +1,10 @@
+[package]
+name = "intensity-test-programs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+intensity-test-sp1 = { path = "sp1" }

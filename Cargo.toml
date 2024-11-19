@@ -23,10 +23,12 @@ members = [
 	"examples/matching-game/*",
 	"test/e2e",
 	"test/load-test",
-	"programs/sp1/mock-consumer",
-	"programs/sp1/mock-consumer/program",
-	"programs/sp1/intensity-test/program",
-	"programs/sp1/intensity-test",
+	"programs/mock-consumer",
+	"programs/mock-consumer/sp1",
+	"programs/mock-consumer/sp1/program",
+	"programs/intensity-test",
+	"programs/intensity-test/sp1",
+	"programs/intensity-test/sp1/program",
 	"examples/matching-game/programs/sp1",
 	"examples/clob/programs/sp1",
 ]
@@ -228,5 +230,5 @@ ivm-test-utils = { path = "crates/sdk/test-utils" }
 ivm-zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
 ivm-zkvm-executor = { path = "crates/zkvm-executor" }
-mock-consumer-sp1 = { path = "programs/sp1/mock-consumer" }
-intensity-test-sp1 = { path = "programs/sp1/intensity-test" }
+mock-consumer-sp1 = { path = "programs/mock-consumer/sp1" }
+intensity-test-sp1 = { path = "programs/intensity-test/sp1" }

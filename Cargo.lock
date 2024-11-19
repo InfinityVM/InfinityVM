@@ -3700,6 +3700,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "intensity-test-programs"
+version = "0.1.0"
+dependencies = [
+ "intensity-test-sp1",
+]
+
+[[package]]
 name = "intensity-test-sp1"
 version = "0.1.0"
 dependencies = [
@@ -4307,6 +4314,13 @@ dependencies = [
  "ivm-db",
  "ivm-proto",
  "ivm-test-utils",
+]
+
+[[package]]
+name = "mock-consumer-programs"
+version = "0.1.0"
+dependencies = [
+ "mock-consumer-sp1",
 ]
 
 [[package]]
