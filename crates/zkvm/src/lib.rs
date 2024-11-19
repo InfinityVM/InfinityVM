@@ -20,12 +20,12 @@ pub enum Error {
 
 /// Something that can execute programs and generate ZK proofs for them.
 pub trait Zkvm {
-    /// Derive the verifying key from an elf
-    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
+    /// Derive the program ID from an elf
+    fn derive_program_id(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
 
     /// Execute the program and return the raw output.
     ///
-    /// This does _not_ check that the verifying key is correct.
+    /// This does _not_ check that the program ID is correct.
     fn execute(
         &self,
         program_elf: &[u8],
@@ -34,15 +34,15 @@ pub trait Zkvm {
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
-    /// Check if the verifying key can be derived from program elf.
-    fn is_correct_verifying_key(
+    /// Check if the program ID can be derived from program elf.
+    fn is_correct_program_id(
         &self,
         program_elf: &[u8],
-        program_verifying_key: &[u8],
+        program_id: &[u8],
     ) -> Result<bool, Error> {
-        let derived_verifying_key = self.derive_verifying_key(program_elf)?;
+        let derived_program_id = self.derive_program_id(program_elf)?;
 
-        Ok(derived_verifying_key == program_verifying_key)
+        Ok(derived_program_id == program_id)
     }
 
     // methods for pessimists
@@ -55,9 +55,9 @@ pub trait Zkvm {
 pub struct Sp1;
 
 impl Zkvm for Sp1 {
-    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-        let (_, vk) = ProverClient::new().setup(program_elf);
-        Ok(vk.hash_bytes().to_vec())
+    fn derive_program_id(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
+        let (_, program_id) = ProverClient::new().setup(program_elf);
+        Ok(program_id.hash_bytes().to_vec())
     }
 
     fn execute(
@@ -87,7 +87,7 @@ mod test {
     use crate::{Sp1, Zkvm};
     use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
-    use mock_consumer_sp1::MOCK_CONSUMER_SP1_GUEST_ELF;
+    use mock_consumer_sp1::MOCK_CONSUMER_ELF;
     use sp1_sdk::HashableKey;
 
     #[test]
@@ -96,7 +96,7 @@ mod test {
         let raw_input = input.abi_encode();
 
         let raw_result = &Sp1
-            .execute(MOCK_CONSUMER_SP1_GUEST_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
+            .execute(MOCK_CONSUMER_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES)
             .unwrap();
 
         assert_eq!(*raw_result, mock_raw_output());
@@ -104,18 +104,18 @@ mod test {
 
     #[test]
     fn sp1_is_correct_program_id() {
-        let (_, vk) = sp1_sdk::ProverClient::new().setup(MOCK_CONSUMER_SP1_GUEST_ELF);
-        let mut vk_bytes = vk.hash_bytes().to_vec();
+        let (_, program_id) = sp1_sdk::ProverClient::new().setup(MOCK_CONSUMER_ELF);
+        let mut program_id_bytes = program_id.hash_bytes().to_vec();
 
         let correct =
-            &Sp1.is_correct_verifying_key(MOCK_CONSUMER_SP1_GUEST_ELF, &vk_bytes).unwrap();
+            &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(correct);
 
-        vk_bytes.pop();
-        vk_bytes.push(255);
+        program_id_bytes.pop();
+        program_id_bytes.push(255);
 
         let correct =
-            &Sp1.is_correct_verifying_key(MOCK_CONSUMER_SP1_GUEST_ELF, &vk_bytes).unwrap();
+            &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(!correct);
     }
 }

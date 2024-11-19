@@ -13,7 +13,7 @@ use clob_core::{
     },
     BorshKeccak256, ClobState,
 };
-use clob_programs::{get_clob_elf_id, CLOB_ELF};
+use clob_programs::{get_clob_program_id, CLOB_ELF};
 use clob_test_utils::{mint_and_approve, mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
 use ivm_abi::{
@@ -29,7 +29,7 @@ async fn state_job_submission_clob_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let clob = args.clob_consumer.unwrap();
-        let program_id = get_clob_elf_id();
+        let program_id = get_clob_program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_state0 = ClobState::default();
 
@@ -228,7 +228,7 @@ async fn clob_node_e2e() {
 
         let anvil = args.anvil;
         let clob = args.clob_consumer.unwrap();
-        let program_id = get_clob_elf_id();
+        let program_id = get_clob_program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_endpoint = args.clob_endpoint.unwrap();
 

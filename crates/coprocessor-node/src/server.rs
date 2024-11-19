@@ -68,7 +68,7 @@ where
         }
 
         if program_id.is_empty() {
-            return Err(Status::invalid_argument("job program verification key must not be empty"));
+            return Err(Status::invalid_argument("job program ID must not be empty"));
         }
 
         let offchain_input_hash = keccak256(&req.offchain_input);
@@ -158,7 +158,7 @@ where
     }
 
     /// SubmitProgram defines the gRPC method for submitting a new program to
-    /// generate a unique program verification key.
+    /// generate a unique program ID (verification key).
     async fn submit_program(
         &self,
         request: Request<SubmitProgramRequest>,

@@ -24,7 +24,7 @@ use matching_game_core::{
 use matching_game_programs::{get_matching_game_program_id, MATCHING_GAME_ELF};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_sp1::{get_mock_consumer_sp1_guest_elf_id, MOCK_CONSUMER_SP1_GUEST_ELF};
+use mock_consumer_sp1::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
 use std::rc::Rc;
 use tracing::{error, info};
 
@@ -64,7 +64,7 @@ async fn main() {
 
     info!("Trying to submit MockConsumer ELF to coprocessor node");
     let submit_program_request = SubmitProgramRequest {
-        program_elf: MOCK_CONSUMER_SP1_GUEST_ELF.to_vec(),
+        program_elf: MOCK_CONSUMER_ELF.to_vec(),
         vm_type: VmType::Sp1.into(),
     };
     // We handle error here because we don't want to panic if the ELF was already submitted
@@ -114,7 +114,7 @@ async fn main() {
         MOCK_CONSUMER_MAX_CYCLES,
         mock_consumer_addr,
         Address::abi_encode(&mock_consumer_addr).as_slice(),
-        &get_mock_consumer_sp1_guest_elf_id(),
+        &get_mock_consumer_program_id(),
         offchain_signer.clone(),
         &[],
     )

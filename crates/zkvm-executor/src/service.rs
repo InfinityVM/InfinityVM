@@ -25,12 +25,12 @@ pub enum Error {
     /// Could not find ELF for VM type
     #[error("could not find elf for vm={0}")]
     ElfNotFound(String),
-    /// Invalid verifying key
-    #[error("bad verifying key {0}")]
-    InvalidVerifyingKey(String),
-    /// Could not derive verifying key
-    #[error("failed to derive verifying key {0}")]
-    VerifyingKeyDerivationFailed(String),
+    /// Invalid program ID
+    #[error("bad program ID {0}")]
+    InvalidProgramId(String),
+    /// Could not derive program ID
+    #[error("failed to derive program ID {0}")]
+    ProgramIdDerivationFailed(String),
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] ivm_zkvm::Error),
@@ -74,8 +74,8 @@ where
     /// Executes a program on the given inputs, and returns signed output.
     /// Returns (`result_with_metadata`, `zkvm_operator_signature`)
     ///
-    /// WARNING: this does not check the verifying key of the program. It is up to the caller to
-    /// ensure that they trust the ELF has the correct verifying key onchain before committing to
+    /// WARNING: this does not check the program ID of the program. It is up to the caller to
+    /// ensure that they trust the ELF has the correct program ID onchain before committing to
     /// the result. Otherwise they risk being slashed because any proof will not verify.
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_onchain_job(
@@ -112,8 +112,8 @@ where
     /// output. Returns (`offchain_result_with_metadata`, `zkvm_operator_signature`,
     /// `maybe_blobs_sidecar`). If the offchain input is empty, the blobs sidecar will be None.
     ///
-    /// WARNING: this does not check the verifying key of the program. It is up to the caller to
-    /// ensure that they trust the ELF has the correct verifying key onchain before committing to
+    /// WARNING: this does not check the program ID of the program. It is up to the caller to
+    /// ensure that they trust the ELF has the correct program ID onchain before committing to
     /// the result. Otherwise they risk being slashed because any proof will not verify.
     #[allow(clippy::too_many_arguments)]
     pub async fn execute_offchain_job(
@@ -166,14 +166,13 @@ where
         Ok((offchain_result_with_metadata, zkvm_operator_signature, sidecar))
     }
 
-    /// Derives and returns program ID (verifying key) for the
-    /// given program ELF.
+    /// Derives and returns program ID for the given program ELF.
     pub async fn create_elf(&self, elf: &[u8], vm_type: VmType) -> Result<Vec<u8>, Error> {
         let vm = self.vm(vm_type)?;
 
         let program_id = vm
-            .derive_verifying_key(elf)
-            .map_err(|e| Error::VerifyingKeyDerivationFailed(e.to_string()))?;
+            .derive_program_id(elf)
+            .map_err(|e| Error::ProgramIdDerivationFailed(e.to_string()))?;
 
         info!(
             vm_type = vm_type.as_str_name(),

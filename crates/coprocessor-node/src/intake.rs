@@ -21,8 +21,8 @@ pub enum Error {
     /// database error
     #[error("database error: {0}")]
     Database(#[from] ivm_db::Error),
-    /// ELF with given verifying key already exists in DB
-    #[error("elf with verifying key {0} already exists")]
+    /// ELF with given program ID already exists in DB
+    #[error("elf with program ID {0} already exists")]
     ElfAlreadyExists(String),
     /// Job already exists in DB
     #[error("job already exists")]
@@ -90,7 +90,7 @@ where
         Ok(())
     }
 
-    /// Submit program ELF, save it in DB, and return verifying key.
+    /// Submit program ELF, save it in DB, and return program ID.
     pub async fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
         let program_id = self
             .zk_executor
@@ -101,10 +101,7 @@ where
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
             .is_some()
         {
-            return Err(Error::ElfAlreadyExists(format!(
-                "elf with verifying key {:?} already exists",
-                hex::encode(program_id.as_slice()),
-            )));
+            return Err(Error::ElfAlreadyExists(hex::encode(program_id.as_slice())));
         }
 
         put_elf(
