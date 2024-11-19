@@ -12,10 +12,7 @@ use load_test::{
     should_wait_until_job_completed, startup_time, wait_until_job_completed,
 };
 use once_cell::sync::Lazy;
-use std::{
-    sync::atomic::{AtomicU64, Ordering},
-    time::Duration,
-};
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::OnceCell;
 
 static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
@@ -50,9 +47,7 @@ async fn main() -> Result<(), GooseError> {
             scenario!("LoadtestGetResult").register_transaction(transaction!(loadtest_get_result)),
         )
         .register_scenario(
-            scenario!("LoadtestSubmitJob")
-                .set_wait_time(Duration::from_secs(0), Duration::from_secs(0))?
-                .register_transaction(transaction!(loadtest_submit_job)),
+            scenario!("LoadtestSubmitJob").register_transaction(transaction!(loadtest_submit_job)),
         )
         .set_default(
             GooseDefault::Host,

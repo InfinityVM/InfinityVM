@@ -3,7 +3,7 @@ use alloy::{hex, primitives::Address};
 use contracts::get_default_deploy_info;
 use goose::prelude::*;
 use ivm_abi::get_job_id;
-use ivm_proto::{GetResultRequest, GetResultResponse};
+use ivm_proto::{GetResultRequest, GetResultResponse, JobStatusType};
 use ivm_test_utils::{create_and_sign_offchain_request, get_signers};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use std::env;
@@ -116,7 +116,7 @@ pub async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) -> Trans
     let job_id = get_job_id(nonce, consumer_addr);
 
     for _ in 0..RETRIES {
-        if get_result_status(user, job_id).await? == 2 {
+        if get_result_status(user, job_id).await? == JobStatusType::Done as i64 {
             return Ok(());
         }
         tokio::time::sleep(tokio::time::Duration::from_millis(RETRY_TIMEOUT_MS)).await;
