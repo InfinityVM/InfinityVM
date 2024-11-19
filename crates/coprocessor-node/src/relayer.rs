@@ -37,7 +37,8 @@ use tokio::{sync::oneshot, time::interval};
 use tracing::{error, info};
 
 /// Delay between retrying failed jobs, in milliseconds.
-const JOB_RETRY_DELAY_MS: u64 = 250;
+const JOB_RETRY_DELAY_MS: u64 = 500;
+const JOB_RETRY_COUNT: usize = 3;
 
 type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
 
@@ -155,7 +156,7 @@ where
         while let Ok(relay) = relay_rx.recv_async().await {
             match relay {
                 Relay::Queue { consumer, job_id } => {
-                    let empty_queue = queues.peek_back(consumer).is_none();
+                    let empty_queue = queues.peek_front(consumer).is_none();
                     queues.push_back(consumer, job_id);
 
                     // Queue pollers exit once a queue is empty. So we know that if the queue is
@@ -204,7 +205,7 @@ where
         // The first tick is immediate
         interval.tick().await;
 
-        while let Some(job_id) = queues.peek_back(consumer) {
+        while let Some(job_id) = queues.peek_front(consumer) {
             interval.tick().await;
             let job = match get_job(db.clone(), job_id).expect("job get db error") {
                 Some(job) => job,
@@ -325,6 +326,7 @@ where
     }
 
     /// Relay the job result, and if the transaction fails record it in the DLQ.
+    /// We retry the transaction [`JOB_RETRY_COUNT`] times.
     async fn relay_job_result(
         mut job: Job,
         job_relayer: Arc<JobRelayer>,
@@ -332,16 +334,31 @@ where
     ) -> Result<(), FailureReason> {
         let id = job.id;
 
-        let relay_receipt_result = match job.request_type {
-            RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
-            RequestType::Offchain(_) => {
-                let job_params = (&job).try_into().map_err(|_| FailureReason::RelayErr)?;
-                let job_request_payload = abi_encode_offchain_job_request(job_params);
-                job_relayer.relay_result_for_offchain_job(job.clone(), job_request_payload).await
+        let mut i = 1;
+        let relay_receipt = loop {
+            let relay_receipt_result = match job.request_type {
+                RequestType::Onchain => job_relayer.relay_result_for_onchain_job(job.clone()).await,
+                RequestType::Offchain(_) => {
+                    let job_params = (&job).try_into().map_err(|_| FailureReason::RelayErr)?;
+                    let job_request_payload = abi_encode_offchain_job_request(job_params);
+                    job_relayer
+                        .relay_result_for_offchain_job(job.clone(), job_request_payload)
+                        .await
+                }
+            };
+
+            if i > JOB_RETRY_COUNT + 1 {
+                break relay_receipt_result
+            } else if relay_receipt_result.is_err() {
+                let backoff = JOB_RETRY_DELAY_MS * i as u64;
+                tokio::time::sleep(Duration::from_millis(backoff)).await;
+            } else {
+                break relay_receipt_result
             }
+            i += 1;
         };
 
-        let relay_tx_hash = match relay_receipt_result {
+        let relay_tx_hash = match relay_receipt {
             Ok(receipt) => receipt.transaction_hash,
             Err(e) => {
                 error!("failed to relay job {:?}: {:?}", id, e);
