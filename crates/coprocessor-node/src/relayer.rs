@@ -3,7 +3,7 @@
 //! The primary type is the [`RelayCoordinator`]. The [`RelayCoordinator`] is in charge of managing
 //! broadcast queues on a per consumer basis, managing tasks queue polling tasks, and all final
 //! broadcasting logic. Other subsystems communicate with the [`RelayCoordinator`] by sending the
-//! [Relay] message over a mpsc channel. While the [Relay] channel its the only public API of this
+//! [Relay] message over a mpsc channel. While the [Relay] channel is the only public API for this
 //! subsystem its important to note that this systems updates job statuses in the DB.
 //!
 //! The actual relaying logic is encapsulated by the [`JobRelayer`] abstraction.
