@@ -41,4 +41,4 @@ serde_json = { workspace = true }
 tracing-subscriber = { workspace = true }
 tracing = { workspace = true }
 ivm-zkvm = { workspace = true }
-mock-consumer-sp1 = { workspace = true }
+mock-consumer-programs = { workspace = true }

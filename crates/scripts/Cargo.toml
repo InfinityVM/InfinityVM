@@ -50,5 +50,5 @@ matching-game-core = { workspace = true }
 matching-game-server = { workspace = true }
 contracts = { workspace = true }
 eip4844 = { workspace = true }
-mock-consumer-sp1 = { workspace = true }
-intensity-test-sp1 = { workspace = true }
+mock-consumer-programs = { workspace = true }
+intensity-test-programs = { workspace = true }

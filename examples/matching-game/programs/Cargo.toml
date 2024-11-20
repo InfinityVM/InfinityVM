@@ -7,7 +7,8 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
-matching-game-sp1 = { path = "sp1" }
+once_cell = { workspace = true }
+ivm-sp1-utils = { workspace = true }
 ivm-zkvm = { workspace = true }
 
 [dev-dependencies]
@@ -16,3 +17,9 @@ bincode = { workspace = true }
 alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
 ivm-abi = { workspace = true }
 kairos-trie = { workspace = true }
+
+[build-dependencies]
+ivm-sp1-utils = { workspace = true }
+sp1-build = { workspace = true }
+sp1-sdk = { workspace = true }
+bincode = { workspace = true }

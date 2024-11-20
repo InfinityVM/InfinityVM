@@ -24,8 +24,8 @@ pub enum Error {
     /// database error
     #[error("database error: {0}")]
     Database(#[from] ivm_db::Error),
-    /// ELF with given verifying key already exists in DB
-    #[error("elf with verifying key {0} already exists")]
+    /// ELF with given program ID already exists in DB
+    #[error("elf with program ID {0} already exists")]
     ElfAlreadyExists(String),
     /// Job already exists in DB
     #[error("job already exists")]

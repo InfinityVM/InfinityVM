@@ -1,4 +1,17 @@
-pub use matching_game_sp1::{get_matching_game_program_id, MATCHING_GAME_ELF};
+use ivm_sp1_utils::get_program_id;
+use once_cell::sync::Lazy;
+
+pub const MATCHING_GAME_ELF: &[u8] =
+    include_bytes!("../../../../target/sp1/matching-game/matching-game-sp1-guest");
+
+static MATCHING_GAME_PROGRAM_ID: Lazy<[u8; 32]> = Lazy::new(|| {
+    let program_id_path = "target/sp1/matching-game/matching-game-sp1-guest.vkey";
+    get_program_id(program_id_path)
+});
+
+pub fn get_matching_game_program_id() -> [u8; 32] {
+    *MATCHING_GAME_PROGRAM_ID
+}
 
 #[cfg(test)]
 mod tests {

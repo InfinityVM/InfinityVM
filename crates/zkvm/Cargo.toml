@@ -16,4 +16,4 @@ sp1-sdk = { workspace = true }
 [dev-dependencies]
 alloy = { workspace = true, features = ["sol-types"] }
 mock-consumer = { workspace = true }
-mock-consumer-sp1 = { workspace = true }
+mock-consumer-programs = { workspace = true }

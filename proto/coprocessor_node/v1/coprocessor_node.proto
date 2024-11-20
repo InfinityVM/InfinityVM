@@ -13,7 +13,7 @@ service CoprocessorNode {
   rpc GetResult(GetResultRequest) returns (GetResultResponse) {}
 
   // SubmitProgram defines the gRPC method for submitting a new program to
-  // generate a unique program verification key.
+  // generate a unique program ID (verification key).
   rpc SubmitProgram(SubmitProgramRequest) returns (SubmitProgramResponse) {}
 }
 
@@ -61,7 +61,7 @@ message SubmitProgramRequest {
 }
 
 // SubmitProgramResponse defines the response structure to generate a unique
-// program verification key.
+// program ID (verification key).
 message SubmitProgramResponse {
   // The ZK program verification key
   bytes program_id = 1;
