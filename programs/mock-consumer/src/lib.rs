@@ -7,7 +7,7 @@ pub const MOCK_CONSUMER_ELF: &[u8] =
 
 static MOCK_CONSUMER_PROGRAM_ID: Lazy<[u8; 32]> = Lazy::new(|| {
     let program_id_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../target/sp1/mock-consumer")
+        .join("../../target/sp1/mock-consumer")
         .join("mock-consumer-sp1-guest.vkey");
     get_program_id(program_id_path.to_str().unwrap())
 });

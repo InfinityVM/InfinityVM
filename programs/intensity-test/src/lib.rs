@@ -7,7 +7,7 @@ pub const INTENSITY_TEST_ELF: &[u8] =
 
 static INTENSITY_TEST_PROGRAM_ID: Lazy<[u8; 32]> = Lazy::new(|| {
     let program_id_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../../target/sp1/intensity-test")
+        .join("../../target/sp1/intensity-test")
         .join("intensity-test-sp1-guest.vkey");
     get_program_id(program_id_path.to_str().unwrap())
 });
