@@ -10,16 +10,17 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
     };
     build_program_with_args(program_dir, args);
 
-    // If output_dir contains program_dir, extract the substring starting from program_dir.
-    // Otherwise, join program_dir with output_dir. This is to handle cases where
-    // the output_dir is provided relative to the root of the repo, while program_dir
-    // is provided relative to the current directory.
-    let elf_path = if output_dir.contains(program_dir) {
-        let start_idx = output_dir.find(program_dir).unwrap();
-        PathBuf::from(&output_dir[start_idx..]).join(elf_name)
-    } else {
-        PathBuf::from(program_dir).join(output_dir).join(elf_name)
-    };
+    // This is a bit hacky but works.
+    // Count directories after InfinityVM in current path to find number of parent dirs.
+    let current_dir = std::env::current_dir().unwrap().to_string_lossy().to_string();
+    let infinity_vm_pos = current_dir.find("InfinityVM").unwrap_or(0);
+    let path_after_infinity = &current_dir[infinity_vm_pos..];
+    let dir_count = path_after_infinity.matches('/').count();
+
+    // Construct elf path relative to current dir with correct number of parent dirs.
+    let elf_path_string =
+        format!("{}/{}", "../".repeat(dir_count), output_dir.trim_start_matches("../"));
+    let elf_path = PathBuf::from(elf_path_string).join(elf_name);
 
     println!("cargo:rerun-if-changed={}", elf_path.display());
 
