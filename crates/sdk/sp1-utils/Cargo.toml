@@ -8,5 +8,3 @@ bincode = { workspace = true }
 sp1-build = { workspace = true }
 ivm-zkvm = { workspace = true }
 cargo_metadata = { version = "0.18" }
-
-[build-dependencies]
