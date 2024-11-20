@@ -1853,12 +1853,12 @@ dependencies = [
  "clob-core",
  "clob-test-utils",
  "ivm-abi",
+ "ivm-sp1-utils",
  "ivm-zkvm",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
- "sp1-utils",
 ]
 
 [[package]]
@@ -3696,11 +3696,11 @@ dependencies = [
 name = "intensity-test-programs"
 version = "0.1.0"
 dependencies = [
+ "ivm-sp1-utils",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
- "sp1-utils",
 ]
 
 [[package]]
@@ -3846,6 +3846,16 @@ dependencies = [
  "serde",
  "serde_with",
  "tonic",
+]
+
+[[package]]
+name = "ivm-sp1-utils"
+version = "0.1.0"
+dependencies = [
+ "bincode",
+ "cargo_metadata",
+ "ivm-zkvm",
+ "sp1-build 3.2.1",
 ]
 
 [[package]]
@@ -4178,13 +4188,13 @@ dependencies = [
  "alloy",
  "bincode",
  "ivm-abi",
+ "ivm-sp1-utils",
  "ivm-zkvm",
  "kairos-trie",
  "matching-game-core",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-sdk",
- "sp1-utils",
 ]
 
 [[package]]
@@ -4299,11 +4309,11 @@ dependencies = [
 name = "mock-consumer-programs"
 version = "0.1.0"
 dependencies = [
+ "ivm-sp1-utils",
  "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
- "sp1-utils",
 ]
 
 [[package]]
@@ -7168,15 +7178,6 @@ dependencies = [
  "sysinfo",
  "thiserror",
  "tracing 0.1.40",
-]
-
-[[package]]
-name = "sp1-utils"
-version = "0.1.0"
-dependencies = [
- "bincode",
- "ivm-zkvm",
- "sp1-build 3.2.1",
 ]
 
 [[package]]

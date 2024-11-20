@@ -13,22 +13,20 @@ members = [
 	"crates/scripts",
 	"crates/sdk/abi",
 	"crates/sdk/proto",
+	"crates/sdk/sp1-utils",
 	"crates/sdk/test-utils",
 	"crates/tracing",
 	"crates/zkvm",
 	"crates/zkvm-executor",
-	"crates/sp1-utils",
     "crates/tracing",
-	"examples/clob/*",
-	"examples/matching-game/*",
+	"examples/clob/programs",
+	"examples/matching-game/programs",
 	"test/e2e",
 	"test/load-test",
 	"programs/mock-consumer",
 	"programs/mock-consumer/program",
 	"programs/intensity-test",
 	"programs/intensity-test/program",
-	"examples/matching-game/programs",
-	"examples/clob/programs",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -180,7 +178,6 @@ sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b88
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", default-features = false }
 sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "8a62caa0b8893aabe8e9477d4568c20387ae4896", default-features = false }
 sp1-build = "3.1.0"
-sp1-utils = { path = "crates/sp1-utils" }
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
@@ -224,6 +221,7 @@ matching-game-server = { path = "examples/matching-game/server" }
 matching-game-programs = { path = "examples/matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
 ivm-proto = { path = "crates/sdk/proto" }
+ivm-sp1-utils = { path = "crates/sdk/sp1-utils" }
 ivm-test-utils = { path = "crates/sdk/test-utils" }
 ivm-zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
