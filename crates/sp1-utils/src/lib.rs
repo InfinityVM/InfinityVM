@@ -24,7 +24,13 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
 
     println!("cargo:rerun-if-changed={}", elf_path.display());
 
+    println!("cargo:warning=WOOOOO elf_path: {}", elf_path.display());
+    println!("cargo:warning=WOOOOO current directory: {}", std::env::current_dir().unwrap().display());
+    println!("cargo:warning=WOOOOO program_dir: {}", program_dir);
+    println!("cargo:warning=WOOOOO output_dir: {}", output_dir);
+
     if let Ok(program_elf) = fs::read(&elf_path) {
+        println!("cargo:warning=WOOOOO ELF DISCOVERED");
         let program_id = ivm_zkvm::Sp1.derive_program_id(&program_elf).unwrap();
         let program_id_path = elf_path.with_extension("vkey");
 
@@ -35,6 +41,8 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
         .expect("Failed to serialize program ID");
 
         println!("cargo:rerun-if-changed={}", program_id_path.display());
+    } else {
+        println!("cargo:warning=WOOOOO ELF NOT DISCOVERED");
     }
 }
 
