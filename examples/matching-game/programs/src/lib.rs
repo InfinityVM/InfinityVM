@@ -1,14 +1,15 @@
 use once_cell::sync::Lazy;
 use sp1_utils::get_program_id;
+use std::path::PathBuf;
 
 pub const MATCHING_GAME_ELF: &[u8] =
-    include_bytes!("../../../target/sp1/matching-game/matching-game-sp1-guest");
+    include_bytes!("../../../../target/sp1/matching-game/matching-game-sp1-guest");
 
 static MATCHING_GAME_PROGRAM_ID: Lazy<[u8; 32]> = Lazy::new(|| {
-    get_program_id(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "../../../target/sp1/matching-game/matching-game-sp1-guest.vkey"
-    ))
+    let program_id_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../../target/sp1/matching-game")
+        .join("matching-game-sp1-guest.vkey");
+    get_program_id(program_id_path.to_str().unwrap())
 });
 
 pub fn get_matching_game_program_id() -> [u8; 32] {

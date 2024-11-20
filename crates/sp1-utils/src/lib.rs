@@ -40,6 +40,11 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
 }
 
 pub fn get_program_id(program_id_path: &str) -> [u8; 32] {
+    println!("cargo:warning=NARULA program_id_path: {}", program_id_path);
+    println!(
+        "cargo:warning=NARULA current directory: {}",
+        std::env::current_dir().unwrap().display()
+    );
     let program_id_bytes: Vec<u8> = bincode::deserialize_from(
         fs::File::open(program_id_path).expect("Failed to open program ID file"),
     )
