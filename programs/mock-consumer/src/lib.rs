@@ -1,6 +1,5 @@
 use ivm_sp1_utils::get_program_id;
 use once_cell::sync::Lazy;
-use std::path::PathBuf;
 
 pub const MOCK_CONSUMER_ELF: &[u8] =
     include_bytes!("../../../target/sp1/mock-consumer/mock-consumer-sp1-guest");

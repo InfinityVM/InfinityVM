@@ -1,6 +1,5 @@
 use ivm_sp1_utils::get_program_id;
 use once_cell::sync::Lazy;
-use std::path::PathBuf;
 
 pub const CLOB_ELF: &[u8] = include_bytes!("../../../../target/sp1/clob/clob-sp1-guest");
 

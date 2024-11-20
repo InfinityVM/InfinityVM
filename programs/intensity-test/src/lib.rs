@@ -1,6 +1,5 @@
 use ivm_sp1_utils::get_program_id;
 use once_cell::sync::Lazy;
-use std::path::PathBuf;
 
 pub const INTENSITY_TEST_ELF: &[u8] =
     include_bytes!("../../../target/sp1/intensity-test/intensity-test-sp1-guest");
