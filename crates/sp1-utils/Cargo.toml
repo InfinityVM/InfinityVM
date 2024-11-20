@@ -6,4 +6,4 @@ edition = "2021"
 [dependencies]
 bincode = { workspace = true }
 sp1-build = { workspace = true }
-sp1-sdk = { workspace = true } 
+ivm-zkvm = { workspace = true }
