@@ -13,7 +13,7 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
     // This is a bit hacky but works.
     // Count directories after InfinityVM in current path to find number of parent dirs.
     let current_dir = std::env::current_dir().unwrap().to_string_lossy().to_string();
-    let infinity_vm_pos = current_dir.find("InfinityVM").unwrap_or(0);
+    let infinity_vm_pos = current_dir.rfind("InfinityVM").unwrap_or(0);
     let path_after_infinity = &current_dir[infinity_vm_pos..];
     let dir_count = path_after_infinity.matches('/').count();
 
