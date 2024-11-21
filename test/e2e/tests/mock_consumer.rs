@@ -18,7 +18,7 @@ use ivm_abi::{
 };
 use ivm_proto::{GetResultRequest, JobStatusType, SubmitJobRequest, SubmitProgramRequest, VmType};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
+use mock_consumer_programs::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
 
 type MockConsumerOut = sol!((Address, U256));
 
@@ -28,7 +28,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
         let anvil = args.anvil;
-        let program_id = MOCK_CONSUMER_PROGRAM_ID;
+        let program_id = get_mock_consumer_program_id();
         let mock_user_address = Address::repeat_byte(69);
 
         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
@@ -161,7 +161,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
         let anvil = args.anvil;
-        let program_id = MOCK_CONSUMER_PROGRAM_ID;
+        let program_id = get_mock_consumer_program_id();
         let mock_user_address = Address::repeat_byte(69);
 
         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();

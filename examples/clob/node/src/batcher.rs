@@ -5,7 +5,7 @@ use crate::db::{
     NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
 };
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
-use clob_programs::CLOB_PROGRAM_ID;
+use clob_programs::get_clob_program_id;
 use eyre::OptionExt;
 use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
@@ -63,7 +63,7 @@ where
 {
     // Wait for the system to have at least one processed request from the CLOB server
     ensure_initialized(Arc::clone(&db)).await?;
-    let program_id = CLOB_PROGRAM_ID;
+    let program_id = get_clob_program_id();
 
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
     let mut interval = tokio::time::interval(sleep_duration);

@@ -7,6 +7,8 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
+ivm-sp1-utils = { workspace = true }
+once_cell = { workspace = true }
 
 [dev-dependencies]
 clob-core = { workspace = true }

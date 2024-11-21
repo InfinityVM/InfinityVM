@@ -98,7 +98,7 @@ mod test {
 
     #[test]
     fn sp1_is_correct_program_id() {
-        let program_id_bytes = mock_consumer_programs::MOCK_CONSUMER_PROGRAM_ID.to_vec();
+        let program_id_bytes = mock_consumer_programs::get_mock_consumer_program_id().to_vec();
 
         let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(correct);
