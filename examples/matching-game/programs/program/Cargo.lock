@@ -950,7 +950,7 @@ checksum = "0fda2ff0d084019ba4d7c6f371c95d8fd75ce3524c3cb8fb653a3023f6323e64"
 [[package]]
 name = "sp1-build"
 version = "3.0.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=8a62caa0b8893aabe8e9477d4568c20387ae4896#8a62caa0b8893aabe8e9477d4568c20387ae4896"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
 dependencies = [
  "anyhow",
  "cargo_metadata",
@@ -962,7 +962,7 @@ dependencies = [
 [[package]]
 name = "sp1-helper"
 version = "3.0.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=8a62caa0b8893aabe8e9477d4568c20387ae4896#8a62caa0b8893aabe8e9477d4568c20387ae4896"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
 dependencies = [
  "sp1-build",
 ]
@@ -970,7 +970,7 @@ dependencies = [
 [[package]]
 name = "sp1-lib"
 version = "3.0.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=8a62caa0b8893aabe8e9477d4568c20387ae4896#8a62caa0b8893aabe8e9477d4568c20387ae4896"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
 dependencies = [
  "bincode",
  "serde",
@@ -979,7 +979,7 @@ dependencies = [
 [[package]]
 name = "sp1-zkvm"
 version = "3.0.1"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=8a62caa0b8893aabe8e9477d4568c20387ae4896#8a62caa0b8893aabe8e9477d4568c20387ae4896"
+source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
 dependencies = [
  "cfg-if",
  "getrandom",

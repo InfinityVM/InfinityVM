@@ -2023,7 +2023,6 @@ dependencies = [
  "ivm-abi",
  "ivm-sp1-utils",
  "ivm-zkvm",
- "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
@@ -3855,7 +3854,6 @@ name = "intensity-test-programs"
 version = "0.1.0"
 dependencies = [
  "ivm-sp1-utils",
- "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
@@ -4010,7 +4008,6 @@ dependencies = [
 name = "ivm-sp1-utils"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "cargo_metadata",
  "ivm-zkvm",
  "sp1-build 3.2.1",
@@ -4350,7 +4347,6 @@ dependencies = [
  "ivm-zkvm",
  "kairos-trie",
  "matching-game-core",
- "once_cell",
  "sp1-build 3.2.1",
  "sp1-sdk",
 ]
@@ -4468,7 +4464,6 @@ name = "mock-consumer-programs"
 version = "0.1.0"
 dependencies = [
  "ivm-sp1-utils",
- "once_cell",
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",

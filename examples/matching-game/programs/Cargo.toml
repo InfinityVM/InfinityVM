@@ -7,8 +7,6 @@ edition = "2021"
 path = "src/lib.rs"
 
 [dependencies]
-once_cell = { workspace = true }
-ivm-sp1-utils = { workspace = true }
 ivm-zkvm = { workspace = true }
 
 [dev-dependencies]

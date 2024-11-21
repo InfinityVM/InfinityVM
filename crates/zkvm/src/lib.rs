@@ -84,7 +84,6 @@ mod test {
     use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
     use mock_consumer_programs::MOCK_CONSUMER_ELF;
-    use sp1_sdk::HashableKey;
 
     #[test]
     fn sp1_execute_can_correctly_execute_program() {
@@ -99,16 +98,16 @@ mod test {
 
     #[test]
     fn sp1_is_correct_program_id() {
-        let (_, program_id) = sp1_sdk::ProverClient::new().setup(MOCK_CONSUMER_ELF);
-        let mut program_id_bytes = program_id.hash_bytes().to_vec();
+        let program_id_bytes = mock_consumer_programs::MOCK_CONSUMER_PROGRAM_ID.to_vec();
 
         let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(correct);
 
-        program_id_bytes.pop();
-        program_id_bytes.push(255);
+        let mut modified_program_id = program_id_bytes;
+        modified_program_id.pop();
+        modified_program_id.push(255);
 
-        let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
+        let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &modified_program_id).unwrap();
         assert!(!correct);
     }
 }
