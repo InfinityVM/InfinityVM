@@ -13,18 +13,16 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
     println!("cargo:rerun-if-changed={}/Cargo.toml", program_dir);
     println!("cargo:rerun-if-changed={}/src", program_dir);
 
-    if !elf_path_abs.exists() || !program_id_path_abs.exists() {
-        let args = BuildArgs {
-            elf_name: elf_name.to_string(),
-            output_directory: output_dir_abs.to_string_lossy().to_string(),
-            ..Default::default()
-        };
-        build_program_with_args(program_dir, args);
+    let args = BuildArgs {
+        elf_name: elf_name.to_string(),
+        output_directory: output_dir_abs.to_string_lossy().to_string(),
+        ..Default::default()
+    };
+    build_program_with_args(program_dir, args);
 
-        if let Ok(program_elf) = fs::read(&elf_path_abs) {
-            let program_id = ivm_zkvm::Sp1.derive_program_id(&program_elf).unwrap();
-            fs::write(&program_id_path_abs, program_id).expect("Failed to write program ID file");
-        }
+    if let Ok(program_elf) = fs::read(&elf_path_abs) {
+        let program_id = ivm_zkvm::Sp1.derive_program_id(&program_elf).unwrap();
+        fs::write(&program_id_path_abs, program_id).expect("Failed to write program ID file");
     }
 }
 
