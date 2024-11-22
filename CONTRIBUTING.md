@@ -32,13 +32,13 @@ apt-get update
 apt-get install install protobuf-compiler
 ```
 
-Risc0
+SP1
 
 ```sh
-cargo install cargo-binstall
-cargo binstall cargo-risczero
-cargo risczero install
-cargo risczero --version
+curl -L https://sp1.succinct.xyz | bash
+sp1up
+cargo prove --version
+RUSTUP_TOOLCHAIN=succinct cargo --version
 ```
 
 Foundry
@@ -69,8 +69,6 @@ cargo build -p coprocessor-node # or whatever your crates name is
 Lint
 
 ```sh
-# NOTE: there is a bug with risc0 build tooling where you need to build before
-# running clippy; needs investigation.
 make clippy
 make fmt
 

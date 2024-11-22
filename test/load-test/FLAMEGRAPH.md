@@ -44,8 +44,3 @@ sudo flamegraph -o my_flamegraph.svg --pid <PID>
 ### Notes
 
 The above shows how to run just the load test submit job scenario and removes `get_result` calls to more clearly examine where time is spent while executing. You may want to examine other aspects, in which case you may want to run a different load test or adjust parameters of the node (such as worker count).
-
-
-### Findings 2024.9.26
-
-Our initial findings showed that the longest part of job execution is calculating the program ID. We can improve benchmarks by commenting out the program ID derivation. Inside of the actual execution logic for risc0, the longest part by far is deriving the program ID - however we don't have control over this logic since it is from the risc0 lib. We have a [flamegraph](./assets/submit_job_flamegraph.svg) where we commented out our program ID derivation logic and you can observe that the risc0 executor derives the program ID itself and that its about 98% of the vm's execution time. The actual execution is maybe 1% of the call to `LocalProver::execute`.
