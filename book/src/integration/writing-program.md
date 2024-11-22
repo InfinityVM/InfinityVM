@@ -6,24 +6,21 @@ If you just want to quickly get your hands dirty, head over to the [InfinityVM f
 
 ## Structure of a program
 
-A zkVM program is written in Rust and compiles down to RISC-V. The executable file is commonly referred to as an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format).
+A zkVM program is written in a language that compiles down to RISC-V. The executable file is commonly referred to as an [ELF](https://en.wikipedia.org/wiki/Executable_and_Linkable_Format).
 
 The logic for a program is:
 
-1. Read input bytes (e.g. `sp1_zkvm::io::read_vec()`)
-2. Deserialize input bytes (e.g. `U256::abi_decode()`) 
-3. Run logic (e.g. `number.root(2)`)
-4. Serialize output bytes (e.g. `SolType::abi_encode()`)
-5. Write output bytes (e.g. `sp1_zkvm::io::commit_slice()`)
+1. Read input bytes
+2. Deserialize input bytes
+3. Run logic
+4. Serialize output bytes
+5. Write output bytes
 
 Lets take a [square root program](https://github.com/InfinityVM/infinityVM-foundry-template/blob/main/programs/square-root/src/main.rs) as an example. This program takes in a number as input and returns the square root of the number as output. For this exercise we will incrementally build out the program.
 
 First, we read in onchain input and parse:
 
 ```rust,ignore
-#![no_main]
-sp1_zkvm::entrypoint!(main);
-
 fn main() {
 
     // This application only uses onchain input. We read the onchain input here.
@@ -38,9 +35,6 @@ fn main() {
 Next, we run logic (computing the square root) on the input `number`:
 
 ```rust,ignore
-#![no_main]
-sp1_zkvm::entrypoint!(main);
-
 fn main() {
     // .. reading and parsing logic
 
@@ -54,9 +48,6 @@ fn main() {
 Finally, we serialize the output and write it:
 
 ```rust,ignore
-#![no_main]
-sp1_zkvm::entrypoint!(main);
-
 sol! {
     struct NumberWithSquareRoot {
         uint256 number;
@@ -72,7 +63,6 @@ fn main() {
     // Commit the output that will be received by the application contract.
     // Output is encoded using Solidity ABI for easy decoding in the app contract.
     let number_with_square_root = NumberWithSquareRoot { number, square_root };
-
     sp1_zkvm::io::commit_slice(
         <NumberWithSquareRoot as SolType>::abi_encode(&number_with_square_root).as_slice(),
     );

@@ -38,7 +38,6 @@ SP1
 curl -L https://sp1.succinct.xyz | bash
 sp1up
 cargo prove --version
-RUSTUP_TOOLCHAIN=succinct cargo --version
 ```
 
 Foundry

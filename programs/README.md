@@ -2,8 +2,7 @@
 
 This folder contains sample programs for running in the zkVM executor.
 
-We currently only have an SP1 program, but might support other zkVMs in the future. 
-
+We currently have SP1 programs, and plan to support other zkVMs in the future.
 
 Open questions:
 
