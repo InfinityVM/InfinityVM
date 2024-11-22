@@ -1,6 +1,6 @@
 # Writing a zkVM Program
 
-The InfinityVM coprocessor runs zkVM programs. While the zkVM abstraction is extensible across different backends, the current implementation has support for SP1. Please let us know if you would like support for another zkVM, it's fairly straightforward to add!
+The InfinityVM coprocessor runs zkVM programs. While the zkVM abstraction is extensible across different VMs, the current implementation has support for SP1. Please let us know if you would like support for another zkVM, it's fairly straightforward to add!
 
 If you just want to quickly get your hands dirty, head over to the [InfinityVM foundry template](https://github.com/InfinityVM/infinityVM-foundry-template). You can fork the repo and we have instructions on how to write a program in the `README`.
 
