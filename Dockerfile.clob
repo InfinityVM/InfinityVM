@@ -1,4 +1,3 @@
-# TODO: Do we need this risc0 builder?
 FROM us-docker.pkg.dev/infinityvm-core-artifacts/docker/risc0-builder:1.80.1 AS base
 WORKDIR /app
 COPY . .
