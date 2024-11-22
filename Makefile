@@ -19,7 +19,7 @@ lint: clippy fmt
 
 .PHONY: doc-ci
 doc-ci: contracts
-	SP1_SKIP_BUILD=true RUSTDOCFLAGS="--cfg docsrs -D warnings" \
+	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps
 
 .PHONY: doc
