@@ -184,7 +184,7 @@ async fn state_job_submission_clob_consumer() {
             // Wait for the job to be processed
             interval.tick().await;
 
-            let job_id = submit_job_response.into_inner().job_id;
+            let job_id = submit_job_response.job_id;
             let offchain_result_with_metadata = args
                 .coprocessor_node
                 .get_result(GetResultRequest { job_id })
