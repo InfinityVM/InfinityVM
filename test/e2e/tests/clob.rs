@@ -176,6 +176,8 @@ async fn state_job_submission_clob_consumer() {
                 SubmitJobRequest { request, signature, offchain_input: combined_offchain_input };
 
             let submit_job_response = args.coprocessor_node.submit_job(job_request).await.unwrap();
+
+            // Wait for the job to be processed
             interval.tick().await;
 
             let job_id = submit_job_response.into_inner().job_id;
