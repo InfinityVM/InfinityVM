@@ -10,9 +10,6 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
     let elf_path_abs = output_dir_abs.join(elf_name);
     let program_id_path_abs = elf_path_abs.with_extension("vkey");
 
-    println!("cargo:rerun-if-changed={}/Cargo.toml", program_dir);
-    println!("cargo:rerun-if-changed={}/src", program_dir);
-
     let args = BuildArgs {
         elf_name: elf_name.to_string(),
         output_directory: output_dir_abs.to_string_lossy().to_string(),
