@@ -33,9 +33,9 @@ By running the matching logic in the InfinityVM coprocessor, the game is able to
 
 ## Code Overview
 
-The matching game contract is [`MatchingGameConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/examples/matching-game/MatchingGameConsumer.sol).
+The matching game contract is [`MatchingGameConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/matching-game/MatchingGameConsumer.sol).
 
-All code for the matching game server lives in [`matching-game/`](https://github.com/InfinityVM/InfinityVM/tree/main/matching-game) in the InfinityVM repo. Specifically:
+All code for the matching game server lives in [`examples/matching-game/`](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game) in the InfinityVM repo. Specifically:
 
 - [server](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server):
     - [app.rs](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server/src/app.rs): Code for the matching game REST server
@@ -45,11 +45,11 @@ All code for the matching game server lives in [`matching-game/`](https://github
     - [batcher.rs](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/server/src/batcher.rs): Background service which batches requests and sends them to the InfinityVM coprocessor for matching
 - [core](https://github.com/InfinityVM/InfinityVM/tree/main/examples/matching-game/core): Common types and functions with matching logic that are used in both the game server and zkVM program.
 
-The zkVM program for the matching game is [`matching_game.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/programs/app/src/matching_game.rs).
+The zkVM program for the matching game is [`program/src/main.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/programs/program/src/main.rs).
 
 #### Note: Code organization
 
-We defined a lot of the matching logic (such as the `apply_requests` function) in a shared `core` crate so the code can be easily reused in both the game server and the zkVM program. 
+We defined a lot of the matching logic (such as the `apply_requests` function) in a shared `core` crate so the code can be easily reused in both the game server and the zkVM program.
 
 This also allows the `apply_requests` function to be easily unit tested without the restrictions of the zkVM.
 
@@ -98,11 +98,11 @@ In the matching game example, we use the [`kairos-tree`](https://github.com/cspr
 
 ## zkVM program
 
-The zkVM program ([`matching_game.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/programs/app/src/matching_game.rs)) takes in `onchain_input` and `offchain_input` as inputs. It does these things:
+The zkVM program ([`program/src/main.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/programs/program/src/main.rs)) takes in `onchain_input` and `offchain_input` as inputs. It does these things:
 
 1. Decodes `onchain_input` and `offchain_input`.
 1. Verifies merkle proof against the state root provided in `onchain_input`.
-1. Runs the matching game's state transition function, which matches players given the inputs from the batch in `offchain_input` and the list of pending requests in the game's state. We won't explain this function in detail here, but the code for this is in [`apply_requests`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/core/src/lib.rs#L75).
+1. Runs the matching game's state transition function, which matches players given the inputs from the batch in `offchain_input` and the list of pending requests in the game's state. We won't explain this function in detail here, but the code for this is in [`apply_requests`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/matching-game/core/src/lib.rs).
 1. Returns an ABI-encoded output, which includes the new game state root and a list of matched players which will be processed by the game contract to update the contract's state.
 
 ## Ensuring correctness of the state root
