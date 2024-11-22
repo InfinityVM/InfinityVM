@@ -3,7 +3,13 @@ use ivm_zkvm::Zkvm;
 use sp1_build::{build_program_with_args, BuildArgs};
 use std::{fs, path::PathBuf};
 
+const SP1_SKIP_BUILD: &str = "SP1_SKIP_BUILD";
+
 pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
+    if std::env::var(SP1_SKIP_BUILD).unwrap_or_default() != String::default() {
+        return;
+    }
+
     let metadata = MetadataCommand::new().no_deps().exec().unwrap();
     let workspace_root = metadata.workspace_root;
     let output_dir_abs = PathBuf::from(workspace_root).join(output_dir);

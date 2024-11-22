@@ -1,10 +1,10 @@
 .PHONY: clippy-ci
 clippy-ci: contracts
-	RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
+	SP1_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
 
 .PHONY: clippy
 clippy:
-	cargo clippy --fix --allow-dirty --workspace
+	SP1_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace
 
 .PHONY: fmt-ci
 fmt-ci: 
@@ -19,12 +19,12 @@ lint: clippy fmt
 
 .PHONY: doc-ci
 doc-ci: contracts
-	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
+	SP1_SKIP_BUILD=true RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps
 
 .PHONY: doc
 doc: contracts
-	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
+	SP1_SKIP_BUILD=true RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps --open
 
 # Use this for iterating on integration tests
