@@ -7,8 +7,7 @@ use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInpu
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitJobRequest};
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{get_merkle_root_bytes, next_state};
-use matching_game_programs::MATCHING_GAME_ID;
-use risc0_zkvm::sha::Digest;
+use matching_game_programs::get_matching_game_program_id;
 use std::{rc::Rc, sync::Arc};
 use tokio::time::{sleep, Duration};
 use tonic::transport::Channel;
@@ -47,7 +46,7 @@ pub async fn run_batcher(
 ) -> eyre::Result<()> {
     // Wait for the system to have at least one processed request from the matching game server
     ensure_initialized(Arc::clone(&state)).await?;
-    let program_id = Digest::from(MATCHING_GAME_ID).as_bytes().to_vec();
+    let program_id = get_matching_game_program_id();
 
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
     let mut interval = tokio::time::interval(sleep_duration);

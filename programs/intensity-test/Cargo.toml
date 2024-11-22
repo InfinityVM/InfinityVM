@@ -1,0 +1,17 @@
+[package]
+name = "intensity-test-programs"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+once_cell = { workspace = true, features = ["std"] }
+ivm-sp1-utils = { workspace = true }
+
+[build-dependencies]
+sp1-helper = { workspace = true }
+sp1-build = { workspace = true }
+sp1-sdk = { workspace = true }
+ivm-sp1-utils = { workspace = true }

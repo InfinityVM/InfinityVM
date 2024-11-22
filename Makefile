@@ -1,10 +1,10 @@
 .PHONY: clippy-ci
 clippy-ci: contracts
-	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
+	RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
 
 .PHONY: clippy
 clippy:
-	RISC0_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace
+	cargo clippy --fix --allow-dirty --workspace
 
 .PHONY: fmt-ci
 fmt-ci: 
@@ -30,6 +30,7 @@ doc: contracts
 # Use this for iterating on integration tests
 .PHONY: test-all
 test-all: contracts
+	@# Make sure to run the ignored tests
 	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: build

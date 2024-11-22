@@ -11,11 +11,9 @@ workspace = true
 alloy = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
-risc0-zkvm = { workspace = true }
-risc0-binfmt = { workspace = true }
 sp1-sdk = { workspace = true }
 
 [dev-dependencies]
 alloy = { workspace = true, features = ["sol-types"] }
 mock-consumer = { workspace = true }
-mock-consumer-sp1 = { workspace = true }
+mock-consumer-programs = { workspace = true }

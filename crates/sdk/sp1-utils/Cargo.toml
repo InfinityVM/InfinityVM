@@ -1,0 +1,9 @@
+[package]
+name = "ivm-sp1-utils"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+sp1-build = { workspace = true }
+ivm-zkvm = { workspace = true }
+cargo_metadata = { version = "0.18" }

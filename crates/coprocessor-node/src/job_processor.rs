@@ -9,11 +9,11 @@ use ivm_db::{
     tables::{ElfWithMeta, Job, RequestType},
 };
 use ivm_proto::{JobStatus, JobStatusType, VmType};
+use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::{marker::Send, sync::Arc, time::Duration};
 use tokio::task::JoinSet;
 use tracing::{error, info};
-use zkvm_executor::service::ZkvmExecutorService;
 
 /// Delay between retrying failed jobs, in milliseconds.m
 const JOB_RETRY_DELAY_MS: u64 = 250;
@@ -24,8 +24,8 @@ pub enum Error {
     /// database error
     #[error("database error: {0}")]
     Database(#[from] ivm_db::Error),
-    /// ELF with given verifying key already exists in DB
-    #[error("elf with verifying key {0} already exists")]
+    /// ELF with given program ID already exists in DB
+    #[error("elf with program ID {0} already exists")]
     ElfAlreadyExists(String),
     /// Job already exists in DB
     #[error("job already exists")]
@@ -255,7 +255,7 @@ where
                     job.program_id.clone(),
                     job.onchain_input.clone(),
                     elf_with_meta.elf,
-                    VmType::Risc0,
+                    VmType::Sp1,
                 )
                 .await
                 .map(|(result_with_metadata, signature)| (result_with_metadata, signature, None)),
@@ -268,7 +268,7 @@ where
                         job.onchain_input.clone(),
                         job.offchain_input.clone(),
                         elf_with_meta.elf,
-                        VmType::Risc0,
+                        VmType::Sp1,
                     )
                     .await
             }
