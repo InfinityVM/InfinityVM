@@ -27,21 +27,21 @@ The user flow looks like this:
 
 ## Code Overview
 
-The CLOB app contract is [`ClobConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/examples/clob/ClobConsumer.sol).
+The CLOB app contract is [`ClobConsumer.sol`](https://github.com/InfinityVM/InfinityVM/blob/main/contracts/src/clob/ClobConsumer.sol).
 
-All code for the CLOB server lives in [`clob/`](https://github.com/InfinityVM/InfinityVM/tree/main/clob) in the InfinityVM repo. Specifically:
+All code for the CLOB server lives in [`examples/clob/`](https://github.com/InfinityVM/InfinityVM/tree/main/examples/clob) in the InfinityVM repo. Specifically:
 
 - [node](https://github.com/InfinityVM/InfinityVM/tree/main/examples/clob/node): the CLOB service.
 - [client](https://github.com/InfinityVM/InfinityVM/tree/main/examples/clob/client): client for seeding accounts, depositing, placing orders, withdrawing, and viewing state.
 - [core](https://github.com/InfinityVM/InfinityVM/tree/main/examples/clob/core): Types and functions with the CLOB matching logic which is shared by the app server and zkVM program.
 
-The zkVM program for the CLOB is [`clob.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/programs/app/src/clob.rs).
+The zkVM program for the CLOB is [`program/src/main.rs`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/programs/program/src/main.rs).
 
 #### Note: Code organization
 
 We defined a lot of the CLOB logic in a shared `core` crate so the code can be easily reused in both the app server and the zkVM program.
 
-For example, the CLOB engine has a [`tick` function](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/core/src/lib.rs#L282) in the `core` crate which processes a single request. This is used in the [app server code](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/node/src/engine.rs) to process each request sent to the server. This same code is reused in the zkVM program's [state transition function](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/core/src/lib.rs#L275), to process each request in the batch given as input.
+For example, the CLOB engine has a [`tick` function](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/core/src/lib.rs) in the `core` crate which processes a single request. This is used in the [app server code](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/node/src/engine.rs) to process each request sent to the server. This same code is reused in the zkVM program's [state transition function](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/core/src/lib.rs), to process each request in the batch given as input.
 
 This also allows the `tick` function to be easily unit tested without the restrictions of the zkVM.
 
@@ -95,7 +95,7 @@ The zkVM program takes in `onchain_input` and `offchain_input` as inputs. It doe
 
 1. Decodes `onchain_input` and `offchain_input`.
 2. Verifies the merkle proof against the state root provided in `onchain_input`.
-1. Runs the CLOB app's state transition function, which matches orders given the inputs from the batch in `offchain_input` and the existing order book + balances in the CLOB's state. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/core/src/lib.rs#L275).
+1. Runs the CLOB app's state transition function, which matches orders given the inputs from the batch in `offchain_input` and the existing order book + balances in the CLOB's state. We won't explain this function in detail here, but the code for this is in [`zkvm_stf`](https://github.com/InfinityVM/InfinityVM/blob/main/examples/clob/core/src/lib.rs).
 1. Returns an ABI-encoded output, which includes the new CLOB state root and a list of balance updates which will be processed by the CLOB app contract.
 
 The list of state updates sent to the CLOB contract is structured like this:
