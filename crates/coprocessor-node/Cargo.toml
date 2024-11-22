@@ -18,11 +18,15 @@ home = { workspace = true }
 tracing = { workspace = true }
 k256 = { workspace = true }
 reth-db = { workspace = true }
-async-channel = { workspace = true }
 serde = { workspace = true }
-
+dashmap = { workspace = true }
+parking_lot = { workspace = true }
+eyre = { workspace = true }
 prometheus = { workspace = true }
 axum = { workspace = true }
+flume = { workspace = true }
+num_cpus = { workspace = true }
+
 contracts = { workspace = true }
 ivm-abi = { workspace = true }
 ivm-db = { workspace = true }

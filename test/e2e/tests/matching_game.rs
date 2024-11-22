@@ -10,7 +10,7 @@ use ivm_abi::{
     abi_encode_offchain_job_request, JobParams, OffchainResultWithMetadata,
     StatefulAppOnchainInput, StatefulAppResult,
 };
-use ivm_proto::{GetResultRequest, SubmitJobRequest, SubmitProgramRequest, VmType};
+use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType};
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
     api::{
@@ -116,8 +116,12 @@ async fn state_job_submission_matching_game_consumer() {
                 .unwrap()
                 .as_bytes()
                 .to_vec();
-            let job_request =
-                SubmitJobRequest { request, signature, offchain_input: combined_offchain_input };
+            let job_request = SubmitJobRequest {
+                request,
+                signature,
+                offchain_input: combined_offchain_input,
+                relay_strategy: RelayStrategy::Ordered as i32,
+            };
             let submit_job_response =
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 

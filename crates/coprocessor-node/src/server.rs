@@ -4,7 +4,7 @@ use crate::intake::IntakeHandlers;
 use alloy::{
     hex,
     primitives::{keccak256, Signature},
-    signers::Signer,
+    signers::{Signer, SignerSync},
     sol_types::SolType,
 };
 use ivm_abi::{get_job_id, OffchainJobRequest};
@@ -34,7 +34,7 @@ impl<S, D> CoprocessorNodeServerInner<S, D> {
 #[tonic::async_trait]
 impl<S, D> CoprocessorNodeTrait for CoprocessorNodeServerInner<S, D>
 where
-    S: Signer<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.
@@ -83,6 +83,7 @@ where
 
         info!(job_id = hex::encode(job_id), "new job request");
 
+        let relay_strategy = req.relay_strategy();
         let job = Job {
             id: job_id,
             nonce,
@@ -101,6 +102,7 @@ where
             },
             relay_tx_hash: vec![],
             blobs_sidecar: None,
+            relay_strategy,
         };
 
         self.intake_service
@@ -168,11 +170,15 @@ where
             return Err(Status::invalid_argument("program elf must not be empty"));
         }
 
-        let program_id = self
-            .intake_service
-            .submit_elf(req.program_elf, req.vm_type)
-            .await
-            .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))?;
+        // Deriving the program ID is expensive so we do it in a blocking task.
+        let intake_service = self.intake_service.clone();
+        let program_id = tokio::task::spawn_blocking(move || {
+            intake_service
+                .submit_elf(req.program_elf, req.vm_type)
+                .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))
+        })
+        .await
+        .expect("tokio runtime failed")?;
 
         info!(program_id = hex::encode(program_id.clone()), "new elf program");
 

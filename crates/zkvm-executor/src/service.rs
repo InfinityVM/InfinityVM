@@ -4,14 +4,14 @@ use alloy::{
     consensus::BlobTransactionSidecar,
     hex,
     primitives::{keccak256, Address, Signature},
-    signers::Signer,
+    signers::{Signer, SignerSync},
 };
 use eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_abi::{abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata};
 use ivm_proto::VmType;
 use ivm_zkvm::{Sp1, Zkvm};
 use std::marker::Send;
-use tracing::{error, info};
+use tracing::{error, info, instrument};
 
 /// Zkvm executor errors
 #[derive(thiserror::Error, Debug)]
@@ -47,7 +47,7 @@ pub struct ZkvmExecutorService<S> {
 
 impl<S> ZkvmExecutorService<S>
 where
-    S: Signer<Signature> + Send + Sync + 'static + Clone,
+    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + 'static + Clone,
 {
     /// Create a new zkvm executor service
     pub const fn new(signer: S) -> Self {
@@ -60,8 +60,9 @@ where
     }
 
     /// Returns an RLP encoded signature over `eip191_hash_message(msg)`
-    async fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
-        self.signer.sign_message(msg).await.map(|sig| sig.as_bytes().to_vec()).map_err(Into::into)
+    #[inline]
+    fn sign_message(&self, msg: &[u8]) -> Result<Vec<u8>, Error> {
+        self.signer.sign_message_sync(msg).map(|sig| sig.as_bytes().to_vec()).map_err(Into::into)
     }
 
     /// Returns the VM and VM type (enum) for the given VM type (i32)
@@ -77,8 +78,10 @@ where
     /// WARNING: this does not check the program ID of the program. It is up to the caller to
     /// ensure that they trust the ELF has the correct program ID onchain before committing to
     /// the result. Otherwise they risk being slashed because any proof will not verify.
+    #[instrument(skip_all, level = "debug")]
     #[allow(clippy::too_many_arguments)]
-    pub async fn execute_onchain_job(
+    #[inline]
+    pub fn execute_onchain_job(
         &self,
         job_id: [u8; 32],
         max_cycles: u64,
@@ -90,11 +93,8 @@ where
         let vm = self.vm(vm_type)?;
 
         let onchain_input_hash = keccak256(&onchain_input);
-        let raw_output = tokio::task::spawn_blocking(move || {
-            vm.execute(&elf, &onchain_input, &[], max_cycles).map_err(Error::ZkvmExecuteFailed)
-        })
-        .await
-        .expect("spawn blocking join handle is infallible. qed.")?;
+        let raw_output =
+            vm.execute(&elf, &onchain_input, &[], max_cycles).map_err(Error::ZkvmExecuteFailed)?;
 
         let result_with_metadata = abi_encode_result_with_metadata(
             job_id,
@@ -103,7 +103,7 @@ where
             &program_id,
             &raw_output,
         );
-        let zkvm_operator_signature = self.sign_message(&result_with_metadata).await?;
+        let zkvm_operator_signature = self.sign_message(&result_with_metadata)?;
 
         Ok((result_with_metadata, zkvm_operator_signature))
     }
@@ -115,8 +115,10 @@ where
     /// WARNING: this does not check the program ID of the program. It is up to the caller to
     /// ensure that they trust the ELF has the correct program ID onchain before committing to
     /// the result. Otherwise they risk being slashed because any proof will not verify.
-    #[allow(clippy::too_many_arguments)]
-    pub async fn execute_offchain_job(
+    #[instrument(skip_all, level = "debug")]
+    #[allow(clippy::too_many_arguments, clippy::type_complexity)]
+    #[inline]
+    pub fn execute_offchain_job(
         &self,
         job_id: [u8; 32],
         max_cycles: u64,
@@ -130,25 +132,17 @@ where
 
         let onchain_input_hash = keccak256(&onchain_input);
         let offchain_input_hash = keccak256(&offchain_input);
-        let (raw_output, sidecar) = tokio::task::spawn_blocking(move || {
-            let raw_output = vm
-                .execute(&elf, &onchain_input, &offchain_input, max_cycles)
-                .map_err(Error::ZkvmExecuteFailed)?;
+        let raw_output = vm
+            .execute(&elf, &onchain_input, &offchain_input, max_cycles)
+            .map_err(Error::ZkvmExecuteFailed)?;
 
-            // We also build blob sidecars (with proofs) in this blocking task since
-            // it is probably too slow for a standard tokio task
-            let sidecar = if !offchain_input.is_empty() {
-                let sidecar_builder: SidecarBuilder<SimpleCoder> =
-                    std::iter::once(offchain_input).collect();
-                Some(sidecar_builder.build()?)
-            } else {
-                None
-            };
-
-            Ok::<(Vec<u8>, Option<BlobTransactionSidecar>), Error>((raw_output, sidecar))
-        })
-        .await
-        .expect("spawn blocking join handle is infallible. qed.")?;
+        let sidecar = if !offchain_input.is_empty() {
+            let sidecar_builder: SidecarBuilder<SimpleCoder> =
+                std::iter::once(offchain_input).collect();
+            Some(sidecar_builder.build()?)
+        } else {
+            None
+        };
 
         let versioned_hashes =
             sidecar.as_ref().map(|s| s.versioned_hashes().collect()).unwrap_or_default();
@@ -161,13 +155,13 @@ where
             &raw_output,
             versioned_hashes,
         );
-        let zkvm_operator_signature = self.sign_message(&offchain_result_with_metadata).await?;
+        let zkvm_operator_signature = self.sign_message(&offchain_result_with_metadata)?;
 
         Ok((offchain_result_with_metadata, zkvm_operator_signature, sidecar))
     }
 
     /// Derives and returns program ID for the given program ELF.
-    pub async fn create_elf(&self, elf: &[u8], vm_type: VmType) -> Result<Vec<u8>, Error> {
+    pub fn create_elf(&self, elf: &[u8], vm_type: VmType) -> Result<Vec<u8>, Error> {
         let vm = self.vm(vm_type)?;
 
         let program_id = vm

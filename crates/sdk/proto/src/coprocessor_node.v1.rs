@@ -132,6 +132,11 @@ pub struct SubmitJobRequest {
     /// Value of offchain input passed into program (this isn't signed over)
     #[prost(bytes = "vec", tag = "3")]
     pub offchain_input: ::prost::alloc::vec::Vec<u8>,
+    /// The strategy used to relay results to the consumer. This is not directly signed by the user
+    /// so to avoid risks of it getting maliciously modified in transit one should ensure to use
+    /// TLS with the coprocessor node.
+    #[prost(enumeration = "RelayStrategy", tag = "4")]
+    pub relay_strategy: i32,
 }
 /// SubmitJobResponse defines the response structure to submit a job to the
 /// coprocessing coprocessor_node.
@@ -218,6 +223,44 @@ impl VmType {
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "Sp1" => Some(Self::Sp1),
+            _ => None,
+        }
+    }
+}
+/// Strategy for relaying results
+#[serde_as]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum RelayStrategy {
+    /// Relay the result on chain as soon as the job is done. This means that
+    /// this may be relayed before prior requests.
+    Unordered = 0,
+    /// Relay the result on chain in the order the job requests where submitted.
+    /// This means that if a job takes awhile, it may block other completed jobs
+    /// that where submitted after.
+    ///
+    /// Stateful jobs that verify their state root onchain likely want to use this
+    /// option.
+    Ordered = 1,
+}
+impl RelayStrategy {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            RelayStrategy::Unordered => "Unordered",
+            RelayStrategy::Ordered => "Ordered",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "Unordered" => Some(Self::Unordered),
+            "Ordered" => Some(Self::Ordered),
             _ => None,
         }
     }

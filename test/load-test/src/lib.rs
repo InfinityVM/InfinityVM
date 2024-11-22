@@ -1,9 +1,9 @@
 //! Load testing for the coprocessor node
-use alloy::primitives::Address;
+use alloy::{hex, primitives::Address};
 use contracts::get_default_deploy_info;
 use goose::prelude::*;
 use ivm_abi::get_job_id;
-use ivm_proto::{GetResultRequest, GetResultResponse};
+use ivm_proto::{GetResultRequest, GetResultResponse, JobStatusType};
 use ivm_test_utils::{create_and_sign_offchain_request, get_signers};
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use std::env;
@@ -34,6 +34,11 @@ pub fn max_cycles() -> u64 {
         Ok(max_cycles) => max_cycles.parse().unwrap_or(MOCK_CONSUMER_MAX_CYCLES),
         Err(_) => MOCK_CONSUMER_MAX_CYCLES, // Default value if MAX_CYCLES is not set
     }
+}
+
+/// Get the max cycles env var.
+pub fn relay_strategy_is_ordered() -> bool {
+    env::var("RELAY_STRATEGY_ORDERED").unwrap_or_default() != String::new()
 }
 
 /// Get the consumer address env var. If not set, try to get the consumer address from the deploy
@@ -103,33 +108,44 @@ pub async fn get_offchain_request(
 }
 
 /// Wait until a job is completed by the coprocessor node.
-pub async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) {
+pub async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) -> TransactionResult {
+    /// Timeout between each retry.
+    const RETRY_TIMEOUT_MS: u64 = 10;
+    /// We wait a max of 1 minute.
+    const MAX_RETRY_MS: u64 = 60 * 1_000;
+    /// The maximum amount of times to retry.
+    const RETRIES: u64 = MAX_RETRY_MS / RETRY_TIMEOUT_MS;
+
     let consumer_addr: Address =
         Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
     let job_id = get_job_id(nonce, consumer_addr);
 
-    loop {
-        match get_result_status(user, job_id).await {
-            Ok(status) => {
-                // 2 is the status code for a completed job
-                if status == 2 {
-                    break;
-                }
-            }
-            Err(e) => eprintln!("Error getting result: {:?}", e),
+    for _ in 0..RETRIES {
+        if get_result_status(user, job_id).await? == JobStatusType::Done as i64 {
+            return Ok(());
         }
-        tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
+        tokio::time::sleep(tokio::time::Duration::from_millis(RETRY_TIMEOUT_MS)).await;
     }
+
+    tracing::error!(job_id = hex::encode(job_id), "get result timed out after {MAX_RETRY_MS}ms.");
+    // TODO: dial in this error type; just using this error because its the easiest
+    // to construct
+    Err(Box::new(TransactionError::InvalidMethod { method: http::Method::GET }))
 }
 
 /// Get the status of a job from the coprocessor node.
 async fn get_result_status(
     user: &mut GooseUser,
     job_id: [u8; 32],
-) -> Result<i64, Box<dyn std::error::Error>> {
+) -> Result<i64, Box<TransactionError>> {
     let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
     let response = user.post_json("/v1/coprocessor_node/get_result", &get_result_request).await?;
-    let get_result_response: GetResultResponse = response.response?.json().await?;
+    let get_result_response: GetResultResponse = response
+        .response
+        .map_err(|e| Box::new(TransactionError::Reqwest(e)))?
+        .json()
+        .await
+        .map_err(|e| Box::new(TransactionError::Reqwest(e)))?;
 
     match get_result_response.job_result {
         Some(job_result) => match job_result.status {
