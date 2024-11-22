@@ -31,7 +31,7 @@ contracts = { workspace = true }
 ivm-abi = { workspace = true }
 ivm-db = { workspace = true }
 ivm-proto = { workspace = true }
-zkvm-executor = { workspace = true }
+ivm-zkvm-executor = { workspace = true }
 zkvm-tracing = { workspace = true }
 eip4844 = { workspace = true }
 

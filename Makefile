@@ -1,14 +1,10 @@
-# These where required for building and running tests with sp1
-# TODO: https://github.com/InfinityVM/InfinityVM/issues/120
-# RUSTFLAGS = '-Copt-level=3 -Cdebug-assertions -Coverflow-checks=y -Cdebuginfo=0 -C target-cpu=native'
-
 .PHONY: clippy-ci
 clippy-ci: contracts
-	RISC0_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
+	SP1_SKIP_BUILD=true RUSTFLAGS="-D warnings" cargo clippy --workspace --lib --examples --tests --benches --all-features --locked
 
 .PHONY: clippy
 clippy:
-	RISC0_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace
+	SP1_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace
 
 .PHONY: fmt-ci
 fmt-ci: 
@@ -28,7 +24,7 @@ doc-ci: contracts
 
 .PHONY: doc
 doc: contracts
-	RUSTDOCFLAGS="--cfg docsrs -D warnings" \
+	SP1_SKIP_BUILD=true RUSTDOCFLAGS="--cfg docsrs -D warnings" \
 	cargo doc --document-private-items --no-deps --open
 
 # Use this for iterating on integration tests

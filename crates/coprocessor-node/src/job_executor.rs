@@ -12,10 +12,10 @@ use alloy::{
 use flume::{Receiver, Sender};
 use ivm_db::tables::{ElfWithMeta, Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
+use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::{marker::Send, sync::Arc};
 use tracing::{error, instrument};
-use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors for this module.
 #[derive(thiserror::Error, Debug)]
@@ -204,7 +204,7 @@ where
                     job.program_id.clone(),
                     job.onchain_input.clone(),
                     elf_with_meta.elf,
-                    VmType::Risc0,
+                    VmType::Sp1,
                 )
                 .map(|(result_with_metadata, signature)| (result_with_metadata, signature, None)),
             RequestType::Offchain(_) => zk_executor.execute_offchain_job(
@@ -214,7 +214,7 @@ where
                 job.onchain_input.clone(),
                 job.offchain_input.clone(),
                 elf_with_meta.elf,
-                VmType::Risc0,
+                VmType::Sp1,
             ),
         };
 

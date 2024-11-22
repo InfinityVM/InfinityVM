@@ -13,7 +13,7 @@ use clob_core::{
     },
     BorshKeccak256, ClobState,
 };
-use clob_programs::CLOB_ELF;
+use clob_programs::{get_clob_program_id, CLOB_ELF};
 use clob_test_utils::{mint_and_approve, mock_erc20::MockErc20, next_state};
 use e2e::{Args, E2E};
 use ivm_abi::{
@@ -21,12 +21,7 @@ use ivm_abi::{
     StatefulAppOnchainInput, StatefulAppResult,
 };
 use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType};
-use risc0_binfmt::compute_image_id;
 use tokio::time::{sleep, Duration};
-
-fn program_id() -> Vec<u8> {
-    compute_image_id(CLOB_ELF).unwrap().as_bytes().to_vec()
-}
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
@@ -34,7 +29,7 @@ async fn state_job_submission_clob_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let clob = args.clob_consumer.unwrap();
-        let program_id = program_id();
+        let program_id = get_clob_program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_state0 = ClobState::default();
 
@@ -47,7 +42,7 @@ async fn state_job_submission_clob_consumer() {
 
         // Seed coprocessor-node with ELF
         let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
+            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into() };
         let submit_program_response = args
             .coprocessor_node
             .submit_program(submit_program_request)
@@ -140,8 +135,9 @@ async fn state_job_submission_clob_consumer() {
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
 
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(8));
         interval.tick().await; // First tick processes immediately
+        interval.tick().await;
         let mut nonce = 2;
         for (requests, init_state, next_state) in
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
@@ -161,7 +157,7 @@ async fn state_job_submission_clob_consumer() {
 
             let onchain_input = StatefulAppOnchainInput {
                 input_state_root: previous_state_hash,
-                onchain_input: (&[]).into(),
+                onchain_input: vec![].into(),
             };
             let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
@@ -213,7 +209,9 @@ async fn state_job_submission_clob_consumer() {
 
             nonce += 1;
         }
+        interval.tick().await;
 
+        sleep(Duration::from_secs(15)).await;
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));
         let bob_base_bal = alice_base.balanceOf(bob.into()).call().await.unwrap()._0;
@@ -231,12 +229,12 @@ async fn state_job_submission_clob_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn clob_node_e2e() {
     async fn test(mut args: Args) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
         interval.tick().await; // First tick processes immediately
 
         let anvil = args.anvil;
         let clob = args.clob_consumer.unwrap();
-        let program_id = program_id();
+        let program_id = get_clob_program_id();
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_endpoint = args.clob_endpoint.unwrap();
 
@@ -252,7 +250,7 @@ async fn clob_node_e2e() {
 
         // Seed coprocessor-node with ELF
         let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
+            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into() };
         let submit_program_response = args
             .coprocessor_node
             .submit_program(submit_program_request)
@@ -402,6 +400,7 @@ async fn clob_node_e2e() {
         interval.tick().await;
 
         // Check that balances have been updated on chain from the batch.
+        sleep(Duration::from_secs(15)).await;
         let bob_free_base = consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_free_base, U256::from(100));
         let bob_free_quote =
@@ -433,6 +432,7 @@ async fn clob_node_e2e() {
 
         // Wait for batches to hit the chain
         interval.tick().await;
+        sleep(Duration::from_secs(15)).await;
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));

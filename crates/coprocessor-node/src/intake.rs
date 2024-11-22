@@ -16,22 +16,22 @@ use alloy::{
 use flume::Sender;
 use ivm_db::{get_elf, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
+use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::sync::Arc;
 use tokio::sync::oneshot;
-use zkvm_executor::service::ZkvmExecutorService;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     /// Could not create ELF in zkvm executor
     #[error("failed to create ELF in zkvm executor: {0}")]
-    CreateElfFailed(#[from] zkvm_executor::service::Error),
+    CreateElfFailed(#[from] ivm_zkvm_executor::service::Error),
     /// database error
     #[error("database error: {0}")]
     Database(#[from] ivm_db::Error),
-    /// ELF with given verifying key already exists in DB
-    #[error("elf with verifying key {0} already exists")]
+    /// ELF with given program ID already exists in DB
+    #[error("elf with program ID {0} already exists")]
     ElfAlreadyExists(String),
     /// Job already exists in DB
     #[error("job already exists")]
@@ -135,7 +135,7 @@ where
         Ok(())
     }
 
-    /// Submit program ELF, save it in DB, and return verifying key.
+    /// Submit program ELF, save it in DB, and return program ID.
     pub fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
         let program_id = self.zk_executor.create_elf(&elf, vm_type)?;
@@ -144,10 +144,7 @@ where
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
             .is_some()
         {
-            return Err(Error::ElfAlreadyExists(format!(
-                "elf with verifying key {:?} already exists",
-                hex::encode(program_id.as_slice()),
-            )));
+            return Err(Error::ElfAlreadyExists(hex::encode(program_id.as_slice())));
         }
 
         // Write the elf and make sure it completes before responding to the user.

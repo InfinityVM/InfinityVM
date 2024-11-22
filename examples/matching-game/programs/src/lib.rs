@@ -1,18 +1,28 @@
-//! Binding to ZKVM programs.
+use ivm_sp1_utils::get_program_id;
+use once_cell::sync::Lazy;
 
-include!(concat!(env!("OUT_DIR"), "/methods.rs"));
+pub const MATCHING_GAME_ELF: &[u8] =
+    include_bytes!("../../../../target/sp1/matching-game/matching-game-sp1-guest");
+
+static MATCHING_GAME_PROGRAM_ID: Lazy<[u8; 32]> = Lazy::new(|| {
+    let program_id_path = "target/sp1/matching-game/matching-game-sp1-guest.vkey";
+    get_program_id(program_id_path)
+});
+
+pub fn get_matching_game_program_id() -> [u8; 32] {
+    *MATCHING_GAME_PROGRAM_ID
+}
 
 #[cfg(test)]
 mod tests {
-    use alloy::sol_types::{SolType, SolValue};
+    use alloy::sol_types::SolType;
+    use ivm_abi::{StatefulAppOnchainInput, StatefulAppResult};
+    use ivm_zkvm::Zkvm;
+    use kairos_trie::{stored::memory_db::MemoryDb, NodeHash, TrieRoot};
     use matching_game_core::{
         api::{CancelNumberRequest, Request, SubmitNumberRequest},
         get_merkle_root_bytes, next_state, Match, Matches,
     };
-
-    use ivm_abi::{StatefulAppOnchainInput, StatefulAppResult};
-    use ivm_zkvm::Zkvm;
-    use kairos_trie::{stored::memory_db::MemoryDb, NodeHash, TrieRoot};
     use std::rc::Rc;
 
     #[test]
@@ -50,13 +60,11 @@ mod tests {
         trie_db: Rc<MemoryDb<Vec<u8>>>,
         pre_txn_merkle_root: TrieRoot<NodeHash>,
     ) -> (TrieRoot<NodeHash>, StatefulAppResult) {
-        let requests_bytes =
-            bincode::serialize(&requests).expect("bincode serialization works. qed.");
+        let requests_bytes = bincode::serialize(&requests).unwrap();
 
         let (post_txn_merkle_root, snapshot, _) =
             next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
-        let snapshot_bytes =
-            bincode::serialize(&snapshot).expect("bincode serialization works. qed.");
+        let snapshot_bytes = bincode::serialize(&snapshot).unwrap();
 
         let mut combined_offchain_input = Vec::new();
         combined_offchain_input.extend_from_slice(&(requests_bytes.len() as u32).to_le_bytes());
@@ -68,10 +76,10 @@ mod tests {
             onchain_input: [0].into(),
         };
 
-        let out_bytes = ivm_zkvm::Risc0 {}
+        let out_bytes = ivm_zkvm::Sp1
             .execute(
                 super::MATCHING_GAME_ELF,
-                <StatefulAppOnchainInput as SolValue>::abi_encode(&onchain_input).as_slice(),
+                <StatefulAppOnchainInput as SolType>::abi_encode(&onchain_input).as_slice(),
                 &combined_offchain_input,
                 32 * 1000 * 1000,
             )
@@ -79,7 +87,7 @@ mod tests {
 
         (
             post_txn_merkle_root,
-            <StatefulAppResult as SolValue>::abi_decode(&out_bytes, true).unwrap(),
+            <StatefulAppResult as SolType>::abi_decode(&out_bytes, false).unwrap(),
         )
     }
 }

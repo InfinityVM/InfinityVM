@@ -1,5 +1,5 @@
-//! ZKVM program build script.
+use ivm_sp1_utils::build_sp1_program;
 
 fn main() {
-    risc0_build::embed_methods();
+    build_sp1_program("matching-game-sp1-guest", "program/", "target/sp1/matching-game/");
 }

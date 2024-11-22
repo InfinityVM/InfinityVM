@@ -29,3 +29,7 @@ logs/
 # Load testing report
 report.html
 my_flamegraph.svg
+
+# SP1 ELF files
+**/elf-compilation/
+**/elf/

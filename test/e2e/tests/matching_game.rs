@@ -19,14 +19,10 @@ use matching_game_core::{
     },
     get_merkle_root_bytes, next_state,
 };
-use matching_game_programs::MATCHING_GAME_ELF;
+use matching_game_programs::{get_matching_game_program_id, MATCHING_GAME_ELF};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
-use risc0_binfmt::compute_image_id;
 use std::rc::Rc;
-
-fn program_id() -> Vec<u8> {
-    compute_image_id(MATCHING_GAME_ELF).unwrap().as_bytes().to_vec()
-}
+use tokio::time::{sleep, Duration};
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
@@ -34,7 +30,7 @@ async fn state_job_submission_matching_game_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let matching_game = args.matching_game_consumer.unwrap();
-        let program_id = program_id();
+        let program_id = get_matching_game_program_id();
         let matching_game_signer_wallet =
             EthereumWallet::from(matching_game.matching_game_signer.clone());
 
@@ -46,7 +42,7 @@ async fn state_job_submission_matching_game_consumer() {
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
             program_elf: MATCHING_GAME_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
+            vm_type: VmType::Sp1.into(),
         };
         let submit_program_response = args
             .coprocessor_node
@@ -176,12 +172,12 @@ async fn state_job_submission_matching_game_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn matching_game_server_e2e() {
     async fn test(mut args: Args) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(13));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
         interval.tick().await; // First tick processes immediately
 
         let anvil = args.anvil;
         let matching_game = args.matching_game_consumer.unwrap();
-        let program_id = program_id();
+        let program_id = get_matching_game_program_id();
         let matching_game_signer_wallet =
             EthereumWallet::from(matching_game.matching_game_signer.clone());
         let matching_game_endpoint = args.matching_game_endpoint.unwrap();
@@ -197,7 +193,7 @@ async fn matching_game_server_e2e() {
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
             program_elf: MATCHING_GAME_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
+            vm_type: VmType::Sp1.into(),
         };
         let submit_program_response = args
             .coprocessor_node
@@ -243,6 +239,7 @@ async fn matching_game_server_e2e() {
 
         // Give the batcher some time to process.
         interval.tick().await;
+        sleep(Duration::from_secs(15)).await;
 
         // Check that partners have been updated on chain from the batch.
         let partner = consumer_contract.getPartner(alice.into()).call().await.unwrap()._0;

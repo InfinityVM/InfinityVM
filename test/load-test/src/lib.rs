@@ -130,7 +130,7 @@ pub async fn wait_until_job_completed(user: &mut GooseUser, nonce: u64) -> Trans
     tracing::error!(job_id = hex::encode(job_id), "get result timed out after {MAX_RETRY_MS}ms.");
     // TODO: dial in this error type; just using this error because its the easiest
     // to construct
-    Err(Box::new(TransactionError::InvalidMethod { method: reqwest::Method::GET }))
+    Err(Box::new(TransactionError::InvalidMethod { method: http::Method::GET }))
 }
 
 /// Get the status of a job from the coprocessor node.

@@ -1,11 +1,10 @@
 //! Coprocessor node database.
 
-use ivm_proto::VmType;
 use reth_db::{
     create_db,
     mdbx::{DatabaseArguments, DatabaseFlags},
     models::ClientVersion,
-    transaction::{DbTx, DbTxMut},
+    transaction::DbTx,
     Database, DatabaseEnv, DatabaseError, TableType,
 };
 use reth_db_api::cursor::DbCursorRO;
@@ -37,19 +36,6 @@ pub enum Error {
     /// invalid address length
     #[error("invalid address length")]
     InvalidAddressLength,
-}
-
-/// Write an ELF file to the database
-pub fn put_elf<D: Database>(
-    db: Arc<D>,
-    vm_type: VmType,
-    program_id: &[u8],
-    elf: Vec<u8>,
-) -> Result<(), Error> {
-    let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
-    let key = Sha256Key::new(program_id);
-
-    db.update(|tx| tx.put::<ElfTable>(key, elf_with_meta))?.map_err(Into::into)
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist

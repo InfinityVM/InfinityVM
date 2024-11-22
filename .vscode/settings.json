@@ -1,6 +1,6 @@
 {
-  "rust-analyzer.server.extraEnv": {
-    "RISC0_SKIP_BUILD": "true",
-  },
   "rust-analyzer.cargo.targetDir": true,
+  "rust-analyzer.server.extraEnv": {
+    "SP1_SKIP_BUILD": "true"
+  }
 }

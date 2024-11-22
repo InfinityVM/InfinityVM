@@ -8,11 +8,11 @@ use clob_node::{
 use clob_programs::CLOB_ELF;
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
 use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
-use intensity_test_methods::INTENSITY_TEST_GUEST_ELF;
+use intensity_test_programs::INTENSITY_TEST_ELF;
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use ivm_test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
 use mock_consumer::anvil_with_mock_consumer;
-use mock_consumer_methods::MOCK_CONSUMER_GUEST_ELF;
+use mock_consumer_programs::MOCK_CONSUMER_ELF;
 use std::{fs::File, process::Command};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{info, warn};
@@ -133,20 +133,20 @@ async fn main() {
             CoprocessorNodeClient::connect(client_coproc_grpc.clone()).await.unwrap();
         info!("Submitting CLOB ELF to coprocessor node");
         let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Risc0.into() };
+            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into() };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
         info!("Submitting MockConsumer ELF to coprocessor node");
         let submit_program_request = SubmitProgramRequest {
-            program_elf: MOCK_CONSUMER_GUEST_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
+            program_elf: MOCK_CONSUMER_ELF.to_vec(),
+            vm_type: VmType::Sp1.into(),
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
         info!("Submitting IntensityTest ELF to coprocessor node");
         let submit_program_request = SubmitProgramRequest {
-            program_elf: INTENSITY_TEST_GUEST_ELF.to_vec(),
-            vm_type: VmType::Risc0.into(),
+            program_elf: INTENSITY_TEST_ELF.to_vec(),
+            vm_type: VmType::Sp1.into(),
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();
     }

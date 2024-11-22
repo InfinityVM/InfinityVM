@@ -1,19 +1,11 @@
 //! ZKVM trait and implementations. The trait should abstract over any complexities to specific VMs.
 
-use risc0_binfmt::compute_image_id;
-use risc0_zkvm::{Executor, ExecutorEnv, LocalProver};
+use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
 use thiserror::Error;
 
 /// The error
 #[derive(Error, Debug)]
 pub enum Error {
-    /// Error from the Risc0
-    #[error("Risc0 error: {source}")]
-    Risc0 {
-        /// The underlying error from Risc0
-        source: anyhow::Error,
-    },
-
     /// Error from the Sp1
     #[error("Sp1 error: {source}")]
     Sp1 {
@@ -28,12 +20,12 @@ pub enum Error {
 
 /// Something that can execute programs and generate ZK proofs for them.
 pub trait Zkvm {
-    /// Derive the verifying key from an elf
-    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
+    /// Derive the program ID from an elf
+    fn derive_program_id(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error>;
 
     /// Execute the program and return the raw output.
     ///
-    /// This does _not_ check that the verifying key is correct.
+    /// This does _not_ check that the program ID is correct.
     fn execute(
         &self,
         program_elf: &[u8],
@@ -42,15 +34,11 @@ pub trait Zkvm {
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error>;
 
-    /// Check if the verifying key can be derived from program elf.
-    fn is_correct_verifying_key(
-        &self,
-        program_elf: &[u8],
-        program_verifying_key: &[u8],
-    ) -> Result<bool, Error> {
-        let derived_verifying_key = self.derive_verifying_key(program_elf)?;
+    /// Check if the program ID can be derived from program elf.
+    fn is_correct_program_id(&self, program_elf: &[u8], program_id: &[u8]) -> Result<bool, Error> {
+        let derived_program_id = self.derive_program_id(program_elf)?;
 
-        Ok(derived_verifying_key == program_verifying_key)
+        Ok(derived_program_id == program_id)
     }
 
     // methods for pessimists
@@ -58,18 +46,14 @@ pub trait Zkvm {
     // fn verify()
 }
 
-/// Risc0 impl of [Zkvm].
-#[derive(Debug)]
-pub struct Risc0;
+/// Sp1 impl of [Zkvm], includes the prover client.
+#[derive(Debug, Clone)]
+pub struct Sp1;
 
-impl Zkvm for Risc0 {
-    fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-        let image_id = compute_image_id(program_elf)
-            .map_err(|source| Error::Risc0 { source })?
-            .as_bytes()
-            .to_vec();
-
-        Ok(image_id)
+impl Zkvm for Sp1 {
+    fn derive_program_id(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
+        let (_, program_id) = ProverClient::new().setup(program_elf);
+        Ok(program_id.hash_bytes().to_vec())
     }
 
     fn execute(
@@ -79,92 +63,51 @@ impl Zkvm for Risc0 {
         offchain_input: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
-        let onchain_input_len = onchain_input.len() as u32;
-        let offchain_input_len = offchain_input.len() as u32;
-        let env = ExecutorEnv::builder()
-            .session_limit(Some(max_cycles))
-            .write(&onchain_input_len)
-            .map_err(|source| Error::Risc0 { source })?
-            .write_slice(onchain_input)
-            .write(&offchain_input_len)
-            .map_err(|source| Error::Risc0 { source })?
-            .write_slice(offchain_input)
-            .build()
-            .map_err(|source| Error::Risc0 { source })?;
+        let mut stdin = SP1Stdin::new();
+        stdin.write_slice(onchain_input);
+        stdin.write_slice(offchain_input);
 
-        let prover = LocalProver::new("locals only");
-        let prove_info =
-            prover.execute(env, program_elf).map_err(|source| Error::Risc0 { source })?;
+        let client = ProverClient::new();
+        let (output, _) = client
+            .execute(program_elf, stdin)
+            .max_cycles(max_cycles)
+            .run()
+            .map_err(|e| Error::Sp1 { source: e })?;
 
-        Ok(prove_info.journal.bytes)
+        Ok(output.to_vec())
     }
 }
 
-// TODO: https://github.com/InfinityVM/InfinityVM/issues/120
-// Sp1 impl of [Zkvm].
-// #[derive(Debug)]
-// pub struct Sp1;
-// impl Zkvm for Sp1 {
-//     fn derive_verifying_key(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-//         let (_, vk) = ProverClient::new().setup(program_elf);
-
-//         Ok(vk.hash_bytes().to_vec())
-//     }
-
-//     fn execute_onchain_job(
-//         &self,
-//         program_elf: &[u8],
-//         raw_input: &[u8],
-//         max_cycles: u64,
-//     ) -> Result<Vec<u8>, Error> {
-//         let mut stdin = SP1Stdin::new();
-//         stdin.write_slice(raw_input);
-
-//         let client = ProverClient::new();
-//         let (public_values, _) = client
-//             .execute(program_elf, stdin)
-//             .max_cycles(max_cycles)
-//             .run()
-//             .map_err(|source| Error::Sp1 { source })?;
-
-//         Ok(public_values.to_vec())
-//     }
-// }
-
 #[cfg(test)]
 mod test {
-    use crate::{Risc0, Zkvm};
+    use crate::{Sp1, Zkvm};
     use alloy::sol_types::SolValue;
     use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
-
-    const MOCK_CONSUMER_ELF_PATH: &str =
-        "../../target/riscv-guest/riscv32im-risc0-zkvm-elf/release/mock-consumer-guest";
+    use mock_consumer_programs::MOCK_CONSUMER_ELF;
 
     #[test]
-    fn risc0_execute_can_correctly_execute_program() {
-        let elf = std::fs::read(MOCK_CONSUMER_ELF_PATH).unwrap();
-
+    fn sp1_execute_can_correctly_execute_program() {
         let input = mock_contract_input_addr();
         let raw_input = input.abi_encode();
 
-        let raw_result = &Risc0.execute(&elf, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES).unwrap();
+        let raw_result =
+            &Sp1.execute(MOCK_CONSUMER_ELF, &raw_input, &[], MOCK_CONSUMER_MAX_CYCLES).unwrap();
 
         assert_eq!(*raw_result, mock_raw_output());
     }
 
     #[test]
-    fn risc0_is_correct_verifying_key() {
-        let elf = std::fs::read(MOCK_CONSUMER_ELF_PATH).unwrap();
-        let mut image_id = risc0_binfmt::compute_image_id(&elf).unwrap().as_bytes().to_vec();
+    fn sp1_is_correct_program_id() {
+        let program_id_bytes = mock_consumer_programs::get_mock_consumer_program_id().to_vec();
 
-        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
+        let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(correct);
 
-        image_id.pop();
-        image_id.push(255);
+        let mut modified_program_id = program_id_bytes;
+        modified_program_id.pop();
+        modified_program_id.push(255);
 
-        let correct = &Risc0.is_correct_verifying_key(&elf, &image_id).unwrap();
-
+        let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &modified_program_id).unwrap();
         assert!(!correct);
     }
 }

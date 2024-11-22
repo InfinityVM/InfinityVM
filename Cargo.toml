@@ -13,17 +13,20 @@ members = [
 	"crates/scripts",
 	"crates/sdk/abi",
 	"crates/sdk/proto",
+	"crates/sdk/sp1-utils",
 	"crates/sdk/test-utils",
 	"crates/tracing",
 	"crates/zkvm",
 	"crates/zkvm-executor",
     "crates/tracing",
-	"examples/clob/*",
-	"examples/matching-game/*",
+	"examples/clob/programs",
+	"examples/matching-game/programs",
 	"test/e2e",
 	"test/load-test",
-	"programs/risc0/mock-consumer/methods",
-	"programs/risc0/intensity-test/methods",
+	"programs/mock-consumer",
+	"programs/mock-consumer/program",
+	"programs/intensity-test",
+	"programs/intensity-test/program",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -141,9 +144,8 @@ goose = { version = "0.17", default-features = false }
 
 # h
 home = { version = "0.5", default-features = false }
+http = { version = "0.2.12", default-features = false }
 
-# i
-# j
 # k
 k256 = { version = "0.13", default-features = false }
 kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = ["serde"] }
@@ -163,10 +165,6 @@ prost = { version = "0.13", features = ["derive", "std"], default-features = fal
 
 # q
 # r
-risc0-zkvm = { version = "1", features = ["prove"], default-features = false }
-risc0-zkp = { version = "1", default-features = false } 
-risc0-build = { version = "1", default-features = false }
-risc0-binfmt = { version = "1", default-features = false }
 rand = { version = "0.8", default-features = false }
 reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", features = ["mdbx"], default-features = false }
 reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.0.5", default-features = false }
@@ -179,10 +177,10 @@ serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
-# TODO: https://github.com/InfinityVM/InfinityVM/issues/120
-# sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", features = ["libm"], rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
-# sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
-# sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "9a19e0becfe2bd133d3b1bf7070edf90892f7171", default-features = false }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", features = ["libm", "lib"], default-features = false }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", features = ["network"], default-features = false }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", default-features = false }
+sp1-build = "3.1.0"
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
@@ -225,10 +223,11 @@ matching-game-core = { path = "examples/matching-game/core" }
 matching-game-server = { path = "examples/matching-game/server" }
 matching-game-programs = { path = "examples/matching-game/programs" }
 mock-consumer = { path = "crates/mock-consumer" }
-mock-consumer-methods = { path = "programs/risc0/mock-consumer/methods" }
-intensity-test-methods = { path = "programs/risc0/intensity-test/methods" }
 ivm-proto = { path = "crates/sdk/proto" }
+ivm-sp1-utils = { path = "crates/sdk/sp1-utils" }
 ivm-test-utils = { path = "crates/sdk/test-utils" }
 ivm-zkvm = { path = "crates/zkvm" }
 zkvm-tracing = { package = "tracing", path = "crates/tracing" }
-zkvm-executor = { path = "crates/zkvm-executor" }
+ivm-zkvm-executor = { path = "crates/zkvm-executor" }
+mock-consumer-programs = { path = "programs/mock-consumer" }
+intensity-test-programs = { path = "programs/intensity-test" }
