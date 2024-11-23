@@ -226,7 +226,7 @@ async fn state_job_submission_clob_consumer() {
 }
 
 #[ignore]
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn clob_node_e2e() {
     async fn test(mut args: Args) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
@@ -452,7 +452,7 @@ async fn clob_node_e2e() {
 // Test that we can partially match orders, withdraw, and then cancel a partially matched order. In
 // the past the clob has panicked in this edge case
 #[ignore]
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn cancel_works() {
     async fn test(args: Args) {
         let clob = args.clob_consumer.unwrap();
