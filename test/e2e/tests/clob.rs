@@ -308,6 +308,8 @@ async fn clob_node_e2e() {
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
 
+        interval.tick().await;
+
         let state = client.clob_state().await.unwrap();
         assert_eq!(
             *state.base_balances().get(&alice).unwrap(),
