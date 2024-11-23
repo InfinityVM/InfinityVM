@@ -117,7 +117,7 @@ significant_drop_tightening = "allow"
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 # only include features that we know can be compiled into zkvm program
-alloy = { version = "0.2", features = ["sol-types"], default-features = false }
+alloy = { version = "0.6", features = ["sol-types"], default-features = false }
 
 # b
 bincode = { version = "1", default-features = false }

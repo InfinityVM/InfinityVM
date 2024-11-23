@@ -17,7 +17,7 @@ use crate::{
 use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
-    primitives::Address,
+    primitives::{Address, PrimitiveSignature},
     providers::{fillers::RecommendedFiller, Provider, ProviderBuilder},
     rpc::types::TransactionReceipt,
     signers::Signature,
@@ -386,13 +386,13 @@ pub struct JobRelayerBuilder<S> {
     signer: Option<S>,
 }
 
-impl<S: TxSigner<Signature> + Send + Sync + 'static> Default for JobRelayerBuilder<S> {
+impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> Default for JobRelayerBuilder<S> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
+impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> JobRelayerBuilder<S> {
     /// Create a new [Self].
     pub const fn new() -> Self {
         Self { signer: None }

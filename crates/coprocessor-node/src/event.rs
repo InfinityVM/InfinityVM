@@ -8,9 +8,9 @@ use crate::{
 use alloy::{
     eips::BlockNumberOrTag,
     hex,
-    primitives::Address,
+    primitives::{PrimitiveSignature, Address},
     providers::{Provider, ProviderBuilder, WsConnect},
-    signers::{Signature, Signer, SignerSync},
+    signers::{Signer, SignerSync},
     transports::{RpcError, TransportError, TransportErrorKind},
 };
 use contracts::job_manager::JobManager;
@@ -62,7 +62,7 @@ pub struct JobEventListener<S, D> {
 
 impl<S, D> JobEventListener<S, D>
 where
-    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<PrimitiveSignature> + SignerSync<PrimitiveSignature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create a new instance of [Self].
