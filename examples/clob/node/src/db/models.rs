@@ -41,7 +41,7 @@ macro_rules! create_model {
             }
 
             impl reth_db_api::table::Decompress for [<$name Model>] {
-                fn decompress<B: AsRef<[u8]>>(value: B) -> Result<Self, reth_db_api::DatabaseError> {
+                fn decompress(value: &[u8]) -> Result<Self, reth_db_api::DatabaseError> {
                     borsh::from_slice(value.as_ref()).map_err(|_| reth_db_api::DatabaseError::Decode)
                 }
             }

@@ -8,19 +8,37 @@ reth_db::tables! {
     /// Store global index
     /// 0 => global index of latest seen
     /// 1 => global index of latest fully processed
-    table GlobalIndexTable<Key = u32, Value = u64>;
+    table GlobalIndexTable {
+       type Key = u32;
+       type Value = u64;
+    }
 
     /// Requests table, keyed by global index.
-    table RequestTable<Key = u64, Value = RequestModel>;
+    table RequestTable {
+        type Key = u64;
+        type Value = RequestModel;
+    }
 
     /// Responses table, keyed by global index.
-    table ResponseTable<Key = u64, Value = ResponseModel>;
+    table ResponseTable {
+        type Key = u64;
+        type Value = ResponseModel;
+    }
 
     /// ClOB State table, keyed by global index.
-    table ClobStateTable<Key = u64, Value = ClobStateModel>;
+    table ClobStateTable {
+        type Key = u64;
+        type Value = ClobStateModel;
+    }
 
     /// Diff table, keyed by global index.
-    table DiffTable<Key = u64, Value = VecDiffModel>;
+    table DiffTable {
+        type Key = u64;
+        type Value = VecDiffModel;
+    }
 
-    table BlockHeightTable<Key = u32, Value = u64>;
+    table BlockHeightTable {
+        type Key = u32;
+        type Value = u64;
+    }
 }

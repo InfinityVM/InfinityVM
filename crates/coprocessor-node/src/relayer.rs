@@ -128,7 +128,7 @@ where
     D: Database + 'static,
 {
     /// Create a new instance of [Self].
-    pub fn new(
+    pub const fn new(
         writer_tx: Sender<WriterMsg>,
         relay_rx: Receiver<Relay>,
         job_relayer: Arc<JobRelayer>,

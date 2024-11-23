@@ -69,7 +69,7 @@ where
     D: Database + 'static,
 {
     /// Create a new instance of [`Self`]
-    pub fn new(db: Arc<D>, rx: Receiver<WriterMsg>) -> Self {
+    pub const fn new(db: Arc<D>, rx: Receiver<WriterMsg>) -> Self {
         Self { db, rx }
     }
 
