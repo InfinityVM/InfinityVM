@@ -27,7 +27,7 @@ macro_rules! impl_compress_decompress {
         }
 
         impl reth_db::table::Decompress for $name {
-            fn decompress<B: AsRef<[u8]>>(value: B) -> Result<Self, reth_db::DatabaseError> {
+            fn decompress(value: &[u8]) -> Result<Self, reth_db::DatabaseError> {
                 bincode::deserialize(value.as_ref()).map_err(|_| reth_db::DatabaseError::Decode)
             }
         }
@@ -112,8 +112,8 @@ impl Encode for B256Key {
 }
 
 impl Decode for B256Key {
-    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
-        let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
+    fn decode(value: &[u8]) -> Result<Self, DatabaseError> {
+        let inner: [u8; 32] = value.try_into().map_err(|_| DatabaseError::Decode)?;
 
         Ok(Self(inner))
     }
@@ -143,8 +143,8 @@ impl Encode for Sha256Key {
 }
 
 impl Decode for Sha256Key {
-    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
-        let inner: [u8; 32] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
+    fn decode(value: &[u8]) -> Result<Self, DatabaseError> {
+        let inner: [u8; 32] = value.try_into().map_err(|_| DatabaseError::Decode)?;
 
         Ok(Self(inner))
     }
@@ -176,8 +176,8 @@ impl Encode for AddrKey {
 }
 
 impl Decode for AddrKey {
-    fn decode<B: AsRef<[u8]>>(value: B) -> Result<Self, DatabaseError> {
-        let inner: [u8; 20] = value.as_ref().try_into().map_err(|_| DatabaseError::Decode)?;
+    fn decode(value: &[u8]) -> Result<Self, DatabaseError> {
+        let inner: [u8; 20] = value.try_into().map_err(|_| DatabaseError::Decode)?;
 
         Ok(Self(inner))
     }
@@ -185,11 +185,26 @@ impl Decode for AddrKey {
 
 reth_db::tables! {
     /// Stores Elf files
-    table ElfTable<Key = Sha256Key, Value = ElfWithMeta>;
+    table ElfTable {
+        type Key = Sha256Key;
+        type Value = ElfWithMeta;
+    }
+
     /// Stores jobs
-    table JobTable<Key = B256Key, Value = Job>;
+    table JobTable {
+        type Key = B256Key;
+        type Value = Job;
+    }
+
     /// Stores failed jobs
-    table RelayFailureJobs<Key = B256Key, Value = Job>;
+    table RelayFailureJobs {
+        type Key = B256Key;
+        type Value = Job;
+    }
+
     /// Last seen block height
-    table LastBlockHeight<Key = u32, Value = u64>;
+    table LastBlockHeight {
+        type Key = u32;
+        type Value = u64;
+    }
 }
