@@ -3,12 +3,14 @@ name = "intensity-test-sp1-guest"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+
 [dependencies]
-sp1-zkvm = { workspace = true, features = ["libm", "lib"], default-features = false }
-alloy = { workspace = true, features = ["sol-types"], default-features = false }
-borsh = { workspace = true }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", features = ["libm", "lib"], default-features = false }
+alloy = { version = "0.2", features = ["sol-types"], default-features = false }
+borsh = { version = "1", features = ["derive", "std"], default-features = false }
 sha2 = { version = "0.10", default-features = false }
 
 [build-dependencies]
-sp1-helper = { workspace = true, default-features = false }
-sp1-build = { workspace = true }
+sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", default-features = false }
+sp1-build = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6" }

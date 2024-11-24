@@ -24,9 +24,7 @@ members = [
 	"test/e2e",
 	"test/load-test",
 	"programs/mock-consumer",
-	"programs/mock-consumer/program",
 	"programs/intensity-test",
-	"programs/intensity-test/program",
 ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
@@ -181,6 +179,8 @@ sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", f
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", features = ["network"], default-features = false }
 sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", default-features = false }
 sp1-build = "3.1.0"
+sp1-core-executor = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", default-features = false }
+sp1-stark = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", default-features = false }
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
