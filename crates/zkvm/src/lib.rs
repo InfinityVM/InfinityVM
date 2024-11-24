@@ -78,19 +78,6 @@ impl Zkvm for Sp1 {
         executor.read_public_values_slice(&mut output);
 
         Ok(output)
-
-        // let mut stdin = SP1Stdin::new();
-        // stdin.write_slice(onchain_input);
-        // stdin.write_slice(offchain_input);
-
-        // let client = ProverClient::new();
-        // let (output, _) = client
-        //     .execute(program_elf, stdin)
-        //     .max_cycles(max_cycles)
-        //     .run()
-        //     .map_err(|e| Error::Sp1 { source: e })?;
-
-        // Ok(output.to_vec())
     }
 }
 
