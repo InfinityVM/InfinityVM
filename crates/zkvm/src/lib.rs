@@ -1,8 +1,6 @@
 //! ZKVM trait and implementations. The trait should abstract over any complexities to specific VMs.
 
-use sp1_core_executor::{Executor, Program};
 use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
-use sp1_stark::SP1CoreOpts;
 use thiserror::Error;
 
 /// The error
@@ -65,19 +63,18 @@ impl Zkvm for Sp1 {
         offchain_input: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
-        let program = Program::from(program_elf).unwrap();
-        let sp1_opts = SP1CoreOpts { shard_batch_size: max_cycles as usize, ..Default::default() };
-        let mut executor = Executor::new(program, sp1_opts);
+        let mut stdin = SP1Stdin::new();
+        stdin.write_slice(onchain_input);
+        stdin.write_slice(offchain_input);
 
-        executor.write_stdin_slice(onchain_input);
-        executor.write_stdin_slice(offchain_input);
+        let client = ProverClient::new();
+        let (output, _) = client
+            .execute(program_elf, stdin)
+            .max_cycles(max_cycles)
+            .run()
+            .map_err(|e| Error::Sp1 { source: e })?;
 
-        executor.execute().map_err(|e| Error::Sp1 { source: e.into() })?;
-
-        let mut output = Vec::new();
-        executor.read_public_values_slice(&mut output);
-
-        Ok(output)
+        Ok(output.to_vec())
     }
 }
 

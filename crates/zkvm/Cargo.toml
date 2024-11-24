@@ -12,8 +12,6 @@ alloy = { workspace = true }
 anyhow = { workspace = true }
 thiserror = { workspace = true }
 sp1-sdk = { workspace = true }
-sp1-core-executor = { workspace = true }
-sp1-stark = { workspace = true }
 
 [dev-dependencies]
 alloy = { workspace = true, features = ["sol-types"] }
