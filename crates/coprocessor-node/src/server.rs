@@ -3,8 +3,7 @@
 use crate::intake::IntakeHandlers;
 use alloy::{
     hex,
-    primitives::{keccak256, PrimitiveSignature
-    },
+    primitives::{keccak256, PrimitiveSignature},
     signers::{Signer, SignerSync},
     sol_types::SolType,
 };

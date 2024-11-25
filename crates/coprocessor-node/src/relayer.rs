@@ -18,12 +18,11 @@ use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
     primitives::{Address, PrimitiveSignature},
-    providers::{fillers::RecommendedFiller, Provider, ProviderBuilder},
+    providers::{Provider, ProviderBuilder},
     rpc::types::TransactionReceipt,
-    signers::Signature,
-    transports::http::reqwest,
+    transports::http::{reqwest, Client, Http},
 };
-use contracts::i_job_manager::IJobManager;
+use contracts::{i_job_manager, job_manager::JobManager};
 use flume::{Receiver, Sender};
 use ivm_abi::abi_encode_offchain_job_request;
 use ivm_db::{
@@ -40,19 +39,30 @@ use tracing::{error, info};
 const JOB_RETRY_DELAY_MS: u64 = 500;
 const JOB_RETRY_COUNT: usize = 3;
 
-type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
+type RecommendedFiller = alloy::providers::fillers::JoinFill<
+    alloy::providers::Identity,
+    alloy::providers::fillers::JoinFill<
+        alloy::providers::fillers::GasFiller,
+        alloy::providers::fillers::JoinFill<
+            alloy::providers::fillers::BlobGasFiller,
+            alloy::providers::fillers::JoinFill<
+                alloy::providers::fillers::NonceFiller,
+                alloy::providers::fillers::ChainIdFiller,
+            >,
+        >,
+    >,
+>;
+
+type HttpTransport = Http<Client>;
 
 type RelayerProvider = alloy::providers::fillers::FillProvider<
-    alloy::providers::fillers::JoinFill<
-        RecommendedFiller,
-        alloy::providers::fillers::WalletFiller<EthereumWallet>,
-    >,
-    alloy::providers::RootProvider<ReqwestTransport>,
-    ReqwestTransport,
+    alloy::providers::fillers::JoinFill<RecommendedFiller, alloy::providers::fillers::WalletFiller<EthereumWallet>>,
+    alloy::providers::RootProvider<HttpTransport>,
+    HttpTransport,
     Ethereum,
 >;
 
-type JobManagerContract = IJobManager::IJobManagerInstance<ReqwestTransport, RelayerProvider>;
+type JobManagerContract = JobManager::JobManagerInstance<HttpTransport, RelayerProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
@@ -83,7 +93,7 @@ pub enum Error {
     TxBroadcast(alloy::contract::Error),
     /// error while waiting for tx inclusion
     #[error("error while waiting for tx inclusion: {0}")]
-    TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    TxInclusion(alloy::providers::PendingTransactionError),
     /// must call [`JobRelayerBuilder::signer`] before building
     #[error("must call JobRelayerBuilder::signer before building")]
     MissingSigner,
@@ -420,6 +430,9 @@ impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> JobRelayerBuilder<
 
         let provider =
             ProviderBuilder::new().with_recommended_fillers().wallet(wallet).on_http(url);
+        // ProviderBuilder::new().with_recommended_fillers().on_http(url);
+        // let job_manager: IJobManagerInstance<Http<Client>, _, Ethereum> =
+        // JobManagerContract::new(job_manager, provider);
         let job_manager = JobManagerContract::new(job_manager, provider);
 
         Ok(JobRelayer { job_manager, confirmations, metrics })

@@ -8,7 +8,7 @@ use crate::{
 use alloy::{
     eips::BlockNumberOrTag,
     hex,
-    primitives::{PrimitiveSignature, Address},
+    primitives::{Address, PrimitiveSignature},
     providers::{Provider, ProviderBuilder, WsConnect},
     signers::{Signer, SignerSync},
     transports::{RpcError, TransportError, TransportErrorKind},
