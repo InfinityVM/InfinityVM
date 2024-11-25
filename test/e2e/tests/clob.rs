@@ -207,7 +207,7 @@ async fn state_job_submission_clob_consumer() {
             nonce += 1;
         }
         // Wait for jobs to hit the chain
-        sleep(Duration::from_secs(4)).await;
+        sleep(Duration::from_secs(2)).await;
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));
