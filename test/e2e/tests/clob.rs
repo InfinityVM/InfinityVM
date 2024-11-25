@@ -305,7 +305,8 @@ async fn clob_node_e2e() {
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
 
-        interval.tick().await;
+        // Wait for deposits to get picked up
+        sleep(Duration::from_secs(10)).await;
 
         let state = client.clob_state().await.unwrap();
         assert_eq!(
@@ -395,11 +396,10 @@ async fn clob_node_e2e() {
             AssetBalance { free: 300, locked: 100 }
         );
 
-        // Give the batcher some time to process.
-        interval.tick().await;
+        // Give the batcher some time to process and hit the chain
+        sleep(Duration::from_secs(10)).await;
 
         // Check that balances have been updated on chain from the batch.
-        sleep(Duration::from_secs(15)).await;
         let bob_free_base = consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_free_base, U256::from(100));
         let bob_free_quote =
@@ -430,8 +430,7 @@ async fn clob_node_e2e() {
         assert!(state.base_balances().is_empty());
 
         // Wait for batches to hit the chain
-        interval.tick().await;
-        sleep(Duration::from_secs(15)).await;
+        sleep(Duration::from_secs(10)).await;
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));
