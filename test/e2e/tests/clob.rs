@@ -179,7 +179,7 @@ async fn state_job_submission_clob_consumer() {
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
-            sleep(Duration::from_secs(4)).await;
+            sleep(Duration::from_secs(8)).await;
 
             let job_id = submit_job_response.job_id;
             let offchain_result_with_metadata = args
