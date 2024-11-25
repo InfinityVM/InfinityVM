@@ -226,9 +226,6 @@ async fn state_job_submission_clob_consumer() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn clob_node_e2e() {
     async fn test(mut args: Args) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
-        interval.tick().await; // First tick processes immediately
-
         let anvil = args.anvil;
         let clob = args.clob_consumer.unwrap();
         let program_id = get_clob_program_id();
