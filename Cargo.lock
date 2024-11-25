@@ -1883,7 +1883,7 @@ dependencies = [
  "ivm-sp1-utils",
  "ivm-zkvm",
  "once_cell",
- "sp1-build 3.3.0",
+ "sp1-build",
  "sp1-helper",
  "sp1-sdk",
 ]
@@ -3616,7 +3616,7 @@ version = "0.1.0"
 dependencies = [
  "ivm-sp1-utils",
  "once_cell",
- "sp1-build 3.3.0",
+ "sp1-build",
  "sp1-helper",
  "sp1-sdk",
 ]
@@ -3765,7 +3765,7 @@ version = "0.1.0"
 dependencies = [
  "cargo_metadata",
  "ivm-zkvm",
- "sp1-build 3.3.0",
+ "sp1-build",
 ]
 
 [[package]]
@@ -4068,7 +4068,7 @@ dependencies = [
  "kairos-trie",
  "matching-game-core",
  "once_cell",
- "sp1-build 3.3.0",
+ "sp1-build",
  "sp1-sdk",
 ]
 
@@ -4198,7 +4198,7 @@ version = "0.1.0"
 dependencies = [
  "ivm-sp1-utils",
  "once_cell",
- "sp1-build 3.3.0",
+ "sp1-build",
  "sp1-helper",
  "sp1-sdk",
 ]
@@ -6679,19 +6679,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp1-build"
-version = "3.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e64438370a9c565926f6234d3a36ae32a23d01ac815c5512cdc4f8cb160974a3"
-dependencies = [
- "anyhow",
- "cargo_metadata",
- "chrono",
- "clap",
- "dirs",
-]
-
-[[package]]
 name = "sp1-core-executor"
 version = "3.0.0"
 source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
@@ -6807,7 +6794,7 @@ name = "sp1-helper"
 version = "3.0.0"
 source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
 dependencies = [
- "sp1-build 3.0.0",
+ "sp1-build",
 ]
 
 [[package]]
@@ -7013,7 +7000,7 @@ dependencies = [
  "reqwest 0.12.9",
  "reqwest-middleware",
  "serde",
- "sp1-build 3.0.0",
+ "sp1-build",
  "sp1-core-executor",
  "sp1-core-machine",
  "sp1-primitives",

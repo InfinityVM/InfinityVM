@@ -361,7 +361,7 @@ dependencies = [
  "borsh",
  "clob-core",
  "ivm-abi",
- "sp1-build 3.2.1",
+ "sp1-build",
  "sp1-helper",
  "sp1-zkvm",
 ]
@@ -873,24 +873,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp1-build"
-version = "3.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "474a76fa492fed2541d665db433771af10b8f5fe31b1cce86bdd51dd0f9418ba"
-dependencies = [
- "anyhow",
- "cargo_metadata",
- "chrono",
- "clap",
- "dirs",
-]
-
-[[package]]
 name = "sp1-helper"
 version = "3.0.0"
 source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
 dependencies = [
- "sp1-build 3.0.0",
+ "sp1-build",
 ]
 
 [[package]]
