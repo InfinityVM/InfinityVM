@@ -22,7 +22,7 @@ use alloy::{
     rpc::types::TransactionReceipt,
     transports::http::{reqwest, Client, Http},
 };
-use contracts::{i_job_manager, job_manager::JobManager};
+use contracts::job_manager::JobManager;
 use flume::{Receiver, Sender};
 use ivm_abi::abi_encode_offchain_job_request;
 use ivm_db::{
@@ -56,7 +56,10 @@ type RecommendedFiller = alloy::providers::fillers::JoinFill<
 type HttpTransport = Http<Client>;
 
 type RelayerProvider = alloy::providers::fillers::FillProvider<
-    alloy::providers::fillers::JoinFill<RecommendedFiller, alloy::providers::fillers::WalletFiller<EthereumWallet>>,
+    alloy::providers::fillers::JoinFill<
+        RecommendedFiller,
+        alloy::providers::fillers::WalletFiller<EthereumWallet>,
+    >,
     alloy::providers::RootProvider<HttpTransport>,
     HttpTransport,
     Ethereum,
@@ -138,7 +141,7 @@ where
     D: Database + 'static,
 {
     /// Create a new instance of [Self].
-    pub fn new(
+    pub const fn new(
         writer_tx: Sender<WriterMsg>,
         relay_rx: Receiver<Relay>,
         job_relayer: Arc<JobRelayer>,

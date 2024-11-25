@@ -3,7 +3,7 @@
 use alloy::{
     consensus::BlobTransactionSidecar,
     hex,
-    primitives::{keccak256, Address, PrimitiveSignature, Signature},
+    primitives::{keccak256, Address, PrimitiveSignature},
     signers::{Signer, SignerSync},
 };
 use eip4844::{SidecarBuilder, SimpleCoder};
