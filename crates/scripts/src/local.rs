@@ -16,6 +16,10 @@ use mock_consumer_programs::MOCK_CONSUMER_ELF;
 use std::{fs::File, process::Command};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{info, warn};
+use matching_game_programs::get_matching_game_program_id;
+use mock_consumer_programs::get_mock_consumer_program_id;
+use intensity_test_programs::get_intensity_test_program_id;
+use clob_programs::get_clob_program_id;
 
 const ANVIL_PORT: u16 = 8545;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
@@ -133,13 +137,15 @@ async fn main() {
             CoprocessorNodeClient::connect(client_coproc_grpc.clone()).await.unwrap();
         info!("Submitting CLOB ELF to coprocessor node");
         let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into() };
+            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into(), program_id: get_matching_game_program_id().to_vec() };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
         info!("Submitting MockConsumer ELF to coprocessor node");
         let submit_program_request = SubmitProgramRequest {
             program_elf: MOCK_CONSUMER_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
+            program_id: get_mock_consumer_program_id().to_vec()
+
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
@@ -147,6 +153,7 @@ async fn main() {
         let submit_program_request = SubmitProgramRequest {
             program_elf: INTENSITY_TEST_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
+            program_id: get_intensity_test_program_id().to_vec(),
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();
     }
