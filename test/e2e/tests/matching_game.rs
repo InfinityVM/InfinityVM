@@ -43,7 +43,7 @@ async fn state_job_submission_matching_game_consumer() {
         let submit_program_request = SubmitProgramRequest {
             program_elf: MATCHING_GAME_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
-            program_id: program_id.to_vec()
+            program_id: program_id.to_vec(),
         };
         let submit_program_response = args
             .coprocessor_node
@@ -192,7 +192,7 @@ async fn matching_game_server_e2e() {
         let submit_program_request = SubmitProgramRequest {
             program_elf: MATCHING_GAME_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
-            program_id: program_id.to_vec()
+            program_id: program_id.to_vec(),
         };
         let submit_program_response = args
             .coprocessor_node

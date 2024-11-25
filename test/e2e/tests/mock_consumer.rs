@@ -39,7 +39,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let submit_program_request = SubmitProgramRequest {
             program_elf: MOCK_CONSUMER_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
-            program_id: program_id.to_vec()
+            program_id: program_id.to_vec(),
         };
         let submit_program_response = args
             .coprocessor_node
@@ -174,7 +174,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let submit_program_request = SubmitProgramRequest {
             program_elf: MOCK_CONSUMER_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
-            program_id: program_id.to_vec()
+            program_id: program_id.to_vec(),
         };
         let submit_program_response = args
             .coprocessor_node

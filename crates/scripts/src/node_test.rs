@@ -7,7 +7,7 @@ use alloy::{
     signers::local::LocalSigner,
     sol_types::SolValue,
 };
-use clob_programs::CLOB_ELF;
+use clob_programs::{get_clob_program_id, CLOB_ELF};
 use contracts::mock_consumer::MockConsumer;
 use ivm_abi::StatefulAppOnchainInput;
 use ivm_proto::{
@@ -27,7 +27,6 @@ use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_programs::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
 use std::rc::Rc;
 use tracing::{error, info};
- use clob_programs::get_clob_program_id;
 
 const COPROCESSOR_IP: &str = "";
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
@@ -51,8 +50,11 @@ async fn main() {
         CoprocessorNodeClient::connect(client_coproc_grpc.clone()).await.unwrap();
 
     info!("Trying to submit CLOB ELF to coprocessor node");
-    let submit_program_request =
-        SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into(), program_id: get_clob_program_id().to_vec() };
+    let submit_program_request = SubmitProgramRequest {
+        program_elf: CLOB_ELF.to_vec(),
+        vm_type: VmType::Sp1.into(),
+        program_id: get_clob_program_id().to_vec(),
+    };
     // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
         Ok(submit_program_response) => {
@@ -111,7 +113,7 @@ async fn main() {
         Address::parse_checksummed(MOCK_CONSUMER_ADDR, None).expect("Valid address");
     let mock_consumer_contract = MockConsumer::new(mock_consumer_addr, &provider);
     let nonce = mock_consumer_contract.getNextNonce().call().await.unwrap()._0;
-   
+
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
         nonce,
         MOCK_CONSUMER_MAX_CYCLES,
