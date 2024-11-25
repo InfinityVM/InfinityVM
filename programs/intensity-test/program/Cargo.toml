@@ -6,7 +6,7 @@ edition = "2021"
 [workspace]
 
 [dependencies]
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", features = ["libm", "lib"], default-features = false }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", features = ["libm", "lib"], default-features = false }
 alloy = { version = "0.2", features = ["sol-types"], default-features = false }
 borsh = { version = "1", features = ["derive", "std"], default-features = false }
 sha2 = { version = "0.10", default-features = false }
