@@ -19,7 +19,6 @@ use tracing::{info, warn};
 use matching_game_programs::get_matching_game_program_id;
 use mock_consumer_programs::get_mock_consumer_program_id;
 use intensity_test_programs::get_intensity_test_program_id;
-use clob_programs::get_clob_program_id;
 
 const ANVIL_PORT: u16 = 8545;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;

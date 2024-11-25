@@ -117,7 +117,7 @@ async fn main() {
         MOCK_CONSUMER_MAX_CYCLES,
         mock_consumer_addr,
         Address::abi_encode(&mock_consumer_addr).as_slice(),
-        &program_id,
+        &get_mock_consumer_program_id()[..],
         offchain_signer.clone(),
         &[],
     )
