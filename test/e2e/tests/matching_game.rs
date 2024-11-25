@@ -172,9 +172,6 @@ async fn state_job_submission_matching_game_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn matching_game_server_e2e() {
     async fn test(mut args: Args) {
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
-        interval.tick().await; // First tick processes immediately
-
         let anvil = args.anvil;
         let matching_game = args.matching_game_consumer.unwrap();
         let program_id = get_matching_game_program_id();
@@ -237,9 +234,7 @@ async fn matching_game_server_e2e() {
             }
         );
 
-        // Give the batcher some time to process.
-        interval.tick().await;
-        sleep(Duration::from_secs(15)).await;
+        sleep(Duration::from_secs(10)).await;
 
         // Check that partners have been updated on chain from the batch.
         let partner = consumer_contract.getPartner(alice.into()).call().await.unwrap()._0;

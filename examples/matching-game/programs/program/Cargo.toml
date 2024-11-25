@@ -13,7 +13,3 @@ matching-game-core = { path = "../../core" }
 ivm-abi = { path = "../../../../crates/sdk/abi" }
 sha2 = { version = "0.10", default-features = false }
 kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = ["serde"] }
-
-[build-dependencies]
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6", default-features = false }
-sp1-build = { git = "https://github.com/succinctlabs/sp1.git", rev = "37629f6" }
