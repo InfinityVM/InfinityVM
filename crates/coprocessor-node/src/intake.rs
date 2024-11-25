@@ -158,9 +158,7 @@ where
     ) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
 
-        let program_id = if self.unsafe_skip_program_id_check {
-            program_id
-        } else {
+        if !self.unsafe_skip_program_id_check {
             let derived_program_id = self.zk_executor.create_elf(&elf, vm_type)?;
             if program_id != derived_program_id {
                 return Err(Error::MismatchProgramId(
@@ -168,8 +166,6 @@ where
                     hex::encode(&derived_program_id),
                 ));
             }
-
-            program_id
         };
 
         if get_elf(self.db.clone(), &program_id)
