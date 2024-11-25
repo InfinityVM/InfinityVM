@@ -46,14 +46,6 @@ jobs:
     runs-on: ubicloud-standard-30
     timeout-minutes: 45
     steps:
-      - name: clear space
-        run: |
-          sudo rm -Rf /usr/local/julia* /usr/local/share/powershell /usr/local/lib/android /usr/local/lib/heroku
-          sudo rm -Rf /opt/hostedtoolcache/CodeQL /opt/hostedtoolcache/Python /opt/hostedtoolcache/PyPy /opt/hostedtoolcache/Ruby /opt/hostedtoolcache/go/1.18.*
-          sudo rm -Rf /usr/share/swift /usr/share/dotnet
-          df -h
-        shell: bash
-
       - uses: actions/checkout@v4
         with:
           submodules: recursive
