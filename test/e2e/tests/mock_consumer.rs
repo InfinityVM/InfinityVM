@@ -201,7 +201,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(job_id, expected_job_id);
 
         // Wait for the job to be processed
-        tokio::time::sleep(tokio::time::Duration::from_secs(10)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
 
         let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
         let get_result_response =

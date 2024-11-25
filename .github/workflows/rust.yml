@@ -43,7 +43,7 @@ jobs:
 
   test:
     name: test
-    runs-on: ubicloud-standard-16
+    runs-on: ubicloud-standard-32
     timeout-minutes: 45
     steps:
       - name: clear space
