@@ -3792,18 +3792,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "intensity-test-sp1-guest"
-version = "0.1.0"
-dependencies = [
- "alloy",
- "borsh",
- "sha2",
- "sp1-build 3.2.1",
- "sp1-helper",
- "sp1-zkvm",
-]
-
-[[package]]
 name = "interprocess"
 version = "2.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4398,15 +4386,6 @@ dependencies = [
  "sp1-build 3.2.1",
  "sp1-helper",
  "sp1-sdk",
-]
-
-[[package]]
-name = "mock-consumer-sp1-guest"
-version = "0.1.0"
-dependencies = [
- "alloy",
- "sp1-helper",
- "sp1-zkvm",
 ]
 
 [[package]]
@@ -7051,15 +7030,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "sp1-lib"
-version = "3.0.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
-dependencies = [
- "bincode",
- "serde",
-]
-
-[[package]]
 name = "sp1-primitives"
 version = "3.0.0"
 source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
@@ -7309,20 +7279,6 @@ dependencies = [
  "strum_macros 0.26.4",
  "sysinfo 0.30.13",
  "tracing 0.1.40",
-]
-
-[[package]]
-name = "sp1-zkvm"
-version = "3.0.1"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=37629f6#37629f6afd54c08180889d71777824c7e48642d3"
-dependencies = [
- "cfg-if 1.0.0",
- "getrandom",
- "lazy_static",
- "libm",
- "rand",
- "sha2",
- "sp1-lib",
 ]
 
 [[package]]

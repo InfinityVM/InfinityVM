@@ -24,8 +24,12 @@ members = [
 	"test/e2e",
 	"test/load-test",
 	"programs/mock-consumer",
-	"programs/mock-consumer/program",
 	"programs/intensity-test",
+]
+exclude = [
+	"examples/clob/programs/program",
+	"examples/matching-game/programs/program",
+	"programs/mock-consumer/program",
 	"programs/intensity-test/program",
 ]
 
