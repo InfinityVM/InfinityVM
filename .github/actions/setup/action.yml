@@ -3,7 +3,7 @@ description: common setup for rust builds
 runs:
   using: "composite"
   steps:
-      - uses: dtolnay/rust-toolchain@1.80.1
+      - uses: dtolnay/rust-toolchain@1.82
         with:
           components: clippy
 

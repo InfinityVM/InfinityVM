@@ -226,7 +226,7 @@ async fn state_job_submission_clob_consumer() {
 }
 
 #[ignore]
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn clob_node_e2e() {
     async fn test(mut args: Args) {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(20));
@@ -307,6 +307,8 @@ async fn clob_node_e2e() {
         assert_eq!(bob_quote_bal, U256::from(200));
         let alice_base_bal = alice_base.balanceOf(alice.into()).call().await.unwrap()._0;
         assert_eq!(alice_base_bal, U256::from(800));
+
+        interval.tick().await;
 
         let state = client.clob_state().await.unwrap();
         assert_eq!(
@@ -450,7 +452,7 @@ async fn clob_node_e2e() {
 // Test that we can partially match orders, withdraw, and then cancel a partially matched order. In
 // the past the clob has panicked in this edge case
 #[ignore]
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn cancel_works() {
     async fn test(args: Args) {
         let clob = args.clob_consumer.unwrap();
