@@ -433,9 +433,6 @@ impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> JobRelayerBuilder<
 
         let provider =
             ProviderBuilder::new().with_recommended_fillers().wallet(wallet).on_http(url);
-        // ProviderBuilder::new().with_recommended_fillers().on_http(url);
-        // let job_manager: IJobManagerInstance<Http<Client>, _, Ethereum> =
-        // JobManagerContract::new(job_manager, provider);
         let job_manager = JobManagerContract::new(job_manager, provider);
 
         Ok(JobRelayer { job_manager, confirmations, metrics })
