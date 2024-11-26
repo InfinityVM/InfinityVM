@@ -254,6 +254,7 @@ impl Cli {
             },
             job_sync_start: opts.job_sync_start,
             max_da_per_job: opts.max_da_per_job,
+            unsafe_skip_program_id_check: false,
         };
 
         node::run(config).await.map_err(Into::into)

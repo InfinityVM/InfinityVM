@@ -74,13 +74,15 @@ message GetResultResponse {
 message SubmitProgramRequest {
   // The compiled zkVM program ELF.
   bytes program_elf = 1;
+  // The ZK program verification key.
+  bytes program_id = 2;
   // Type of ZKVM to execute
-  VmType vm_type = 2;
+  VmType vm_type = 3;
 }
 
 // SubmitProgramResponse defines the response structure to generate a unique
 // program ID (verification key).
 message SubmitProgramResponse {
-  // The ZK program verification key
+  // The ZK program verification key.
   bytes program_id = 1;
 }

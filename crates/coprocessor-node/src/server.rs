@@ -174,7 +174,7 @@ where
         let intake_service = self.intake_service.clone();
         let program_id = tokio::task::spawn_blocking(move || {
             intake_service
-                .submit_elf(req.program_elf, req.vm_type)
+                .submit_elf(req.program_elf, req.vm_type, req.program_id)
                 .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))
         })
         .await

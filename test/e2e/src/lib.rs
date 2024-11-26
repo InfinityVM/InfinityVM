@@ -122,6 +122,7 @@ impl E2E {
             },
             job_sync_start: BlockNumberOrTag::Earliest,
             max_da_per_job: MAX_DA_PER_JOB,
+            unsafe_skip_program_id_check: true,
         };
         tokio::spawn(async move { ivm_coprocessor_node::node::run(config).await });
         sleep_until_bound(coprocessor_node_port).await;
