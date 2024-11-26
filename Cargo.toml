@@ -26,12 +26,12 @@ members = [
 	"programs/mock-consumer",
 	"programs/intensity-test",
 ]
-exclude = [
-	"examples/clob/programs/program",
-	"examples/matching-game/programs/program",
-	"programs/mock-consumer/program",
-	"programs/intensity-test/program",
-]
+# exclude = [
+# 	"examples/clob/programs/program",
+# 	"examples/matching-game/programs/program",
+# 	"programs/mock-consumer/program",
+# 	"programs/intensity-test/program",
+# ]
 
 # Explicitly set the resolver to version 2, which is the default for packages with edition >= 2021
 # https://doc.rust-lang.org/edition-guide/rust-2021/default-cargo-resolver.html
@@ -184,7 +184,7 @@ strum = { version = "0.26.3", features = ["derive"], default-features = false}
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", features = ["libm", "lib"], default-features = false }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", default-features = false }
 sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", default-features = false }
-sp1-build = "3.1.0"
+sp1-build = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", default-features = false }
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
