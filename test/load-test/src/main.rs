@@ -36,7 +36,7 @@ async fn initialize_global_nonce() -> AtomicU64 {
 
 #[tokio::main]
 async fn main() -> Result<(), GooseError> {
-    dotenv::from_filename("./load-test/.env").ok();
+    dotenvy::from_filename("./load-test/.env").ok();
 
     // Initialize GLOBAL_NONCE
     GLOBAL_NONCE.get_or_init(initialize_global_nonce).await;

@@ -42,7 +42,7 @@ cargo prove --version
 
 Foundry
 
-```
+```sh
 curl -L https://foundry.paradigm.xyz | bash
 foundryup
 cd contracts && forge build

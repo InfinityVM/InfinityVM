@@ -12,3 +12,5 @@ Applications can run as fully offchain servers that verifiably settle to the Inf
 - Infinity L1
 
 Read the [InfinityVM litepaper](https://infinityvm.xyz/infinityvm_litepaper.pdf) for a detailed discussion of the architecture.
+
+To contribute to InfinityVM, see the [contributing](https://github.com/InfinityVM/InfinityVM/blob/main/CONTRIBUTING.md) doc for instructions on how to setup the workspace and run tests in the InfinityVM repo.

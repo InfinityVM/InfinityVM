@@ -133,7 +133,7 @@ crossbeam = { version = "0.8" }
 
 # d
 dashmap = "6"
-dotenv = { version = "0.15.0", default-features = false }
+dotenvy = { version = "0.15.7", default-features = false }
 
 # e
 eyre = { version = "0.6", default-features = false }

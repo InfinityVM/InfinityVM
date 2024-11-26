@@ -1,6 +1,6 @@
 //! zkvm tracing util
 
-use dotenv::dotenv;
+use dotenvy::dotenv;
 use std::{env, fmt::Debug, io::stdout, str::FromStr};
 use strum::EnumString;
 use tracing_appender::{
