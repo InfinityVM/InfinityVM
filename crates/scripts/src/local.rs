@@ -5,14 +5,14 @@ use clob_node::{
     CLOB_BATCHER_DURATION_MS, CLOB_CN_GRPC_ADDR, CLOB_CONSUMER_ADDR, CLOB_DB_DIR, CLOB_ETH_WS_ADDR,
     CLOB_JOB_SYNC_START, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
-use clob_programs::CLOB_ELF;
+use clob_programs::{get_clob_program_id, CLOB_ELF};
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
 use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
-use intensity_test_programs::INTENSITY_TEST_ELF;
+use intensity_test_programs::{get_intensity_test_program_id, INTENSITY_TEST_ELF};
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use ivm_test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
 use mock_consumer::anvil_with_mock_consumer;
-use mock_consumer_programs::MOCK_CONSUMER_ELF;
+use mock_consumer_programs::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
 use std::{fs::File, process::Command};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{info, warn};
@@ -132,14 +132,18 @@ async fn main() {
         let mut coproc_client =
             CoprocessorNodeClient::connect(client_coproc_grpc.clone()).await.unwrap();
         info!("Submitting CLOB ELF to coprocessor node");
-        let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into() };
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: CLOB_ELF.to_vec(),
+            vm_type: VmType::Sp1.into(),
+            program_id: get_clob_program_id().to_vec(),
+        };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
         info!("Submitting MockConsumer ELF to coprocessor node");
         let submit_program_request = SubmitProgramRequest {
             program_elf: MOCK_CONSUMER_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
+            program_id: get_mock_consumer_program_id().to_vec(),
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
@@ -147,6 +151,7 @@ async fn main() {
         let submit_program_request = SubmitProgramRequest {
             program_elf: INTENSITY_TEST_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
+            program_id: get_intensity_test_program_id().to_vec(),
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();
     }

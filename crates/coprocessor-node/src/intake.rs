@@ -48,6 +48,9 @@ pub enum Error {
     /// Offchain input over max DA per job
     #[error("offchain input over max DA per job")]
     OffchainInputOverMaxDAPerJob,
+    /// given program ID does not match derived program ID
+    #[error("given program ID does not match derived program ID: given: {0}, derived: {1}")]
+    MismatchProgramId(String, String),
 }
 
 /// Job and program intake handlers.
@@ -61,6 +64,7 @@ pub struct IntakeHandlers<S, D> {
     max_da_per_job: usize,
     writer_tx: Sender<WriterMsg>,
     relay_tx: Sender<Relay>,
+    unsafe_skip_program_id_check: bool,
 }
 
 impl<S, D> Clone for IntakeHandlers<S, D>
@@ -75,6 +79,7 @@ where
             max_da_per_job: self.max_da_per_job,
             writer_tx: self.writer_tx.clone(),
             relay_tx: self.relay_tx.clone(),
+            unsafe_skip_program_id_check: self.unsafe_skip_program_id_check,
         }
     }
 }
@@ -92,8 +97,17 @@ where
         max_da_per_job: usize,
         writer_tx: Sender<WriterMsg>,
         relay_tx: Sender<Relay>,
+        unsafe_skip_program_id_check: bool,
     ) -> Self {
-        Self { db, exec_queue_sender, zk_executor, max_da_per_job, writer_tx, relay_tx }
+        Self {
+            db,
+            exec_queue_sender,
+            zk_executor,
+            max_da_per_job,
+            writer_tx,
+            relay_tx,
+            unsafe_skip_program_id_check,
+        }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
@@ -136,9 +150,23 @@ where
     }
 
     /// Submit program ELF, save it in DB, and return program ID.
-    pub fn submit_elf(&self, elf: Vec<u8>, vm_type: i32) -> Result<Vec<u8>, Error> {
+    pub fn submit_elf(
+        &self,
+        elf: Vec<u8>,
+        vm_type: i32,
+        program_id: Vec<u8>,
+    ) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
-        let program_id = self.zk_executor.create_elf(&elf, vm_type)?;
+
+        if !self.unsafe_skip_program_id_check {
+            let derived_program_id = self.zk_executor.create_elf(&elf, vm_type)?;
+            if program_id != derived_program_id {
+                return Err(Error::MismatchProgramId(
+                    hex::encode(&program_id),
+                    hex::encode(&derived_program_id),
+                ));
+            }
+        };
 
         if get_elf(self.db.clone(), &program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?

@@ -163,11 +163,6 @@ where
                             let backoff = i * SUBMIT_JOB_BACKOFF_BASE_MS;
                             sleep(Duration::from_millis(backoff as u64)).await;
                         }
-
-                        error!(
-                            id = hex::encode(event.jobID),
-                            "skipping event due to submit_job failing"
-                        );
                     }
 
                     // update the last seen block height after processing the events

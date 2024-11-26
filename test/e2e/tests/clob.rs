@@ -41,8 +41,11 @@ async fn state_job_submission_clob_consumer() {
         let bob_wallet = EthereumWallet::new(bob_key);
 
         // Seed coprocessor-node with ELF
-        let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into() };
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: CLOB_ELF.to_vec(),
+            vm_type: VmType::Sp1.into(),
+            program_id: program_id.to_vec(),
+        };
         let submit_program_response = args
             .coprocessor_node
             .submit_program(submit_program_request)
@@ -243,8 +246,11 @@ async fn clob_node_e2e() {
         let bob_wallet = EthereumWallet::new(bob_key);
 
         // Seed coprocessor-node with ELF
-        let submit_program_request =
-            SubmitProgramRequest { program_elf: CLOB_ELF.to_vec(), vm_type: VmType::Sp1.into() };
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: CLOB_ELF.to_vec(),
+            vm_type: VmType::Sp1.into(),
+            program_id: program_id.to_vec(),
+        };
         let submit_program_response = args
             .coprocessor_node
             .submit_program(submit_program_request)

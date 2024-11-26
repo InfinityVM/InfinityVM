@@ -4,7 +4,6 @@
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[derive(borsh::BorshSerialize, borsh::BorshDeserialize)]
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct JobStatus {
     /// The status type of the job.
@@ -24,7 +23,6 @@ pub struct JobStatus {
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct JobResult {
     /// The job ID (hash of nonce and consumer address)
@@ -96,11 +94,11 @@ impl JobStatusType {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            JobStatusType::Unspecified => "JOB_STATUS_TYPE_UNSPECIFIED",
-            JobStatusType::Pending => "JOB_STATUS_TYPE_PENDING",
-            JobStatusType::Done => "JOB_STATUS_TYPE_DONE",
-            JobStatusType::Failed => "JOB_STATUS_TYPE_FAILED",
-            JobStatusType::Relayed => "JOB_STATUS_TYPE_RELAYED",
+            Self::Unspecified => "JOB_STATUS_TYPE_UNSPECIFIED",
+            Self::Pending => "JOB_STATUS_TYPE_PENDING",
+            Self::Done => "JOB_STATUS_TYPE_DONE",
+            Self::Failed => "JOB_STATUS_TYPE_FAILED",
+            Self::Relayed => "JOB_STATUS_TYPE_RELAYED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -120,7 +118,6 @@ impl JobStatusType {
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitJobRequest {
     /// ABI-encoded offchain job request
@@ -143,7 +140,6 @@ pub struct SubmitJobRequest {
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitJobResponse {
     #[prost(bytes = "vec", tag = "1")]
@@ -154,7 +150,6 @@ pub struct SubmitJobResponse {
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetResultRequest {
     #[prost(bytes = "vec", tag = "1")]
@@ -165,7 +160,6 @@ pub struct GetResultRequest {
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetResultResponse {
     #[prost(message, optional, tag = "1")]
@@ -176,26 +170,28 @@ pub struct GetResultResponse {
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitProgramRequest {
     /// The compiled zkVM program ELF.
     #[prost(bytes = "vec", tag = "1")]
     #[serde_as(as = "Hex")]
     pub program_elf: ::prost::alloc::vec::Vec<u8>,
+    /// The ZK program verification key.
+    #[prost(bytes = "vec", tag = "2")]
+    #[serde_as(as = "Hex")]
+    pub program_id: ::prost::alloc::vec::Vec<u8>,
     /// Type of ZKVM to execute
-    #[prost(enumeration = "VmType", tag = "2")]
+    #[prost(enumeration = "VmType", tag = "3")]
     pub vm_type: i32,
 }
 /// SubmitProgramResponse defines the response structure to generate a unique
-/// program verification key.
+/// program ID (verification key).
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
-#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SubmitProgramResponse {
-    /// The ZK program verification key
+    /// The ZK program verification key.
     #[prost(bytes = "vec", tag = "1")]
     #[serde_as(as = "Hex")]
     pub program_id: ::prost::alloc::vec::Vec<u8>,
@@ -216,7 +212,7 @@ impl VmType {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            VmType::Sp1 => "Sp1",
+            Self::Sp1 => "Sp1",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -252,8 +248,8 @@ impl RelayStrategy {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            RelayStrategy::Unordered => "Unordered",
-            RelayStrategy::Ordered => "Ordered",
+            Self::Unordered => "Unordered",
+            Self::Ordered => "Ordered",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -267,7 +263,13 @@ impl RelayStrategy {
 }
 /// Generated client implementations.
 pub mod coprocessor_node_client {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
     use tonic::codegen::*;
     use tonic::codegen::http::Uri;
     /// Service defines the gRPC service for the coprocessing node.
@@ -363,8 +365,7 @@ pub mod coprocessor_node_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -392,8 +393,7 @@ pub mod coprocessor_node_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -409,7 +409,7 @@ pub mod coprocessor_node_client {
             self.inner.unary(req, path, codec).await
         }
         /// SubmitProgram defines the gRPC method for submitting a new program to
-        /// generate a unique program verification key.
+        /// generate a unique program ID (verification key).
         pub async fn submit_program(
             &mut self,
             request: impl tonic::IntoRequest<super::SubmitProgramRequest>,
@@ -421,8 +421,7 @@ pub mod coprocessor_node_client {
                 .ready()
                 .await
                 .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
+                    tonic::Status::unknown(
                         format!("Service was not ready: {}", e.into()),
                     )
                 })?;
@@ -444,7 +443,13 @@ pub mod coprocessor_node_client {
 }
 /// Generated server implementations.
 pub mod coprocessor_node_server {
-    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+    #![allow(
+        unused_variables,
+        dead_code,
+        missing_docs,
+        clippy::wildcard_imports,
+        clippy::let_unit_value,
+    )]
     use tonic::codegen::*;
     /// Generated trait containing gRPC methods that should be implemented for use with CoprocessorNodeServer.
     #[async_trait]
@@ -467,7 +472,7 @@ pub mod coprocessor_node_server {
             tonic::Status,
         >;
         /// SubmitProgram defines the gRPC method for submitting a new program to
-        /// generate a unique program verification key.
+        /// generate a unique program ID (verification key).
         async fn submit_program(
             &self,
             request: tonic::Request<super::SubmitProgramRequest>,
@@ -691,17 +696,19 @@ pub mod coprocessor_node_server {
                 }
                 _ => {
                     Box::pin(async move {
-                        Ok(
-                            http::Response::builder()
-                                .status(200)
-                                .header("grpc-status", tonic::Code::Unimplemented as i32)
-                                .header(
-                                    http::header::CONTENT_TYPE,
-                                    tonic::metadata::GRPC_CONTENT_TYPE,
-                                )
-                                .body(empty_body())
-                                .unwrap(),
-                        )
+                        let mut response = http::Response::new(empty_body());
+                        let headers = response.headers_mut();
+                        headers
+                            .insert(
+                                tonic::Status::GRPC_STATUS,
+                                (tonic::Code::Unimplemented as i32).into(),
+                            );
+                        headers
+                            .insert(
+                                http::header::CONTENT_TYPE,
+                                tonic::metadata::GRPC_CONTENT_TYPE,
+                            );
+                        Ok(response)
                     })
                 }
             }
