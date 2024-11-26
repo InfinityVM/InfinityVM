@@ -10,11 +10,9 @@ use alloy::{
     primitives::{hex, Address},
     signers::local::LocalSigner,
 };
-use clap::{Parser, Subcommand};
-use ivm_zkvm_executor::DEV_SECRET;
+use clap::Parser;
 use k256::ecdsa::SigningKey;
-use std::path::PathBuf;
-use tracing::{info, instrument};
+use tracing::instrument;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 const ENV_ZKVM_OPERATOR_PRIVATE_KEY: &str = "ZKVM_OPERATOR_PRIVATE_KEY";
