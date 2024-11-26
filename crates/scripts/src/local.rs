@@ -11,12 +11,12 @@ use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
 use intensity_test_programs::{get_intensity_test_program_id, INTENSITY_TEST_ELF};
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use ivm_test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
-use matching_game_programs::get_matching_game_program_id;
 use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_programs::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
 use std::{fs::File, process::Command};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{info, warn};
+use clob_programs::get_clob_program_id;
 
 const ANVIL_PORT: u16 = 8545;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
@@ -136,7 +136,7 @@ async fn main() {
         let submit_program_request = SubmitProgramRequest {
             program_elf: CLOB_ELF.to_vec(),
             vm_type: VmType::Sp1.into(),
-            program_id: get_matching_game_program_id().to_vec(),
+            program_id: get_clob_program_id().to_vec(),
         };
         coproc_client.submit_program(submit_program_request).await.unwrap();
 
