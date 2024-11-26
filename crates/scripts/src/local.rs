@@ -62,7 +62,7 @@ async fn main() {
         .arg("ivm-coprocessor-node")
         .arg("--")
         .env("RELAYER_PRIVATE_KEY", coproc_relayer_private)
-        .env("ZKVM_OPERATOR_PRIV_KEY", coproc_operator_private)
+        .env("ZKVM_OPERATOR_PRIVATE_KEY", coproc_operator_private)
         .env("RUST_LOG_FILE", "coproc_log_file.json")
         .env("RUST_LOG_DIR", "./logs")
         .env("RUST_LOG_FORMAT", "json")

@@ -17,7 +17,7 @@ use std::path::PathBuf;
 use tracing::{info, instrument};
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
-const ENV_ZKVM_OPERATOR_PRIV_KEY: &str = "ZKVM_OPERATOR_PRIV_KEY";
+const ENV_ZKVM_OPERATOR_PRIVATE_KEY: &str = "ZKVM_OPERATOR_PRIVATE_KEY";
 
 /// Errors from the gRPC Server CLI
 #[derive(thiserror::Error, Debug)]
@@ -26,10 +26,7 @@ pub enum Error {
     #[error("environment variable {} must be set", ENV_RELAYER_PRIV_KEY)]
     RelayerPrivKeyNotSet,
     /// private key was not set
-    #[error(
-        "environment variable {} must be set, or specify operator subcommand",
-        ENV_ZKVM_OPERATOR_PRIV_KEY
-    )]
+    #[error("environment variable {} must be set", ENV_ZKVM_OPERATOR_PRIVATE_KEY)]
     OperatorPrivKeyNotSet,
     /// invalid gRPC address
     #[error("invalid gRPC address")]
@@ -64,32 +61,6 @@ pub enum Error {
 }
 
 type K256LocalSigner = LocalSigner<SigningKey>;
-
-#[derive(Debug, Clone, Subcommand)]
-#[command(version, about, long_about = None)]
-enum Operator {
-    /// Use a development key
-    Dev,
-    /// Use an encrypted keystore
-    KeyStore(KeyStore),
-    /// Pass the hex encoded secret in at the command line
-    Secret(Secret),
-}
-
-#[derive(Debug, Clone, clap::Args)]
-struct KeyStore {
-    /// Path to JSON keystore
-    #[arg(long, value_name = "FILE")]
-    path: PathBuf,
-    /// Password for decrypting the JSON keystore
-    #[arg(long)]
-    password: String,
-}
-
-#[derive(Debug, Clone, clap::Args)]
-struct Secret {
-    secret: String,
-}
 
 fn db_dir() -> String {
     let mut p = home::home_dir().expect("could not find users home dir");
@@ -150,10 +121,6 @@ struct Opts {
     )]
     db_dir: String,
 
-    /// Operator key to use for signing
-    #[command(subcommand)]
-    operator_key: Option<Operator>,
-
     /// Number of worker threads to use for processing jobs. Defaults to the number of cores - 3.
     /// We leave 2 threads for tokio and 1 thread for the DB writer.
     #[arg(long, default_value_t = 3.max(num_cpus::get_physical() - 3))]
@@ -184,23 +151,9 @@ struct Opts {
 
 impl Opts {
     fn operator_signer(&self) -> Result<K256LocalSigner, Error> {
-        let signer = match &self.operator_key {
-            Some(Operator::Dev) => {
-                info!("zkvm operator using development key");
-                K256LocalSigner::from_slice(&DEV_SECRET)?
-            }
-            Some(Operator::KeyStore(KeyStore { path, password })) => {
-                K256LocalSigner::decrypt_keystore(path, password)?
-            }
-            Some(Operator::Secret(Secret { secret })) => Self::signer_from_hex(secret)?,
-            None => {
-                let secret = std::env::var(ENV_ZKVM_OPERATOR_PRIV_KEY)
-                    .map_err(|_| Error::OperatorPrivKeyNotSet)?;
-                Self::signer_from_hex(&secret)?
-            }
-        };
-
-        Ok(signer)
+        let secret = std::env::var(ENV_ZKVM_OPERATOR_PRIVATE_KEY)
+            .map_err(|_| Error::OperatorPrivKeyNotSet)?;
+        Self::signer_from_hex(&secret)
     }
 
     fn relayer_signer(&self) -> Result<K256LocalSigner, Error> {

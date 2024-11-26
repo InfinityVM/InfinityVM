@@ -68,7 +68,7 @@ RELAYER_PRIVATE_KEY="<hex encoded private key>"
 
 # ECDSA private key for signing coprocessing results. 
 # This key is registered as belonging to the coprocessor operator.
-ZKVM_OPERATOR_PRIV_KEY="<hex encoded private key>"
+ZKVM_OPERATOR_PRIVATE_KEY="<hex encoded private key>"
 ```
 
 ### Logs
