@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", features = ["libm", "lib"], default-features = false }
-alloy = { version = "0.2", features = ["sol-types"], default-features = false }
+alloy = { version = "0.6", features = ["sol-types"], default-features = false }
 bincode = { version = "1.3", default-features = false }
 matching-game-core = { path = "../../core" }
 ivm-abi = { path = "../../../../crates/sdk/abi" }

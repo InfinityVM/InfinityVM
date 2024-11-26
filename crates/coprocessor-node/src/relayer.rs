@@ -17,11 +17,10 @@ use crate::{
 use alloy::{
     hex,
     network::{Ethereum, EthereumWallet, TxSigner},
-    primitives::Address,
-    providers::{fillers::RecommendedFiller, Provider, ProviderBuilder},
+    primitives::{Address, PrimitiveSignature},
+    providers::{Provider, ProviderBuilder},
     rpc::types::TransactionReceipt,
-    signers::Signature,
-    transports::http::reqwest,
+    transports::http::{reqwest, Client, Http},
 };
 use contracts::i_job_manager::IJobManager;
 use flume::{Receiver, Sender};
@@ -40,19 +39,33 @@ use tracing::{error, info};
 const JOB_RETRY_DELAY_MS: u64 = 500;
 const JOB_RETRY_COUNT: usize = 3;
 
-type ReqwestTransport = alloy::transports::http::Http<reqwest::Client>;
+type RecommendedFiller = alloy::providers::fillers::JoinFill<
+    alloy::providers::Identity,
+    alloy::providers::fillers::JoinFill<
+        alloy::providers::fillers::GasFiller,
+        alloy::providers::fillers::JoinFill<
+            alloy::providers::fillers::BlobGasFiller,
+            alloy::providers::fillers::JoinFill<
+                alloy::providers::fillers::NonceFiller,
+                alloy::providers::fillers::ChainIdFiller,
+            >,
+        >,
+    >,
+>;
+
+type HttpTransport = Http<Client>;
 
 type RelayerProvider = alloy::providers::fillers::FillProvider<
     alloy::providers::fillers::JoinFill<
         RecommendedFiller,
         alloy::providers::fillers::WalletFiller<EthereumWallet>,
     >,
-    alloy::providers::RootProvider<ReqwestTransport>,
-    ReqwestTransport,
+    alloy::providers::RootProvider<HttpTransport>,
+    HttpTransport,
     Ethereum,
 >;
 
-type JobManagerContract = IJobManager::IJobManagerInstance<ReqwestTransport, RelayerProvider>;
+type JobManagerContract = IJobManager::IJobManagerInstance<HttpTransport, RelayerProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
@@ -83,7 +96,7 @@ pub enum Error {
     TxBroadcast(alloy::contract::Error),
     /// error while waiting for tx inclusion
     #[error("error while waiting for tx inclusion: {0}")]
-    TxInclusion(alloy::transports::RpcError<alloy::transports::TransportErrorKind>),
+    TxInclusion(#[from] alloy::providers::PendingTransactionError),
     /// must call [`JobRelayerBuilder::signer`] before building
     #[error("must call JobRelayerBuilder::signer before building")]
     MissingSigner,
@@ -386,13 +399,13 @@ pub struct JobRelayerBuilder<S> {
     signer: Option<S>,
 }
 
-impl<S: TxSigner<Signature> + Send + Sync + 'static> Default for JobRelayerBuilder<S> {
+impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> Default for JobRelayerBuilder<S> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<S: TxSigner<Signature> + Send + Sync + 'static> JobRelayerBuilder<S> {
+impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> JobRelayerBuilder<S> {
     /// Create a new [Self].
     pub const fn new() -> Self {
         Self { signer: None }

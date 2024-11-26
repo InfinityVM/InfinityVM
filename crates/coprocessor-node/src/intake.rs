@@ -10,7 +10,7 @@ use crate::{
 };
 use alloy::{
     hex,
-    primitives::Signature,
+    primitives::PrimitiveSignature,
     signers::{Signer, SignerSync},
 };
 use flume::Sender;
@@ -86,7 +86,7 @@ where
 
 impl<S, D> IntakeHandlers<S, D>
 where
-    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<PrimitiveSignature> + SignerSync<PrimitiveSignature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create an instance of [Self].
