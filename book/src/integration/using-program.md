@@ -26,3 +26,6 @@ Offchain job requests can be sent by a user, your app, or any authorized third-p
 
 You can read more in the [Offchain Jobs](./offchain.md) section.
 
+### Public and private inputs
+
+For now, all inputs are public. We are working on adding support for private inputs.

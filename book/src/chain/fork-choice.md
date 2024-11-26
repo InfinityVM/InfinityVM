@@ -11,6 +11,8 @@ To ensure that Infinity's canonical chain does not contain invalid coprocessing 
 
 To achieve these fork choice capabilities, we pursue an approach that decouples consensus and execution such that there is a separate consensus chain and execution chain [^note2]. The benefit is that the consensus chain will have finality while the execution chain will be subject to roll back within a fraud proof period [^note3]. The consensus chain's state transition function contains the logic dictating how to reorg the execution layer. This means that staking and slashing cannot be rolled back while the execution chain can still be reorg'ed.
 
+The fraud proof period for a coprocessing result on the execution chain can be shortened if a ZK proof of valid execution is submitted before the fraud period ends. This proves that this coprocessing result is correct for the given program and inputs.
+
 ## High level flows
 
 ![](./../assets/reorg-notation.png)
