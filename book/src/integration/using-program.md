@@ -28,4 +28,4 @@ You can read more in the [Offchain Jobs](./offchain.md) section.
 
 ### Public and private inputs
 
-For now, all inputs are public. We are working on adding support for private inputs.
+For now, all inputs are public. We are planning to likely add support for private inputs in the future.
