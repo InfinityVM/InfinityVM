@@ -34,8 +34,10 @@ test-all: contracts
 	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: test-all-ci
-test-all: contracts
+test-all-ci: contracts
 	@# Make sure to run the ignored tests
+	@# We use release because the total build + test execution time in CI is faster,
+	@# however it tends to be slower locally.
 	cargo test --all --release -- --include-ignored --nocapture
 
 .PHONY: build
