@@ -106,13 +106,6 @@ mod test {
     fn sp1_is_correct_program_id() {
         let program_id_bytes = mock_consumer_programs::get_mock_consumer_program_id().to_vec();
 
-        let elf_hash = alloy::primitives::keccak256(MOCK_CONSUMER_ELF);
-        println!("local elf hash={}", alloy::hex::encode(&elf_hash));
-        println!("local elf program_id_bytes={}", alloy::hex::encode(&program_id_bytes));
-
-        Sp1.derive_program_id(MOCK_CONSUMER_ELF).unwrap();
-        Sp1.derive_program_id(MOCK_CONSUMER_ELF).unwrap();
-
         let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(correct);
 

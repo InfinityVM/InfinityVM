@@ -31,7 +31,7 @@ doc: contracts
 .PHONY: test-all
 test-all: contracts
 	@# Make sure to run the ignored tests
-	cargo test --all -- --include-ignored --nocapture
+	cargo test --all --release -- --include-ignored --nocapture
 
 .PHONY: build
 build: contracts
