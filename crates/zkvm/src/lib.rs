@@ -54,10 +54,8 @@ impl Zkvm for Sp1 {
     fn derive_program_id(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
         let (_, program_id) = ProverClient::new().setup(program_elf);
 
-        let id_hash = program_id.hash_bytes().to_vec();
-        let elf_hash = alloy::primitives::keccak256(program_elf);
-
-        Ok(id_hash)
+        let program_id_id_hash = program_id.hash_bytes().to_vec();
+        Ok(program_id_id_hash)
     }
 
     fn execute(
