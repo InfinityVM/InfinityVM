@@ -53,7 +53,13 @@ pub struct Sp1;
 impl Zkvm for Sp1 {
     fn derive_program_id(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
         let (_, program_id) = ProverClient::new().setup(program_elf);
-        Ok(program_id.hash_bytes().to_vec())
+
+        let id_hash = program_id.hash_bytes().to_vec();
+        println!("cargo:warning=program_id={}", alloy::hex::encode(&id_hash));
+        let elf_hash = alloy::primitives::keccak256(program_elf);
+        println!("cargo:warning=elf hash={}", alloy::hex::encode(elf_hash));
+
+        Ok(id_hash)
     }
 
     fn execute(
@@ -99,6 +105,13 @@ mod test {
     #[test]
     fn sp1_is_correct_program_id() {
         let program_id_bytes = mock_consumer_programs::get_mock_consumer_program_id().to_vec();
+
+        let elf_hash = alloy::primitives::keccak256(MOCK_CONSUMER_ELF);
+        println!("local elf hash={}", alloy::hex::encode(&elf_hash));
+        println!("local elf program_id_bytes={}", alloy::hex::encode(&program_id_bytes));
+
+        Sp1.derive_program_id(MOCK_CONSUMER_ELF).unwrap();
+        Sp1.derive_program_id(MOCK_CONSUMER_ELF).unwrap();
 
         let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
         assert!(correct);
