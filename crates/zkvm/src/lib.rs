@@ -55,9 +55,7 @@ impl Zkvm for Sp1 {
         let (_, program_id) = ProverClient::new().setup(program_elf);
 
         let id_hash = program_id.hash_bytes().to_vec();
-        println!("cargo:warning=program_id={}", alloy::hex::encode(&id_hash));
         let elf_hash = alloy::primitives::keccak256(program_elf);
-        println!("cargo:warning=elf hash={}", alloy::hex::encode(elf_hash));
 
         Ok(id_hash)
     }
