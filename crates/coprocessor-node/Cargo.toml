@@ -8,7 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["reqwest", "full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+alloy = { workspace = true, features = ["reqwest", "provider-ws"] }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
 tokio = { workspace = true }

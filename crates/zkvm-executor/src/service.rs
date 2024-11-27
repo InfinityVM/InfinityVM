@@ -3,7 +3,7 @@
 use alloy::{
     consensus::BlobTransactionSidecar,
     hex,
-    primitives::{keccak256, Address, Signature},
+    primitives::{keccak256, Address, PrimitiveSignature},
     signers::{Signer, SignerSync},
 };
 use eip4844::{SidecarBuilder, SimpleCoder};
@@ -47,7 +47,7 @@ pub struct ZkvmExecutorService<S> {
 
 impl<S> ZkvmExecutorService<S>
 where
-    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + 'static + Clone,
+    S: Signer<PrimitiveSignature> + SignerSync<PrimitiveSignature> + Send + Sync + 'static + Clone,
 {
     /// Create a new zkvm executor service
     pub const fn new(signer: S) -> Self {

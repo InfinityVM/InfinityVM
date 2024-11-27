@@ -8,7 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["provider-anvil-node", "full", "signer-local", "signers", "signer-keystore"] }
+alloy = { workspace = true, features = ["provider-anvil-node", "signer-local", "signers", "signer-keystore"] }
 tracing-subscriber = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }
