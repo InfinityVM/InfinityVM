@@ -4,6 +4,10 @@
 
 InfinityVM enables developers to use expressive offchain compute alongside the EVM to create new types of applications. Applications can run as fully offchain servers that verifiably settle to the InfinityVM base layer.
 
+## Contributing
+
+See the [contributing](./CONTRIBUTING.md) doc for instructions on how to setup the workspace and run tests.
+
 ## Docs
 
 Consult the [InfinityVM Book](./book) for detailed docs on:
@@ -12,10 +16,6 @@ Consult the [InfinityVM Book](./book) for detailed docs on:
 - InfinityVM contracts
 - InfinityVM coprocessor node
 - Infinity L1 architecture
-
-## Contributing
-
-See the [contributing](./CONTRIBUTING.md) doc for instructions on how to setup the workspace and run tests.
 
 ## Directory Structure
 
