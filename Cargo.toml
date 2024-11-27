@@ -183,7 +183,6 @@ strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
 sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", features = ["libm", "lib"], default-features = false }
 sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", default-features = false }
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", default-features = false }
 sp1-build = "3.1.0"
 
 # t

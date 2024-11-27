@@ -89,7 +89,6 @@ dependencies = [
  "alloy-contract",
  "alloy-core",
  "alloy-eips 0.6.4",
- "alloy-genesis",
  "alloy-json-rpc 0.6.4",
  "alloy-network 0.6.4",
  "alloy-node-bindings",
@@ -1727,7 +1726,6 @@ dependencies = [
  "ivm-zkvm",
  "once_cell",
  "sp1-build 3.3.0",
- "sp1-helper",
  "sp1-sdk",
 ]
 
@@ -3459,7 +3457,6 @@ dependencies = [
  "ivm-sp1-utils",
  "once_cell",
  "sp1-build 3.3.0",
- "sp1-helper",
  "sp1-sdk",
 ]
 
@@ -4041,7 +4038,6 @@ dependencies = [
  "ivm-sp1-utils",
  "once_cell",
  "sp1-build 3.3.0",
- "sp1-helper",
  "sp1-sdk",
 ]
 
@@ -6564,14 +6560,6 @@ source = "git+https://github.com/succinctlabs/sp1.git?rev=f9640e8#f9640e8649b3d4
 dependencies = [
  "quote",
  "syn 1.0.109",
-]
-
-[[package]]
-name = "sp1-helper"
-version = "3.0.0"
-source = "git+https://github.com/succinctlabs/sp1.git?rev=f9640e8#f9640e8649b3d48b95b55fb2ae7ab7fefb424420"
-dependencies = [
- "sp1-build 3.0.0",
 ]
 
 [[package]]

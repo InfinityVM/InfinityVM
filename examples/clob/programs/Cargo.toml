@@ -19,7 +19,6 @@ ivm-abi = { workspace = true }
 clob-test-utils = { workspace = true }
 
 [build-dependencies]
-sp1-helper = { workspace = true }
 sp1-build = { workspace = true }
 sp1-sdk = { workspace = true }
 bincode = { workspace = true } 
