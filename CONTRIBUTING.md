@@ -40,7 +40,7 @@ sp1up
 cargo prove --version
 ```
 
-Foundry
+Foundry and build contracts
 
 ```sh
 curl -L https://foundry.paradigm.xyz | bash
