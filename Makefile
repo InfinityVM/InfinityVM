@@ -33,6 +33,11 @@ test-all: contracts
 	@# Make sure to run the ignored tests
 	cargo test --all -- --include-ignored --nocapture
 
+.PHONY: test-all-ci
+test-all: contracts
+	@# Make sure to run the ignored tests
+	cargo test --all --release -- --include-ignored --nocapture
+
 .PHONY: build
 build: contracts
 	cargo build
