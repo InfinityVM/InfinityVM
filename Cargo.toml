@@ -121,7 +121,7 @@ significant_drop_tightening = "allow"
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 # only include features that we know can be compiled into zkvm program
-alloy = { version = "0.2", features = ["sol-types"], default-features = false }
+alloy = { version = "0.6", features = ["sol-types"], default-features = false }
 
 # b
 bincode = { version = "1", default-features = false }
@@ -181,9 +181,8 @@ serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", features = ["libm", "lib"], default-features = false }
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", default-features = false }
-sp1-helper = { git = "https://github.com/succinctlabs/sp1.git", rev = "f9640e8", default-features = false }
+sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "15be73d3acae3718a0acc529ed566f6a448b1c0e", features = ["libm", "lib"], default-features = false }
+sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "15be73d3acae3718a0acc529ed566f6a448b1c0e", default-features = false }
 sp1-build = "3.1.0"
 
 # t

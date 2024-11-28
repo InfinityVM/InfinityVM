@@ -8,7 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["full", "contract", "transport-http", "transport-ws", "network", "providers", "pubsub", "signer-local", "signer-keystore", "rpc-types-debug", "rpc-types-trace", "json-rpc", "rpc-client", "rlp", "sol-types"] }
+alloy = { workspace = true, features = ["rlp"] }
 thiserror = { workspace = true }
 sha2 = { workspace = true }
 reth-db = { workspace = true }

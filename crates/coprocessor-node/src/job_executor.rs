@@ -6,7 +6,7 @@ use crate::{
     writer::{Write, WriterMsg},
 };
 use alloy::{
-    primitives::Signature,
+    primitives::PrimitiveSignature,
     signers::{Signer, SignerSync},
 };
 use flume::{Receiver, Sender};
@@ -88,7 +88,7 @@ pub struct JobExecutor<S, D> {
 
 impl<S, D> JobExecutor<S, D>
 where
-    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<PrimitiveSignature> + SignerSync<PrimitiveSignature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// Create a new instance of [Self].

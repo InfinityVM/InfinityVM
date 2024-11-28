@@ -25,6 +25,7 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
 
     if let Ok(program_elf) = fs::read(&elf_path_abs) {
         let program_id = ivm_zkvm::Sp1.derive_program_id(&program_elf).unwrap();
+
         fs::write(&program_id_path_abs, program_id).expect("Failed to write program ID file");
     }
 }

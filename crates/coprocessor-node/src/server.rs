@@ -3,7 +3,7 @@
 use crate::intake::IntakeHandlers;
 use alloy::{
     hex,
-    primitives::{keccak256, Signature},
+    primitives::{keccak256, PrimitiveSignature},
     signers::{Signer, SignerSync},
     sol_types::SolType,
 };
@@ -34,7 +34,7 @@ impl<S, D> CoprocessorNodeServerInner<S, D> {
 #[tonic::async_trait]
 impl<S, D> CoprocessorNodeTrait for CoprocessorNodeServerInner<S, D>
 where
-    S: Signer<Signature> + SignerSync<Signature> + Send + Sync + Clone + 'static,
+    S: Signer<PrimitiveSignature> + SignerSync<PrimitiveSignature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
 {
     /// SubmitJob defines the gRPC method for submitting a coprocessing job.

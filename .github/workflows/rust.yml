@@ -63,7 +63,7 @@ jobs:
         uses: ./.github/actions/setup
         if: env.GIT_DIFF
 
-      - run: make test-all
+      - run: make test-all-ci
         if: env.GIT_DIFF
 
   fmt:
