@@ -11,4 +11,4 @@ workspace = true
 tracing-subscriber = { workspace = true }
 tracing-appender = { workspace = true }
 strum = { workspace = true }
-dotenv = { workspace = true }
+dotenvy = { workspace = true }

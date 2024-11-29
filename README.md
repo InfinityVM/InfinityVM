@@ -13,9 +13,32 @@ Consult the [InfinityVM Book](./book) for detailed docs on:
 - InfinityVM coprocessor node
 - Infinity L1 architecture
 
-## Contributing
+## Getting Started
 
-See the [contributing](./CONTRIBUTING.md) doc for instructions on how to setup the workspace and run tests.
+### Prerequisites
+
+Instructions on how to install the prerequisites are [here](./CONTRIBUTING.md#install-tools).
+
+### Build and run tests
+
+Build
+
+```sh
+cd contracts && forge build && cd ..
+cargo build
+```
+
+Unit tests
+
+```sh
+cargo test
+```
+
+E2E tests
+
+```sh
+make test-all
+```
 
 ## Directory Structure
 
@@ -40,6 +63,10 @@ The following are some of the more important directories in the InfinityVM repos
 ├── proto                  // Proto definitions
 ├── test                   // e2e and load tests for coprocessor, CLOB, and matching game
 ```
+
+## Contributing
+
+See the [contributing](./CONTRIBUTING.md) doc for more info on workspace setup, lints, proto, etc.
 
 ## Media
 
