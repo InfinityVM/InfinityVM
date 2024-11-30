@@ -7,7 +7,7 @@ use alloy::{
     signers::local::LocalSigner,
     sol_types::SolValue,
 };
-use clob_programs::{get_clob_program_id, CLOB_ELF};
+use clob_programs::{CLOB_ELF, CLOB_PROGRAM_ID};
 use contracts::mock_consumer::MockConsumer;
 use ivm_abi::StatefulAppOnchainInput;
 use ivm_proto::{
@@ -21,10 +21,10 @@ use matching_game_core::{
     api::{Request, SubmitNumberRequest},
     get_merkle_root_bytes, next_state,
 };
-use matching_game_programs::{get_matching_game_program_id, MATCHING_GAME_ELF};
+use matching_game_programs::{MATCHING_GAME_ELF, MATCHING_GAME_PROGRAM_ID};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
-use mock_consumer_programs::{get_mock_consumer_program_id, MOCK_CONSUMER_ELF};
+use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 use std::rc::Rc;
 use tracing::{error, info};
 
@@ -53,7 +53,7 @@ async fn main() {
     let submit_program_request = SubmitProgramRequest {
         program_elf: CLOB_ELF.to_vec(),
         vm_type: VmType::Sp1.into(),
-        program_id: get_clob_program_id().to_vec(),
+        program_id: CLOB_PROGRAM_ID.to_vec(),
     };
     // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
@@ -69,7 +69,7 @@ async fn main() {
     let submit_program_request = SubmitProgramRequest {
         program_elf: MOCK_CONSUMER_ELF.to_vec(),
         vm_type: VmType::Sp1.into(),
-        program_id: get_mock_consumer_program_id().to_vec(),
+        program_id: MOCK_CONSUMER_PROGRAM_ID.to_vec(),
     };
     // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
@@ -85,7 +85,7 @@ async fn main() {
     let submit_program_request = SubmitProgramRequest {
         program_elf: MATCHING_GAME_ELF.to_vec(),
         vm_type: VmType::Sp1.into(),
-        program_id: get_matching_game_program_id().to_vec(),
+        program_id: MATCHING_GAME_PROGRAM_ID.to_vec(),
     };
     // We handle error here because we don't want to panic if the ELF was already submitted
     match coproc_client.submit_program(submit_program_request).await {
@@ -119,7 +119,7 @@ async fn main() {
         MOCK_CONSUMER_MAX_CYCLES,
         mock_consumer_addr,
         Address::abi_encode(&mock_consumer_addr).as_slice(),
-        &get_mock_consumer_program_id()[..],
+        &MOCK_CONSUMER_PROGRAM_ID,
         offchain_signer.clone(),
         &[],
     )
@@ -217,14 +217,12 @@ async fn main() {
     };
     let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
-    let matching_game_program_id = get_matching_game_program_id();
-
     let (encoded_job_request, signature) = create_and_sign_offchain_request(
         nonce,
         MOCK_CONSUMER_MAX_CYCLES,
         matching_game_consumer_addr,
         onchain_input_abi_encoded.as_slice(),
-        &matching_game_program_id,
+        &MATCHING_GAME_PROGRAM_ID,
         offchain_signer.clone(),
         &combined_offchain_input,
     )
