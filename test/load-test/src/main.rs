@@ -3,7 +3,7 @@ use alloy::{primitives::Address, providers::ProviderBuilder, sol_types::SolValue
 use borsh::{BorshDeserialize, BorshSerialize};
 use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
-use intensity_test_programs::get_intensity_test_program_id;
+use intensity_test_programs::INTENSITY_TEST_PROGRAM_ID;
 use ivm_abi::get_job_id;
 use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest};
 use load_test::{
@@ -12,7 +12,7 @@ use load_test::{
     report_file_name, run_time, should_wait_until_job_completed, startup_time,
     wait_until_job_completed,
 };
-use mock_consumer_programs::get_mock_consumer_program_id;
+use mock_consumer_programs::MOCK_CONSUMER_PROGRAM_ID;
 use once_cell::sync::Lazy;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::OnceCell;
@@ -86,7 +86,7 @@ pub async fn submit_first_job() -> Result<(), Box<dyn std::error::Error>> {
     if nonce == 1 {
         let consumer_addr =
             Address::parse_checksummed(consumer_addr(), None).expect("Valid address");
-        let program_id = get_mock_consumer_program_id();
+        let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let (encoded_job_request, signature) = get_offchain_request(
             nonce,
             &program_id,
@@ -129,7 +129,7 @@ async fn loadtest_submit_job(user: &mut GooseUser) -> TransactionResult {
     let intensity_input = IntensityInput { hash_rounds: intensity_hash_rounds() };
     let encoded_intensity = borsh::to_vec(&intensity_input).unwrap();
 
-    let program_id = get_intensity_test_program_id();
+    let program_id = INTENSITY_TEST_PROGRAM_ID;
     let (encoded_job_request, signature) =
         get_offchain_request(nonce, &program_id, &encoded_intensity).await;
 

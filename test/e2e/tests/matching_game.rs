@@ -19,7 +19,7 @@ use matching_game_core::{
     },
     get_merkle_root_bytes, next_state,
 };
-use matching_game_programs::{get_matching_game_program_id, MATCHING_GAME_ELF};
+use matching_game_programs::{MATCHING_GAME_ELF, MATCHING_GAME_PROGRAM_ID};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
 use std::rc::Rc;
 use tokio::time::{sleep, Duration};
@@ -30,7 +30,7 @@ async fn state_job_submission_matching_game_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let matching_game = args.matching_game_consumer.unwrap();
-        let program_id = get_matching_game_program_id();
+        let program_id = MATCHING_GAME_PROGRAM_ID;
         let matching_game_signer_wallet =
             EthereumWallet::from(matching_game.matching_game_signer.clone());
 
@@ -175,7 +175,7 @@ async fn matching_game_server_e2e() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
         let matching_game = args.matching_game_consumer.unwrap();
-        let program_id = get_matching_game_program_id();
+        let program_id = MATCHING_GAME_PROGRAM_ID;
         let matching_game_signer_wallet =
             EthereumWallet::from(matching_game.matching_game_signer.clone());
         let matching_game_endpoint = args.matching_game_endpoint.unwrap();
