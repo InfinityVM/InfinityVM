@@ -12,7 +12,7 @@ alloy = { workspace = true }
 goose = { workspace = true }
 tokio = { workspace = true }
 once_cell = { workspace = true }
-dotenv = { workspace = true }
+dotenvy = { workspace = true }
 reqwest = { workspace = true }
 url = { workspace = true }
 ivm-abi = { workspace = true }

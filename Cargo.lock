@@ -2244,10 +2244,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "dotenv"
-version = "0.15.0"
+name = "dotenvy"
+version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "77c90badedccf4105eca100756a0b1289e191f6fcbdadd3cee1d2f614f97da8f"
+checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
 
 [[package]]
 name = "downcast-rs"
@@ -3766,7 +3766,7 @@ dependencies = [
  "alloy",
  "borsh",
  "contracts",
- "dotenv",
+ "dotenvy",
  "goose",
  "http 0.2.12",
  "intensity-test-programs",
@@ -5992,7 +5992,7 @@ dependencies = [
  "clob-programs",
  "clob-test-utils",
  "contracts",
- "dotenv",
+ "dotenvy",
  "eip4844",
  "intensity-test-programs",
  "ivm-abi",
@@ -7373,7 +7373,7 @@ checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
 name = "tracing"
 version = "0.0.1"
 dependencies = [
- "dotenv",
+ "dotenvy",
  "strum 0.26.3",
  "tracing-appender",
  "tracing-subscriber",
