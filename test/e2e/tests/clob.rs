@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use alloy::{
     network::EthereumWallet,
     primitives::{keccak256, U256},

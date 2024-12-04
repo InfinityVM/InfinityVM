@@ -1,3 +1,5 @@
+#![allow(missing_docs)]
+
 use ivm_proto::{JobResult, JobStatus, JobStatusType};
 
 #[test]
