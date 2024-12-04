@@ -29,7 +29,7 @@ brew install protobuf
 ```sh
 # install protobuf compilation tools
 apt-get update
-apt-get install install protobuf-compiler
+apt-get install protobuf-compiler
 ```
 
 SP1
