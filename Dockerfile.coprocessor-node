@@ -18,7 +18,7 @@ RUN apt-get update && apt-get -y upgrade && \
 FROM base AS builder
 WORKDIR /app
 COPY --from=base /app/. .
-RUN cargo build --release --locked --bin ivm-coprocessor-node
+RUN cargo build --release --locked --bin ivm-coproc
 
 FROM debian:bookworm-slim
 WORKDIR /app
