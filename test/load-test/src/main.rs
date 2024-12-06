@@ -1,10 +1,10 @@
 //! Load testing for the coprocessor node
 use alloy::{primitives::Address, providers::ProviderBuilder, sol_types::SolValue};
 use borsh::{BorshDeserialize, BorshSerialize};
-use contracts::mock_consumer::MockConsumer;
 use goose::prelude::*;
 use intensity_test_programs::INTENSITY_TEST_PROGRAM_ID;
 use ivm_abi::get_job_id;
+use ivm_contracts::mock_consumer::MockConsumer;
 use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest};
 use load_test::{
     anvil_ip, anvil_port, consumer_addr, coprocessor_gateway_ip, coprocessor_gateway_port,

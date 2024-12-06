@@ -7,8 +7,8 @@ use alloy::{
     signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
 };
-use contracts::mock_consumer::MockConsumer;
 use ivm_abi::{abi_encode_result_with_metadata, get_job_id};
+use ivm_contracts::mock_consumer::MockConsumer;
 use ivm_db::tables::{Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType};
 use ivm_test_utils::{get_signers, AnvilJobManager};

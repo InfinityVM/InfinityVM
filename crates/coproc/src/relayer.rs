@@ -22,9 +22,9 @@ use alloy::{
     rpc::types::TransactionReceipt,
     transports::http::{reqwest, Client, Http},
 };
-use contracts::i_job_manager::IJobManager;
 use flume::{Receiver, Sender};
 use ivm_abi::abi_encode_offchain_job_request;
+use ivm_contracts::i_job_manager::IJobManager;
 use ivm_db::{
     get_all_failed_jobs, get_job,
     tables::{Job, RequestType},
@@ -579,9 +579,9 @@ mod test {
         signers::local::PrivateKeySigner,
         sol_types::SolEvent,
     };
-    use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
     use ivm_abi::get_job_id;
-    use mock_consumer::{
+    use ivm_contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+    use ivm_mock_consumer::{
         anvil_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
         AnvilMockConsumer,
     };

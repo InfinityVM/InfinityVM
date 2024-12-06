@@ -84,7 +84,7 @@ impl Zkvm for Sp1 {
 mod test {
     use crate::{Sp1, Zkvm};
     use alloy::sol_types::SolValue;
-    use mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
+    use ivm_mock_consumer::{mock_contract_input_addr, mock_raw_output, MOCK_CONSUMER_MAX_CYCLES};
     use mock_consumer_programs::MOCK_CONSUMER_ELF;
 
     #[test]

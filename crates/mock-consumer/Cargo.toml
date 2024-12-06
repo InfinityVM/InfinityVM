@@ -1,5 +1,5 @@
 [package]
-name = "mock-consumer"
+name = "ivm-mock-consumer"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true
@@ -11,7 +11,7 @@ workspace = true
 alloy = { workspace = true }
 
 ivm-abi = { workspace = true }
-contracts = { workspace = true }
+ivm-contracts = { workspace = true }
 ivm-db = { workspace = true }
 ivm-proto = { workspace = true }
 ivm-test-utils = { workspace = true }

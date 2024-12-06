@@ -5,10 +5,10 @@ use alloy::{
     sol_types::{SolType, SolValue},
 };
 use dotenvy::dotenv;
-use eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_abi::{
     abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata, get_job_id,
 };
+use ivm_eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_test_utils::create_and_sign_offchain_request;
 use k256::ecdsa::SigningKey;
 use std::env;

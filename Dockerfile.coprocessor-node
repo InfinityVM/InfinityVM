@@ -18,7 +18,7 @@ RUN apt-get update && apt-get -y upgrade && \
 FROM base AS builder
 WORKDIR /app
 COPY --from=base /app/. .
-RUN cargo build --release --locked --bin ivm-coprocessor-node
+RUN cargo build --release --locked --bin ivm-coproc
 
 FROM debian:bookworm-slim
 WORKDIR /app
@@ -26,7 +26,7 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/ivm-coprocessor-node /usr/local/bin/coprocessor-node
+COPY --from=builder /app/target/release/ivm-coproc /usr/local/bin/ivm-coproc
 COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
 
 EXPOSE 50069 50420 22

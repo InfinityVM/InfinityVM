@@ -15,10 +15,10 @@ use alloy::{
     },
     sol_types::SolValue,
 };
-use contracts::{
+use ivm_abi::{abi_encode_offchain_job_request, JobParams};
+use ivm_contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use ivm_abi::{abi_encode_offchain_job_request, JobParams};
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};

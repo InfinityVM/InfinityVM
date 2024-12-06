@@ -13,8 +13,8 @@ use alloy::{
     signers::{Signer, SignerSync},
     transports::{RpcError, TransportError, TransportErrorKind},
 };
-use contracts::job_manager::JobManager;
 use flume::Sender;
+use ivm_contracts::job_manager::JobManager;
 use ivm_db::{
     get_last_block_height,
     tables::{Job, RequestType},

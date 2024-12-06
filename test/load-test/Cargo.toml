@@ -15,13 +15,14 @@ once_cell = { workspace = true }
 dotenvy = { workspace = true }
 reqwest = { workspace = true }
 url = { workspace = true }
-ivm-abi = { workspace = true }
-ivm-proto = { workspace = true }
-ivm-test-utils = { workspace = true }
-mock-consumer = { workspace = true }
-contracts = { workspace = true }
 borsh = { workspace = true }
 intensity-test-programs = { workspace = true }
 mock-consumer-programs = { workspace = true }
 tracing = { workspace = true }
 http = { workspace = true }
+
+ivm-mock-consumer = { workspace = true }
+ivm-abi = { workspace = true }
+ivm-proto = { workspace = true }
+ivm-test-utils = { workspace = true }
+ivm-contracts = { workspace = true }

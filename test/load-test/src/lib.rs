@@ -1,11 +1,11 @@
 //! Load testing for the coprocessor node
 use alloy::{hex, primitives::Address};
-use contracts::get_default_deploy_info;
 use goose::prelude::*;
 use ivm_abi::get_job_id;
+use ivm_contracts::get_default_deploy_info;
+use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{GetResultRequest, GetResultResponse, JobStatusType};
 use ivm_test_utils::{create_and_sign_offchain_request, get_signers};
-use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use std::env;
 
 /// Get the Anvil IP address env var.
