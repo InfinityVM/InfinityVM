@@ -19,12 +19,6 @@ rand = { workspace = true }
 reth-db = { workspace = true }
 kairos-trie = { workspace = true }
 
-ivm-coprocessor-node = { workspace = true }
-contracts = { workspace = true }
-ivm-proto = { workspace = true }
-ivm-test-utils = { workspace = true }
-ivm-abi = { workspace = true }
-ivm-db = { workspace = true }
 clob-contracts = { workspace = true }
 clob-programs = { workspace = true }
 clob-core = { workspace = true }
@@ -34,7 +28,13 @@ clob-test-utils = { workspace = true }
 matching-game-programs = { workspace = true }
 matching-game-core = { workspace = true }
 matching-game-server = { workspace = true }
-mock-consumer = { workspace = true }
+ivm-coproc = { workspace = true }
+ivm-contracts = { workspace = true }
+ivm-proto = { workspace = true }
+ivm-test-utils = { workspace = true }
+ivm-abi = { workspace = true }
+ivm-db = { workspace = true }
+ivm-mock-consumer = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true }

@@ -1,5 +1,5 @@
 [package]
-name = "contracts"
+name = "ivm-contracts"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

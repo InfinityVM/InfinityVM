@@ -1,5 +1,5 @@
 [package]
-name = "eip4844"
+name = "ivm-eip4844"
 version.workspace = true
 rust-version.workspace = true
 edition.workspace = true

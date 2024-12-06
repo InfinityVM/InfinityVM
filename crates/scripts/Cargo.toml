@@ -1,5 +1,5 @@
 [package]
-name = "scripts"
+name = "ivm-scripts"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -38,17 +38,17 @@ tonic-build = { workspace = true }
 kairos-trie = { workspace = true }
 bincode = { workspace = true }
 
-ivm-proto = { workspace = true }
-ivm-abi = { workspace = true }
-ivm-test-utils = { workspace = true }
 clob-test-utils = { workspace = true }
 clob-node = { workspace = true }
 clob-programs = { workspace = true }
-mock-consumer = { workspace = true }
 matching-game-programs = { workspace = true }
 matching-game-core = { workspace = true }
 matching-game-server = { workspace = true }
-contracts = { workspace = true }
-eip4844 = { workspace = true }
+ivm-proto = { workspace = true }
+ivm-abi = { workspace = true }
+ivm-test-utils = { workspace = true }
+ivm-contracts = { workspace = true }
+ivm-eip4844 = { workspace = true }
+ivm-mock-consumer = { workspace = true }
 mock-consumer-programs = { workspace = true }
 intensity-test-programs = { workspace = true }

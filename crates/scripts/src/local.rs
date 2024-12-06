@@ -7,11 +7,11 @@ use clob_node::{
 };
 use clob_programs::{CLOB_ELF, CLOB_PROGRAM_ID};
 use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
-use contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
 use intensity_test_programs::{INTENSITY_TEST_ELF, INTENSITY_TEST_PROGRAM_ID};
+use ivm_contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
+use ivm_mock_consumer::anvil_with_mock_consumer;
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
 use ivm_test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
-use mock_consumer::anvil_with_mock_consumer;
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 use std::{fs::File, process::Command};
 use tokio::signal::unix::{signal, SignalKind};
@@ -59,14 +59,14 @@ async fn main() {
     let proc: ProcKill = Command::new("cargo")
         .arg("run")
         .arg("-p")
-        .arg("ivm-coprocessor-node")
+        .arg("ivm-coproc")
         .arg("--")
         .env("RELAYER_PRIVATE_KEY", coproc_relayer_private)
         .env("ZKVM_OPERATOR_PRIVATE_KEY", coproc_operator_private)
         .env("RUST_LOG_FILE", "coproc_log_file.json")
         .env("RUST_LOG_DIR", "./logs")
         .env("RUST_LOG_FORMAT", "json")
-        .env("RUST_LOG", "libmdbx=info,ivm_coprocessor_node=debug")
+        .env("RUST_LOG", "libmdbx=info,ivm_coproc=debug")
         .arg("--grpc-address")
         .arg(&coproc_grpc)
         .arg("--http-address")

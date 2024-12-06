@@ -18,7 +18,7 @@ serde = { workspace = true }
 # local deps
 clob-core = { workspace = true }
 clob-node = { workspace = true }
-ivm-test-utils = { workspace = true }
 clob-contracts = { workspace = true }
-contracts = { workspace = true }
 clob-test-utils = { workspace = true }
+ivm-contracts = { workspace = true }
+ivm-test-utils = { workspace = true }

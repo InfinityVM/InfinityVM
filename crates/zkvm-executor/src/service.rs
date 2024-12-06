@@ -6,8 +6,8 @@ use alloy::{
     primitives::{keccak256, Address, PrimitiveSignature},
     signers::{Signer, SignerSync},
 };
-use eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_abi::{abi_encode_offchain_result_with_metadata, abi_encode_result_with_metadata};
+use ivm_eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_proto::VmType;
 use ivm_zkvm::{Sp1, Zkvm};
 use std::marker::Send;
@@ -36,7 +36,7 @@ pub enum Error {
     ZkvmExecuteFailed(#[from] ivm_zkvm::Error),
     /// c-kzg logic had an error.
     #[error("c-kzg: {0}")]
-    Kzg(#[from] eip4844::CKzgError),
+    Kzg(#[from] ivm_eip4844::CKzgError),
 }
 
 /// The implementation of the `ZkvmExecutor` trait

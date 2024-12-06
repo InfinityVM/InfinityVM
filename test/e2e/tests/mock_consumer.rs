@@ -11,17 +11,17 @@ use alloy::{
     sol,
     sol_types::{SolEvent, SolValue},
 };
-use contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use e2e::{Args, E2E};
 use ivm_abi::{
     abi_encode_offchain_job_request, abi_encode_offchain_result_with_metadata,
     abi_encode_result_with_metadata, get_job_id, JobParams, OffchainResultWithMetadata,
     ResultWithMetadata,
 };
+use ivm_contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{
     GetResultRequest, JobStatusType, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
 };
-use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 
 type MockConsumerOut = sol!((Address, U256));

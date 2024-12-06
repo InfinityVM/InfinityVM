@@ -8,8 +8,9 @@ use alloy::{
     sol_types::SolValue,
 };
 use clob_programs::{CLOB_ELF, CLOB_PROGRAM_ID};
-use contracts::mock_consumer::MockConsumer;
 use ivm_abi::StatefulAppOnchainInput;
+use ivm_contracts::mock_consumer::MockConsumer;
+use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, GetResultResponse,
     RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
@@ -23,7 +24,6 @@ use matching_game_core::{
 };
 use matching_game_programs::{MATCHING_GAME_ELF, MATCHING_GAME_PROGRAM_ID};
 use matching_game_server::contracts::matching_game_consumer::MatchingGameConsumer;
-use mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 use std::rc::Rc;
 use tracing::{error, info};

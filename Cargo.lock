@@ -301,7 +301,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -315,7 +315,7 @@ dependencies = [
  "serde",
  "serde_json",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -400,7 +400,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
  "url",
 ]
 
@@ -471,7 +471,7 @@ dependencies = [
  "serde_json",
  "thiserror 1.0.69",
  "tokio",
- "tracing 0.1.40",
+ "tracing",
  "url",
  "wasmtimer",
 ]
@@ -492,7 +492,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tower 0.5.1",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -537,7 +537,7 @@ dependencies = [
  "tokio",
  "tokio-stream",
  "tower 0.5.1",
- "tracing 0.1.40",
+ "tracing",
  "url",
  "wasmtimer",
 ]
@@ -797,7 +797,7 @@ dependencies = [
  "thiserror 1.0.69",
  "tokio",
  "tower 0.5.1",
- "tracing 0.1.40",
+ "tracing",
  "url",
  "wasmtimer",
 ]
@@ -813,7 +813,7 @@ dependencies = [
  "reqwest 0.12.9",
  "serde_json",
  "tower 0.5.1",
- "tracing 0.1.40",
+ "tracing",
  "url",
 ]
 
@@ -831,7 +831,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tokio-tungstenite 0.24.0",
- "tracing 0.1.40",
+ "tracing",
  "ws_stream_wasm",
 ]
 
@@ -848,7 +848,7 @@ dependencies = [
  "nybbles",
  "serde",
  "smallvec",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -1617,8 +1617,8 @@ dependencies = [
  "clob-core",
  "clob-node",
  "clob-test-utils",
- "contracts",
  "eyre",
+ "ivm-contracts",
  "ivm-test-utils",
  "reqwest 0.12.9",
  "serde",
@@ -1668,7 +1668,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tower 0.4.13",
- "tracing 0.1.40",
+ "tracing",
  "tracing-subscriber",
 ]
 
@@ -1793,16 +1793,6 @@ name = "constant_time_eq"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c74b8349d32d297c9134b8c88677813a227df8f779daa29bfc29c183fe3dca6"
-
-[[package]]
-name = "contracts"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "eyre",
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "convert_case"
@@ -2279,11 +2269,12 @@ dependencies = [
  "clob-node",
  "clob-programs",
  "clob-test-utils",
- "contracts",
  "futures",
  "ivm-abi",
- "ivm-coprocessor-node",
+ "ivm-contracts",
+ "ivm-coproc",
  "ivm-db",
+ "ivm-mock-consumer",
  "ivm-proto",
  "ivm-test-utils",
  "ivm-zkvm",
@@ -2291,14 +2282,13 @@ dependencies = [
  "matching-game-core",
  "matching-game-programs",
  "matching-game-server",
- "mock-consumer",
  "mock-consumer-programs",
  "rand",
  "reth-db",
  "serde_json",
  "tokio",
  "tonic",
- "tracing 0.1.40",
+ "tracing",
  "tracing-subscriber",
 ]
 
@@ -2314,14 +2304,6 @@ dependencies = [
  "rfc6979",
  "signature",
  "spki",
-]
-
-[[package]]
-name = "eip4844"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "c-kzg",
 ]
 
 [[package]]
@@ -2847,7 +2829,7 @@ dependencies = [
  "slab",
  "tokio",
  "tokio-util",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -2866,7 +2848,7 @@ dependencies = [
  "slab",
  "tokio",
  "tokio-util",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -3066,7 +3048,7 @@ dependencies = [
  "socket2",
  "tokio",
  "tower-service",
- "tracing 0.1.40",
+ "tracing",
  "want",
 ]
 
@@ -3123,6 +3105,19 @@ dependencies = [
 
 [[package]]
 name = "hyper-tls"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
+dependencies = [
+ "bytes",
+ "hyper 0.14.31",
+ "native-tls",
+ "tokio",
+ "tokio-native-tls",
+]
+
+[[package]]
+name = "hyper-tls"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70206fc6890eaca9fde8a0bf71caa2ddfc9fe045ac9e5c70df101a7dbde866e0"
@@ -3153,7 +3148,7 @@ dependencies = [
  "socket2",
  "tokio",
  "tower-service",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -3474,25 +3469,36 @@ dependencies = [
 ]
 
 [[package]]
-name = "ivm-coprocessor-node"
+name = "ivm-contracts"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "eyre",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "ivm-coproc"
 version = "0.0.1"
 dependencies = [
  "alloy",
  "axum",
  "clap",
- "contracts",
  "dashmap",
- "eip4844",
  "eyre",
  "flume",
  "home",
  "ivm-abi",
+ "ivm-contracts",
  "ivm-db",
+ "ivm-eip4844",
+ "ivm-mock-consumer",
  "ivm-proto",
  "ivm-test-utils",
+ "ivm-tracing",
  "ivm-zkvm-executor",
  "k256",
- "mock-consumer",
  "num_cpus",
  "parking_lot",
  "prometheus",
@@ -3502,8 +3508,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tonic-reflection",
- "tracing 0.0.1",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -3512,9 +3517,9 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "bincode",
- "eip4844",
  "eyre",
  "ivm-abi",
+ "ivm-eip4844",
  "ivm-proto",
  "reth-db",
  "reth-db-api",
@@ -3522,6 +3527,26 @@ dependencies = [
  "sha2",
  "tempfile",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "ivm-eip4844"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "c-kzg",
+]
+
+[[package]]
+name = "ivm-mock-consumer"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "ivm-abi",
+ "ivm-contracts",
+ "ivm-db",
+ "ivm-proto",
+ "ivm-test-utils",
 ]
 
 [[package]]
@@ -3533,6 +3558,39 @@ dependencies = [
  "serde",
  "serde_with",
  "tonic",
+]
+
+[[package]]
+name = "ivm-scripts"
+version = "0.0.1"
+dependencies = [
+ "alloy",
+ "bincode",
+ "clob-node",
+ "clob-programs",
+ "clob-test-utils",
+ "dotenvy",
+ "intensity-test-programs",
+ "ivm-abi",
+ "ivm-contracts",
+ "ivm-eip4844",
+ "ivm-mock-consumer",
+ "ivm-proto",
+ "ivm-test-utils",
+ "k256",
+ "kairos-trie",
+ "matching-game-core",
+ "matching-game-programs",
+ "matching-game-server",
+ "mock-consumer-programs",
+ "reqwest 0.11.27",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "tonic-build",
+ "tracing",
+ "tracing-subscriber",
+ "url",
 ]
 
 [[package]]
@@ -3551,11 +3609,21 @@ dependencies = [
  "alloy",
  "alloy-signer 0.3.6",
  "alloy-signer-local 0.3.6",
- "contracts",
  "ivm-abi",
+ "ivm-contracts",
  "k256",
  "rand",
  "tokio",
+ "tracing-subscriber",
+]
+
+[[package]]
+name = "ivm-tracing"
+version = "0.0.1"
+dependencies = [
+ "dotenvy",
+ "strum 0.26.3",
+ "tracing-appender",
  "tracing-subscriber",
 ]
 
@@ -3565,7 +3633,7 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "anyhow",
- "mock-consumer",
+ "ivm-mock-consumer",
  "mock-consumer-programs",
  "sp1-sdk",
  "thiserror 1.0.69",
@@ -3576,12 +3644,12 @@ name = "ivm-zkvm-executor"
 version = "0.0.1"
 dependencies = [
  "alloy",
- "eip4844",
  "ivm-abi",
+ "ivm-eip4844",
  "ivm-proto",
  "ivm-zkvm",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -3763,20 +3831,20 @@ version = "0.0.1"
 dependencies = [
  "alloy",
  "borsh",
- "contracts",
  "dotenvy",
  "goose",
  "http 0.2.12",
  "intensity-test-programs",
  "ivm-abi",
+ "ivm-contracts",
+ "ivm-mock-consumer",
  "ivm-proto",
  "ivm-test-utils",
- "mock-consumer",
  "mock-consumer-programs",
  "once_cell",
  "reqwest 0.12.9",
  "tokio",
- "tracing 0.1.40",
+ "tracing",
  "url",
 ]
 
@@ -3869,7 +3937,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tower 0.4.13",
- "tracing 0.1.40",
+ "tracing",
  "tracing-subscriber",
 ]
 
@@ -3953,18 +4021,6 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "mock-consumer"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "contracts",
- "ivm-abi",
- "ivm-db",
- "ivm-proto",
- "ivm-test-utils",
 ]
 
 [[package]]
@@ -4446,7 +4502,7 @@ dependencies = [
  "p3-symmetric",
  "p3-util",
  "serde",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -4471,7 +4527,7 @@ dependencies = [
  "p3-matrix",
  "p3-maybe-rayon",
  "p3-util",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -4502,7 +4558,7 @@ dependencies = [
  "p3-maybe-rayon",
  "p3-util",
  "serde",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -4525,7 +4581,7 @@ dependencies = [
  "p3-matrix",
  "p3-maybe-rayon",
  "p3-util",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -4539,7 +4595,7 @@ dependencies = [
  "p3-util",
  "rand",
  "serde",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -4577,7 +4633,7 @@ dependencies = [
  "p3-symmetric",
  "p3-util",
  "serde",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -4618,7 +4674,7 @@ dependencies = [
  "p3-maybe-rayon",
  "p3-util",
  "serde",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -5281,19 +5337,23 @@ dependencies = [
  "http 0.2.12",
  "http-body 0.4.6",
  "hyper 0.14.31",
+ "hyper-tls 0.5.0",
  "ipnet",
  "js-sys",
  "log",
  "mime",
+ "native-tls",
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
+ "rustls-pemfile 1.0.4",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper 0.1.2",
  "system-configuration 0.5.1",
  "tokio",
+ "tokio-native-tls",
  "tokio-util",
  "tower-service",
  "url",
@@ -5320,7 +5380,7 @@ dependencies = [
  "http-body-util",
  "hyper 1.5.1",
  "hyper-rustls",
- "hyper-tls",
+ "hyper-tls 0.6.0",
  "hyper-util",
  "ipnet",
  "js-sys",
@@ -5330,7 +5390,7 @@ dependencies = [
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
- "rustls-pemfile",
+ "rustls-pemfile 2.2.0",
  "serde",
  "serde_json",
  "serde_urlencoded",
@@ -5485,7 +5545,7 @@ dependencies = [
  "reth-mdbx-sys",
  "smallvec",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -5519,7 +5579,7 @@ dependencies = [
  "reth-fs-util",
  "serde",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
  "zstd",
 ]
 
@@ -5630,7 +5690,7 @@ dependencies = [
  "clap",
  "eyre",
  "rolling-file",
- "tracing 0.1.40",
+ "tracing",
  "tracing-appender",
  "tracing-journald",
  "tracing-logfmt",
@@ -5862,6 +5922,15 @@ dependencies = [
 
 [[package]]
 name = "rustls-pemfile"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c74cae0a4cf6ccbbf5f359f08efdf8ee7e1dc532573bf0db71968cb56b1448c"
+dependencies = [
+ "base64 0.21.7",
+]
+
+[[package]]
+name = "rustls-pemfile"
 version = "2.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dce314e5fee3f39953d46bb63bb8a46d40c2f8fb7cc5a3b6cab2bde9721d6e50"
@@ -5977,39 +6046,6 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
-
-[[package]]
-name = "scripts"
-version = "0.0.1"
-dependencies = [
- "alloy",
- "bincode",
- "clob-node",
- "clob-programs",
- "clob-test-utils",
- "contracts",
- "dotenvy",
- "eip4844",
- "intensity-test-programs",
- "ivm-abi",
- "ivm-proto",
- "ivm-test-utils",
- "k256",
- "kairos-trie",
- "matching-game-core",
- "matching-game-programs",
- "matching-game-server",
- "mock-consumer",
- "mock-consumer-programs",
- "reqwest 0.12.9",
- "serde_json",
- "tempfile",
- "tokio",
- "tonic-build",
- "tracing 0.1.40",
- "tracing-subscriber",
- "url",
-]
 
 [[package]]
 name = "scrypt"
@@ -6409,7 +6445,7 @@ dependencies = [
  "strum_macros 0.26.4",
  "thiserror 1.0.69",
  "tiny-keccak",
- "tracing 0.1.40",
+ "tracing",
  "typenum",
  "vec_map",
 ]
@@ -6454,7 +6490,7 @@ dependencies = [
  "strum_macros 0.26.4",
  "tempfile",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
  "tracing-forest",
  "tracing-subscriber",
  "typenum",
@@ -6541,7 +6577,7 @@ dependencies = [
  "sp1-recursion-gnark-ffi",
  "sp1-stark",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
  "tracing-appender",
  "tracing-subscriber",
 ]
@@ -6576,7 +6612,7 @@ dependencies = [
  "sp1-recursion-core",
  "sp1-recursion-gnark-ffi",
  "sp1-stark",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -6596,7 +6632,7 @@ dependencies = [
  "sp1-recursion-core",
  "sp1-recursion-derive",
  "sp1-stark",
- "tracing 0.1.40",
+ "tracing",
  "vec_map",
 ]
 
@@ -6630,7 +6666,7 @@ dependencies = [
  "sp1-stark",
  "static_assertions",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
  "vec_map",
  "zkhash",
 ]
@@ -6699,7 +6735,7 @@ dependencies = [
  "strum_macros 0.26.4",
  "tempfile",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
  "vergen",
 ]
 
@@ -6733,7 +6769,7 @@ dependencies = [
  "strum 0.26.3",
  "strum_macros 0.26.4",
  "sysinfo 0.30.13",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -7144,7 +7180,7 @@ dependencies = [
  "signal-hook-registry",
  "socket2",
  "tokio-macros",
- "tracing 0.1.40",
+ "tracing",
  "windows-sys 0.52.0",
 ]
 
@@ -7288,7 +7324,7 @@ dependencies = [
  "tower 0.4.13",
  "tower-layer",
  "tower-service",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -7335,7 +7371,7 @@ dependencies = [
  "tokio-util",
  "tower-layer",
  "tower-service",
- "tracing 0.1.40",
+ "tracing",
 ]
 
 [[package]]
@@ -7364,16 +7400,6 @@ name = "tower-service"
 version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8df9b6e13f2d32c91b9bd719c00d1958837bc7dec474d94952798cc8e69eeec3"
-
-[[package]]
-name = "tracing"
-version = "0.0.1"
-dependencies = [
- "dotenvy",
- "strum 0.26.3",
- "tracing-appender",
- "tracing-subscriber",
-]
 
 [[package]]
 name = "tracing"
@@ -7429,7 +7455,7 @@ dependencies = [
  "ansi_term",
  "smallvec",
  "thiserror 1.0.69",
- "tracing 0.1.40",
+ "tracing",
  "tracing-subscriber",
 ]
 
@@ -7462,7 +7488,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6b1f47d22deb79c3f59fcf2a1f00f60cbdc05462bf17d1cd356c1fefa3f444bd"
 dependencies = [
  "time",
- "tracing 0.1.40",
+ "tracing",
  "tracing-core",
  "tracing-subscriber",
 ]
@@ -7492,7 +7518,7 @@ dependencies = [
  "sharded-slab",
  "smallvec",
  "thread_local",
- "tracing 0.1.40",
+ "tracing",
  "tracing-core",
  "tracing-log",
  "tracing-serde",
