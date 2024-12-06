@@ -13,6 +13,8 @@ reth = { git = "https://github.com/paradigmxyz/reth.git", features = ["jemalloc"
 reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git" }
 reth-tracing = { git = "https://github.com/paradigmxyz/reth.git" }
 reth-transaction-pool = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-trie-db = { git = "https://github.com/paradigmxyz/reth.git" }
 
 eyre = { version = "*", default-features = false  }
 tokio = { version = "*", default-features = false  }

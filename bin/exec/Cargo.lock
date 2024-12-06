@@ -3426,9 +3426,11 @@ version = "0.0.0"
 dependencies = [
  "eyre",
  "reth",
+ "reth-ethereum-engine-primitives",
  "reth-node-ethereum",
  "reth-tracing",
  "reth-transaction-pool",
+ "reth-trie-db",
  "serde",
  "thiserror 2.0.4",
  "tokio",
