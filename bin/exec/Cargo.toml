@@ -1,0 +1,20 @@
+[package]
+name = "ivm-exec"
+edition = "2021"
+rust-version = "1.78"
+# rust-version.workspace = true
+# edition.workspace = true
+
+# [lints]
+# workspace = true
+
+[dependencies]
+reth = { git = "https://github.com/paradigmxyz/reth.git", features = ["jemalloc", "asm-keccak"] }
+reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-tracing = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-transaction-pool = { git = "https://github.com/paradigmxyz/reth.git" }
+
+eyre = { version = "*", default-features = false  }
+tokio = { version = "*", default-features = false  }
+thiserror = { version = "*", default-features = false  }
+serde = { version = "*", default-features = false  }
