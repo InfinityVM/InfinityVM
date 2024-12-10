@@ -1,3 +1,4 @@
+/// IVM execution client types for plugging into reth node builder.
 use reth::{
     builder::{
         components::ComponentsBuilder, rpc::RpcAddOns, EngineObjectValidationError, EngineTypes,
@@ -14,8 +15,8 @@ use reth::{
 use reth_ethereum_engine_primitives::EthPayloadAttributes;
 use reth_node_ethereum::{
     node::{
-        EthereumConsensusBuilder, EthereumEngineValidatorBuilder, EthereumExecutorBuilder,
-        EthereumNetworkBuilder, EthereumPayloadBuilder, EthereumPoolBuilder,
+        EthereumConsensusBuilder, EthereumExecutorBuilder, EthereumNetworkBuilder,
+        EthereumPayloadBuilder, EthereumPoolBuilder,
     },
     EthEngineTypes,
 };
@@ -32,13 +33,13 @@ use reth::{
     rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError},
 };
 
-/// Type configuration for a regular Ethereum node.
+/// Type configuration for an IVM execution node.
 #[derive(Debug, Default, Clone, Copy)]
 #[non_exhaustive]
-pub struct EthereumNode;
+pub struct IvmNode;
 
-impl EthereumNode {
-    /// Returns a [`ComponentsBuilder`] configured for a regular Ethereum node.
+impl IvmNode {
+    /// Returns a [`ComponentsBuilder`] configured for an IVM execution node.
     pub fn components<Node>() -> ComponentsBuilder<
         Node,
         EthereumPoolBuilder,
@@ -65,19 +66,18 @@ impl EthereumNode {
     }
 }
 
-impl NodeTypes for EthereumNode {
+impl NodeTypes for IvmNode {
     type Primitives = EthPrimitives;
     type ChainSpec = ChainSpec;
     type StateCommitment = MerklePatriciaTrie;
     type Storage = EthStorage;
 }
 
-impl NodeTypesWithEngine for EthereumNode {
+impl NodeTypesWithEngine for IvmNode {
     type Engine = EthEngineTypes;
 }
 
-/// Add-ons w.r.t. l1 ethereum.
-pub type EthereumAddOns<N> = RpcAddOns<
+pub type IvmAddOns<N> = RpcAddOns<
     N,
     EthApi<
         <N as FullNodeTypes>::Provider,
@@ -85,10 +85,10 @@ pub type EthereumAddOns<N> = RpcAddOns<
         NetworkHandle,
         <N as FullNodeComponents>::Evm,
     >,
-    EthereumEngineValidatorBuilder,
+    IvmEngineValidatorBuilder,
 >;
 
-impl<Types, N> Node<N> for EthereumNode
+impl<Types, N> Node<N> for IvmNode
 where
     Types: NodeTypesWithDB
         + NodeTypesWithEngine<
@@ -108,7 +108,7 @@ where
         EthereumConsensusBuilder,
     >;
 
-    type AddOns = EthereumAddOns<
+    type AddOns = IvmAddOns<
         NodeAdapter<N, <Self::ComponentsBuilder as NodeComponentsBuilder<N>>::Components>,
     >;
 
@@ -117,7 +117,7 @@ where
     }
 
     fn add_ons(&self) -> Self::AddOns {
-        EthereumAddOns::default()
+        IvmAddOns::default()
     }
 }
 
@@ -152,8 +152,6 @@ where
         payload_or_attrs: PayloadOrAttributes<'_, T::PayloadAttributes>,
     ) -> Result<(), EngineObjectValidationError> {
         validate_version_specific_fields(self.chain_spec(), version, payload_or_attrs)
-
-        // self.inner.validate_version_specific_fields(version, attributes)?;
     }
 
     fn ensure_well_formed_attributes(
@@ -161,11 +159,7 @@ where
         version: EngineApiMessageVersion,
         attributes: &T::PayloadAttributes,
     ) -> Result<(), EngineObjectValidationError> {
-        validate_version_specific_fields(self.chain_spec(), version, attributes.into())?;
-
-        // self.inner.ensure_well_formed_attributes(version, attributes)?;
-
-        Ok(())
+        validate_version_specific_fields(self.chain_spec(), version, attributes.into())
     }
 
     fn ensure_well_formed_payload(
@@ -181,7 +175,7 @@ where
         _attr: &<T as PayloadTypes>::PayloadAttributes,
         _header: &<Self::Block as reth::api::Block>::Header,
     ) -> Result<(), InvalidPayloadAttributesError> {
-        // skip default timestamp validation
+        // skip timestamp validation
         Ok(())
     }
 }
@@ -203,15 +197,3 @@ where
         Ok(IvmEngineValidator::new(ctx.config.chain.clone()))
     }
 }
-
-// impl<N> EngineValidatorAddOn<N> for OpAddOns<N>
-// where
-//     N: FullNodeComponents<Types: NodeTypes<ChainSpec = OpChainSpec>>,
-//     OpEngineValidator: EngineValidator<<N::Types as NodeTypesWithEngine>::Engine>,
-// {
-//     type Validator = OpEngineValidator;
-
-//     async fn engine_validator(&self, ctx: &AddOnsContext<'_, N>) -> eyre::Result<Self::Validator>
-// {         OpEngineValidatorBuilder::default().build(ctx).await
-//     }
-// }
