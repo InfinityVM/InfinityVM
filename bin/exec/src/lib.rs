@@ -36,48 +36,48 @@ use std::sync::Arc;
 pub mod pool;
 
 /// Type configuration for an IVM execution node.
-#[derive(Debug, Default, Clone, Copy)]
-#[non_exhaustive]
-pub struct IvmNode;
+// #[derive(Debug, Default, Clone, Copy)]
+// #[non_exhaustive]
+// pub struct IvmNode;
 
-impl IvmNode {
-    /// Returns a [`ComponentsBuilder`] configured for an IVM execution node.
-    pub fn components<Node>() -> ComponentsBuilder<
-        Node,
-        IvmPoolBuilder,
-        EthereumPayloadBuilder,
-        EthereumNetworkBuilder,
-        EthereumExecutorBuilder,
-        EthereumConsensusBuilder,
-    >
-    where
-        Node: FullNodeTypes<Types: NodeTypes<ChainSpec = ChainSpec, Primitives = EthPrimitives>>,
-        <Node::Types as NodeTypesWithEngine>::Engine: PayloadTypes<
-            BuiltPayload = EthBuiltPayload,
-            PayloadAttributes = EthPayloadAttributes,
-            PayloadBuilderAttributes = EthPayloadBuilderAttributes,
-        >,
-    {
-        ComponentsBuilder::default()
-            .node_types::<Node>()
-            .pool(IvmPoolBuilder::default())
-            .payload(EthereumPayloadBuilder::default())
-            .network(EthereumNetworkBuilder::default())
-            .executor(EthereumExecutorBuilder::default())
-            .consensus(EthereumConsensusBuilder::default())
-    }
-}
+// impl IvmNode {
+//     /// Returns a [`ComponentsBuilder`] configured for an IVM execution node.
+//     pub fn components<Node>() -> ComponentsBuilder<
+//         Node,
+//         IvmPoolBuilder,
+//         EthereumPayloadBuilder,
+//         EthereumNetworkBuilder,
+//         EthereumExecutorBuilder,
+//         EthereumConsensusBuilder,
+//     >
+//     where
+//         Node: FullNodeTypes<Types: NodeTypes<ChainSpec = ChainSpec, Primitives = EthPrimitives>>,
+//         <Node::Types as NodeTypesWithEngine>::Engine: PayloadTypes<
+//             BuiltPayload = EthBuiltPayload,
+//             PayloadAttributes = EthPayloadAttributes,
+//             PayloadBuilderAttributes = EthPayloadBuilderAttributes,
+//         >,
+//     {
+//         ComponentsBuilder::default()
+//             .node_types::<Node>()
+//             .pool(IvmPoolBuilder::default())
+//             .payload(EthereumPayloadBuilder::default())
+//             .network(EthereumNetworkBuilder::default())
+//             .executor(EthereumExecutorBuilder::default())
+//             .consensus(EthereumConsensusBuilder::default())
+//     }
+// }
 
-impl NodeTypes for IvmNode {
-    type Primitives = EthPrimitives;
-    type ChainSpec = ChainSpec;
-    type StateCommitment = MerklePatriciaTrie;
-    type Storage = EthStorage;
-}
+// impl NodeTypes for IvmNode {
+//     type Primitives = EthPrimitives;
+//     type ChainSpec = ChainSpec;
+//     type StateCommitment = MerklePatriciaTrie;
+//     type Storage = EthStorage;
+// }
 
-impl NodeTypesWithEngine for IvmNode {
-    type Engine = EthEngineTypes;
-}
+// impl NodeTypesWithEngine for IvmNode {
+//     type Engine = EthEngineTypes;
+// }
 
 pub type IvmAddOns<N> = RpcAddOns<
     N,
@@ -90,38 +90,38 @@ pub type IvmAddOns<N> = RpcAddOns<
     IvmEngineValidatorBuilder,
 >;
 
-impl<Types, N> Node<N> for IvmNode
-where
-    Types: NodeTypesWithDB
-        + NodeTypesWithEngine<
-            Engine = EthEngineTypes,
-            ChainSpec = ChainSpec,
-            Primitives = EthPrimitives,
-            Storage = EthStorage,
-        >,
-    N: FullNodeTypes<Types = Types>,
-{
-    type ComponentsBuilder = ComponentsBuilder<
-        N,
-        IvmPoolBuilder,
-        EthereumPayloadBuilder,
-        EthereumNetworkBuilder,
-        EthereumExecutorBuilder,
-        EthereumConsensusBuilder,
-    >;
+// impl<Types, N> Node<N> for IvmNode
+// where
+//     Types: NodeTypesWithDB
+//         + NodeTypesWithEngine<
+//             Engine = EthEngineTypes,
+//             ChainSpec = ChainSpec,
+//             Primitives = EthPrimitives,
+//             Storage = EthStorage,
+//         >,
+//     N: FullNodeTypes<Types = Types>,
+// {
+//     type ComponentsBuilder = ComponentsBuilder<
+//         N,
+//         IvmPoolBuilder,
+//         EthereumPayloadBuilder,
+//         EthereumNetworkBuilder,
+//         EthereumExecutorBuilder,
+//         EthereumConsensusBuilder,
+//     >;
 
-    type AddOns = IvmAddOns<
-        NodeAdapter<N, <Self::ComponentsBuilder as NodeComponentsBuilder<N>>::Components>,
-    >;
+//     type AddOns = IvmAddOns<
+//         NodeAdapter<N, <Self::ComponentsBuilder as NodeComponentsBuilder<N>>::Components>,
+//     >;
 
-    fn components_builder(&self) -> Self::ComponentsBuilder {
-        Self::components()
-    }
+//     fn components_builder(&self) -> Self::ComponentsBuilder {
+//         Self::components()
+//     }
 
-    fn add_ons(&self) -> Self::AddOns {
-        IvmAddOns::default()
-    }
-}
+//     fn add_ons(&self) -> Self::AddOns {
+//         IvmAddOns::default()
+//     }
+// }
 
 /// IVM engine validator.
 #[derive(Debug, Clone)]

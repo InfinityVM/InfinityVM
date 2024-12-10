@@ -38,7 +38,7 @@ impl IvmTransactionAllowConfig {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct IvmTransactionValidator<Client, Tx> {
     inner: EthTransactionValidator<Client, Tx>,
     allow_config: IvmTransactionAllowConfig,
