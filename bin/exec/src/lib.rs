@@ -32,10 +32,16 @@ use std::sync::Arc;
 use reth::builder::EngineObjectValidationError;
 use reth::builder::EngineValidator;
 use reth::builder::EngineTypes;
-use reth::builder::Block;
+// use reth::builder::Block;
 use reth::builder::EngineApiMessageVersion;
 use reth::builder::PayloadOrAttributes;
 use reth::builder::validate_version_specific_fields;
+use reth::rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError};
+use reth::primitives::SealedBlockFor;
+use reth::api::{InvalidPayloadAttributesError};
+use reth::builder::rpc::EngineValidatorBuilder;
+use reth::builder::AddOnsContext;
+use reth::primitives::Block;
 
 /// Type configuration for a regular Ethereum node.
 #[derive(Debug, Default, Clone, Copy)]
@@ -157,6 +163,8 @@ where
         payload_or_attrs: PayloadOrAttributes<'_, T::PayloadAttributes>,
     ) -> Result<(), EngineObjectValidationError> {
         validate_version_specific_fields(self.chain_spec(), version, payload_or_attrs)
+
+        // self.inner.validate_version_specific_fields(version, attributes)?;
     }
 
     fn ensure_well_formed_attributes(
@@ -166,12 +174,7 @@ where
     ) -> Result<(), EngineObjectValidationError> {
         validate_version_specific_fields(self.chain_spec(), version, attributes.into())?;
 
-        // custom validation logic - ensure that the custom field is not zero
-        if attributes.custom == 0 {
-            return Err(EngineObjectValidationError::invalid_params(
-                CustomError::CustomFieldIsNotZero,
-            ))
-        }
+        // self.inner.ensure_well_formed_attributes(version, attributes)?;
 
         Ok(())
     }
@@ -202,7 +205,7 @@ pub struct CustomEngineValidatorBuilder;
 impl<N> EngineValidatorBuilder<N> for CustomEngineValidatorBuilder
 where
     N: FullNodeComponents<
-        Types: NodeTypesWithEngine<Engine = CustomEngineTypes, ChainSpec = ChainSpec>,
+        Types: NodeTypesWithEngine<Engine = EthEngineTypes, ChainSpec = ChainSpec>,
     >,
 {
     type Validator = CustomEngineValidator;
