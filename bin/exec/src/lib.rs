@@ -1,3 +1,12 @@
+use reth::{
+    api::InvalidPayloadAttributesError,
+    builder::{
+        rpc::EngineValidatorBuilder, validate_version_specific_fields, AddOnsContext,
+        EngineApiMessageVersion, PayloadOrAttributes,
+    },
+    primitives::{Block, SealedBlockFor},
+    rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError},
+};
 /// IVM execution client types for plugging into reth node builder.
 use reth::{
     builder::{
@@ -22,15 +31,7 @@ use reth_node_ethereum::{
 };
 use reth_trie_db::MerklePatriciaTrie;
 use std::sync::Arc;
-use reth::{
-    api::InvalidPayloadAttributesError,
-    builder::{
-        rpc::EngineValidatorBuilder, validate_version_specific_fields, AddOnsContext,
-        EngineApiMessageVersion, PayloadOrAttributes,
-    },
-    primitives::{Block, SealedBlockFor},
-    rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError},
-};
+use crate::pool::IvmPoolBuilder;
 
 pub mod pool;
 
@@ -43,7 +44,7 @@ impl IvmNode {
     /// Returns a [`ComponentsBuilder`] configured for an IVM execution node.
     pub fn components<Node>() -> ComponentsBuilder<
         Node,
-        EthereumPoolBuilder,
+        IvmPoolBuilder,
         EthereumPayloadBuilder,
         EthereumNetworkBuilder,
         EthereumExecutorBuilder,
@@ -59,7 +60,7 @@ impl IvmNode {
     {
         ComponentsBuilder::default()
             .node_types::<Node>()
-            .pool(EthereumPoolBuilder::default())
+            .pool(IvmPoolBuilder::default())
             .payload(EthereumPayloadBuilder::default())
             .network(EthereumNetworkBuilder::default())
             .executor(EthereumExecutorBuilder::default())
@@ -102,7 +103,7 @@ where
 {
     type ComponentsBuilder = ComponentsBuilder<
         N,
-        EthereumPoolBuilder,
+        IvmPoolBuilder,
         EthereumPayloadBuilder,
         EthereumNetworkBuilder,
         EthereumExecutorBuilder,

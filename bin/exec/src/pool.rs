@@ -1,5 +1,7 @@
-
-
+use alloy::primitives::Address;
+/// IVM transaction pool. This is intended to be identical to the standard reth pool
+/// with the one difference being additional transaction validation to allow for
+/// free transaction submission without spam.
 use reth::{
     api::NodeTypes,
     builder::{components::PoolBuilder, BuilderContext, FullNodeTypes},
@@ -11,54 +13,56 @@ use reth::{
         blobstore::InMemoryBlobStore, EthTransactionPool, TransactionValidationTaskExecutor,
     },
 };
-use reth::transaction_pool::PoolConfig;
-use tracing::{info, debug};
-use reth::providers::StateProviderFactory;
-use reth::transaction_pool::EthPoolTransaction;
-use reth::transaction_pool::TransactionOrigin;
-use reth::transaction_pool::TransactionValidationOutcome;
-use reth::transaction_pool::EthTransactionValidator;
-use reth::primitives::SealedBlock;
-use reth::transaction_pool::TransactionValidator;
-use reth::transaction_pool::LocalTransactionConfig;
-use alloy::primitives::Address;
+use reth::{
+    primitives::{InvalidTransactionError, SealedBlock},
+    providers::StateProviderFactory,
+    transaction_pool::{
+        EthPoolTransaction, EthTransactionValidator, LocalTransactionConfig, PoolConfig,
+        TransactionOrigin, TransactionValidationOutcome, TransactionValidator,
+    },
+};
 use std::collections::HashSet;
-use reth::primitives::InvalidTransactionError;
+use tracing::{debug, info};
 
 #[derive(Debug, Clone, Default)]
 struct IvmTransactionAllowConfig {
-  allow_all: bool,
-  to: HashSet<Address>,
-  from: HashSet<Address>,
+    allow_all: bool,
+    to: HashSet<Address>,
+    from: HashSet<Address>,
 }
 
 impl IvmTransactionAllowConfig {
-  fn is_allowed(&self, from: &Address, to: &Address) -> bool {
-    if self.allow_all {
-      return true;
-    }
+    fn is_allowed(&self, from: &Address, to: &Address) -> bool {
+        if self.allow_all {
+            return true;
+        }
 
-    if self.to.contains(to) {
-      return true;
-    }
+        if self.to.contains(to) {
+            return true;
+        }
 
-    self.from.contains(from)
-  }
+        self.from.contains(from)
+    }
 }
-
 
 /// A custom pool builder
 #[derive(Debug, Clone, Default)]
 #[non_exhaustive]
-pub struct CustomPoolBuilder {
-    /// Use custom pool config
+pub struct IvmPoolBuilder {
+    // TODO: [now] get the pool config from context
     pool_config: PoolConfig,
+}
+
+impl IvmPoolBuilder {
+    fn new(pool_config: PoolConfig) -> Self {
+        Self { pool_config }
+    }
 }
 
 /// Implement the [`PoolBuilder`] trait for the custom pool builder
 ///
 /// This will be used to build the transaction pool and its maintenance tasks during launch.
-impl<Node> PoolBuilder<Node> for CustomPoolBuilder
+impl<Node> PoolBuilder<Node> for IvmPoolBuilder
 where
     Node: FullNodeTypes<Types: NodeTypes<ChainSpec = ChainSpec, Primitives = EthPrimitives>>,
 {
@@ -77,7 +81,6 @@ where
                 ctx.task_executor().clone(),
                 blob_store.clone(),
             );
-
 
         let transaction_pool =
             reth::transaction_pool::Pool::eth_pool(validator, blob_store, self.pool_config);
@@ -121,9 +124,10 @@ where
     }
 }
 
+#[derive(Debug)]
 struct IvmTransactionValidator<Client, Tx> {
-  inner: EthTransactionValidator<Client, Tx>,
-  allow_config: IvmTransactionAllowConfig,
+    inner: EthTransactionValidator<Client, Tx>,
+    allow_config: IvmTransactionAllowConfig,
 }
 
 impl<Client, Tx> IvmTransactionValidator<Client, Tx>
@@ -143,14 +147,15 @@ where
         let is_valid = outcome.is_valid();
 
         if !is_valid {
-          return outcome;
+            return outcome;
         }
 
         let sender = transaction.sender_ref();
+        /// TODO
         if self.allow_config.is_allowed(sender, sender) {
-          outcome
+            outcome
         } else {
-          TransactionValidationOutcome::Invalid(
+            TransactionValidationOutcome::Invalid(
                 transaction,
                 InvalidTransactionError::TxTypeNotSupported.into(),
             )
