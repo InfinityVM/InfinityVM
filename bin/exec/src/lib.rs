@@ -1,47 +1,36 @@
-use reth_node_ethereum::node::{
-  EthereumPoolBuilder, 
-  EthereumPayloadBuilder, 
-  EthereumNetworkBuilder, 
-  EthereumExecutorBuilder, 
-  EthereumConsensusBuilder
+use reth::{
+    builder::{
+        components::ComponentsBuilder, rpc::RpcAddOns, EngineObjectValidationError, EngineTypes,
+        EngineValidator, FullNodeComponents, FullNodeTypes, Node, NodeAdapter,
+        NodeComponentsBuilder, NodeTypes, NodeTypesWithDB, NodeTypesWithEngine, PayloadTypes,
+    },
+    chainspec::ChainSpec,
+    network::NetworkHandle,
+    payload::{EthBuiltPayload, EthPayloadBuilderAttributes, ExecutionPayloadValidator},
+    primitives::EthPrimitives,
+    providers::EthStorage,
+    rpc::eth::EthApi,
 };
-use reth::builder::components::ComponentsBuilder;
-use reth::builder::NodeAdapter;
-use reth::builder::NodeComponentsBuilder;
-use reth::primitives::EthPrimitives;
-use reth::providers::EthStorage;
-use reth::chainspec::ChainSpec;
-use reth_node_ethereum::EthEngineTypes;
-use reth::builder::NodeTypesWithEngine;
-use reth::builder::NodeTypesWithDB;
-use reth::builder::Node;
-use reth_node_ethereum::node::EthereumEngineValidatorBuilder;
-use reth::builder::FullNodeComponents;
-use reth::network::NetworkHandle;
-use reth::rpc::eth::EthApi;
-use reth::builder::rpc::RpcAddOns;
-use reth::builder::FullNodeTypes;
-use reth::builder::NodeTypes;
-use reth::builder::PayloadTypes;
-use reth::payload::EthBuiltPayload;
-use reth::payload::EthPayloadBuilderAttributes;
 use reth_ethereum_engine_primitives::EthPayloadAttributes;
+use reth_node_ethereum::{
+    node::{
+        EthereumConsensusBuilder, EthereumEngineValidatorBuilder, EthereumExecutorBuilder,
+        EthereumNetworkBuilder, EthereumPayloadBuilder, EthereumPoolBuilder,
+    },
+    EthEngineTypes,
+};
 use reth_trie_db::MerklePatriciaTrie;
-use reth::payload::ExecutionPayloadValidator;
 use std::sync::Arc;
-use reth::builder::EngineObjectValidationError;
-use reth::builder::EngineValidator;
-use reth::builder::EngineTypes;
 // use reth::builder::Block;
-use reth::builder::EngineApiMessageVersion;
-use reth::builder::PayloadOrAttributes;
-use reth::builder::validate_version_specific_fields;
-use reth::rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError};
-use reth::primitives::SealedBlockFor;
-use reth::api::{InvalidPayloadAttributesError};
-use reth::builder::rpc::EngineValidatorBuilder;
-use reth::builder::AddOnsContext;
-use reth::primitives::Block;
+use reth::{
+    api::InvalidPayloadAttributesError,
+    builder::{
+        rpc::EngineValidatorBuilder, validate_version_specific_fields, AddOnsContext,
+        EngineApiMessageVersion, PayloadOrAttributes,
+    },
+    primitives::{Block, SealedBlockFor},
+    rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError},
+};
 
 /// Type configuration for a regular Ethereum node.
 #[derive(Debug, Default, Clone, Copy)]
@@ -132,13 +121,13 @@ where
     }
 }
 
-/// Custom engine validator
+/// Ivm engine validator
 #[derive(Debug, Clone)]
-pub struct CustomEngineValidator {
+pub struct IvmEngineValidator {
     inner: ExecutionPayloadValidator<ChainSpec>,
 }
 
-impl CustomEngineValidator {
+impl IvmEngineValidator {
     /// Instantiates a new validator.
     pub const fn new(chain_spec: Arc<ChainSpec>) -> Self {
         Self { inner: ExecutionPayloadValidator::new(chain_spec) }
@@ -151,7 +140,7 @@ impl CustomEngineValidator {
     }
 }
 
-impl<T> EngineValidator<T> for CustomEngineValidator
+impl<T> EngineValidator<T> for IvmEngineValidator
 where
     T: EngineTypes<PayloadAttributes = EthPayloadAttributes>,
 {
@@ -197,21 +186,21 @@ where
     }
 }
 
-/// Custom engine validator builder
+/// Ivm engine validator builder
 #[derive(Debug, Default, Clone, Copy)]
 #[non_exhaustive]
-pub struct CustomEngineValidatorBuilder;
+pub struct IvmEngineValidatorBuilder;
 
-impl<N> EngineValidatorBuilder<N> for CustomEngineValidatorBuilder
+impl<N> EngineValidatorBuilder<N> for IvmEngineValidatorBuilder
 where
     N: FullNodeComponents<
         Types: NodeTypesWithEngine<Engine = EthEngineTypes, ChainSpec = ChainSpec>,
     >,
 {
-    type Validator = CustomEngineValidator;
+    type Validator = IvmEngineValidator;
 
     async fn build(self, ctx: &AddOnsContext<'_, N>) -> eyre::Result<Self::Validator> {
-        Ok(CustomEngineValidator::new(ctx.config.chain.clone()))
+        Ok(IvmEngineValidator::new(ctx.config.chain.clone()))
     }
 }
 
@@ -222,7 +211,7 @@ where
 // {
 //     type Validator = OpEngineValidator;
 
-//     async fn engine_validator(&self, ctx: &AddOnsContext<'_, N>) -> eyre::Result<Self::Validator> {
-//         OpEngineValidatorBuilder::default().build(ctx).await
+//     async fn engine_validator(&self, ctx: &AddOnsContext<'_, N>) -> eyre::Result<Self::Validator>
+// {         OpEngineValidatorBuilder::default().build(ctx).await
 //     }
 // }
