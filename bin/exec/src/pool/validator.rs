@@ -7,7 +7,7 @@ use reth::{
     providers::StateProviderFactory,
     tasks::TaskSpawner,
     transaction_pool::{
-        validate::ValidationTask, BlobStore, EthPoolTransaction, EthTransactionValidator,
+        validate::ValidationTask, EthPoolTransaction, EthTransactionValidator,
         TransactionOrigin, TransactionValidationOutcome, TransactionValidationTaskExecutor,
         TransactionValidator,
     },

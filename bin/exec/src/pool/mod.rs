@@ -5,10 +5,9 @@ use reth::{
     chainspec::ChainSpec,
     primitives::EthPrimitives,
     providers::CanonStateSubscriptions,
-    tasks::TaskSpawner,
     transaction_pool::{
         blobstore::InMemoryBlobStore, validate::EthTransactionValidatorBuilder,
-        CoinbaseTipOrdering, EthPooledTransaction, EthTransactionPool, PoolConfig,
+        CoinbaseTipOrdering, EthPooledTransaction,
         TransactionValidationTaskExecutor,
     },
 };
@@ -16,19 +15,9 @@ use tracing::{debug, info};
 
 mod validator;
 
-/// A custom pool builder
+/// IVM transaction pool builder
 #[derive(Debug, Clone, Default)]
-#[non_exhaustive]
-pub struct IvmPoolBuilder {
-    // TODO: [now] get the pool config from context
-    pool_config: PoolConfig,
-}
-
-impl IvmPoolBuilder {
-    fn new(pool_config: PoolConfig) -> Self {
-        Self { pool_config }
-    }
-}
+pub struct IvmPoolBuilder;
 
 pub type IvmTransactionPool<Client, S> = reth::transaction_pool::Pool<
     TransactionValidationTaskExecutor<IvmTransactionValidator<Client, EthPooledTransaction>>,
@@ -49,6 +38,7 @@ where
     async fn build_pool(self, ctx: &BuilderContext<Node>) -> eyre::Result<Self::Pool> {
         let data_dir = ctx.config().datadir();
         let blob_store = InMemoryBlobStore::default();
+        let pool_config = ctx.pool_config();
 
         let validator = {
             // Configure the standard eth tx validator.
@@ -67,22 +57,11 @@ where
             )
         };
 
-        // TODO: replace this with above once everything compiles
-        // let validator = TransactionValidationTaskExecutor::eth_builder(ctx.chain_spec())
-        //     .with_head_timestamp(ctx.head().timestamp)
-        //     .kzg_settings(ctx.kzg_settings()?)
-        //     .with_additional_tasks(ctx.config().txpool.additional_validation_tasks)
-        //     .build_with_tasks(
-        //         ctx.provider().clone(),
-        //         ctx.task_executor().clone(),
-        //         blob_store.clone(),
-        //     );
-
         let transaction_pool = reth::transaction_pool::Pool::new(
             validator,
             CoinbaseTipOrdering::default(),
             blob_store,
-            self.pool_config,
+            pool_config,
         );
         // let transaction_pool =
         //     reth::transaction_pool::Pool::eth_pool(validator, blob_store, );
