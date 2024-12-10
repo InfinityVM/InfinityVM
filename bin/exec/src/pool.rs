@@ -18,6 +18,34 @@ use reth::transaction_pool::EthPoolTransaction;
 use reth::transaction_pool::TransactionOrigin;
 use reth::transaction_pool::TransactionValidationOutcome;
 use reth::transaction_pool::EthTransactionValidator;
+use reth::primitives::SealedBlock;
+use reth::transaction_pool::TransactionValidator;
+use reth::transaction_pool::LocalTransactionConfig;
+use alloy::primitives::Address;
+use std::collections::HashSet;
+use reth::primitives::InvalidTransactionError;
+
+#[derive(Debug, Clone, Default)]
+struct IvmTransactionAllowConfig {
+  allow_all: bool,
+  to: HashSet<Address>,
+  from: HashSet<Address>,
+}
+
+impl IvmTransactionAllowConfig {
+  fn is_allowed(&self, from: &Address, to: &Address) -> bool {
+    if self.allow_all {
+      return true;
+    }
+
+    if self.to.contains(to) {
+      return true;
+    }
+
+    self.from.contains(from)
+  }
+}
+
 
 /// A custom pool builder
 #[derive(Debug, Clone, Default)]
@@ -36,6 +64,7 @@ where
 {
     type Pool = EthTransactionPool<Node::Provider, InMemoryBlobStore>;
 
+    // TODO: [now] check this against the reth build pool function
     async fn build_pool(self, ctx: &BuilderContext<Node>) -> eyre::Result<Self::Pool> {
         let data_dir = ctx.config().datadir();
         let blob_store = InMemoryBlobStore::default();
@@ -94,8 +123,7 @@ where
 
 struct IvmTransactionValidator<Client, Tx> {
   inner: EthTransactionValidator<Client, Tx>,
-  // pool_config: PoolConfig,
-  local_config: LocalTransactionConfig,
+  allow_config: IvmTransactionAllowConfig,
 }
 
 impl<Client, Tx> IvmTransactionValidator<Client, Tx>
@@ -111,17 +139,21 @@ where
         origin: TransactionOrigin,
         transaction: Tx,
     ) -> TransactionValidationOutcome<Tx> {
-        let outcome = self.inner.validate_one(origin, transaction);
+        let outcome = self.inner.validate_one(origin, transaction.clone());
         let is_valid = outcome.is_valid();
 
         if !is_valid {
           return outcome;
         }
 
-        if local_config.contains_local_address(transaction.) {
+        let sender = transaction.sender_ref();
+        if self.allow_config.is_allowed(sender, sender) {
           outcome
         } else {
-
+          TransactionValidationOutcome::Invalid(
+                transaction,
+                InvalidTransactionError::TxTypeNotSupported.into(),
+            )
         }
     }
 
@@ -138,7 +170,7 @@ where
     }
 }
 
-impl<Client, Tx> TransactionValidator for EthTransactionValidator<Client, Tx>
+impl<Client, Tx> TransactionValidator for IvmTransactionValidator<Client, Tx>
 where
     Client: StateProviderFactory,
     Tx: EthPoolTransaction,
@@ -161,6 +193,6 @@ where
     }
 
     fn on_new_head_block(&self, new_tip_block: &SealedBlock) {
-        self.inner.on_new_head_block(new_tip_block.header())
+        self.inner.on_new_head_block(new_tip_block)
     }
 }
