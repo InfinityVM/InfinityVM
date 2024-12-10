@@ -22,7 +22,6 @@ use reth_node_ethereum::{
 };
 use reth_trie_db::MerklePatriciaTrie;
 use std::sync::Arc;
-// use reth::builder::Block;
 use reth::{
     api::InvalidPayloadAttributesError,
     builder::{
@@ -32,6 +31,8 @@ use reth::{
     primitives::{Block, SealedBlockFor},
     rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError},
 };
+
+pub mod pool;
 
 /// Type configuration for an IVM execution node.
 #[derive(Debug, Default, Clone, Copy)]
@@ -121,7 +122,7 @@ where
     }
 }
 
-/// Ivm engine validator
+/// IVM engine validator.
 #[derive(Debug, Clone)]
 pub struct IvmEngineValidator {
     inner: ExecutionPayloadValidator<ChainSpec>,
@@ -180,7 +181,7 @@ where
     }
 }
 
-/// Ivm engine validator builder
+/// IVM engine validator builder
 #[derive(Debug, Default, Clone, Copy)]
 #[non_exhaustive]
 pub struct IvmEngineValidatorBuilder;

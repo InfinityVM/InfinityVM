@@ -31,3 +31,4 @@ eyre = { version = "*", default-features = false  }
 tokio = { version = "*", default-features = false  }
 thiserror = { version = "*", default-features = false  }
 serde = { version = "*", default-features = false  }
+tracing = { version = "*", default-features = false  }

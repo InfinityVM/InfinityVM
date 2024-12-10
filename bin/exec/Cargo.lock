@@ -3557,6 +3557,7 @@ dependencies = [
  "serde",
  "thiserror 2.0.4",
  "tokio",
+ "tracing",
 ]
 
 [[package]]
