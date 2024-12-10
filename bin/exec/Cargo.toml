@@ -1,0 +1,33 @@
+[package]
+name = "ivm-exec"
+edition = "2021"
+rust-version = "1.78"
+# rust-version.workspace = true
+# edition.workspace = true
+
+# [lints]
+# workspace = true
+
+[dependencies]
+reth = { git = "https://github.com/paradigmxyz/reth.git", features = ["jemalloc", "asm-keccak"] }
+reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-tracing = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-transaction-pool = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-trie-db = { git = "https://github.com/paradigmxyz/reth.git" }
+
+
+reth-chainspec = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-primitives = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-node-api = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-basic-payload-builder = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-payload-builder = { git = "https://github.com/paradigmxyz/reth.git" }
+reth-ethereum-payload-builder = { git = "https://github.com/paradigmxyz/reth.git" }
+
+alloy = { version = "*", features = ["full"] }
+futures-util = { version = "*", default-features = false  }
+
+eyre = { version = "*", default-features = false  }
+tokio = { version = "*", default-features = false  }
+thiserror = { version = "*", default-features = false  }
+serde = { version = "*", default-features = false  }
