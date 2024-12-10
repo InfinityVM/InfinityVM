@@ -1,15 +1,12 @@
 /// IVM execution client types for plugging into reth node builder.
-
 use reth::{
-    builder::{
-        rpc::RpcAddOns, FullNodeComponents, FullNodeTypes,
-    },
+    builder::{rpc::RpcAddOns, FullNodeComponents, FullNodeTypes},
     network::NetworkHandle,
     rpc::eth::EthApi,
 };
 
-pub mod pool;
 pub mod engine;
+pub mod pool;
 
 pub type IvmAddOns<N> = RpcAddOns<
     N,

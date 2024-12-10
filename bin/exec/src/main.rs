@@ -7,7 +7,7 @@ fn main() {
         .run(|builder, _| async move {
             let handle = builder
                 .with_types::<EthereumNode>()
-                .with_components(EthereumNode::components().pool(IvmPoolBuilder::default()))
+                .with_components(EthereumNode::components().pool(IvmPoolBuilder))
                 .with_add_ons(IvmAddOns::default())
                 .launch()
                 .await?;

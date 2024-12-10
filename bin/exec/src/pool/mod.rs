@@ -7,8 +7,7 @@ use reth::{
     providers::CanonStateSubscriptions,
     transaction_pool::{
         blobstore::InMemoryBlobStore, validate::EthTransactionValidatorBuilder,
-        CoinbaseTipOrdering, EthPooledTransaction,
-        TransactionValidationTaskExecutor,
+        CoinbaseTipOrdering, EthPooledTransaction, TransactionValidationTaskExecutor,
     },
 };
 use tracing::{debug, info};

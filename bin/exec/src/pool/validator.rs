@@ -7,9 +7,8 @@ use reth::{
     providers::StateProviderFactory,
     tasks::TaskSpawner,
     transaction_pool::{
-        validate::ValidationTask, EthPoolTransaction, EthTransactionValidator,
-        TransactionOrigin, TransactionValidationOutcome, TransactionValidationTaskExecutor,
-        TransactionValidator,
+        validate::ValidationTask, EthPoolTransaction, EthTransactionValidator, TransactionOrigin,
+        TransactionValidationOutcome, TransactionValidationTaskExecutor, TransactionValidator,
     },
 };
 use std::{collections::HashSet, sync::Arc};
