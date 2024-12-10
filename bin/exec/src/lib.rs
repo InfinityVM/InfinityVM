@@ -1,3 +1,4 @@
+use crate::pool::IvmPoolBuilder;
 use reth::{
     api::InvalidPayloadAttributesError,
     builder::{
@@ -25,13 +26,12 @@ use reth_ethereum_engine_primitives::EthPayloadAttributes;
 use reth_node_ethereum::{
     node::{
         EthereumConsensusBuilder, EthereumExecutorBuilder, EthereumNetworkBuilder,
-        EthereumPayloadBuilder, EthereumPoolBuilder,
+        EthereumPayloadBuilder,
     },
     EthEngineTypes,
 };
 use reth_trie_db::MerklePatriciaTrie;
 use std::sync::Arc;
-use crate::pool::IvmPoolBuilder;
 
 pub mod pool;
 

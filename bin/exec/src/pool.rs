@@ -1,27 +1,26 @@
-use alloy::primitives::Address;
 /// IVM transaction pool. This is intended to be identical to the standard reth pool
 /// with the one difference being additional transaction validation to allow for
 /// free transaction submission without spam.
+use alloy::primitives::Address;
+// use futures_util::{lock::Mutex, StreamExt};
+use tokio::sync::Mutex
+;
 use reth::{
     api::NodeTypes,
     builder::{components::PoolBuilder, BuilderContext, FullNodeTypes},
     chainspec::ChainSpec,
-    cli::Cli,
-    primitives::EthPrimitives,
-    providers::CanonStateSubscriptions,
+    primitives::{EthPrimitives, InvalidTransactionError, SealedBlock},
+    providers::{CanonStateSubscriptions, StateProviderFactory},
+    tasks::TaskSpawner,
     transaction_pool::{
-        blobstore::InMemoryBlobStore, EthTransactionPool, TransactionValidationTaskExecutor,
+        blobstore::InMemoryBlobStore,
+        validate::{EthTransactionValidatorBuilder, ValidationTask},
+        BlobStore, EthPoolTransaction, EthTransactionPool, EthTransactionValidator, PoolConfig,
+        TransactionOrigin, TransactionValidationOutcome, TransactionValidationTaskExecutor,
+        TransactionValidator,
     },
 };
-use reth::{
-    primitives::{InvalidTransactionError, SealedBlock},
-    providers::StateProviderFactory,
-    transaction_pool::{
-        EthPoolTransaction, EthTransactionValidator, LocalTransactionConfig, PoolConfig,
-        TransactionOrigin, TransactionValidationOutcome, TransactionValidator,
-    },
-};
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::Arc};
 use tracing::{debug, info};
 
 #[derive(Debug, Clone, Default)]
@@ -72,6 +71,27 @@ where
     async fn build_pool(self, ctx: &BuilderContext<Node>) -> eyre::Result<Self::Pool> {
         let data_dir = ctx.config().datadir();
         let blob_store = InMemoryBlobStore::default();
+
+        // {
+        //     // Configure the standard eth tx validator.
+        //     // TODO: this should be encapsulated in the IvmTransactionValidator build logic
+        //     let eth_transaction_validator = EthTransactionValidatorBuilder::new(ctx.chain_spec())
+        //         .with_head_timestamp(ctx.head().timestamp)
+        //         .kzg_settings(ctx.kzg_settings()?)
+        //         .build(ctx.provider().clone(), blob_store.clone());
+
+        //     // Configure IVM tx validator (which uses the eth tx validator) and spawn service
+        //     let validator0 = IvmTransactionValidator {
+        //         inner: eth_transaction_validator,
+        //         allow_config: IvmTransactionAllowConfig::default(),
+        //     }
+        //     .build_with_tasks(
+        //         ctx.task_executor().clone(),
+        //         ctx.config().txpool.additional_validation_tasks,
+        //     );
+        // }
+
+        // TODO: replace this with above once everything compiles
         let validator = TransactionValidationTaskExecutor::eth_builder(ctx.chain_spec())
             .with_head_timestamp(ctx.head().timestamp)
             .kzg_settings(ctx.kzg_settings()?)
@@ -143,23 +163,19 @@ where
         origin: TransactionOrigin,
         transaction: Tx,
     ) -> TransactionValidationOutcome<Tx> {
-        let outcome = self.inner.validate_one(origin, transaction.clone());
-        let is_valid = outcome.is_valid();
-
-        if !is_valid {
-            return outcome;
-        }
-
+        // First check that the transaction obeys allow lists. We check this first
+        // to reduce heavy checks for eip 4844 transactions.
         let sender = transaction.sender_ref();
         /// TODO
-        if self.allow_config.is_allowed(sender, sender) {
-            outcome
-        } else {
-            TransactionValidationOutcome::Invalid(
+        if !self.allow_config.is_allowed(sender, sender) {
+            return TransactionValidationOutcome::Invalid(
                 transaction,
                 InvalidTransactionError::TxTypeNotSupported.into(),
-            )
+            );
         }
+
+        self.inner.validate_one(origin, transaction)
+
     }
 
     /// Validates all given transactions.
@@ -172,6 +188,46 @@ where
         transactions: Vec<(TransactionOrigin, Tx)>,
     ) -> Vec<TransactionValidationOutcome<Tx>> {
         transactions.into_iter().map(|(origin, tx)| self.validate_one(origin, tx)).collect()
+    }
+
+    /// Builds a [`IvmTransactionValidator`] and spawns validation tasks via the
+    /// [`TransactionValidationTaskExecutor`]
+    ///
+    /// The validator will spawn `additional_tasks` additional tasks for validation.
+    ///
+    /// By default this will spawn 1 additional task.
+    pub fn build_with_tasks<T>(
+        self,
+        tasks: T,
+        additional_tasks: usize,
+    ) -> TransactionValidationTaskExecutor<IvmTransactionValidator<Client, Tx>>
+    where
+        T: TaskSpawner,
+    {
+        let validator = self;
+
+        let (tx, task) = ValidationTask::new();
+
+        // Spawn validation tasks, they are blocking because they perform db lookups
+        for _ in 0..additional_tasks {
+            let task = task.clone();
+            tasks.spawn_blocking(Box::pin(async move {
+                task.run().await;
+            }));
+        }
+
+        // we spawn them on critical tasks because validation, especially for EIP-4844 can be quite
+        // heavy
+        tasks.spawn_critical_blocking(
+            "transaction-validation-service",
+            Box::pin(async move {
+                task.run().await;
+            }),
+        );
+
+        let to_validation_task = Arc::new(Mutex::new(tx));
+
+        TransactionValidationTaskExecutor { validator, to_validation_task }
     }
 }
 
