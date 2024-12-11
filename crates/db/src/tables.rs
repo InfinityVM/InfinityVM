@@ -11,6 +11,8 @@ use reth_db::{
 };
 use sha2::{Digest, Sha256};
 use std::fmt;
+use reth_db::table::TableInfo;
+use reth_db::TableSet;
 
 macro_rules! impl_compress_decompress {
     ($name:ident) => {
