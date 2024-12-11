@@ -23,6 +23,7 @@ pub type IvmTransactionPool<Client, S> = reth::transaction_pool::Pool<
     CoinbaseTipOrdering<EthPooledTransaction>,
     S,
 >;
+
 /// Implement the [`PoolBuilder`] trait for the custom pool builder
 ///
 /// This will be used to build the transaction pool and its maintenance tasks during launch.
@@ -62,8 +63,7 @@ where
             blob_store,
             pool_config,
         );
-        // let transaction_pool =
-        //     reth::transaction_pool::Pool::eth_pool(validator, blob_store, );
+
         info!(target: "reth::cli", "Transaction pool initialized");
         let transactions_path = data_dir.txpool_transactions();
 

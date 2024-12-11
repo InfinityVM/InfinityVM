@@ -13,27 +13,47 @@ use reth::{
 };
 use std::{collections::HashSet, sync::Arc};
 use tokio::sync::Mutex;
+use reth::primitives::Transaction;
+use alloy::primitives::TxKind;
 
 /// Configuration for allow list based on sender and recipient.
 #[derive(Debug, Clone, Default)]
 pub struct IvmTransactionAllowConfig {
     allow_all: bool,
     to: HashSet<Address>,
-    from: HashSet<Address>,
+    sender: HashSet<Address>,
 }
 
 impl IvmTransactionAllowConfig {
     /// If the transaction passes allow list checks.
-    pub fn is_allowed(&self, from: &Address, to: &Address) -> bool {
+    pub fn is_allowed(&self, sender: &Address, to: Option<Address>) -> bool {
         if self.allow_all {
             return true;
         }
 
-        if self.to.contains(to) {
-            return true;
+        if let Some(to) = to {
+            if self.to.contains(&to) {
+                return true;
+            }
         }
 
-        self.from.contains(from)
+        self.sender.contains(sender)
+    }
+}
+
+/// Get the `to` address of the transaction, if one exists.
+fn to(tx: &Transaction) -> Option<Address> {
+    let tx_kind = match tx {
+        Transaction::Legacy(legacy) => legacy.to,
+        Transaction::Eip2930(eip_2930) => eip_2930.to,
+        Transaction::Eip1559(eip_1559) => eip_1559.to,
+        Transaction::Eip4844(eip_4844) => TxKind::Call(eip_4844.to),
+        Transaction::Eip7702(eip_7702) => TxKind::Call(eip_7702.to),
+    };
+
+    match tx_kind {
+        TxKind::Create => None,
+        TxKind::Call(addr) => Some(addr)
     }
 }
 
@@ -54,19 +74,20 @@ where
     pub fn validate_one(
         &self,
         origin: TransactionOrigin,
-        transaction: Tx,
+        tx: Tx,
     ) -> TransactionValidationOutcome<Tx> {
         // First check that the transaction obeys allow lists. We check this first
         // to reduce heavy checks for eip 4844 transactions.
-        let sender = transaction.sender_ref();
-        if !self.allow_config.is_allowed(sender, sender) {
+        let transaction = tx.transaction();
+        let to = to(transaction.as_signed().transaction);
+        if !self.allow_config.is_allowed(tx.sender_ref(), to) {
             return TransactionValidationOutcome::Invalid(
-                transaction,
+                tx,
                 InvalidTransactionError::TxTypeNotSupported.into(),
             );
         }
 
-        self.inner.validate_one(origin, transaction)
+        self.inner.validate_one(origin, tx)
     }
 
     /// Validates all given transactions.
