@@ -10,13 +10,12 @@ use reth::{
     },
     chainspec::ChainSpec,
     payload::ExecutionPayloadValidator,
-    primitives::{Block, SealedBlockFor},
+    primitives::{Block, EthPrimitives, SealedBlockFor},
     rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError},
 };
 use reth_ethereum_engine_primitives::EthPayloadAttributes;
 use reth_node_ethereum::EthEngineTypes;
 use std::sync::Arc;
-use reth::primitives::EthPrimitives;
 
 /// Engine API validation logic for IVM.
 ///
