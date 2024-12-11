@@ -8,6 +8,7 @@ use reth::{
 };
 
 pub mod engine;
+pub mod pool;
 
 /// RPC add on that includes [`IvmEngineValidatorBuilder`].
 pub type IvmAddOns<N> = RpcAddOns<
