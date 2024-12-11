@@ -1,3 +1,6 @@
+//! IVM transaction pool. The primary difference from the default transaction pool is
+//! additional validation logic.
+
 use crate::pool::validator::{IvmTransactionAllowConfig, IvmTransactionValidator};
 use reth::{
     api::NodeTypes,
@@ -18,6 +21,7 @@ mod validator;
 #[derive(Debug, Clone, Default)]
 pub struct IvmPoolBuilder;
 
+/// Type describing the IVM transaction pool.
 pub type IvmTransactionPool<Client, S> = reth::transaction_pool::Pool<
     TransactionValidationTaskExecutor<IvmTransactionValidator<Client, EthPooledTransaction>>,
     CoinbaseTipOrdering<EthPooledTransaction>,

@@ -93,7 +93,7 @@ where
         inner: EthTransactionValidator<Client, Tx>,
         allow_config: IvmTransactionAllowConfig,
         additional_tasks: usize,
-    ) -> TransactionValidationTaskExecutor<IvmTransactionValidator<Client, Tx>>
+    ) -> TransactionValidationTaskExecutor<Self>
     where
         T: TaskSpawner,
     {

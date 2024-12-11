@@ -1,25 +1,32 @@
-/// IVM execution client types for plugging into reth node builder.
+//! IVM Engine API validator.
+
 use reth::{
     api::InvalidPayloadAttributesError,
-    builder::{
-        rpc::EngineValidatorBuilder, validate_version_specific_fields, AddOnsContext,
-        EngineApiMessageVersion, PayloadOrAttributes,
-    },
-    primitives::{Block, SealedBlockFor},
-    rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError},
-};
-use reth::{
     builder::{
         EngineObjectValidationError, EngineTypes, EngineValidator, FullNodeComponents,
         NodeTypesWithEngine, PayloadTypes,
     },
     chainspec::ChainSpec,
     payload::ExecutionPayloadValidator,
+    primitives::SealedBlockFor,
 };
-use reth_ethereum_engine_primitives::EthPayloadAttributes;
+use reth::{
+    builder::{
+        rpc::EngineValidatorBuilder, validate_version_specific_fields, AddOnsContext,
+        EngineApiMessageVersion, PayloadOrAttributes,
+    },
+    primitives::Block,
+    rpc::types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError},
+};
 use reth_node_ethereum::EthEngineTypes;
+
+use reth_ethereum_engine_primitives::EthPayloadAttributes;
 use std::sync::Arc;
 
+/// Engine API validation logic for IVM.
+///
+/// The primary divergence from the Engine API spec is that we do not check the block
+/// timestamp, which allows us 
 #[derive(Debug, Clone)]
 pub struct IvmEngineValidator {
     inner: ExecutionPayloadValidator<ChainSpec>,
@@ -78,7 +85,7 @@ where
     }
 }
 
-/// IVM engine validator builder
+/// IVM engine validator builder.
 #[derive(Debug, Default, Clone, Copy)]
 #[non_exhaustive]
 pub struct IvmEngineValidatorBuilder;
