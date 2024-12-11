@@ -3,6 +3,8 @@
 use crate::db::models::{ClobStateModel, RequestModel, ResponseModel, VecDiffModel};
 use reth_db::{tables, TableType, TableViewer};
 use std::fmt;
+use reth_db::table::TableInfo;
+use reth_db::TableSet;
 
 reth_db::tables! {
     /// Store global index
