@@ -6,13 +6,11 @@ use ivm_abi::JobParams;
 use ivm_eip4844::BlobTransactionSidecar;
 use ivm_proto::{JobStatus, RelayStrategy};
 use reth_db::{
-    table::{Decode, Encode},
-    tables, DatabaseError, TableType, TableViewer,
+    table::{Decode, Encode, TableInfo},
+    tables, DatabaseError, TableSet, TableType, TableViewer,
 };
 use sha2::{Digest, Sha256};
 use std::fmt;
-use reth_db::table::TableInfo;
-use reth_db::TableSet;
 
 macro_rules! impl_compress_decompress {
     ($name:ident) => {
