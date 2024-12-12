@@ -139,7 +139,6 @@ dependencies = [
  "alloy-signer-local 0.8.0",
  "alloy-transport 0.8.0",
  "alloy-transport-http 0.8.0",
- "alloy-transport-ipc",
  "alloy-transport-ws 0.8.0",
 ]
 
@@ -204,7 +203,6 @@ dependencies = [
  "auto_impl",
  "c-kzg",
  "derive_more",
- "k256",
  "serde",
 ]
 
@@ -680,7 +678,6 @@ dependencies = [
  "alloy-signer-local 0.8.0",
  "alloy-transport 0.8.0",
  "alloy-transport-http 0.8.0",
- "alloy-transport-ipc",
  "alloy-transport-ws 0.8.0",
  "async-stream",
  "async-trait",
@@ -798,7 +795,6 @@ dependencies = [
  "alloy-pubsub 0.8.0",
  "alloy-transport 0.8.0",
  "alloy-transport-http 0.8.0",
- "alloy-transport-ipc",
  "alloy-transport-ws 0.8.0",
  "futures",
  "pin-project",
@@ -1328,25 +1324,6 @@ dependencies = [
  "tower 0.5.1",
  "tracing",
  "url",
-]
-
-[[package]]
-name = "alloy-transport-ipc"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0577a1f67ce70ece3f2b27cf1011da7222ef0a5701f7dcb558e5356278eeb531"
-dependencies = [
- "alloy-json-rpc 0.8.0",
- "alloy-pubsub 0.8.0",
- "alloy-transport 0.8.0",
- "bytes",
- "futures",
- "interprocess",
- "pin-project",
- "serde_json",
- "tokio",
- "tokio-util",
- "tracing",
 ]
 
 [[package]]
@@ -5042,15 +5019,10 @@ dependencies = [
 name = "ivm-exec"
 version = "0.0.1"
 dependencies = [
- "alloy",
  "eyre",
- "futures-util",
  "reth",
  "reth-ethereum-engine-primitives",
- "reth-ethereum-payload-builder",
  "reth-node-ethereum",
- "tokio",
- "tracing",
 ]
 
 [[package]]

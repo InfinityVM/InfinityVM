@@ -3,7 +3,8 @@
 use alloy::{
     network::EthereumWallet,
     primitives::{
-        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes, PrimitiveSignature,
+        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes,
+        PrimitiveSignature,
     },
     providers::{Provider, ProviderBuilder},
     rpc::types::Filter,
