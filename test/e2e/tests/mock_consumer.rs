@@ -3,7 +3,7 @@
 use alloy::{
     network::EthereumWallet,
     primitives::{
-        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes, Signature,
+        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes, PrimitiveSignature,
     },
     providers::{Provider, ProviderBuilder},
     rpc::types::Filter,
@@ -98,7 +98,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         assert!(!job_result.relay_tx_hash.is_empty());
 
         // Verify signature and message format
-        let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
+        let sig = PrimitiveSignature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
             OffchainResultWithMetadata::abi_decode(&job_result.result_with_metadata, false)
                 .unwrap();
@@ -226,7 +226,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(current_block_number + 1, saved_height);
 
         // Verify signature and message format
-        let sig = Signature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
+        let sig = PrimitiveSignature::try_from(&job_result.zkvm_operator_signature[..]).unwrap();
         let abi_decoded_output =
             ResultWithMetadata::abi_decode(&job_result.result_with_metadata, false).unwrap();
         let raw_output = abi_decoded_output.raw_output;

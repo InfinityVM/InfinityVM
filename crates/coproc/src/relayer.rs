@@ -623,7 +623,7 @@ mod test {
         let mut join_set = JoinSet::new();
 
         for i in 0u8..JOB_COUNT as u8 {
-            let job: ivm_db::tables::Job =
+            let job =
                 mock_consumer_pending_job(i + 1, coprocessor_operator.clone(), mock_consumer).await;
 
             let mock_addr = mock_contract_input_addr();
@@ -648,6 +648,9 @@ mod test {
 
         // Wait for all the relay threads to finish so we know the transactions have landed
         while (join_set.join_next().await).is_some() {}
+
+        // Give a little extra time to avoid flakiness
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
         // Check that each job is in the anvil node logs
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
