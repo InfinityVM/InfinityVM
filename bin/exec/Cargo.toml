@@ -12,4 +12,7 @@ reth = { workspace = true, features = ["jemalloc", "asm-keccak", "min-info-logs"
 reth-node-ethereum = { workspace = true }
 reth-ethereum-engine-primitives = { workspace = true }
 
-eyre = { workspace = true, default-features = false  }
+alloy = { workspace = true }
+eyre = { workspace = true  }
+tokio = { workspace = true }
+tracing = { workspace = true }
