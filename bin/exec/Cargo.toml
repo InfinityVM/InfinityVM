@@ -11,10 +11,5 @@ workspace = true
 reth = { workspace = true, features = ["jemalloc", "asm-keccak", "min-info-logs"] }
 reth-node-ethereum = { workspace = true }
 reth-ethereum-engine-primitives = { workspace = true }
-reth-ethereum-payload-builder = { workspace = true }
 
-alloy = { workspace = true , features = ["full"] }
-futures-util = { workspace = true , default-features = false  }
 eyre = { workspace = true, default-features = false  }
-tokio = { workspace = true, default-features = false  }
-tracing = { workspace = true, default-features = false  }
