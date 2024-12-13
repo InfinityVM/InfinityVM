@@ -5,6 +5,7 @@ rust-version = "1.78"
 
 [workspace]
 members = [
+	"bin/exec",
 	"crates/contracts",
 	"crates/coproc",
 	"crates/db",
@@ -121,7 +122,7 @@ significant_drop_tightening = "allow"
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 # only include features that we know can be compiled into zkvm program
-alloy = { version = "0.6", features = ["sol-types"], default-features = false }
+alloy = { version = "0.8", features = ["sol-types"], default-features = false }
 
 # b
 bincode = { version = "1", default-features = false }
@@ -170,9 +171,13 @@ prost = { version = "0.13", features = ["derive", "std"], default-features = fal
 # q
 # r
 rand = { version = "0.8", default-features = false }
-reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.2", features = ["mdbx"], default-features = false }
-reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.2", default-features = false }
-reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.2", features = ["std", "alloy"], default-features = false }
+reth = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4" }
+reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", features = ["mdbx"], default-features = false }
+reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", features = ["std", "alloy"], default-features = false }
+reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-ethereum-payload-builder= { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 
 # s
 serde = { version = "1.0", features = ["derive", "std"], default-features = false }

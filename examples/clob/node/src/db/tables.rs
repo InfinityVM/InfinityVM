@@ -1,7 +1,7 @@
 //! Tables for the database.
 
 use crate::db::models::{ClobStateModel, RequestModel, ResponseModel, VecDiffModel};
-use reth_db::{tables, TableType, TableViewer};
+use reth_db::{table::TableInfo, tables, TableSet, TableType, TableViewer};
 use std::fmt;
 
 reth_db::tables! {
