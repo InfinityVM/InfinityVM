@@ -15,11 +15,7 @@ use reth::{
 };
 use tracing::{debug, info};
 
-mod validator;
-
-/// IVM transaction pool builder
-#[derive(Debug, Clone, Default)]
-pub struct IvmPoolBuilder;
+pub mod validator;
 
 /// Type describing the IVM transaction pool.
 pub type IvmTransactionPool<Client, S> = reth::transaction_pool::Pool<
@@ -27,6 +23,19 @@ pub type IvmTransactionPool<Client, S> = reth::transaction_pool::Pool<
     CoinbaseTipOrdering<EthPooledTransaction>,
     S,
 >;
+
+/// IVM transaction pool builder
+#[derive(Debug, Clone, Default)]
+pub struct IvmPoolBuilder {
+    allow_config: IvmTransactionAllowConfig,
+}
+
+impl IvmPoolBuilder {
+    /// Create a new [`IvmPoolBuilder`].
+    pub const fn new(allow_config: IvmTransactionAllowConfig) -> Self {
+        Self { allow_config }
+    }
+}
 
 /// Implement the [`PoolBuilder`] trait for the custom pool builder
 ///
@@ -43,10 +52,9 @@ where
         let data_dir = ctx.config().datadir();
         let blob_store = InMemoryBlobStore::default();
         let pool_config = ctx.pool_config();
+        let allow_config = self.allow_config;
 
         let validator = {
-            // Configure the standard eth tx validator.
-            // TODO: this should be encapsulated in the IvmTransactionValidator build logic
             let eth_transaction_validator = EthTransactionValidatorBuilder::new(ctx.chain_spec())
                 .with_head_timestamp(ctx.head().timestamp)
                 .kzg_settings(ctx.kzg_settings()?)
@@ -56,7 +64,7 @@ where
             IvmTransactionValidator::build_with_tasks(
                 ctx.task_executor().clone(),
                 eth_transaction_validator,
-                IvmTransactionAllowConfig::default(),
+                allow_config,
                 ctx.config().txpool.additional_validation_tasks,
             )
         };

@@ -15,17 +15,23 @@ use std::{collections::HashSet, sync::Arc};
 use tokio::sync::Mutex;
 
 /// Configuration for allow list based on sender and recipient.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct IvmTransactionAllowConfig {
-    allow_all: bool,
+    all: bool,
     to: HashSet<Address>,
     sender: HashSet<Address>,
+}
+
+impl Default for IvmTransactionAllowConfig {
+    fn default() -> Self {
+        Self { sender: HashSet::default(), to: HashSet::default(), all: true }
+    }
 }
 
 impl IvmTransactionAllowConfig {
     /// If the transaction passes allow list checks.
     pub fn is_allowed(&self, sender: &Address, to: Option<Address>) -> bool {
-        if self.allow_all {
+        if self.all {
             return true;
         }
 
@@ -39,9 +45,10 @@ impl IvmTransactionAllowConfig {
     }
 }
 
+/// IVM transaction pool validator.
 #[derive(Debug, Clone)]
 pub struct IvmTransactionValidator<Client, Tx> {
-    inner: EthTransactionValidator<Client, Tx>,
+    eth: EthTransactionValidator<Client, Tx>,
     allow_config: IvmTransactionAllowConfig,
 }
 
@@ -67,7 +74,7 @@ where
             );
         }
 
-        self.inner.validate_one(origin, tx)
+        self.eth.validate_one(origin, tx)
     }
 
     /// Validates all given transactions.
@@ -90,14 +97,14 @@ where
     /// By default this will spawn 1 additional task.
     pub fn build_with_tasks<T>(
         tasks: T,
-        inner: EthTransactionValidator<Client, Tx>,
+        eth: EthTransactionValidator<Client, Tx>,
         allow_config: IvmTransactionAllowConfig,
         additional_tasks: usize,
     ) -> TransactionValidationTaskExecutor<Self>
     where
         T: TaskSpawner,
     {
-        let validator = Self { inner, allow_config };
+        let validator = Self { eth, allow_config };
 
         let (tx, task) = ValidationTask::new();
 
@@ -109,7 +116,7 @@ where
             }));
         }
 
-        // we spawn them on critical tasks because validation, especially for EIP-4844 can be quite
+        // We spawn them on critical tasks because validation, especially for EIP-4844 can be quite
         // heavy
         tasks.spawn_critical_blocking(
             "transaction-validation-service",
@@ -147,6 +154,6 @@ where
     }
 
     fn on_new_head_block(&self, new_tip_block: &SealedBlock) {
-        self.inner.on_new_head_block(new_tip_block)
+        self.eth.on_new_head_block(new_tip_block)
     }
 }

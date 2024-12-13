@@ -1,30 +1,14 @@
 //! IVM specific configuration definition and IO helpers.
 
-use std::fs;
-use std::path::Path;
+use crate::pool::validator::IvmTransactionAllowConfig;
 use eyre::eyre;
-use std::collections::HashSet;
-use alloy::primitives::Address;
+use std::{fs, path::Path};
 
 /// IVM specific configuration for the execution client.
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
 pub struct IvmConfig {
-    /// Allow list of senders for transactions.
-    pub tx_allowed_sender: HashSet<Address>,
-    /// Allow list of `to` field value for transaction.
-    pub tx_allowed_to: HashSet<Address>,
-    /// Allow all transactions, overrides allow lists.
-    pub tx_allow_all: bool,
-}
-
-impl Default for IvmConfig {
-    fn default() -> Self {
-        Self {
-            tx_allowed_sender: HashSet::default(),
-            tx_allowed_to: HashSet::default(),
-            tx_allow_all: true,
-        }
-    }
+    /// Configuration for allow list based on sender and recipient.
+    pub transaction_allow: IvmTransactionAllowConfig,
 }
 
 impl IvmConfig {

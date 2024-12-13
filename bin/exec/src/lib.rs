@@ -8,9 +8,9 @@ use reth::{
 };
 use std::path::PathBuf;
 
+pub mod config;
 pub mod engine;
 pub mod pool;
-pub mod config;
 
 /// RPC add on that includes [`IvmEngineValidatorBuilder`].
 pub type IvmAddOns<N> = RpcAddOns<
