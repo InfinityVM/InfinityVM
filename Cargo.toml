@@ -178,6 +178,7 @@ reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4",
 reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-ethereum-payload-builder= { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-provider = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 
 # s
 serde = { version = "1.0", features = ["derive", "std"], default-features = false }
