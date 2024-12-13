@@ -3,7 +3,8 @@
 use reth::{
     api::InvalidPayloadAttributesError,
     builder::{
-        rpc::EngineValidatorBuilder, validate_version_specific_fields, AddOnsContext,
+        rpc::EngineValidatorBuilder,
+         AddOnsContext,
         EngineApiMessageVersion, EngineObjectValidationError, EngineTypes, EngineValidator,
         FullNodeComponents, NodeTypesWithEngine, PayloadOrAttributes, PayloadTypes,
         PayloadValidator,
@@ -16,6 +17,7 @@ use reth::{
 use reth_ethereum_engine_primitives::EthPayloadAttributes;
 use reth_node_ethereum::EthEngineTypes;
 use std::sync::Arc;
+use reth_ethereum_engine_primitives::EthereumEngineValidator;
 
 /// Engine API validation logic for IVM.
 ///
@@ -23,19 +25,14 @@ use std::sync::Arc;
 /// timestamp, which allows us to achieve sub second block times without modifying the header type.
 #[derive(Debug, Clone)]
 pub struct IvmEngineValidator {
-    inner: ExecutionPayloadValidator<ChainSpec>,
+    payload_validator: ExecutionPayloadValidator<ChainSpec>,
+    engine_validator: EthereumEngineValidator,
 }
 
 impl IvmEngineValidator {
     /// Instantiates a new validator.
-    pub const fn new(chain_spec: Arc<ChainSpec>) -> Self {
-        Self { inner: ExecutionPayloadValidator::new(chain_spec) }
-    }
-
-    /// Returns the chain spec used by the validator.
-    #[inline]
-    fn chain_spec(&self) -> &ChainSpec {
-        self.inner.chain_spec()
+    pub fn new(chain_spec: Arc<ChainSpec>) -> Self {
+        Self { payload_validator: ExecutionPayloadValidator::new(chain_spec.clone()), engine_validator: EthereumEngineValidator::new(chain_spec) }
     }
 }
 
@@ -47,7 +44,7 @@ impl PayloadValidator for IvmEngineValidator {
         payload: ExecutionPayload,
         sidecar: ExecutionPayloadSidecar,
     ) -> Result<SealedBlockFor<Self::Block>, PayloadError> {
-        self.inner.ensure_well_formed_payload(payload, sidecar)
+        self.payload_validator.ensure_well_formed_payload(payload, sidecar)
     }
 }
 
@@ -60,7 +57,7 @@ where
         version: EngineApiMessageVersion,
         payload_or_attrs: PayloadOrAttributes<'_, Types::PayloadAttributes>,
     ) -> Result<(), EngineObjectValidationError> {
-        validate_version_specific_fields(self.chain_spec(), version, payload_or_attrs)
+        <EthereumEngineValidator as EngineValidator<Types>>::validate_version_specific_fields(&self.engine_validator, version, payload_or_attrs)
     }
 
     fn ensure_well_formed_attributes(
@@ -68,7 +65,7 @@ where
         version: EngineApiMessageVersion,
         attributes: &Types::PayloadAttributes,
     ) -> Result<(), EngineObjectValidationError> {
-        validate_version_specific_fields(self.chain_spec(), version, attributes.into())
+        <EthereumEngineValidator as EngineValidator<Types>>::ensure_well_formed_attributes(&self.engine_validator, version, attributes)
     }
 
     fn validate_payload_attributes_against_header(
