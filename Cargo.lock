@@ -5020,11 +5020,14 @@ name = "ivm-exec"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "clap",
  "eyre",
  "reth",
  "reth-ethereum-engine-primitives",
  "reth-node-ethereum",
+ "serde",
  "tokio",
+ "toml",
  "tracing",
 ]
 
