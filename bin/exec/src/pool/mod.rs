@@ -9,7 +9,7 @@ use reth::{
     primitives::EthPrimitives,
     providers::CanonStateSubscriptions,
     transaction_pool::{
-        blobstore::InMemoryBlobStore, validate::EthTransactionValidatorBuilder,
+        blobstore::DiskFileBlobStore, validate::EthTransactionValidatorBuilder,
         CoinbaseTipOrdering, EthPooledTransaction, TransactionValidationTaskExecutor,
     },
 };
@@ -44,20 +44,20 @@ impl<Node> PoolBuilder<Node> for IvmPoolBuilder
 where
     Node: FullNodeTypes<Types: NodeTypes<ChainSpec = ChainSpec, Primitives = EthPrimitives>>,
 {
-    // TODO: use DiskFileBlobStore instead
-    type Pool = IvmTransactionPool<Node::Provider, InMemoryBlobStore>;
+    type Pool = IvmTransactionPool<Node::Provider, DiskFileBlobStore>;
 
-    // TODO: [now] check this against the reth build pool function
     async fn build_pool(self, ctx: &BuilderContext<Node>) -> eyre::Result<Self::Pool> {
         let data_dir = ctx.config().datadir();
-        let blob_store = InMemoryBlobStore::default();
+
         let pool_config = ctx.pool_config();
         let allow_config = self.allow_config;
+        let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
         let validator = {
             let eth_transaction_validator = EthTransactionValidatorBuilder::new(ctx.chain_spec())
                 .with_head_timestamp(ctx.head().timestamp)
                 .kzg_settings(ctx.kzg_settings()?)
+                .with_local_transactions_config(pool_config.local_transactions_config.clone())
                 .build(ctx.provider().clone(), blob_store.clone());
 
             // Configure IVM tx validator (which uses the eth tx validator) and spawn service

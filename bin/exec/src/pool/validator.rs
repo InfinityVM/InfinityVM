@@ -74,6 +74,7 @@ where
             );
         }
 
+        // Complete standard eth validation checks
         self.eth.validate_one(origin, tx)
     }
 
@@ -155,5 +156,31 @@ where
 
     fn on_new_head_block(&self, new_tip_block: &SealedBlock) {
         self.eth.on_new_head_block(new_tip_block)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn allows_valid_transactions() {
+        // allowed to address
+
+        todo!()
+    }
+
+    #[test]
+    fn denies_invalid_transactions() {
+        // to is none
+
+        // to is some but not listed
+
+        // sender is not listed
+
+        todo!()
+    }
+
+    #[test]
+    fn allow_all_overrides_everything() {
+        todo!()
     }
 }

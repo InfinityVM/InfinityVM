@@ -38,3 +38,16 @@ impl IvmConfig {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn read_in_existing_config() {
+        todo!()
+    }
+
+    #[test]
+    fn creates_default_config_when_non_existent() {
+        todo!()
+    }
+}
