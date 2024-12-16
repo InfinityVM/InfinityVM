@@ -1,0 +1,33 @@
+FROM --platform=linux/amd64 rust:slim-bookworm AS base
+WORKDIR /app
+
+COPY . .
+RUN apt-get update && apt-get -y upgrade && \
+  apt-get install -y --no-install-recommends \
+  build-essential \
+  ca-certificates \
+  clang \
+  curl \
+  libclang-dev  \
+  libssl-dev \
+  pkg-config \
+  git && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
+
+FROM base AS builder
+WORKDIR /app
+COPY --from=base /app/. .
+RUN cargo build --release --locked --bin ivm-exec
+
+FROM debian:bookworm-slim
+WORKDIR /app
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /app/target/release/ivm-exec /usr/local/bin/ivm-exec
+COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
+
+EXPOSE 30303 30303/udp 9001 8545 8546
+ENTRYPOINT ["/usr/local/bin/ivm-exec"]
