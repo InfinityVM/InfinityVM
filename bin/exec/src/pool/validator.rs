@@ -190,16 +190,15 @@ mod test {
             self.sender = sender;
         }
 
-        pub(crate) fn sender(&self) -> HashSet<Address>{
+        pub(crate) fn sender(&self) -> HashSet<Address> {
             self.sender.clone()
         }
 
         pub(crate) fn set_all(&mut self, allow_all: bool) {
             self.all = allow_all;
-
         }
 
-        pub(crate) fn all(&self) -> bool {
+        pub(crate) const fn all(&self) -> bool {
             self.all
         }
     }

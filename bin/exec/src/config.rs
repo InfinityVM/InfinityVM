@@ -49,41 +49,29 @@ mod test {
     fn read_in_existing_config() {
         let config = IvmConfig::from_path("./mock/ivm_config.toml").unwrap();
 
-        let to = HashSet::from([
-            address!("1111111111111111111111111111111111111111"),
-        ]);
+        let to = HashSet::from([address!("1111111111111111111111111111111111111111")]);
         let sender = HashSet::from([
             address!("2222222222222222222222222222222222222222"),
-            address!("
-            1234567890123456789012345678901234567890")
+            address!(
+                "
+            1234567890123456789012345678901234567890"
+            ),
         ]);
 
-        assert_eq!(
-            config.transaction_allow.to(), to
-        );
-        assert_eq!(
-            config.transaction_allow.sender(), sender
-        );
-        assert_eq!(
-            config.transaction_allow.all(), false
-        );
+        assert_eq!(config.transaction_allow.to(), to);
+        assert_eq!(config.transaction_allow.sender(), sender);
+        assert!(!config.transaction_allow.all());
     }
 
     #[test]
     fn creates_default_config_when_non_existent() {
         let path = "./this-should-not-exist-mock-config.toml";
-        let config = IvmConfig::from_path(&path).unwrap();
+        let config = IvmConfig::from_path(path).unwrap();
 
-        assert_eq!(
-            config.transaction_allow.to(), HashSet::new()
-        );
-        assert_eq!(
-            config.transaction_allow.sender(), HashSet::new()
-        );
+        assert_eq!(config.transaction_allow.to(), HashSet::new());
+        assert_eq!(config.transaction_allow.sender(), HashSet::new());
         // We expect it to default to allowing everything
-        assert_eq!(
-            config.transaction_allow.all(), true
-        );
+        assert!(config.transaction_allow.all());
 
         // This will generate a file, so we need to remove it
         std::fs::remove_file(path).unwrap();
