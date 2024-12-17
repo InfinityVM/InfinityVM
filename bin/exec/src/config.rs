@@ -71,7 +71,8 @@ mod test {
 
     #[test]
     fn creates_default_config_when_non_existent() {
-        let config = IvmConfig::from_path("./a/path/that/will/never/exist").unwrap();
+        let path = "./this-should-not-exist-mock-config.toml";
+        let config = IvmConfig::from_path(&path).unwrap();
 
         assert_eq!(
             config.transaction_allow.to(), HashSet::new()
@@ -80,10 +81,11 @@ mod test {
             config.transaction_allow.sender(), HashSet::new()
         );
         // We expect it to default to allowing everything
-
-        
         assert_eq!(
             config.transaction_allow.all(), true
         );
+
+        // This will generate a file, so we need to remove it
+        std::fs::remove_file(path).unwrap();
     }
 }
