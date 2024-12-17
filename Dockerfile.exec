@@ -18,7 +18,7 @@ RUN apt-get update && apt-get -y upgrade && \
 FROM base AS builder
 WORKDIR /app
 COPY --from=base /app/. .
-RUN cargo build --release --locked --bin reth
+RUN cargo build --release --locked --bin ivm-exec
 
 FROM debian:bookworm-slim
 WORKDIR /app
@@ -26,7 +26,7 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/reth /usr/local/bin/reth
+COPY --from=builder /app/target/release/ivm-exec /usr/local/bin/reth
 COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
 
 EXPOSE 30303 30303/udp 9001 8545 8546
