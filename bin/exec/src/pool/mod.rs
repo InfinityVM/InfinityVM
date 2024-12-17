@@ -249,7 +249,7 @@ mod test {
         pool.add_external_transaction(transaction.clone()).await.unwrap();
         assert_eq!(pool.get(transaction.hash()).unwrap().hash(), transaction.hash());
 
-        // And we check that it still denies a transaction thats not allowed
+        // And we check that it still denies a transaction that's not allowed
         assert_ne!(other_transaction.sender(), transaction.sender());
         let outcome =
             validator.validate_one(TransactionOrigin::External, other_transaction.clone());
@@ -310,7 +310,7 @@ mod test {
         pool.add_external_transaction(transaction.clone()).await.unwrap();
         assert_eq!(pool.get(transaction.hash()).unwrap().hash(), transaction.hash());
 
-        // And we check that it still denies a transaction thats not allowed
+        // And we check that it still denies a transaction that's not allowed
         assert_ne!(other_transaction.to(), transaction.to());
         let outcome =
             validator.validate_one(TransactionOrigin::External, other_transaction.clone());
