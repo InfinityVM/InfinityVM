@@ -67,8 +67,8 @@ mod test {
 
         assert_eq!(config.transaction_allow.to(), HashSet::new());
         assert_eq!(config.transaction_allow.sender(), HashSet::new());
-        // We expect it to default to allowing everything
-        assert!(config.transaction_allow.all());
+        // We expect it to default to not allow everything
+        assert!(!config.transaction_allow.all());
 
         // This will generate a file, so we need to remove it
         std::fs::remove_file(path).unwrap();
