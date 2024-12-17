@@ -15,17 +15,11 @@ use std::{collections::HashSet, sync::Arc};
 use tokio::sync::Mutex;
 
 /// Configuration for allow list based on sender and recipient.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
 pub struct IvmTransactionAllowConfig {
     all: bool,
     to: HashSet<Address>,
     sender: HashSet<Address>,
-}
-
-impl Default for IvmTransactionAllowConfig {
-    fn default() -> Self {
-        Self { sender: HashSet::default(), to: HashSet::default(), all: false }
-    }
 }
 
 impl IvmTransactionAllowConfig {
