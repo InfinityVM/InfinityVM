@@ -27,7 +27,8 @@ pub type IvmAddOns<N> = RpcAddOns<
 /// Add IVM specific arguments to the default reth cli.
 #[derive(Debug, Clone, clap::Args)]
 pub struct IvmCliExt {
-    /// CLI flag to pass a path for the ivm specific config file path
+    /// Path to an IVM config toml file. Defaults to using a config in `<RETH
+    /// DATADIR>/ivm_config.toml`. If no file is found one is generated.
     #[arg(long)]
     pub ivm_config: Option<PathBuf>,
 }

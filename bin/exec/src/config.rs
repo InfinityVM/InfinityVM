@@ -52,10 +52,7 @@ mod test {
         let to = HashSet::from([address!("1111111111111111111111111111111111111111")]);
         let sender = HashSet::from([
             address!("2222222222222222222222222222222222222222"),
-            address!(
-                "
-            1234567890123456789012345678901234567890"
-            ),
+            address!("1234567890123456789012345678901234567890"),
         ]);
 
         assert_eq!(config.transaction_allow.to(), to);

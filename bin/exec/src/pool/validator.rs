@@ -172,7 +172,7 @@ mod test {
     use alloy::primitives::Address;
     use std::collections::HashSet;
 
-    // Helpers to set values for tests
+    // Helpers to set/get values for tests
     impl IvmTransactionAllowConfig {
         pub(crate) fn deny_all() -> Self {
             Self { to: HashSet::new(), sender: HashSet::new(), all: false }
