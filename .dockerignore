@@ -2,6 +2,7 @@
 *
 
 # include source files
+!/bin
 !/crates
 !/examples
 !/programs
