@@ -172,44 +172,22 @@ mod test {
     use alloy::primitives::Address;
     use std::collections::HashSet;
 
+    // Helpers to set values for tests
     impl IvmTransactionAllowConfig {
-        pub fn deny_all() -> Self {
+        pub(crate) fn deny_all() -> Self {
             Self { to: HashSet::new(), sender: HashSet::new(), all: false }
         }
 
-        pub fn to(&mut self, to: HashSet<Address>) {
+        pub(crate) fn to(&mut self, to: HashSet<Address>) {
             self.to = to;
         }
 
-        pub fn sender(&mut self, sender: HashSet<Address>) {
+        pub(crate) fn sender(&mut self, sender: HashSet<Address>) {
             self.sender = sender;
         }
 
-        pub fn all(&mut self, allow_all: bool) {
+        pub(crate) fn all(&mut self, allow_all: bool) {
             self.all = allow_all
         }
     }
-
-    //     #[test]
-    //     fn allows_valid_transactions() {
-    //         // allowed to address
-
-    //         todo!()
-    //     }
-
-    //     #[test]
-    //     fn denies_invalid_transactions() {
-    //         // to is none
-
-    //         // to is some but not listed
-
-    //         // sender is not listed
-
-    //         todo!()
-    //     }
-
-    //     #[test]
-    //     fn allow_all_overrides_everything() {
-    //         todo!()
-    //     }
 }

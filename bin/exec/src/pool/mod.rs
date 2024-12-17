@@ -114,25 +114,23 @@ where
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use super::*;
-    use reth::transaction_pool::{
-        blobstore::InMemoryBlobStore, PoolTransaction,
-        CoinbaseTipOrdering, EthPooledTransaction, Pool, TransactionPool,
-    };
-    use alloy_eips::eip2718::Decodable2718;
     use alloy::primitives::{hex, U256};
-    use reth::chainspec::MAINNET;
-    use reth::primitives::PooledTransactionsElement;
+    use alloy_eips::eip2718::Decodable2718;
+    use reth::{
+        chainspec::MAINNET,
+        primitives::{InvalidTransactionError, PooledTransactionsElement},
+        transaction_pool::{
+            blobstore::InMemoryBlobStore,
+            error::{InvalidPoolTransactionError, PoolErrorKind},
+            CoinbaseTipOrdering, EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin,
+            TransactionPool, TransactionValidationOutcome,
+        },
+    };
     use reth_provider::test_utils::{ExtendedAccount, MockEthProvider};
-    use reth::transaction_pool::TransactionOrigin;
     use std::collections::HashSet;
-    use reth::primitives::InvalidTransactionError;
-    use reth::transaction_pool::TransactionValidationOutcome;
-    use reth::transaction_pool::error::InvalidPoolTransactionError;
-    use reth::transaction_pool::error::PoolErrorKind;
 
     fn get_create_transaction() -> EthPooledTransaction {
         // This is taken from the reth transaction pool tests
@@ -154,17 +152,20 @@ mod test {
         tx.try_into_ecrecovered().unwrap().into()
     }
 
-    fn assert_outcome_tx_type_not_supported(outcome: TransactionValidationOutcome<EthPooledTransaction>) {
+    fn assert_outcome_tx_type_not_supported(
+        outcome: TransactionValidationOutcome<EthPooledTransaction>,
+    ) {
         match outcome {
-            TransactionValidationOutcome::Invalid(_, InvalidPoolTransactionError::Consensus(InvalidTransactionError::TxTypeNotSupported)) => {
-
-            }
+            TransactionValidationOutcome::Invalid(
+                _,
+                InvalidPoolTransactionError::Consensus(InvalidTransactionError::TxTypeNotSupported),
+            ) => {}
             _ => panic!(),
         }
     }
 
     #[tokio::test]
-   async fn denies_non_allowed_transactions() {
+    async fn denies_non_allowed_transactions() {
         let provider = MockEthProvider::default();
         let blob_store = InMemoryBlobStore::default();
         let transaction = get_swap_transaction();
@@ -180,20 +181,27 @@ mod test {
             let eth_transaction_validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
                 .build(provider, blob_store.clone());
 
-            IvmTransactionValidator::new(
-                eth_transaction_validator,
-                allow_config,
-            )
+            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
         };
 
-        let pool = Pool::new(validator.clone(), CoinbaseTipOrdering::default(), blob_store, Default::default());
+        let pool = Pool::new(
+            validator.clone(),
+            CoinbaseTipOrdering::default(),
+            blob_store,
+            Default::default(),
+        );
 
         let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
         // The outcome is invalid
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
-        let pool_err =  pool.add_external_transaction(transaction.clone()).await.unwrap_err();
-        matches!(pool_err.kind, PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(InvalidTransactionError::TxTypeNotSupported)));
+        let pool_err = pool.add_external_transaction(transaction.clone()).await.unwrap_err();
+        matches!(
+            pool_err.kind,
+            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
+                InvalidTransactionError::TxTypeNotSupported
+            ))
+        );
         // Pool does not persist the transaction
         assert!(pool.get(transaction.hash()).is_none());
     }
@@ -223,13 +231,15 @@ mod test {
             let eth_transaction_validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
                 .build(provider, blob_store.clone());
 
-            IvmTransactionValidator::new(
-                eth_transaction_validator,
-                allow_config,
-            )
+            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
         };
 
-        let pool = Pool::new(validator.clone(), CoinbaseTipOrdering::default(), blob_store, Default::default());
+        let pool = Pool::new(
+            validator.clone(),
+            CoinbaseTipOrdering::default(),
+            blob_store,
+            Default::default(),
+        );
         let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
 
         // Validator says transaction is valid
@@ -237,19 +247,22 @@ mod test {
 
         // Pool persists transaction
         pool.add_external_transaction(transaction.clone()).await.unwrap();
-        assert_eq!(
-            pool.get(transaction.hash()).unwrap().hash(),
-            transaction.hash()
-        );
+        assert_eq!(pool.get(transaction.hash()).unwrap().hash(), transaction.hash());
 
         // And we check that it still denies a transaction thats not allowed
         assert_ne!(other_transaction.sender(), transaction.sender());
-        let outcome = validator.validate_one(TransactionOrigin::External, other_transaction.clone());
+        let outcome =
+            validator.validate_one(TransactionOrigin::External, other_transaction.clone());
         // The outcome is invalid
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
-        let pool_err =  pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
-        matches!(pool_err.kind, PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(InvalidTransactionError::TxTypeNotSupported)));
+        let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
+        matches!(
+            pool_err.kind,
+            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
+                InvalidTransactionError::TxTypeNotSupported
+            ))
+        );
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
     }
@@ -279,33 +292,38 @@ mod test {
             let eth_transaction_validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
                 .build(provider, blob_store.clone());
 
-            IvmTransactionValidator::new(
-                eth_transaction_validator,
-                allow_config,
-            )
+            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
         };
 
-        let pool = Pool::new(validator.clone(), CoinbaseTipOrdering::default(), blob_store, Default::default());
+        let pool = Pool::new(
+            validator.clone(),
+            CoinbaseTipOrdering::default(),
+            blob_store,
+            Default::default(),
+        );
 
-         // validator says transaction valid
+        // validator says transaction valid
         let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
         assert!(outcome.is_valid());
 
         // pool persists transaction
         pool.add_external_transaction(transaction.clone()).await.unwrap();
-        assert_eq!(
-            pool.get(transaction.hash()).unwrap().hash(),
-            transaction.hash()
-        );
+        assert_eq!(pool.get(transaction.hash()).unwrap().hash(), transaction.hash());
 
         // And we check that it still denies a transaction thats not allowed
         assert_ne!(other_transaction.to(), transaction.to());
-        let outcome = validator.validate_one(TransactionOrigin::External, other_transaction.clone());
+        let outcome =
+            validator.validate_one(TransactionOrigin::External, other_transaction.clone());
         // The outcome is invalid
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
-        let pool_err =  pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
-        matches!(pool_err.kind, PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(InvalidTransactionError::TxTypeNotSupported)));
+        let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
+        matches!(
+            pool_err.kind,
+            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
+                InvalidTransactionError::TxTypeNotSupported
+            ))
+        );
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
     }
@@ -330,37 +348,32 @@ mod test {
             ExtendedAccount::new(other_transaction.nonce(), U256::MAX),
         );
 
-
         let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
             let eth_transaction_validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
                 .build(provider, blob_store.clone());
 
-            IvmTransactionValidator::new(
-                eth_transaction_validator,
-                allow_config,
-            )
+            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
         };
 
-        let pool = Pool::new(validator.clone(), CoinbaseTipOrdering::default(), blob_store, Default::default());
+        let pool = Pool::new(
+            validator.clone(),
+            CoinbaseTipOrdering::default(),
+            blob_store,
+            Default::default(),
+        );
 
         let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
         assert!(outcome.is_valid());
 
         pool.add_external_transaction(transaction.clone()).await.unwrap();
-        assert_eq!(
-            pool.get(transaction.hash()).unwrap().hash(),
-            transaction.hash()
-        );
+        assert_eq!(pool.get(transaction.hash()).unwrap().hash(), transaction.hash());
 
         // Also allows the other transaction
-        let outcome = validator.validate_one(TransactionOrigin::External, other_transaction.clone());
+        let outcome =
+            validator.validate_one(TransactionOrigin::External, other_transaction.clone());
         assert!(outcome.is_valid());
 
         pool.add_external_transaction(other_transaction.clone()).await.unwrap();
-        assert_eq!(
-            pool.get(other_transaction.hash()).unwrap().hash(),
-            other_transaction
-            .hash()
-        );
+        assert_eq!(pool.get(other_transaction.hash()).unwrap().hash(), other_transaction.hash());
     }
 }
