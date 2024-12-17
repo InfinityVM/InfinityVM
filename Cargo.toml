@@ -19,7 +19,7 @@ members = [
 	"crates/tracing",
 	"crates/zkvm",
 	"crates/zkvm-executor",
-    "crates/tracing",
+	"crates/tracing",
 	"examples/clob/programs",
 	"examples/matching-game/programs",
 	"test/e2e",
@@ -178,6 +178,7 @@ reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4",
 reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-ethereum-payload-builder= { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-provider = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 
 # s
 serde = { version = "1.0", features = ["derive", "std"], default-features = false }
@@ -200,6 +201,7 @@ tempfile = { version = "3", default-features = false }
 tracing = { version = "0.1.40", default-features = false}
 tracing-subscriber = { version = "0.3.18", features = ["env-filter", "fmt","json"] , default-features = false }
 tracing-appender = { version = "0.2.3", default-features = false }
+toml = { version = "0.8" }
 
 # u
 url = { version = "2.4.0", default-features = false }
