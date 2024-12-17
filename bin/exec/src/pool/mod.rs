@@ -216,7 +216,7 @@ mod test {
         // Set the allowed `sender`s
         let mut allow_config = IvmTransactionAllowConfig::deny_all();
         let allowed_senders = HashSet::from([transaction.sender()]);
-        allow_config.sender(allowed_senders);
+        allow_config.set_sender(allowed_senders);
         // Make sure the sender has enough gas
         provider.add_account(
             transaction.sender(),
@@ -277,7 +277,7 @@ mod test {
 
         // Set the allowed `to` addresses
         let allowed_to = HashSet::from([transaction.to().unwrap()]);
-        allow_config.to(allowed_to);
+        allow_config.set_to(allowed_to);
         // Make sure the sender has enough gas
         provider.add_account(
             transaction.sender(),
@@ -337,7 +337,7 @@ mod test {
         let mut allow_config = IvmTransactionAllowConfig::deny_all();
 
         // Set to allow all addresses
-        allow_config.all(true);
+        allow_config.set_all(true);
         // Make sure the sender has enough gas
         provider.add_account(
             transaction.sender(),

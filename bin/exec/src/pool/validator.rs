@@ -178,16 +178,29 @@ mod test {
             Self { to: HashSet::new(), sender: HashSet::new(), all: false }
         }
 
-        pub(crate) fn to(&mut self, to: HashSet<Address>) {
+        pub(crate) fn set_to(&mut self, to: HashSet<Address>) {
             self.to = to;
         }
 
-        pub(crate) fn sender(&mut self, sender: HashSet<Address>) {
+        pub(crate) fn to(&self) -> HashSet<Address> {
+            self.to.clone()
+        }
+
+        pub(crate) fn set_sender(&mut self, sender: HashSet<Address>) {
             self.sender = sender;
         }
 
-        pub(crate) fn all(&mut self, allow_all: bool) {
-            self.all = allow_all
+        pub(crate) fn sender(&self) -> HashSet<Address>{
+            self.sender.clone()
+        }
+
+        pub(crate) fn set_all(&mut self, allow_all: bool) {
+            self.all = allow_all;
+
+        }
+
+        pub(crate) fn all(&self) -> bool {
+            self.all
         }
     }
 }

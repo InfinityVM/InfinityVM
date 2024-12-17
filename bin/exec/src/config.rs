@@ -41,13 +41,49 @@ impl IvmConfig {
 
 #[cfg(test)]
 mod test {
+    use super::IvmConfig;
+    use alloy::primitives::address;
+    use std::collections::HashSet;
+
     #[test]
     fn read_in_existing_config() {
-        todo!()
+        let config = IvmConfig::from_path("./mock/ivm_config.toml").unwrap();
+
+        let to = HashSet::from([
+            address!("1111111111111111111111111111111111111111"),
+        ]);
+        let sender = HashSet::from([
+            address!("2222222222222222222222222222222222222222"),
+            address!("
+            1234567890123456789012345678901234567890")
+        ]);
+
+        assert_eq!(
+            config.transaction_allow.to(), to
+        );
+        assert_eq!(
+            config.transaction_allow.sender(), sender
+        );
+        assert_eq!(
+            config.transaction_allow.all(), false
+        );
     }
 
     #[test]
     fn creates_default_config_when_non_existent() {
-        todo!()
+        let config = IvmConfig::from_path("./a/path/that/will/never/exist").unwrap();
+
+        assert_eq!(
+            config.transaction_allow.to(), HashSet::new()
+        );
+        assert_eq!(
+            config.transaction_allow.sender(), HashSet::new()
+        );
+        // We expect it to default to allowing everything
+
+        
+        assert_eq!(
+            config.transaction_allow.all(), true
+        );
     }
 }
