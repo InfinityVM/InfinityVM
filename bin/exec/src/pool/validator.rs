@@ -24,7 +24,7 @@ pub struct IvmTransactionAllowConfig {
 
 impl Default for IvmTransactionAllowConfig {
     fn default() -> Self {
-        Self { sender: HashSet::default(), to: HashSet::default(), all: true }
+        Self { sender: HashSet::default(), to: HashSet::default(), all: false }
     }
 }
 
