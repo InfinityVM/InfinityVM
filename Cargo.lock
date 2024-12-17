@@ -5034,6 +5034,7 @@ name = "ivm-exec"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "alloy-eips 0.7.3",
  "clap",
  "eyre",
  "reth",

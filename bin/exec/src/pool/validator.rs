@@ -105,7 +105,7 @@ where
     where
         T: TaskSpawner,
     {
-        let validator = Self { eth, allow_config };
+        let validator = Self::new(eth, allow_config);
 
         let (tx, task) = ValidationTask::new();
 
@@ -129,6 +129,13 @@ where
         let to_validation_task = Arc::new(Mutex::new(tx));
 
         TransactionValidationTaskExecutor { validator, to_validation_task }
+    }
+
+    pub(crate) const fn new(
+        eth: EthTransactionValidator<Client, Tx>,
+        allow_config: IvmTransactionAllowConfig,
+    ) -> Self {
+        Self { eth, allow_config }
     }
 }
 
@@ -161,26 +168,48 @@ where
 
 #[cfg(test)]
 mod test {
-    #[test]
-    fn allows_valid_transactions() {
-        // allowed to address
+    use super::IvmTransactionAllowConfig;
+    use alloy::primitives::Address;
+    use std::collections::HashSet;
 
-        todo!()
+    impl IvmTransactionAllowConfig {
+        pub fn deny_all() -> Self {
+            Self { to: HashSet::new(), sender: HashSet::new(), all: false }
+        }
+
+        pub fn to(&mut self, to: HashSet<Address>) {
+            self.to = to;
+        }
+
+        pub fn sender(&mut self, sender: HashSet<Address>) {
+            self.sender = sender;
+        }
+
+        pub fn all(&mut self, allow_all: bool) {
+            self.all = allow_all
+        }
     }
 
-    #[test]
-    fn denies_invalid_transactions() {
-        // to is none
+    //     #[test]
+    //     fn allows_valid_transactions() {
+    //         // allowed to address
 
-        // to is some but not listed
+    //         todo!()
+    //     }
 
-        // sender is not listed
+    //     #[test]
+    //     fn denies_invalid_transactions() {
+    //         // to is none
 
-        todo!()
-    }
+    //         // to is some but not listed
 
-    #[test]
-    fn allow_all_overrides_everything() {
-        todo!()
-    }
+    //         // sender is not listed
+
+    //         todo!()
+    //     }
+
+    //     #[test]
+    //     fn allow_all_overrides_everything() {
+    //         todo!()
+    //     }
 }

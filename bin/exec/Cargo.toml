@@ -22,3 +22,6 @@ serde = { workspace = true }
 
 [dev-dependencies]
 reth-provider = { workspace = true, features = ["test-utils"] }
+# alloy = { workspace = true, features = ["eips"] }
+# for compatibility 
+alloy-eips = { version = "0.7.3", default-features = false }
