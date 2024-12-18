@@ -644,7 +644,7 @@ mod test {
         }
 
         // Give a little extra time to avoid flakiness
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
         // Check that each job is in the anvil node logs
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
