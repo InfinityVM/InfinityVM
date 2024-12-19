@@ -8,6 +8,7 @@ use reth::{
 };
 use std::path::PathBuf;
 
+pub mod evm;
 pub mod config;
 pub mod engine;
 pub mod pool;
