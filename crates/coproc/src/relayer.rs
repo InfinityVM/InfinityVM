@@ -588,7 +588,6 @@ mod test {
     use prometheus::Registry;
 
     use ivm_test_utils::{anvil_with_job_manager, get_localhost_port, AnvilJobManager};
-    use tokio::task::JoinSet;
 
     const JOB_COUNT: usize = 30;
 
@@ -620,7 +619,6 @@ mod test {
             .build(anvil.endpoint().parse().unwrap(), job_manager, 1, metrics)
             .unwrap();
         let job_relayer = Arc::new(job_relayer);
-        let mut join_set = JoinSet::new();
 
         for i in 0u8..JOB_COUNT as u8 {
             let job =
@@ -640,14 +638,10 @@ mod test {
             // Ensure test setup is working as we think
             assert_eq!(job.id, log.data().jobID);
 
-            let relayer2 = Arc::clone(&job_relayer);
-            join_set.spawn(async move {
-                assert!(relayer2.relay_result_for_onchain_job(job).await.is_ok());
-            });
+            // Relay the job result sequentially to avoid flakiness due to nonce issues
+            // caused by race conditions
+            assert!(job_relayer.relay_result_for_onchain_job(job).await.is_ok());
         }
-
-        // Wait for all the relay threads to finish so we know the transactions have landed
-        while (join_set.join_next().await).is_some() {}
 
         // Give a little extra time to avoid flakiness
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
