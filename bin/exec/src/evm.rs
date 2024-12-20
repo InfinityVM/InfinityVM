@@ -12,10 +12,7 @@ use reth::{
 };
 use reth_evm_ethereum::EthEvmConfig;
 use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
-use reth_node_ethereum::{
-    node::{EthereumAddOns, EthereumPayloadBuilder},
-    BasicBlockExecutorProvider, EthExecutionStrategyFactory, EthereumNode,
-};
+use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
 use std::{convert::Infallible, sync::Arc};
 
 /// IVM's EVM configuration
