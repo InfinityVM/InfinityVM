@@ -109,3 +109,146 @@ where
         Ok((evm_config, executor))
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use reth_revm::{
+        database::StateProviderDatabase, test_utils::StateProviderTest, TransitionState,
+    };
+    use reth::chainspec::ChainSpecBuilder;
+    use reth::chainspec::MAINNET;
+    use reth::primitives::EthereumHardfork;
+    use reth::primitives::ForkCondition;
+    use reth::primitives::BlockWithSenders;
+    use reth::primitives::Block;
+    use reth::primitives::BlockBody;
+    use reth_evm::execute::BlockExecutorProvider;
+    use alloy::primitives::B256;
+    use reth_evm::execute::BatchExecutor;
+    use alloy::consensus::TxEip1559;
+    use alloy::primitives::hex;
+    use alloy::primitives::TxKind;
+    use alloy::primitives::Address;
+    use reth::primitives::Transaction;
+    use alloy::signers::local::LocalSigner;
+    use alloy::network::
+    TxSignerSync;
+
+    fn executor_provider(
+        chain_spec: Arc<ChainSpec>,
+    ) -> BasicBlockExecutorProvider<EthExecutionStrategyFactory<IvmEvmConfig>> {
+        let evm_config = IvmEvmConfig::new(chain_spec.clone());
+        let strategy_factory = EthExecutionStrategyFactory::new(chain_spec.clone(), evm_config);
+
+        BasicBlockExecutorProvider::new(strategy_factory)
+    }
+
+    fn setup() -> (Header, StateProviderTest, BasicBlockExecutorProvider<EthExecutionStrategyFactory<IvmEvmConfig>>) {
+        let header = Header {
+            timestamp: 1,
+            number: 1,
+            parent_beacon_block_root: Some(B256::with_last_byte(0x69)),
+            excess_blob_gas: Some(0),
+            ..Header::default()
+        };
+        let db = StateProviderTest::default();
+
+        let chain_spec = Arc::new(
+            ChainSpecBuilder::from(&*MAINNET)
+                .shanghai_activated()
+                .with_fork(EthereumHardfork::Cancun, ForkCondition::Timestamp(1))
+                .build(),
+        );
+
+        let provider = executor_provider(chain_spec);
+
+        (header, db, provider)
+    }
+
+    #[test]
+    fn execute_empty_block() {
+        let header = Header {
+            timestamp: 1,
+            number: 1,
+            parent_beacon_block_root: Some(B256::with_last_byte(0x69)),
+            excess_blob_gas: Some(0),
+            ..Header::default()
+        };
+
+        let db = StateProviderTest::default();
+
+        let chain_spec = Arc::new(
+            ChainSpecBuilder::from(&*MAINNET)
+                .shanghai_activated()
+                .with_fork(EthereumHardfork::Cancun, ForkCondition::Timestamp(1))
+                .build(),
+        );
+
+        let provider = executor_provider(chain_spec);
+
+        provider
+            .batch_executor(StateProviderDatabase::new(&db))
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody {
+                                transactions: vec![],
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: vec![],
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap()
+    }
+
+    #[test]
+    fn accepts_transaction_from_account_with_no_gas() {
+        let (header, db, provider) = setup();
+
+        let signer = LocalSigner::random();
+
+        
+        let mut inner_tx = TxEip1559::default();
+        inner_tx.input = hex!("0000000011223344").as_ref().into();
+        inner_tx.gas_limit = 1_000_000_000;
+        inner_tx.max_fee_per_gas = 1_000_000_000;
+        inner_tx.to = TxKind::Call(dest);
+        
+        let signature = signer.sign_transaction_sync(&mut inner_tx);
+        let dest = Address::default();
+
+        // let tx_body = Transaction::Eip1559(inner_tx);
+
+
+        // let transaction = TransactionSigned::from_transaction_and_signature();
+
+        // provider
+        //     .batch_executor(StateProviderDatabase::new(&db))
+        //     .execute_and_verify_one(
+        //         (
+        //             &BlockWithSenders {
+        //                 block: Block {
+        //                     header,
+        //                     body: BlockBody {
+        //                         transactions: vec![],
+        //                         ommers: vec![],
+        //                         withdrawals: None,
+        //                     },
+        //                 },
+        //                 senders: vec![],
+        //             },
+        //             U256::ZERO,
+        //         )
+        //             .into(),
+        //     )
+        //     .unwrap()
+    }
+}

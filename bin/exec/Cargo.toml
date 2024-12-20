@@ -19,10 +19,10 @@ reth-tracing = { workspace = true }
 # revm-primitives = { version = "14.0.0", default-features = false }
 
 # hack to try and ensure optional balance check and gas refund get built in
-# revm = { version = "*", default-features = false, features = [
-# 	"optional_balance_check", "optional_gas_refund",
-# 	 "asm-keccak", "std",
-# ] }
+revm = { version = "*", default-features = false, features = [
+	"optional_balance_check", "optional_gas_refund",
+	 "asm-keccak", "std",
+] }
 
 alloy = { workspace = true, features = ["genesis"] }
 eyre = { workspace = true  }
@@ -34,6 +34,9 @@ serde = { workspace = true }
 
 [dev-dependencies]
 reth-provider = { workspace = true, features = ["test-utils"] }
+reth-revm = { workspace = true }
+reth-evm = { workspace = true }
+alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
 # This is a bit hacky since we normally use the alloy facade crate, but a reth
 # type expects a trait from this crate
 alloy-eips = { version = "0.7.3", default-features = false }

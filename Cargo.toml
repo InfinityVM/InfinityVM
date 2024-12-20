@@ -183,6 +183,8 @@ reth-provider = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4
 reth-node-core = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-tracing = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-revm = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-evm = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 
 # s
 serde = { version = "1.0", features = ["derive", "std"], default-features = false }
