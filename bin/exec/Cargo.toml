@@ -37,6 +37,10 @@ reth-provider = { workspace = true, features = ["test-utils"] }
 reth-revm = { workspace = true }
 reth-evm = { workspace = true }
 alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
-# This is a bit hacky since we normally use the alloy facade crate, but a reth
-# type expects a trait from this crate
+
+# Hacks to play happy with reth types
+# We normally use the alloy facade crate, but a reth type expects a trait from this crate
 alloy-eips = { version = "0.7.3", default-features = false }
+alloy-consensus = { version = "0.7.3"}
+alloy-signer-local = { version = "0.7.3"}
+alloy-network = { version = "0.7.3"}

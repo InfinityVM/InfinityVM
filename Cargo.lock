@@ -5046,7 +5046,10 @@ name = "ivm-exec"
 version = "0.0.1"
 dependencies = [
  "alloy",
+ "alloy-consensus 0.7.3",
  "alloy-eips 0.7.3",
+ "alloy-network 0.7.3",
+ "alloy-signer-local 0.7.3",
  "clap",
  "eyre",
  "reth",
