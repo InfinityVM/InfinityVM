@@ -1,21 +1,31 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 import {JobManager} from "./JobManager.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 
-abstract contract Consumer {
+abstract contract Consumer is 
+    Initializable,
+    OwnableUpgradeable 
+{
     struct JobInputs {
         bytes onchainInput;
         bytes32 offchainInputHash;
     }
     
-    JobManager internal _jobManager;
+    JobManager internal immutable _jobManager;
     uint64 public maxNonce;
     
     mapping(bytes32 => JobInputs) internal jobIDToInputs;
 
-    constructor(address __jobManager, uint64 _initialMaxNonce) {
+    constructor(address __jobManager) {
         _jobManager = JobManager(__jobManager);
-        maxNonce = _initialMaxNonce;
+        _disableInitializers();
+    }
+
+    function initialize(address initialOwner, uint64 initialMaxNonce) public virtual initializer {
+        _transferOwnership(initialOwner);
+        maxNonce = initialMaxNonce;
     }
 
     modifier onlyJobManager() {

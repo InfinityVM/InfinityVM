@@ -4,12 +4,18 @@ import {JobManager} from "../../src/coprocessor/JobManager.sol";
 import {Consumer} from "../../src/coprocessor/Consumer.sol";
 import {SingleOffchainSigner} from "../../src/coprocessor/SingleOffchainSigner.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 
 contract MockConsumer is Consumer, SingleOffchainSigner {
     mapping(address => uint256) public addressToBalance;
     mapping(bytes32 => bytes) public jobIDToResult;
 
-    constructor(address jobManager, address _offchainSigner, uint64 initialMaxNonce) Consumer(jobManager, initialMaxNonce) SingleOffchainSigner(_offchainSigner) {}
+    constructor(address jobManager, address _offchainSigner) Consumer(jobManager) SingleOffchainSigner(_offchainSigner) {}
+
+    function initialize(address initialOwner, uint64 initialMaxNonce) public override initializer {
+        Consumer.initialize(initialOwner, initialMaxNonce);
+    }
 
     function getBalance(address addr) public view returns (uint256) {
         return addressToBalance[addr];

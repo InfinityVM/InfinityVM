@@ -2,6 +2,8 @@
 pragma solidity ^0.8.13;
 
 import {Consumer} from "./Consumer.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 
 abstract contract StatefulConsumer is Consumer {
     // Struct passed to zkVM program as onchain input
@@ -18,10 +20,20 @@ abstract contract StatefulConsumer is Consumer {
 
     bytes32 public latestStateRoot;
 
-    constructor(address __jobManager, uint64 _initialMaxNonce, bytes32 _latestStateRoot)
-        Consumer(__jobManager, _initialMaxNonce)
-    {
-        latestStateRoot = _latestStateRoot;
+    constructor(address __jobManager) Consumer(__jobManager) {
+        _disableInitializers();
+    }
+
+    function initialize(
+        address initialOwner,
+        uint64 initialMaxNonce,
+        bytes32 initialStateRoot
+    ) public virtual initializer {
+        // Call parent initializer
+        Consumer.initialize(initialOwner, initialMaxNonce);
+        
+        // Initialize StatefulConsumer state
+        latestStateRoot = initialStateRoot;
     }
 
     function getLatestStateRoot() public view returns (bytes32) {

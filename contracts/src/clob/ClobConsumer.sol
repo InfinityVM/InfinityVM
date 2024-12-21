@@ -7,6 +7,8 @@ import {OffchainRequester} from "../coprocessor/OffchainRequester.sol";
 import {SingleOffchainSigner} from "../coprocessor/SingleOffchainSigner.sol";
 import {console} from "forge-std/Script.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 
 contract ClobConsumer is StatefulConsumer, SingleOffchainSigner {
     // DepositDelta always subtracts from deposit balance, so we use uint256
@@ -51,9 +53,13 @@ contract ClobConsumer is StatefulConsumer, SingleOffchainSigner {
     mapping(address => uint256) public lockedBalanceBase;
     mapping(address => uint256) public lockedBalanceQuote;
 
-    constructor(address jobManager, address offchainSigner, uint64 initialMaxNonce, IERC20 _baseToken, IERC20 _quoteToken, bytes32 latestStateRoot) StatefulConsumer(jobManager, initialMaxNonce, latestStateRoot) SingleOffchainSigner(offchainSigner) {
+    constructor(address jobManager, address offchainSigner, IERC20 _baseToken, IERC20 _quoteToken) StatefulConsumer(jobManager) SingleOffchainSigner(offchainSigner) {
         baseToken = _baseToken;
         quoteToken = _quoteToken;
+    }
+
+    function initialize(address initialOwner, uint64 initialMaxNonce, bytes32 initialStateRoot) public override initializer {
+        StatefulConsumer.initialize(initialOwner, initialMaxNonce, initialStateRoot);
     }
 
     // Getter functions for balances
