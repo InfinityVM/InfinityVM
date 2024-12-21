@@ -76,7 +76,7 @@ impl ConfigureEvmEnv for IvmEvmConfig {
 #[inline]
 fn disable_gas_fees(cfg_env: &mut CfgEnvWithHandlerCfg) {
     cfg_env.disable_balance_check = true;
-    // cfg_env.disable_gas_refund = true;
+    cfg_env.disable_gas_refund = true;
 }
 
 impl ConfigureEvm for IvmEvmConfig {
@@ -239,6 +239,9 @@ mod test {
         // This account has nothing
         assert!(db.basic_account(signer_address).unwrap().is_none());
 
+        let mut executor = provider
+            .batch_executor(StateProviderDatabase::new(&db));
+
         provider
             .batch_executor(StateProviderDatabase::new(&db))
             .execute_and_verify_one(
@@ -260,8 +263,12 @@ mod test {
             )
             .unwrap();
 
-        // This account still has nothing
-        assert!(db.basic_account(signer_address).unwrap().is_none());
+        let output = executor.finalize();
+
+        // The user does not exist in state
+        // TODO: this is scary, what about the users nonce?
+        assert!(output.bundle.state.get(&signer_address).is_none());
+
     }
 
     #[test]
@@ -277,12 +284,16 @@ mod test {
         header.receipts_root =
             B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
 
+        let user_balance = U256::from(gas_limit + 1_000); 
         let user_account =
-            Account { nonce: 0, balance: U256::from(exact_gas_used + 1), bytecode_hash: None };
+            Account { nonce: 0, balance: U256::from(user_balance), bytecode_hash: None };
         db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        provider
-            .batch_executor(StateProviderDatabase::new(&db))
+
+        let mut executor = provider
+            .batch_executor(StateProviderDatabase::new(&db));
+
+        executor
             .execute_and_verify_one(
                 (
                     &BlockWithSenders {
@@ -302,8 +313,30 @@ mod test {
             )
             .unwrap();
 
-        // This account has exact same balance
-        assert_eq!(db.basic_account(signer_address).unwrap().unwrap(), user_account);
+        let output = executor.finalize();
+        let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
+
+        // New account info is expected
+        assert_eq!(
+            bundle_account.info.unwrap(),
+            AccountInfo {
+                // Since there balance was _above_ the gas_limit, their balance does not increase
+                balance: U256::from(user_balance),
+                nonce: user_account.nonce + 1,
+                code_hash: B256::from(hex!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
+            }
+        );
+        // Original account info is as expected
+        assert_eq!(
+            bundle_account.original_info.unwrap(),
+            AccountInfo {
+                balance: U256::from(user_balance),
+                nonce: user_account.nonce,
+                code_hash: B256::from(hex!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
+            }
+        );
     }
 
     #[test]
@@ -348,7 +381,10 @@ mod test {
             .unwrap();
 
         let output = executor.finalize();
+        dbg!(&output);
         let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
+
+        // New account info is expected
         assert_eq!(
             bundle_account.info.unwrap(),
             AccountInfo {
@@ -359,5 +395,71 @@ mod test {
                 code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
             }
         );
+        // Original account info is as expected
+        assert_eq!(
+            bundle_account.original_info.unwrap(),
+            AccountInfo {
+                balance: U256::from(user_balance),
+                nonce: user_account.nonce,
+                code_hash: B256::from(hex!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
+            }
+        );
+    }
+
+
+    #[test]
+    fn accepts_transaction_from_account_with_no_balance_and_an_account_with_balance() {
+        let (mut header, mut db, provider) = setup();
+        let (transaction_signed, signer_address, gas_limit) = transaction();
+        // this generates a new signer
+        let (transaction_signed2, signer_address2, gas_limit2) = transaction();
+        // sanity check these are different signers
+        assert_ne!(signer_address, signer_address2);
+
+        // We know this is the exact gas used
+        header.gas_used = 2* 21080;
+        // And the expected receipts root
+        header.receipts_root =
+            B256::from(hex!("d4263b4f8bc6337d6751b03db4192a544872db8beeb3be926d891e8910842eb1"));
+
+        // first account has nothing
+        assert!(db.basic_account(signer_address).unwrap().is_none());
+
+        // second account has some balance
+        let user2_balance = U256::from(gas_limit - 100); 
+        let user2_account =
+            Account { nonce: 0, balance: user2_balance, bytecode_hash: None };
+        db.insert_account(signer_address2, user2_account, None, HashMap::default());
+
+        let mut executor = provider
+            .batch_executor(StateProviderDatabase::new(&db));
+
+        executor
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody {
+                                transactions: vec![transaction_signed, transaction_signed2],
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: vec![signer_address, signer_address2],
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap();
+
+        let output = executor.finalize();
+        dbg!(&output);
+
+        // The user does not exist in state
+        assert!(output.bundle.state.get(&signer_address).is_none());
+
     }
 }
