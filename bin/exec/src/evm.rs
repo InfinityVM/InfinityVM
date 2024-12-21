@@ -76,7 +76,7 @@ impl ConfigureEvmEnv for IvmEvmConfig {
 #[inline]
 fn disable_gas_fees(cfg_env: &mut CfgEnvWithHandlerCfg) {
     cfg_env.disable_balance_check = true;
-    cfg_env.disable_gas_refund = true;
+    // cfg_env.disable_gas_refund = true;
 }
 
 impl ConfigureEvm for IvmEvmConfig {
@@ -124,13 +124,17 @@ mod test {
     use reth_evm::execute::{BatchExecutor, BlockExecutorProvider};
     use reth_provider::AccountReader;
     use reth_revm::{
-        database::StateProviderDatabase, test_utils::StateProviderTest, TransitionState,
+        database::StateProviderDatabase, test_utils::StateProviderTest,
     };
     use std::collections::HashMap;
-    use reth::core::primitives::SignedTransaction;
+    use revm::precompile::primitives::AccountInfo;
+    use revm::precompile::primitives::LegacyAnalyzedBytecode;
+    use revm::precompile::primitives::Bytecode;
+    use revm::precompile::primitives::JumpTable;
+    
 
     // Special alloy deps we need for playing happy with reth
-    use alloy_consensus::{SignableTransaction, Transaction as _, TxEip1559};
+    use alloy_consensus::{Transaction as _, TxEip1559};
     use alloy_network::TxSignerSync;
     use alloy_signer_local::LocalSigner;
 
@@ -138,7 +142,7 @@ mod test {
         chain_spec: Arc<ChainSpec>,
     ) -> BasicBlockExecutorProvider<EthExecutionStrategyFactory<IvmEvmConfig>> {
         let evm_config = IvmEvmConfig::new(chain_spec.clone());
-        let strategy_factory = EthExecutionStrategyFactory::new(chain_spec.clone(), evm_config);
+        let strategy_factory = EthExecutionStrategyFactory::new(chain_spec, evm_config);
 
         BasicBlockExecutorProvider::new(strategy_factory)
     }
@@ -170,30 +174,34 @@ mod test {
         (header, db, provider)
     }
 
-    fn transaction() -> (TransactionSigned, Address) {
+    fn transaction() -> (TransactionSigned, Address, u64) {
         let signer = LocalSigner::random();
+
+        let exact_gas_used = 21080;
+        let gas_limit = exact_gas_used + 1_000;
 
         // Create a TX with random data
         let transaction_signed = {
-            let mut inner_tx = TxEip1559::default();
-
-            inner_tx.input = hex!("0000000011223344").as_ref().into();
-            inner_tx.gas_limit = 21080;
-            inner_tx.max_fee_per_gas = 1;
-            inner_tx.chain_id = 1;
-            inner_tx.to = TxKind::Call(Address::default());
+            let mut inner_tx = TxEip1559 {
+                input: hex!("0000000011223344").as_ref().into(),
+                gas_limit,
+                max_fee_per_gas: 1,
+                chain_id: 1,
+                to: TxKind::Call(Address::default()),
+                .. Default::default()
+            };
 
             let signature = signer.sign_transaction_sync(&mut inner_tx).unwrap();
-            let tx = Transaction::Eip1559(inner_tx.into());
+            let tx = Transaction::Eip1559(inner_tx);
             TransactionSigned::new_unhashed(tx, signature)
         };
 
-        (transaction_signed, signer.address())
+        (transaction_signed, signer.address(), gas_limit)
     }
 
     #[test]
     fn execute_empty_block() {
-        let (mut header, db, provider) = setup();
+        let (header, db, provider) = setup();
 
         provider
             .batch_executor(StateProviderDatabase::new(&db))
@@ -220,7 +228,7 @@ mod test {
     #[test]
     fn accepts_transaction_from_account_with_no_balance() {
         let (mut header, db, provider) = setup();
-        let (transaction_signed, signer_address) = transaction();
+        let (transaction_signed, signer_address, gas_limit) = transaction();
 
         // We know this is the exact gas used
         header.gas_used = 21080;
@@ -228,7 +236,7 @@ mod test {
         header.receipts_root =
             B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
 
-        /// This account has nothing
+        // This account has nothing
         assert!(db.basic_account(signer_address).unwrap().is_none());
 
         provider
@@ -259,7 +267,7 @@ mod test {
     #[test]
     fn accepts_transaction_from_account_with_excess_balance() {
         let (mut header, mut db, provider) = setup();
-        let (transaction_signed, signer_address) = transaction();
+        let (transaction_signed, signer_address, gas_limit) = transaction();
 
         let exact_gas_used = 21080;
 
@@ -271,7 +279,7 @@ mod test {
 
         let user_account =
             Account { nonce: 0, balance: U256::from(exact_gas_used + 1), bytecode_hash: None };
-        db.insert_account(signer_address, user_account.clone(), None, HashMap::default());
+        db.insert_account(signer_address, user_account, None, HashMap::default());
 
         provider
             .batch_executor(StateProviderDatabase::new(&db))
@@ -301,7 +309,7 @@ mod test {
     #[test]
     fn accepts_transaction_from_account_with_a_little_balance() {
         let (mut header, mut db, provider) = setup();
-        let (transaction_signed, signer_address) = transaction();
+        let (transaction_signed, signer_address, gas_limit) = transaction();
 
         let exact_gas_used = 21080;
 
@@ -311,12 +319,15 @@ mod test {
         header.receipts_root =
             B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
 
+        let user_balance = U256::from(gas_limit - 100); 
         let user_account =
-            Account { nonce: 0, balance: U256::from(exact_gas_used - 100), bytecode_hash: None };
-        db.insert_account(signer_address, user_account.clone(), None, HashMap::default());
+            Account { nonce: 0, balance: user_balance, bytecode_hash: None };
+        db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        provider
-            .batch_executor(StateProviderDatabase::new(&db))
+        let mut executor = provider
+            .batch_executor(StateProviderDatabase::new(&db));
+        
+        executor
             .execute_and_verify_one(
                 (
                     &BlockWithSenders {
@@ -336,7 +347,17 @@ mod test {
             )
             .unwrap();
 
-        // This account has exact same balance
-        assert_eq!(db.basic_account(signer_address).unwrap().unwrap(), user_account);
+        let output = executor.finalize();
+        let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
+        assert_eq!(
+            bundle_account.info.unwrap(),
+            AccountInfo {
+                // There balance gets increased to the gas_limit of the transaction
+                balance: U256::from(gas_limit),
+                nonce: user_account.nonce + 1,
+                code_hash: B256::from(hex!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
+            }
+        );
     }
 }
