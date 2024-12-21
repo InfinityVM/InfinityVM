@@ -127,8 +127,9 @@ mod test {
         database::StateProviderDatabase, test_utils::StateProviderTest, TransitionState,
     };
     use std::collections::HashMap;
+    use reth::core::primitives::SignedTransaction;
 
-    // TODO: use alloy_consensus directly bc that is what reth transaction depends on
+    // Special alloy deps we need for playing happy with reth
     use alloy_consensus::{SignableTransaction, Transaction as _, TxEip1559};
     use alloy_network::TxSignerSync;
     use alloy_signer_local::LocalSigner;
@@ -169,7 +170,7 @@ mod test {
         (header, db, provider)
     }
 
-    fn transaction() -> (SignedTransaction, Address) {
+    fn transaction() -> (TransactionSigned, Address) {
         let signer = LocalSigner::random();
 
         // Create a TX with random data
@@ -187,7 +188,7 @@ mod test {
             TransactionSigned::new_unhashed(tx, signature)
         };
 
-        (transaction_signed,)
+        (transaction_signed, signer.address())
     }
 
     #[test]
@@ -219,21 +220,7 @@ mod test {
     #[test]
     fn accepts_transaction_from_account_with_no_balance() {
         let (mut header, db, provider) = setup();
-        let signer = LocalSigner::random();
-
-        // Create a TX with random data
-        let transaction_signed = {
-            let mut inner_tx = TxEip1559::default();
-            inner_tx.input = hex!("0000000011223344").as_ref().into();
-            inner_tx.gas_limit = 1_000_000_000;
-            inner_tx.max_fee_per_gas = 1_000_000_000;
-            inner_tx.chain_id = 1;
-            inner_tx.to = TxKind::Call(Address::default());
-            let signature = signer.sign_transaction_sync(&mut inner_tx).unwrap();
-            let tx = Transaction::Eip1559(inner_tx.into());
-
-            TransactionSigned::new_unhashed(tx, signature)
-        };
+        let (transaction_signed, signer_address) = transaction();
 
         // We know this is the exact gas used
         header.gas_used = 21080;
@@ -242,7 +229,7 @@ mod test {
             B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
 
         /// This account has nothing
-        assert!(db.basic_account(signer.address()).unwrap().is_none());
+        assert!(db.basic_account(signer_address).unwrap().is_none());
 
         provider
             .batch_executor(StateProviderDatabase::new(&db))
@@ -257,7 +244,7 @@ mod test {
                                 withdrawals: None,
                             },
                         },
-                        senders: vec![signer.address()],
+                        senders: vec![signer_address],
                     },
                     U256::ZERO,
                 )
@@ -266,28 +253,13 @@ mod test {
             .unwrap();
 
         // This account still has nothing
-        assert!(db.basic_account(signer.address()).unwrap().is_none());
+        assert!(db.basic_account(signer_address).unwrap().is_none());
     }
 
     #[test]
     fn accepts_transaction_from_account_with_excess_balance() {
         let (mut header, mut db, provider) = setup();
-        let signer = LocalSigner::random();
-
-        // Create a TX with random data
-        let transaction_signed = {
-            let mut inner_tx = TxEip1559::default();
-
-            inner_tx.input = hex!("0000000011223344").as_ref().into();
-            inner_tx.gas_limit = 21080;
-            inner_tx.max_fee_per_gas = 1;
-            inner_tx.chain_id = 1;
-            inner_tx.to = TxKind::Call(Address::default());
-
-            let signature = signer.sign_transaction_sync(&mut inner_tx).unwrap();
-            let tx = Transaction::Eip1559(inner_tx.into());
-            TransactionSigned::new_unhashed(tx, signature)
-        };
+        let (transaction_signed, signer_address) = transaction();
 
         let exact_gas_used = 21080;
 
@@ -299,7 +271,7 @@ mod test {
 
         let user_account =
             Account { nonce: 0, balance: U256::from(exact_gas_used + 1), bytecode_hash: None };
-        db.insert_account(signer.address(), user_account.clone(), None, HashMap::default());
+        db.insert_account(signer_address, user_account.clone(), None, HashMap::default());
 
         provider
             .batch_executor(StateProviderDatabase::new(&db))
@@ -314,7 +286,7 @@ mod test {
                                 withdrawals: None,
                             },
                         },
-                        senders: vec![signer.address()],
+                        senders: vec![signer_address],
                     },
                     U256::ZERO,
                 )
@@ -323,28 +295,13 @@ mod test {
             .unwrap();
 
         // This account has exact same balance
-        assert_eq!(db.basic_account(signer.address()).unwrap().unwrap(), user_account);
+        assert_eq!(db.basic_account(signer_address).unwrap().unwrap(), user_account);
     }
 
     #[test]
     fn accepts_transaction_from_account_with_a_little_balance() {
         let (mut header, mut db, provider) = setup();
-        let signer = LocalSigner::random();
-
-        // Create a TX with random data
-        let transaction_signed = {
-            let mut inner_tx = TxEip1559::default();
-
-            inner_tx.input = hex!("0000000011223344").as_ref().into();
-            inner_tx.gas_limit = 21080;
-            inner_tx.max_fee_per_gas = 1;
-            inner_tx.chain_id = 1;
-            inner_tx.to = TxKind::Call(Address::default());
-
-            let signature = signer.sign_transaction_sync(&mut inner_tx).unwrap();
-            let tx = Transaction::Eip1559(inner_tx.into());
-            TransactionSigned::new_unhashed(tx, signature)
-        };
+        let (transaction_signed, signer_address) = transaction();
 
         let exact_gas_used = 21080;
 
@@ -356,7 +313,7 @@ mod test {
 
         let user_account =
             Account { nonce: 0, balance: U256::from(exact_gas_used - 100), bytecode_hash: None };
-        db.insert_account(signer.address(), user_account.clone(), None, HashMap::default());
+        db.insert_account(signer_address, user_account.clone(), None, HashMap::default());
 
         provider
             .batch_executor(StateProviderDatabase::new(&db))
@@ -371,7 +328,7 @@ mod test {
                                 withdrawals: None,
                             },
                         },
-                        senders: vec![signer.address()],
+                        senders: vec![signer_address],
                     },
                     U256::ZERO,
                 )
@@ -380,6 +337,6 @@ mod test {
             .unwrap();
 
         // This account has exact same balance
-        assert_eq!(db.basic_account(signer.address()).unwrap().unwrap(), user_account);
+        assert_eq!(db.basic_account(signer_address).unwrap().unwrap(), user_account);
     }
 }
