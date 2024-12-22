@@ -1,6 +1,6 @@
 //! Configuration for IVM's EVM execution environment.
 
-use crate::evm::handler::ivm_gas_handler_register;
+use crate::evm::builder::IvmEvmBuilder;
 use alloy::primitives::{Address, Bytes, U256};
 use reth::{
     builder::{
@@ -10,8 +10,8 @@ use reth::{
     chainspec::ChainSpec,
     primitives::{EthPrimitives, Header, TransactionSigned},
     revm::{
-        primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, EnvWithHandlerCfg, TxEnv},
-        Database, Evm, EvmBuilder, GetInspector,
+        primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, TxEnv},
+        Database, Evm, GetInspector,
     },
 };
 use reth_evm_ethereum::EthEvmConfig;
@@ -19,7 +19,7 @@ use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
 use std::{convert::Infallible, sync::Arc};
 
-pub mod handler;
+pub mod builder;
 
 /// IVM's EVM configuration
 #[derive(Debug, Clone)]
@@ -62,7 +62,6 @@ impl ConfigureEvmEnv for IvmEvmConfig {
         total_difficulty: U256,
     ) {
         self.eth.fill_cfg_env(cfg_env, header, total_difficulty);
-        disable_gas_fees(cfg_env);
     }
 
     fn next_cfg_and_block_env(
@@ -70,19 +69,8 @@ impl ConfigureEvmEnv for IvmEvmConfig {
         parent: &Self::Header,
         attributes: NextBlockEnvAttributes,
     ) -> Result<(CfgEnvWithHandlerCfg, BlockEnv), Self::Error> {
-        let (mut cfg_env, block_env) = self.eth.next_cfg_and_block_env(parent, attributes)?;
-        disable_gas_fees(&mut cfg_env);
-        Ok((cfg_env, block_env))
+        self.eth.next_cfg_and_block_env(parent, attributes)
     }
-}
-
-/// Modify the `CfgEnvWithHandlerCfg` to disable balance checks. Disabling balance checks will gas
-/// the account so the transaction doesn't fail. We don't want users to "print" gas by
-/// overestimating gas and then getting a refund, so we disable gas refunds as well.
-#[inline]
-fn disable_gas_fees(cfg_env: &mut CfgEnvWithHandlerCfg) {
-    cfg_env.disable_balance_check = true;
-    cfg_env.disable_gas_refund = true;
 }
 
 impl ConfigureEvm for IvmEvmConfig {
@@ -91,7 +79,10 @@ impl ConfigureEvm for IvmEvmConfig {
     fn default_external_context<'a>(&self) -> Self::DefaultExternalContext<'a> {}
 
     fn evm<DB: Database>(&self, db: DB) -> Evm<'_, Self::DefaultExternalContext<'_>, DB> {
-        IvmEvmBuilder::new(db, self.default_external_context()).build()
+        {
+            self.default_external_context();
+            IvmEvmBuilder::new(db, ())
+        }.build()
     }
 
     fn evm_with_inspector<DB, I>(&self, db: DB, inspector: I) -> Evm<'_, I, DB>
@@ -99,81 +90,10 @@ impl ConfigureEvm for IvmEvmConfig {
         DB: Database,
         I: GetInspector<DB>,
     {
-        IvmEvmBuilder::new(db, self.default_external_context()).build_with_inspector(inspector)
-    }
-}
-
-/// Builder for creating an EVM with a database and environment.
-///
-/// Wrapper around [`EvmBuilder`] that allows for setting the database and environment for the EVM.
-///
-/// This is useful for creating an EVM with a custom database and environment without having to
-/// necessarily rely on Revm inspector.
-///
-/// This is based off of the `RethEvmBuilder` with the difference that we register our custom
-/// handlers
-#[derive(Debug)]
-pub struct IvmEvmBuilder<DB: Database, EXT = ()> {
-    /// The database to use for the EVM.
-    db: DB,
-    /// The environment to use for the EVM.
-    env: Option<Box<EnvWithHandlerCfg>>,
-    /// The external context for the EVM.
-    external_context: EXT,
-}
-
-impl<DB, EXT> IvmEvmBuilder<DB, EXT>
-where
-    DB: Database,
-{
-    /// Create a new EVM builder with the given database.
-    pub const fn new(db: DB, external_context: EXT) -> Self {
-        Self { db, env: None, external_context }
-    }
-
-    /// Set the environment for the EVM.
-    pub fn with_env(mut self, env: Box<EnvWithHandlerCfg>) -> Self {
-        self.env = Some(env);
-        self
-    }
-
-    /// Set the external context for the EVM.
-    pub fn with_external_context<EXT1>(self, external_context: EXT1) -> IvmEvmBuilder<DB, EXT1> {
-        IvmEvmBuilder { db: self.db, env: self.env, external_context }
-    }
-
-    /// Build the EVM with the given database and environment.
-    pub fn build<'a>(self) -> Evm<'a, EXT, DB> {
-        let mut builder = EvmBuilder::default()
-            .with_db(self.db)
-            .with_external_context(self.external_context)
-            .append_handler_register(ivm_gas_handler_register);
-
-        if let Some(env) = self.env {
-            builder = builder.with_spec_id(env.clone().spec_id());
-            builder = builder.with_env(env.env);
-        }
-
-        builder.build()
-    }
-
-    /// Build the EVM with the given database and environment, using the given inspector.
-    pub fn build_with_inspector<'a, I>(self, inspector: I) -> Evm<'a, I, DB>
-    where
-        I: GetInspector<DB>,
-        EXT: 'a,
-    {
-        let mut builder =
-            EvmBuilder::default().with_db(self.db).with_external_context(self.external_context);
-        if let Some(env) = self.env {
-            builder = builder.with_spec_id(env.clone().spec_id());
-            builder = builder.with_env(env.env);
-        }
-        builder
-            .with_external_context(inspector)
-            .append_handler_register(reth::revm::inspector_handle_register)
-            .append_handler_register(ivm_gas_handler_register)
-            .build()
+        {
+            self.default_external_context();
+            IvmEvmBuilder::new(db, ())
+        }.build_with_inspector(inspector)
     }
 }
 

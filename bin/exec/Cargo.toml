@@ -16,15 +16,6 @@ reth-node-core = { workspace = true }
 reth-node-api = { workspace = true }
 reth-tracing = { workspace = true }
 
-# revm-primitives = { version = "14.0.0", default-features = false }
-
-# hack to try and ensure optional balance check and gas refund get built in
-revm = {default-features = false, features = [
-	"optional_balance_check", "optional_gas_refund",
-	 "asm-keccak", "std",
-# ], git = "https://github.com/bluealloy/revm.git", rev = "2ebed31" }
-], version = "18" }
-
 alloy = { workspace = true, features = ["genesis"] }
 eyre = { workspace = true  }
 tokio = { workspace = true }
@@ -38,6 +29,7 @@ reth-provider = { workspace = true, features = ["test-utils"] }
 reth-revm = { workspace = true }
 reth-evm = { workspace = true }
 alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
+revm = "*"
 
 # Hacks to play happy with reth types
 # We normally use the alloy facade crate, but a reth type expects a trait from this crate
