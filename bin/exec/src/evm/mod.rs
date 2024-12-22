@@ -15,12 +15,12 @@ use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
 use std::{convert::Infallible, sync::Arc};
 
-use reth::revm::primitives::EnvWithHandlerCfg;
-use reth::revm::Database;
-use reth::revm::EvmBuilder;
-use reth::revm::GetInspector;
-use reth::revm::Evm;
-use reth::revm::inspector_handle_register;
+use reth::revm::{
+    inspector_handle_register, primitives::EnvWithHandlerCfg, Database, Evm, EvmBuilder,
+    GetInspector,
+};
+
+pub mod handlers;
 
 /// IVM's EVM configuration
 #[derive(Debug, Clone)]
@@ -94,7 +94,6 @@ impl ConfigureEvm for IvmEvmConfig {
     // TODO: we want to override the handlers
 }
 
-
 /// Builder for creating an EVM with a database and environment.
 ///
 /// Wrapper around [`EvmBuilder`] that allows for setting the database and environment for the EVM.
@@ -164,9 +163,6 @@ where
     }
 }
 
-
-
-
 /// IVM EVM and executor builder.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct IvmExecutorBuilder;
@@ -205,15 +201,9 @@ mod test {
     };
     use reth_evm::execute::{BatchExecutor, BlockExecutorProvider};
     use reth_provider::AccountReader;
-    use reth_revm::{
-        database::StateProviderDatabase, test_utils::StateProviderTest,
-    };
+    use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
+    use revm::precompile::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
     use std::collections::HashMap;
-    use revm::precompile::primitives::AccountInfo;
-    use revm::precompile::primitives::LegacyAnalyzedBytecode;
-    use revm::precompile::primitives::Bytecode;
-    use revm::precompile::primitives::JumpTable;
-    
 
     // Special alloy deps we need for playing happy with reth
     use alloy_consensus::{Transaction as _, TxEip1559};
@@ -270,7 +260,7 @@ mod test {
                 max_fee_per_gas: 1,
                 chain_id: 1,
                 to: TxKind::Call(Address::default()),
-                .. Default::default()
+                ..Default::default()
             };
 
             let signature = signer.sign_transaction_sync(&mut inner_tx).unwrap();
@@ -321,8 +311,7 @@ mod test {
         // This account has nothing
         assert!(db.basic_account(signer_address).unwrap().is_none());
 
-        let mut executor = provider
-            .batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         provider
             .batch_executor(StateProviderDatabase::new(&db))
@@ -350,7 +339,6 @@ mod test {
         // The user does not exist in state
         // TODO: this is scary, what about the users nonce?
         assert!(output.bundle.state.get(&signer_address).is_none());
-
     }
 
     #[test]
@@ -366,14 +354,12 @@ mod test {
         header.receipts_root =
             B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
 
-        let user_balance = U256::from(gas_limit + 1_000); 
+        let user_balance = U256::from(gas_limit + 1_000);
         let user_account =
             Account { nonce: 0, balance: U256::from(user_balance), bytecode_hash: None };
         db.insert_account(signer_address, user_account, None, HashMap::default());
 
-
-        let mut executor = provider
-            .batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         executor
             .execute_and_verify_one(
@@ -405,8 +391,14 @@ mod test {
                 // Since there balance was _above_ the gas_limit, their balance does not increase
                 balance: U256::from(user_balance),
                 nonce: user_account.nonce + 1,
-                code_hash: B256::from(hex!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
+                    Default::default(),
+                    0,
+                    JumpTable::default()
+                ))),
             }
         );
         // Original account info is as expected
@@ -415,8 +407,14 @@ mod test {
             AccountInfo {
                 balance: U256::from(user_balance),
                 nonce: user_account.nonce,
-                code_hash: B256::from(hex!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
+                    Default::default(),
+                    0,
+                    JumpTable::default()
+                ))),
             }
         );
     }
@@ -434,14 +432,12 @@ mod test {
         header.receipts_root =
             B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
 
-        let user_balance = U256::from(gas_limit - 100); 
-        let user_account =
-            Account { nonce: 0, balance: user_balance, bytecode_hash: None };
+        let user_balance = U256::from(gas_limit - 100);
+        let user_account = Account { nonce: 0, balance: user_balance, bytecode_hash: None };
         db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        let mut executor = provider
-            .batch_executor(StateProviderDatabase::new(&db));
-        
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+
         executor
             .execute_and_verify_one(
                 (
@@ -473,8 +469,14 @@ mod test {
                 // There balance gets increased to the gas_limit of the transaction
                 balance: U256::from(gas_limit),
                 nonce: user_account.nonce + 1,
-                code_hash: B256::from(hex!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
+                    Default::default(),
+                    0,
+                    JumpTable::default()
+                ))),
             }
         );
         // Original account info is as expected
@@ -483,12 +485,17 @@ mod test {
             AccountInfo {
                 balance: U256::from(user_balance),
                 nonce: user_account.nonce,
-                code_hash: B256::from(hex!("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(Default::default(), 0, JumpTable::default()))),
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
+                    Default::default(),
+                    0,
+                    JumpTable::default()
+                ))),
             }
         );
     }
-
 
     #[test]
     fn accepts_transaction_from_account_with_no_balance_and_an_account_with_balance() {
@@ -500,7 +507,7 @@ mod test {
         assert_ne!(signer_address, signer_address2);
 
         // We know this is the exact gas used
-        header.gas_used = 2* 21080;
+        header.gas_used = 2 * 21080;
         // And the expected receipts root
         header.receipts_root =
             B256::from(hex!("d4263b4f8bc6337d6751b03db4192a544872db8beeb3be926d891e8910842eb1"));
@@ -509,13 +516,11 @@ mod test {
         assert!(db.basic_account(signer_address).unwrap().is_none());
 
         // second account has some balance
-        let user2_balance = U256::from(gas_limit - 100); 
-        let user2_account =
-            Account { nonce: 0, balance: user2_balance, bytecode_hash: None };
+        let user2_balance = U256::from(gas_limit - 100);
+        let user2_account = Account { nonce: 0, balance: user2_balance, bytecode_hash: None };
         db.insert_account(signer_address2, user2_account, None, HashMap::default());
 
-        let mut executor = provider
-            .batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         executor
             .execute_and_verify_one(
@@ -542,6 +547,5 @@ mod test {
 
         // The user does not exist in state
         assert!(output.bundle.state.get(&signer_address).is_none());
-
     }
 }
