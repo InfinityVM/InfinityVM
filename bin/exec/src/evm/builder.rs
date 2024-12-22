@@ -25,10 +25,9 @@ where
             ctx.evm.inner.journaled_state.load_account(caller, &mut ctx.evm.inner.db)?;
 
         // Bump the nonce for calls. Nonce for CREATE will be bumped in the create logic.
-        // TODO: find the mentioned create logic
+        // See `create_account_checkpoint` in `revm`
         if matches!(ctx.evm.inner.env.tx.transact_to, TxKind::Call(_)) {
             // Nonce is already checked, so this is safe
-
             caller_account.info.nonce = caller_account.info.nonce.saturating_add(1);
         }
 
@@ -64,7 +63,7 @@ where
                         state: state_nonce,
                     }))
                 }
-                _ => (/*nonces are equal */),
+                Ordering::Equal => (/* nonces are equal */),
             }
         }
 

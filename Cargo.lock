@@ -5052,6 +5052,7 @@ dependencies = [
  "alloy-signer-local 0.7.3",
  "clap",
  "eyre",
+ "k256",
  "reth",
  "reth-ethereum-engine-primitives",
  "reth-evm",

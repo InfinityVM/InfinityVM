@@ -138,6 +138,10 @@ mod test {
     use reth_evm::execute::ProviderError;
     use revm::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
     use std::collections::HashMap;
+    use revm::interpreter::primitives::AccountStatus;
+    use reth::revm::DatabaseCommit;
+    use k256::ecdsa::SigningKey;
+
 
     // Special alloy deps we need for playing happy with reth
     use alloy_consensus::{Transaction as _, TxEip1559};
@@ -183,6 +187,11 @@ mod test {
     fn transaction() -> (TransactionSigned, Address, u64) {
         let signer = LocalSigner::random();
 
+        transaction_with_signer(signer, 0)
+    }
+
+    fn transaction_with_signer(signer: LocalSigner<SigningKey
+        >, nonce: u64) -> (TransactionSigned, Address, u64) {
         let exact_gas_used = 21080;
         let gas_limit = exact_gas_used + 1_000;
 
@@ -194,21 +203,22 @@ mod test {
                 max_fee_per_gas: 1,
                 chain_id: 1,
                 to: TxKind::Call(Address::default()),
+                nonce,
                 ..Default::default()
             };
 
             let signature = signer.sign_transaction_sync(&mut inner_tx).unwrap();
             let tx = Transaction::Eip1559(inner_tx);
             TransactionSigned::new_unhashed(tx, signature)
-        };
+        };  
 
         (transaction_signed, signer.address(), gas_limit)
     }
 
     #[test]
-    fn evm_transact() {
+    fn evm_transact_with_account_creation() {
         // let (header, db, provider) = setup();
-        let (transaction_signed, signer_address, gas_limit) = transaction();
+        let (transaction_signed, signer_address, _) = transaction();
         let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
 
         let evm_config = IvmEvmConfig::new(MAINNET.clone());
@@ -221,13 +231,8 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        dbg!(&result);
 
         assert_eq!(result.result.gas_used(), 21080);
-        // assert_eq!(
-
-        //     result.result.gas_refunded, 0
-        // );
 
         let account = result.state.get(&signer_address).unwrap();
 
@@ -235,12 +240,156 @@ mod test {
             account.info,
             AccountInfo {
                 balance: U256::ZERO,
-                nonce: 0,
+                nonce: 1,
                 code_hash: B256::from(hex!(
                     "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
                 )),
                 code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
             }
+        );
+
+        let mut status = AccountStatus::LoadedAsNotExisting;
+        status.insert(AccountStatus::Touched);
+        assert_eq!(
+            account.status,
+            status
+        );
+    }
+
+    // Tests 3 transaction from the same signer to test account creation and updating a pre-existing account.
+    // And tests 1 transaction from another signer to show that multiple accounts can be created.
+    #[test]
+    fn evm_transact_with_account_creation_and_update() {
+        let signer1 = LocalSigner::random();
+        
+        let (transaction_signed, signer_address, _) = transaction_with_signer(signer1.clone(), 0);
+        let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
+
+        // 1st transaction, SAME signer
+        let evm_config = IvmEvmConfig::new(MAINNET.clone());
+        let mut evm = evm_config.evm(db);
+        evm_config.fill_tx_env(
+            evm.tx_mut(),
+            &transaction_signed,
+            transaction_signed.recover_signer().unwrap(),
+        );
+
+        let result = evm.transact().unwrap();
+        assert_eq!(result.result.gas_used(), 21080);
+        let account = result.state.get(&signer_address).unwrap();
+        assert_eq!(
+            account.info,
+            AccountInfo {
+                balance: U256::ZERO,
+                nonce: 1,
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
+            }
+        );
+        let mut status = AccountStatus::LoadedAsNotExisting;
+        status.insert(AccountStatus::Touched);
+        assert_eq!(
+            account.status,
+            status
+        );
+
+        // Commit 1st
+        evm.db_mut().commit(result.state);
+
+        // 2nd transaction, SAME signer
+        let (transaction_signed2, _, _) = transaction_with_signer(signer1.clone(), 1);
+        evm_config.fill_tx_env(
+            evm.tx_mut(),
+            &transaction_signed2,
+            transaction_signed2.recover_signer().unwrap(),
+        );
+        
+        let result = evm.transact().unwrap();
+        assert_eq!(result.result.gas_used(), 21080);
+        let account = result.state.get(&signer_address).unwrap();
+        assert_eq!(
+            account.info,
+            AccountInfo {
+                balance: U256::ZERO,
+                nonce: 2,
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
+            }
+        );
+        assert_eq!(
+            account.status,
+            AccountStatus::Touched
+        );
+
+        // Commit 2nd
+        evm.db_mut().commit(result.state);
+
+        // 3rd transaction, SAME signer
+        let (transaction_signed3, _, _) = transaction_with_signer(signer1.clone(), 2);
+        evm_config.fill_tx_env(
+            evm.tx_mut(),
+            &transaction_signed3,
+            transaction_signed3.recover_signer().unwrap(),
+        );
+
+        
+        let result = evm.transact().unwrap();
+        assert_eq!(result.result.gas_used(), 21080);
+        let account = result.state.get(&signer_address).unwrap();
+        assert_eq!(
+            account.info,
+            AccountInfo {
+                balance: U256::ZERO,
+                nonce: 3,
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
+            }
+        );
+        assert_eq!(
+            account.status,
+            AccountStatus::Touched
+        );
+
+        // Commit 3rd
+        evm.db_mut().commit(result.state);
+
+        // 4th transaction, NEW signer
+        let (transaction_signed4, signer_address2, _) = transaction();
+        evm_config.fill_tx_env(
+            evm.tx_mut(),
+            &transaction_signed4,
+            transaction_signed4.recover_signer().unwrap(),
+        );
+
+        assert_eq!(result.result.gas_used(), 21080);
+
+        let result = evm.transact().unwrap();
+
+        let account = result.state.get(&signer_address2).unwrap();
+        assert_eq!(
+            account.info,
+            AccountInfo {
+                balance: U256::ZERO,
+                nonce: 1
+                ,
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
+            }
+        );
+        let mut status = AccountStatus::LoadedAsNotExisting;
+        status.insert(AccountStatus::Touched);
+        assert_eq!(
+            account.status,
+            status
+
         );
     }
 
