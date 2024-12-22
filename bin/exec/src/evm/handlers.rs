@@ -48,6 +48,20 @@ where
 
         Ok(())
     });
+
+    handler.post_execution.refund = Arc::new(|_ctx, _gas, _eip7702_refund|{
+g      // We can skip refund calculations because we do not reimburse the caller
+    });
+
+    handler.post_execution.reimburse_caller = Arc::new(|_ctx, _gas|{
+      // No reimbursement because we never deducted gas
+      Ok(())
+    });
+
+    handler.post_execution.reward_beneficiary = Arc::new(|_ctx, _gas|{
+      // Beneficiary does not get rewards because no one paid gas
+      Ok(())
+    });
 }
 
 // use revm::{
