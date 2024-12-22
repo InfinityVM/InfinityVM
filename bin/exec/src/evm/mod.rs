@@ -19,6 +19,14 @@ use reth::revm::{
     inspector_handle_register, primitives::EnvWithHandlerCfg, Database, Evm, EvmBuilder,
     GetInspector,
 };
+use revm::{
+    handler::{EthExecution, EthHandler},
+};
+
+use crate::evm::handlers::IvmPreExecution;
+use crate::evm::handlers::IvmValidation;
+use crate::evm::handlers::IvmPostExecution;
+use crate::evm::handlers::IvmHandler;
 
 pub mod handlers;
 
@@ -134,8 +142,16 @@ where
 
     /// Build the EVM with the given database and environment.
     pub fn build<'a>(self) -> Evm<'a, EXT, DB> {
+        let handler = IvmHandler::new(
+            IvmValidation::new(),
+            IvmPreExecution::new(),
+            EthExecution::new(),
+            IvmPostExecution::new(),
+        );
+
         let mut builder =
-            EvmBuilder::default().with_db(self.db).with_external_context(self.external_context);
+            EvmBuilder::default().with_db(self.db).with_external_context(self.external_context)
+                .with_handler(handler);
         if let Some(env) = self.env {
             builder = builder.with_spec_id(env.clone().spec_id());
             builder = builder.with_env(env.env);
@@ -150,14 +166,23 @@ where
         I: GetInspector<DB>,
         EXT: 'a,
     {
+        let handler = IvmHandler::new(
+            IvmValidation::new(),
+            IvmPreExecution::new(),
+            EthExecution::new(),
+            IvmPostExecution::new(),
+        );
+
         let mut builder =
-            EvmBuilder::default().with_db(self.db).with_external_context(self.external_context);
+            EvmBuilder::default().with_db(self.db).with_external_context(self.external_context)
+                .with_handler(handler);
         if let Some(env) = self.env {
             builder = builder.with_spec_id(env.clone().spec_id());
             builder = builder.with_env(env.env);
         }
         builder
             .with_external_context(inspector)
+
             .append_handler_register(inspector_handle_register)
             .build()
     }

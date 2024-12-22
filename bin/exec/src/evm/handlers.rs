@@ -2,6 +2,24 @@
 
 #![allow(missing_debug_implementations)]
 
+use revm::{
+    handler::{EthExecution, EthHandler},
+};
+
+pub use crate::evm::handlers::pre::IvmPreExecution;
+pub use crate::evm::handlers::validation::IvmValidation;
+pub use crate::evm::handlers::post::IvmPostExecution;
+
+/// Evm handler
+pub type IvmHandler<
+    CTX,
+    ERROR,
+    VAL = IvmValidation<CTX, ERROR>,
+    PREEXEC = IvmPreExecution<CTX, ERROR>,
+    EXEC = EthExecution<CTX, ERROR>,
+    POSTEXEC = IvmPostExecution<CTX, ERROR>,
+> = EthHandler<CTX, ERROR, VAL, PREEXEC, EXEC, POSTEXEC>;
+
 /// Pre execution handler
 pub mod pre {
     use revm::{
@@ -52,7 +70,7 @@ pub mod pre {
     }
 }
 
-///Post execution handler
+/// Transaction validation handler
 pub mod validation {
     use revm::{
         context::Cfg,
@@ -134,6 +152,7 @@ pub mod validation {
     }
 }
 
+/// Post execution handler
 pub mod post {
     use revm::context_interface::result::{HaltReasonTrait, InvalidHeader, InvalidTransaction};
     use revm::context_interface::JournalStateGetterDBError;
@@ -146,7 +165,6 @@ pub mod post {
     };
 
     /// Evm post execution handler.
-    
     pub struct IvmPostExecution<CTX, ERROR, HALTREASON = HaltReason> {
         eth: EthPostExecution<CTX, ERROR, HALTREASON>,
     }
@@ -158,6 +176,7 @@ pub mod post {
     }
 
     impl<CTX, ERROR, HALTREASON> IvmPostExecution<CTX, ERROR, HALTREASON> {
+        /// Create a new instance of [Self]
         pub fn new() -> Self {
             Self {
                 eth: EthPostExecution::new(),
@@ -186,45 +205,24 @@ pub mod post {
             exec_result: &mut Self::ExecResult,
             eip7702_refund: i64,
         ) {
+            // TODO: read through refund code
             self.eth.refund(context, exec_result, eip7702_refund)
         }
 
         fn reimburse_caller(
             &self,
-            context: &mut Self::Context,
-            exec_result: &mut Self::ExecResult,
+            _context: &mut Self::Context,
+            _exec_result: &mut Self::ExecResult,
         ) -> Result<(), Self::Error> {
-            // let basefee = context.block().basefee();
-            // let caller = context.tx().common_fields().caller();
-            // let effective_gas_price = context.tx().effective_gas_price(*basefee);
-            // let gas = exec_result.gas();
-
-            // let reimbursement =
-            //     effective_gas_price * U256::from(gas.remaining() + gas.refunded() as u64);
-            // token_operation::<CTX, ERROR>(context, TREASURY, caller, reimbursement)?;
 
             Ok(())
         }
 
         fn reward_beneficiary(
             &self,
-            context: &mut Self::Context,
-            exec_result: &mut Self::ExecResult,
+            _context: &mut Self::Context,
+            _exec_result: &mut Self::ExecResult,
         ) -> Result<(), Self::Error> {
-            // let tx = context.tx();
-            // let beneficiary = context.block().beneficiary();
-            // let basefee = context.block().basefee();
-            // let effective_gas_price = tx.effective_gas_price(*basefee);
-            // let gas = exec_result.gas();
-
-            // let coinbase_gas_price = if context.cfg().spec().into().is_enabled_in(SpecId::LONDON) {
-            //     effective_gas_price.saturating_sub(*basefee)
-            // } else {
-            //     effective_gas_price
-            // };
-
-            // let reward = coinbase_gas_price * U256::from(gas.spent() - gas.refunded() as u64);
-            // token_operation::<CTX, ERROR>(context, TREASURY, *beneficiary, reward)?;
 
             Ok(())
         }
