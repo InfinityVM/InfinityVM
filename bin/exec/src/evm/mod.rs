@@ -101,7 +101,7 @@ impl ConfigureEvm for IvmEvmConfig {
 /// This is useful for creating an EVM with a custom database and environment without having to
 /// necessarily rely on Revm inspector.
 ///
-/// This is based off of the RethEvmBuilder with the difference that we register our custom handlers
+/// This is based off of the `RethEvmBuilder` with the difference that we register our custom handlers
 #[derive(Debug)]
 pub struct IvmEvmBuilder<DB: Database, EXT = ()> {
     /// The database to use for the EVM.
@@ -202,7 +202,8 @@ mod test {
     use reth_evm::execute::{BatchExecutor, BlockExecutorProvider};
     use reth_provider::AccountReader;
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
-    use revm::precompile::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
+    // use revm::precompile::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
+    use revm::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
     use std::collections::HashMap;
 
     // Special alloy deps we need for playing happy with reth
