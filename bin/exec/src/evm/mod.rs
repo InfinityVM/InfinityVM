@@ -1,6 +1,6 @@
 //! Configuration for IVM's EVM execution environment.
 
-use crate::evm::handlers::ivm_gas_handler_register;
+use crate::evm::handler::ivm_gas_handler_register;
 use alloy::primitives::{Address, Bytes, U256};
 use reth::{
     builder::{
@@ -11,7 +11,7 @@ use reth::{
     primitives::{EthPrimitives, Header, TransactionSigned},
     revm::{
         primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, EnvWithHandlerCfg, TxEnv},
-        Database, Evm, EvmBuilder,
+        Database, Evm, EvmBuilder, GetInspector,
     },
 };
 use reth_evm_ethereum::EthEvmConfig;
@@ -19,16 +19,7 @@ use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
 use std::{convert::Infallible, sync::Arc};
 
-// use revm::{
-//     handler::{EthExecution, EthHandler},
-// };
-
-// use crate::evm::handlers::IvmPreExecution;
-// use crate::evm::handlers::IvmValidation;
-// use crate::evm::handlers::IvmPostExecution;
-// use crate::evm::handlers::IvmHandler;
-
-pub mod handlers;
+pub mod handler;
 
 /// IVM's EVM configuration
 #[derive(Debug, Clone)]
@@ -99,7 +90,17 @@ impl ConfigureEvm for IvmEvmConfig {
 
     fn default_external_context<'a>(&self) -> Self::DefaultExternalContext<'a> {}
 
-    // TODO: we want to override the handlers
+    fn evm<DB: Database>(&self, db: DB) -> Evm<'_, Self::DefaultExternalContext<'_>, DB> {
+        IvmEvmBuilder::new(db, self.default_external_context()).build()
+    }
+
+    fn evm_with_inspector<DB, I>(&self, db: DB, inspector: I) -> Evm<'_, I, DB>
+    where
+        DB: Database,
+        I: GetInspector<DB>,
+    {
+        IvmEvmBuilder::new(db, self.default_external_context()).build_with_inspector(inspector)
+    }
 }
 
 /// Builder for creating an EVM with a database and environment.
@@ -154,6 +155,25 @@ where
         }
 
         builder.build()
+    }
+
+    /// Build the EVM with the given database and environment, using the given inspector.
+    pub fn build_with_inspector<'a, I>(self, inspector: I) -> Evm<'a, I, DB>
+    where
+        I: GetInspector<DB>,
+        EXT: 'a,
+    {
+        let mut builder =
+            EvmBuilder::default().with_db(self.db).with_external_context(self.external_context);
+        if let Some(env) = self.env {
+            builder = builder.with_spec_id(env.clone().spec_id());
+            builder = builder.with_env(env.env);
+        }
+        builder
+            .with_external_context(inspector)
+            .append_handler_register(reth::revm::inspector_handle_register)
+            .append_handler_register(ivm_gas_handler_register)
+            .build()
     }
 }
 

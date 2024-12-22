@@ -1,7 +1,5 @@
 //! `revm` execution handlers.
 
-#![allow(missing_debug_implementations)]
-
 use reth::revm::{
     handler::register::EvmHandler,
     precompile::primitives::{EVMError, InvalidTransaction},
@@ -9,7 +7,7 @@ use reth::revm::{
 use std::{cmp::Ordering, sync::Arc};
 
 /// Handler register that overrides gas payment behavior to not require
-/// gas for transactions
+/// gas for transactions.
 pub fn ivm_gas_handler_register<EXT, DB>(handler: &mut EvmHandler<'_, EXT, DB>)
 where
     DB: reth::revm::Database,
