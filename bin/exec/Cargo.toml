@@ -22,7 +22,8 @@ reth-tracing = { workspace = true }
 revm = {default-features = false, features = [
 	"optional_balance_check", "optional_gas_refund",
 	 "asm-keccak", "std",
-], git = "https://github.com/bluealloy/revm.git", rev = "2ebed31" }
+# ], git = "https://github.com/bluealloy/revm.git", rev = "2ebed31" }
+], version = "18" }
 
 alloy = { workspace = true, features = ["genesis"] }
 eyre = { workspace = true  }
