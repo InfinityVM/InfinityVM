@@ -144,7 +144,6 @@ where
 
     /// Build the EVM with the given database and environment.
     pub fn build<'a>(self) -> Evm<'a, EXT, DB> {
-
         let mut builder =
             EvmBuilder::default().with_db(self.db).with_external_context(self.external_context)
                 .append_handler_register(ivm_gas_handler_register);

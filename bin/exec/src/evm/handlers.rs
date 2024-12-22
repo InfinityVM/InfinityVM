@@ -3,10 +3,9 @@
 #![allow(missing_debug_implementations)]
 
 use reth::revm::{
-    
-  
   handler::register::EvmHandler
 };
+use std::sync::Arc;
 
 
 /// Handler register that overrides gas payment behavior to not require
@@ -17,6 +16,11 @@ pub fn ivm_gas_handler_register<'a, EXT, DB>(
 where
   DB: reth::revm::Database,
 {
+
+  handler.pre_execution.deduct_caller = Arc::new(|_ctx| {
+    // We don't deduct any balance from the caller because we don't charge gas
+    Ok(())
+  })
 
 }
 
