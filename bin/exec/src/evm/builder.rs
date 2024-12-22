@@ -3,7 +3,7 @@
 use reth::revm::{
     handler::register::EvmHandler,
     precompile::primitives::{EVMError, InvalidTransaction},
-    primitives::EnvWithHandlerCfg,
+    primitives::{EnvWithHandlerCfg, TxKind},
     Database, Evm, EvmBuilder, GetInspector,
 };
 use std::{cmp::Ordering, sync::Arc};
@@ -14,8 +14,27 @@ pub fn ivm_gas_handler_register<EXT, DB>(handler: &mut EvmHandler<'_, EXT, DB>)
 where
     DB: reth::revm::Database,
 {
-    handler.pre_execution.deduct_caller = Arc::new(|_ctx| {
+    handler.pre_execution.deduct_caller = Arc::new(|ctx| {
         // We don't deduct any balance from the caller because we don't charge gas
+        // However, there is a gotchya here: it is expected that the account has
+        // its nonce updated and is marked as "touched" here to ensure it gets
+        // written to storage.
+
+        let caller = ctx.evm.inner.env.tx.caller;
+        let mut caller_account =
+            ctx.evm.inner.journaled_state.load_account(caller, &mut ctx.evm.inner.db)?;
+
+        // Bump the nonce for calls. Nonce for CREATE will be bumped in the create logic.
+        // TODO: find the mentioned create logic
+        if matches!(ctx.evm.inner.env.tx.transact_to, TxKind::Call(_)) {
+            // Nonce is already checked, so this is safe
+
+            caller_account.info.nonce = caller_account.info.nonce.saturating_add(1);
+        }
+
+        // touch account so we know it is changed.
+        caller_account.mark_touch();
+
         Ok(())
     });
 
@@ -108,17 +127,15 @@ where
 
     /// Build the EVM with the given database and environment.
     pub fn build<'a>(self) -> Evm<'a, EXT, DB> {
-        let mut builder = EvmBuilder::default()
-            .with_db(self.db)
-            .with_external_context(self.external_context)
-            .append_handler_register(ivm_gas_handler_register);
+        let mut builder =
+            EvmBuilder::default().with_db(self.db).with_external_context(self.external_context);
 
         if let Some(env) = self.env {
             builder = builder.with_spec_id(env.clone().spec_id());
             builder = builder.with_env(env.env);
         }
 
-        builder.build()
+        builder.append_handler_register(ivm_gas_handler_register).build()
     }
 
     /// Build the EVM with the given database and environment, using the given inspector.

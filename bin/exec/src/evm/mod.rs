@@ -7,7 +7,7 @@ use reth::{
         components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes,
         NodeTypesWithEngine,
     },
-    chainspec::ChainSpec,
+    chainspec::{ChainSpec, MAINNET},
     primitives::{EthPrimitives, Header, TransactionSigned},
     revm::{
         primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, TxEnv},
@@ -79,10 +79,7 @@ impl ConfigureEvm for IvmEvmConfig {
     fn default_external_context<'a>(&self) -> Self::DefaultExternalContext<'a> {}
 
     fn evm<DB: Database>(&self, db: DB) -> Evm<'_, Self::DefaultExternalContext<'_>, DB> {
-        {
-            self.default_external_context();
-            IvmEvmBuilder::new(db, ())
-        }.build()
+        IvmEvmBuilder::new(db, ()).build()
     }
 
     fn evm_with_inspector<DB, I>(&self, db: DB, inspector: I) -> Evm<'_, I, DB>
@@ -90,10 +87,7 @@ impl ConfigureEvm for IvmEvmConfig {
         DB: Database,
         I: GetInspector<DB>,
     {
-        {
-            self.default_external_context();
-            IvmEvmBuilder::new(db, ())
-        }.build_with_inspector(inspector)
+        IvmEvmBuilder::new(db, ()).build_with_inspector(inspector)
     }
 }
 
@@ -137,6 +131,11 @@ mod test {
     use reth_provider::AccountReader;
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
     // use revm::precompile::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
+    use reth::{
+        core::primitives::SignedTransaction,
+        revm::db::{CacheDB, EmptyDBTyped},
+    };
+    use reth_evm::execute::ProviderError;
     use revm::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
     use std::collections::HashMap;
 
@@ -204,6 +203,45 @@ mod test {
         };
 
         (transaction_signed, signer.address(), gas_limit)
+    }
+
+    #[test]
+    fn evm_transact() {
+        // let (header, db, provider) = setup();
+        let (transaction_signed, signer_address, gas_limit) = transaction();
+        let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
+
+        let evm_config = IvmEvmConfig::new(MAINNET.clone());
+        let mut evm = evm_config.evm(db);
+
+        evm_config.fill_tx_env(
+            evm.tx_mut(),
+            &transaction_signed,
+            transaction_signed.recover_signer().unwrap(),
+        );
+
+        let result = evm.transact().unwrap();
+        dbg!(&result);
+
+        assert_eq!(result.result.gas_used(), 21080);
+        // assert_eq!(
+
+        //     result.result.gas_refunded, 0
+        // );
+
+        let account = result.state.get(&signer_address).unwrap();
+
+        assert_eq!(
+            account.info,
+            AccountInfo {
+                balance: U256::ZERO,
+                nonce: 0,
+                code_hash: B256::from(hex!(
+                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+                )),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
+            }
+        );
     }
 
     #[test]
