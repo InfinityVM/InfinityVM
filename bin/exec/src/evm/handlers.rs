@@ -2,29 +2,53 @@
 
 #![allow(missing_debug_implementations)]
 
-use reth::revm::{
-  handler::register::EvmHandler
-};
-use std::sync::Arc;
-
+use reth::revm::handler::register::EvmHandler;
+use std::{cmp::Ordering, sync::Arc};
+use reth::revm::precompile::primitives::EVMError;
+use reth::revm::precompile::primitives::InvalidTransaction;
 
 /// Handler register that overrides gas payment behavior to not require
 /// gas for transactions
-pub fn ivm_gas_handler_register<'a, EXT, DB>(
-    handler: &mut EvmHandler<'a, EXT, DB>,
-)
+pub fn ivm_gas_handler_register<'a, EXT, DB>(handler: &mut EvmHandler<'a, EXT, DB>)
 where
-  DB: reth::revm::Database,
+    DB: reth::revm::Database,
 {
+    // TODO: check default pre-execution load accounts impl
 
-  handler.pre_execution.deduct_caller = Arc::new(|_ctx| {
-    // We don't deduct any balance from the caller because we don't charge gas
-    Ok(())
-  })
+    handler.pre_execution.deduct_caller = Arc::new(|_ctx| {
+        // We don't deduct any balance from the caller because we don't charge gas
+        Ok(())
+    });
 
+    handler.validation.tx_against_state = Arc::new(|ctx| {
+        let caller = ctx.evm.inner.env.tx.caller;
+        let state_nonce = ctx 
+            .evm
+            .inner
+            .journaled_state.load_account(caller, &mut ctx.evm.inner.db)?.data.info.nonce;
+
+        // Check that the transaction's nonce is correct
+        if let Some(tx_nonce) = ctx.evm.inner.env.tx.nonce { 
+              match tx_nonce.cmp(&state_nonce) {
+                Ordering::Less => {
+                    return Err(EVMError::Transaction(InvalidTransaction::NonceTooLow  {
+                        tx: tx_nonce,
+                        state: state_nonce,
+                    }))
+                }
+                Ordering::Greater => {
+                    return Err(EVMError::Transaction(InvalidTransaction::NonceTooHigh {
+                        tx: tx_nonce,
+                        state: state_nonce,
+                    }))
+                }
+                _ => (/*nonces are equal */),
+            }
+        }
+
+        Ok(())
+    });
 }
-
-
 
 // use revm::{
 //     handler::{EthExecution, EthHandler},
@@ -83,8 +107,8 @@ where
 //             self.eth.load_accounts(context)
 //         }
 
-//         fn apply_eip7702_auth_list(&self, context: &mut Self::Context) -> Result<u64, Self::Error> {
-//             self.eth.apply_eip7702_auth_list(context)
+//         fn apply_eip7702_auth_list(&self, context: &mut Self::Context) -> Result<u64,
+// Self::Error> {             self.eth.apply_eip7702_auth_list(context)
 //         }
 
 //         fn deduct_caller(&self, _context: &mut Self::Context) -> Result<(), Self::Error> {
@@ -102,7 +126,7 @@ where
 //             result::InvalidTransaction, Transaction,
 //             TransactionGetter,
 
-//             // JournaledState, 
+//             // JournaledState,
 //         },
 //         handler::{EthValidation, EthValidationContext, EthValidationError},
 //         handler_interface::ValidationHandler,
@@ -208,8 +232,8 @@ where
 //         }
 //     }
 
-//     impl<CTX, ERROR, HALTREASON> PostExecutionHandler for IvmPostExecution<CTX, ERROR, HALTREASON>
-//     where
+//     impl<CTX, ERROR, HALTREASON> PostExecutionHandler for IvmPostExecution<CTX, ERROR,
+// HALTREASON>     where
 //         CTX: EthPostExecutionContext<ERROR>,
 //         ERROR: EthPostExecutionError<CTX>
 //             + From<InvalidTransaction>

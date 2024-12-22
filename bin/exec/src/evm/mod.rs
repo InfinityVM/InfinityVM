@@ -1,5 +1,6 @@
 //! Configuration for IVM's EVM execution environment.
 
+use crate::evm::handlers::ivm_gas_handler_register;
 use alloy::primitives::{Address, Bytes, U256};
 use reth::{
     builder::{
@@ -8,18 +9,16 @@ use reth::{
     },
     chainspec::ChainSpec,
     primitives::{EthPrimitives, Header, TransactionSigned},
-    revm::primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, TxEnv},
+    revm::{
+        inspector_handle_register,
+        primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, EnvWithHandlerCfg, TxEnv},
+        Database, Evm, EvmBuilder, GetInspector,
+    },
 };
 use reth_evm_ethereum::EthEvmConfig;
 use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
 use std::{convert::Infallible, sync::Arc};
-use crate::evm::handlers::ivm_gas_handler_register;
-use reth::revm::{
-    inspector_handle_register, primitives::EnvWithHandlerCfg, Database, Evm, EvmBuilder,
-    GetInspector,
-};
-
 
 // use revm::{
 //     handler::{EthExecution, EthHandler},
@@ -111,7 +110,8 @@ impl ConfigureEvm for IvmEvmConfig {
 /// This is useful for creating an EVM with a custom database and environment without having to
 /// necessarily rely on Revm inspector.
 ///
-/// This is based off of the `RethEvmBuilder` with the difference that we register our custom handlers
+/// This is based off of the `RethEvmBuilder` with the difference that we register our custom
+/// handlers
 #[derive(Debug)]
 pub struct IvmEvmBuilder<DB: Database, EXT = ()> {
     /// The database to use for the EVM.
@@ -144,9 +144,10 @@ where
 
     /// Build the EVM with the given database and environment.
     pub fn build<'a>(self) -> Evm<'a, EXT, DB> {
-        let mut builder =
-            EvmBuilder::default().with_db(self.db).with_external_context(self.external_context)
-                .append_handler_register(ivm_gas_handler_register);
+        let mut builder = EvmBuilder::default()
+            .with_db(self.db)
+            .with_external_context(self.external_context)
+            .append_handler_register(ivm_gas_handler_register);
 
         if let Some(env) = self.env {
             builder = builder.with_spec_id(env.clone().spec_id());
