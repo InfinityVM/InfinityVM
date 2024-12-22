@@ -10,9 +10,8 @@ use reth::{
     chainspec::ChainSpec,
     primitives::{EthPrimitives, Header, TransactionSigned},
     revm::{
-        inspector_handle_register,
         primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, EnvWithHandlerCfg, TxEnv},
-        Database, Evm, EvmBuilder, GetInspector,
+        Database, Evm, EvmBuilder,
     },
 };
 use reth_evm_ethereum::EthEvmConfig;
@@ -307,7 +306,7 @@ mod test {
         // This account has nothing
         assert!(db.basic_account(signer_address).unwrap().is_none());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         provider
             .batch_executor(StateProviderDatabase::new(&db))
