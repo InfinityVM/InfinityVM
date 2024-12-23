@@ -14,6 +14,7 @@ pub fn ivm_gas_handler_register<EXT, DB>(handler: &mut EvmHandler<'_, EXT, DB>)
 where
     DB: reth::revm::Database,
 {
+    // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/pre_execution.rs#L58
     handler.pre_execution.deduct_caller = Arc::new(|ctx| {
         // We don't deduct any balance from the caller because we don't charge gas
         // However, there is a gotchya here: it is expected that the account has
@@ -37,6 +38,7 @@ where
         Ok(())
     });
 
+    // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/primitives/src/env.rs#L220
     handler.validation.tx_against_state = Arc::new(|ctx| {
         let caller = ctx.evm.inner.env.tx.caller;
         let state_nonce = ctx
@@ -70,15 +72,18 @@ where
         Ok(())
     });
 
+    // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L59
     handler.post_execution.refund = Arc::new(|_ctx, _gas, _eip7702_refund| {
         // We can skip refund calculations because we do not reimburse the caller
     });
 
+    // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L73
     handler.post_execution.reimburse_caller = Arc::new(|_ctx, _gas| {
         // No reimbursement because we never deducted gas
         Ok(())
     });
 
+    // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L28
     handler.post_execution.reward_beneficiary = Arc::new(|_ctx, _gas| {
         // Beneficiary does not get rewards because no one paid gas
         Ok(())
