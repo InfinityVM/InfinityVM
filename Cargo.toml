@@ -123,6 +123,11 @@ anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 # only include features that we know can be compiled into zkvm program
 alloy = { version = "0.8", features = ["sol-types"], default-features = false }
+# Hacks to play happy with reth types, we normally use the alloy facade crate
+alloy-eips = { version = "0.7.3", default-features = false }
+alloy-consensus = { version = "0.7.3"}
+alloy-signer-local = { version = "0.7.3"}
+alloy-network = { version = "0.7.3"}
 
 # b
 bincode = { version = "1", default-features = false }
@@ -176,9 +181,14 @@ reth-db = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", fea
 reth-db-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-codecs = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", features = ["std", "alloy"], default-features = false }
 reth-node-ethereum = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-evm-ethereum = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-ethereum-engine-primitives = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-ethereum-payload-builder= { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
 reth-provider = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-revm = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+reth-evm = { git = "https://github.com/paradigmxyz/reth.git", rev = "v1.1.4", default-features = false }
+revm = "18"
 
 # s
 serde = { version = "1.0", features = ["derive", "std"], default-features = false }
