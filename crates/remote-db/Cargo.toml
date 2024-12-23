@@ -13,11 +13,8 @@ path = "src/bin/test_client.rs"
 
 [dependencies]
 tonic = { workspace = true }
-prost = { workspace = true }
 tokio = { workspace = true }
 sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "migrate", "any", "macros"], default-features = false }
-anyhow = { workspace = true }
-tracing = { workspace = true }
 
 [build-dependencies]
-tonic-build = { workspace = true }       
+tonic-build = { workspace = true }          

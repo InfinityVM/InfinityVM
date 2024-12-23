@@ -36,7 +36,6 @@ ivm-zkvm-executor = { workspace = true }
 ivm-tracing = { workspace = true }
 ivm-eip4844 = { workspace = true }
 ivm-remote-db = { workspace = true }
-futures-util = { workspace = true }
 
 [dev-dependencies]
 ivm-test-utils = { workspace = true }

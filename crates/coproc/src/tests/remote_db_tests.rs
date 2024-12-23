@@ -17,10 +17,7 @@ async fn test_get_elf_from_remote_db() {
     // Create test data
     let program_id = vec![1, 2, 3, 4];
     let elf_data = vec![5, 6, 7, 8];
-    let expected_elf = ElfWithMeta {
-        vm_type: 1,
-        elf: elf_data.clone(),
-    };
+    let expected_elf = ElfWithMeta { vm_type: 1, elf: elf_data.clone() };
 
     // Add test ELF to mock client
     mock_client.add_elf(program_id.clone(), expected_elf.clone()).await;
@@ -44,10 +41,7 @@ async fn test_store_elf_in_remote_db() {
     // Create test data
     let program_id = vec![1, 2, 3, 4];
     let elf_data = vec![5, 6, 7, 8];
-    let test_elf = ElfWithMeta {
-        vm_type: 1,
-        elf: elf_data.clone(),
-    };
+    let test_elf = ElfWithMeta { vm_type: 1, elf: elf_data.clone() };
 
     // Test store_elf
     let store_result = mock_client.store_elf(program_id.clone(), test_elf.clone()).await;
@@ -92,16 +86,10 @@ async fn test_job_executor_remote_db_integration() {
     // Create test data
     let program_id = vec![1, 2, 3, 4];
     let elf_data = vec![5, 6, 7, 8];
-    let test_elf = ElfWithMeta {
-        vm_type: 1,
-        elf: elf_data.clone(),
-    };
+    let test_elf = ElfWithMeta { vm_type: 1, elf: elf_data.clone() };
 
     // Create mock job
-    let mut job = ivm_db::tables::Job {
-        program_id: program_id.clone(),
-        ..Default::default()
-    };
+    let mut job = ivm_db::tables::Job { program_id: program_id.clone(), ..Default::default() };
 
     // Create JobExecutor
     let executor = JobExecutor::new(
