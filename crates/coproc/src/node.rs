@@ -188,6 +188,7 @@ where
         worker_count,
         writer_tx.clone(),
         relay_tx.clone(),
+        config::Config::default(),
     );
     // Start the job processor workers
     job_executor.start().await;

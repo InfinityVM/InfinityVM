@@ -12,6 +12,12 @@ pub mod queue;
 pub mod relayer;
 pub mod remote_db;
 pub mod server;
+
+#[cfg(test)]
+mod tests {
+    mod mocks;
+    mod remote_db_tests;
+}
 pub mod writer;
 
 /// Default maximum bytes of DA allowed per job.

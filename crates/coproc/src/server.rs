@@ -7,7 +7,7 @@ use alloy::{
     signers::{Signer, SignerSync},
     sol_types::SolType,
 };
-use futures_util::future::try_future::TryFutureExt;
+
 use ivm_abi::{get_job_id, OffchainJobRequest};
 use ivm_db::tables::{Job, RequestType};
 use ivm_proto::{

@@ -4,6 +4,7 @@ use crate::{
     metrics::Metrics,
     relayer::Relay,
     writer::{Write, WriterMsg},
+    remote_db::RemoteElfClientTrait,
 };
 use alloy::{
     primitives::PrimitiveSignature,
@@ -125,9 +126,11 @@ where
             let metrics = Arc::clone(&self.metrics);
             let writer_tx = self.writer_tx.clone();
             let relay_tx = self.relay_tx.clone();
+            let config = self.config.clone();
 
-            threads.push(std::thread::spawn(|| {
+            threads.push(std::thread::spawn(move || {
                 Self::start_executor_worker(
+                    &config,
                     exec_queue_receiver,
                     db,
                     zk_executor,
@@ -141,6 +144,7 @@ where
 
     /// Start a worker.
     fn start_executor_worker(
+        config: &crate::config::Config,
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
@@ -152,11 +156,16 @@ where
         let writer_tx2 = writer_tx;
 
         while let Ok(mut job) = exec_queue_receiver.recv() {
-            let elf_with_meta =
-                match rt.block_on(Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone())) {
-                    Ok(elf) => elf,
-                    Err(_) => continue,
-                };
+            let elf_with_meta = match rt.block_on(Self::get_elf(
+                config,
+                &db,
+                &mut job,
+                &metrics,
+                writer_tx2.clone(),
+            )) {
+                Ok(elf) => elf,
+                Err(_) => continue,
+            };
 
             let executed_job = match Self::execute_job(
                 job,
@@ -176,6 +185,7 @@ where
     }
 
     async fn get_elf(
+        config: &crate::config::Config,
         db: &Arc<D>,
         job: &mut Job,
         metrics: &Arc<Metrics>,
@@ -186,20 +196,15 @@ where
             Some(elf) => Ok(elf),
             None => {
                 // Try remote DB
-                match crate::remote_db::RemoteElfClient::connect(&self.config.remote_db.endpoint)
-                    .await
-                {
+                match crate::remote_db::RemoteElfClient::connect(&config.remote_db.endpoint).await {
                     Ok(mut client) => {
                         match client.get_elf(job.program_id.clone()).await {
-                            Ok(Some((program_elf, vm_type))) => {
+                            Ok(elf_with_meta) => {
                                 // Cache the ELF in embedded DB
-                                let vm_type = VmType::try_from(vm_type).map_err(|_| {
+                                let vm_type = VmType::try_from(elf_with_meta.vm_type as i32).map_err(|_| {
                                     metrics.incr_job_err(&FailureReason::MissingElf.to_string());
                                     FailureReason::MissingElf
                                 })?;
-
-                                let elf_with_meta =
-                                    ElfWithMeta { vm_type: vm_type as u8, elf: program_elf };
 
                                 // Store in embedded DB
                                 writer_tx
