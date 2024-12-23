@@ -120,6 +120,7 @@ where
 mod test {
     use super::*;
     use alloy::primitives::{hex, Address, TxKind, B256};
+    use k256::ecdsa::SigningKey;
     use reth::{
         chainspec::{ChainSpecBuilder, MAINNET},
         core::primitives::SignedTransaction,
@@ -127,7 +128,10 @@ mod test {
             Account, Block, BlockBody, BlockWithSenders, EthereumHardfork, ForkCondition,
             Transaction,
         },
-        revm::db::{CacheDB, EmptyDBTyped},
+        revm::{
+            db::{CacheDB, EmptyDBTyped},
+            DatabaseCommit,
+        },
     };
     use reth_evm::execute::{
         BatchExecutor, BlockExecutionError, BlockExecutorProvider, BlockValidationError,
@@ -137,18 +141,16 @@ mod test {
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
     use revm::{
         db::states::account_status::AccountStatus as DbAccountStatus,
+        interpreter::primitives::AccountStatus,
         primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction},
     };
 
-    use k256::ecdsa::SigningKey;
-    use reth::revm::DatabaseCommit;
-    use revm::interpreter::primitives::AccountStatus;
-
     // Special alloy deps we need for playing happy with reth
-    use alloy_consensus::TxEip1559;
+    use alloy_consensus::{TxEip1559, TxEip4844};
     use alloy_network::TxSignerSync;
     use alloy_signer_local::LocalSigner;
 
+    // Exact gas used by the transaction returned by `transaction_with_signer`.
     const EXACT_GAS_USED: u64 = 21080;
 
     fn executor_provider(
@@ -881,5 +883,63 @@ mod test {
         };
         assert_eq!(transaction_gas_limit, gas_limit);
         assert_eq!(block_available_gas, gas_limit - 1);
+    }
+
+    #[test]
+    fn execute_block_handles_eip4844() {
+        let (mut header, db, provider) = setup();
+        let signer = LocalSigner::random();
+        let transaction_signed = {
+            let blob_versioned_hash = [1u8; 32];
+
+            let mut inner_tx = TxEip4844 {
+                chain_id: 1,
+                max_fee_per_blob_gas: 1,
+                blob_versioned_hashes: vec![blob_versioned_hash.into()],
+                gas_limit: 21000,
+                ..Default::default()
+            };
+
+            let signature = signer.sign_transaction_sync(&mut inner_tx).unwrap();
+            let tx = Transaction::Eip4844(inner_tx);
+            TransactionSigned::new_unhashed(tx, signature)
+        };
+        header.gas_used = 21000;
+        header.gas_limit = 21000;
+
+        // And the expected receipts root
+        header.receipts_root =
+            B256::from(hex!("eaa8c40899a61ae59615cf9985f5e2194f8fd2b57d273be63bde6733e89b12ab"));
+
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        executor
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody {
+                                transactions: vec![transaction_signed],
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: vec![signer.address()],
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap();
+
+        let output = executor.finalize();
+
+        let account = output.bundle.state.get(&signer.address()).unwrap().clone();
+        assert_eq!(
+            account.info.unwrap(),
+            AccountInfo { balance: U256::from(0), nonce: 1, ..Default::default() }
+        );
+        assert_eq!(account.status, DbAccountStatus::InMemoryChange);
+        assert_eq!(account.original_info, None);
     }
 }

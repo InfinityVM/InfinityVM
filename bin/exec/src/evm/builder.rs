@@ -17,7 +17,7 @@ where
     // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/pre_execution.rs#L58
     handler.pre_execution.deduct_caller = Arc::new(|ctx| {
         // We don't deduct any balance from the caller because we don't charge gas
-        // However, there is a gotchya here: it is expected that the account has
+        // However, there is a gotcha here: it is expected that the account has
         // its nonce updated and is marked as "touched" here to ensure it gets
         // written to storage.
 
