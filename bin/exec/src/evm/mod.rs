@@ -485,107 +485,7 @@ mod test {
     }
 
     #[test]
-    fn execute_block_errors_on_nonce_too_high() {
-        let (mut header, mut db, provider) = setup();
-        let signer = LocalSigner::random();
-        let (transaction_signed, signer_address, _) = transaction_with_signer(signer, 10);
-
-        let exact_gas_used = EXACT_GAS_USED;
-
-        // We know this is the exact gas used
-        header.gas_used = exact_gas_used;
-        // And the expected receipts root
-        header.receipts_root =
-            B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
-
-        let user_account = Account { nonce: 5, balance: U256::ZERO, bytecode_hash: None };
-        db.insert_account(signer_address, user_account, None, HashMap::default());
-
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
-
-        let err = executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
-                    },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
-            .unwrap_err();
-
-        let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
-            panic!()
-        };
-        let EVMError::Transaction(InvalidTransaction::NonceTooHigh { tx, state }) = error.as_ref()
-        else {
-            panic!()
-        };
-        assert_eq!(*state, 5);
-        assert_eq!(*tx, 10);
-    }
-
-    #[test]
-    fn execute_block_errors_on_nonce_too_low() {
-        let (mut header, mut db, provider) = setup();
-        let signer = LocalSigner::random();
-        let (transaction_signed, signer_address, _) = transaction_with_signer(signer, 69);
-
-        let exact_gas_used = EXACT_GAS_USED;
-
-        // We know this is the exact gas used
-        header.gas_used = exact_gas_used;
-        // And the expected receipts root
-        header.receipts_root =
-            B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
-
-        let user_account = Account { nonce: 420, balance: U256::ZERO, bytecode_hash: None };
-        db.insert_account(signer_address, user_account, None, HashMap::default());
-
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
-
-        let err = executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
-                    },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
-            .unwrap_err();
-
-        let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
-            panic!()
-        };
-        let EVMError::Transaction(InvalidTransaction::NonceTooLow { tx, state }) = error.as_ref()
-        else {
-            panic!()
-        };
-        assert_eq!(*state, 420);
-        assert_eq!(*tx, 69);
-    }
-
-    #[test]
-    fn accepts_transaction_from_account_with_excess_balance() {
+    fn execute_block_account_with_excess_balance() {
         let (mut header, mut db, provider) = setup();
         let (transaction_signed, signer_address, gas_limit) = transaction();
 
@@ -649,7 +549,7 @@ mod test {
     }
 
     #[test]
-    fn accepts_transaction_from_account_with_balance_less_then_gas_limit() {
+    fn execute_block_account_with_balance_less_then_gas_limit() {
         let (mut header, mut db, provider) = setup();
         let (transaction_signed, signer_address, gas_limit) = transaction();
 
@@ -809,6 +709,106 @@ mod test {
             AccountInfo { balance: U256::from(user2_balance), nonce: 5, ..Default::default() }
         );
         assert_eq!(bundle_account2.status, DbAccountStatus::Changed);
+    }
+
+    #[test]
+    fn execute_block_errors_on_nonce_too_high() {
+        let (mut header, mut db, provider) = setup();
+        let signer = LocalSigner::random();
+        let (transaction_signed, signer_address, _) = transaction_with_signer(signer, 10);
+
+        let exact_gas_used = EXACT_GAS_USED;
+
+        // We know this is the exact gas used
+        header.gas_used = exact_gas_used;
+        // And the expected receipts root
+        header.receipts_root =
+            B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
+
+        let user_account = Account { nonce: 5, balance: U256::ZERO, bytecode_hash: None };
+        db.insert_account(signer_address, user_account, None, HashMap::default());
+
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+
+        let err = executor
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody {
+                                transactions: vec![transaction_signed],
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: vec![signer_address],
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap_err();
+
+        let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
+            panic!()
+        };
+        let EVMError::Transaction(InvalidTransaction::NonceTooHigh { tx, state }) = error.as_ref()
+        else {
+            panic!()
+        };
+        assert_eq!(*state, 5);
+        assert_eq!(*tx, 10);
+    }
+
+    #[test]
+    fn execute_block_errors_on_nonce_too_low() {
+        let (mut header, mut db, provider) = setup();
+        let signer = LocalSigner::random();
+        let (transaction_signed, signer_address, _) = transaction_with_signer(signer, 69);
+
+        let exact_gas_used = EXACT_GAS_USED;
+
+        // We know this is the exact gas used
+        header.gas_used = exact_gas_used;
+        // And the expected receipts root
+        header.receipts_root =
+            B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
+
+        let user_account = Account { nonce: 420, balance: U256::ZERO, bytecode_hash: None };
+        db.insert_account(signer_address, user_account, None, HashMap::default());
+
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+
+        let err = executor
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody {
+                                transactions: vec![transaction_signed],
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: vec![signer_address],
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap_err();
+
+        let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
+            panic!()
+        };
+        let EVMError::Transaction(InvalidTransaction::NonceTooLow { tx, state }) = error.as_ref()
+        else {
+            panic!()
+        };
+        assert_eq!(*state, 420);
+        assert_eq!(*tx, 69);
     }
 
     #[test]
