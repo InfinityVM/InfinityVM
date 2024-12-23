@@ -11,6 +11,7 @@ members = [
 	"crates/db",
 	"crates/eip4844",
 	"crates/mock-consumer",
+	"crates/remote-db",
 	"crates/scripts",
 	"crates/sdk/abi",
 	"crates/sdk/proto",
