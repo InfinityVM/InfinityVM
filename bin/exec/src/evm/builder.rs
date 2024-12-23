@@ -1,4 +1,4 @@
-//! `revm` execution handlers.
+//! Evm builder that includes custom logic for zero gas fee transactions.
 
 use reth::revm::{
     handler::register::EvmHandler,
