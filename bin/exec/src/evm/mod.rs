@@ -819,6 +819,6 @@ mod test {
             bundle_account2.original_info.unwrap(),
             AccountInfo { balance: U256::from(user2_balance), nonce: 5, ..Default::default() }
         );
-        assert_eq!(bundle_account2.status, DbAccountStatus::Changed,);
+        assert_eq!(bundle_account2.status, DbAccountStatus::Changed);
     }
 }
