@@ -1,7 +1,5 @@
-use remote_db::remote_db::v1::elf_store_server::ElfStoreServer;
-use remote_db::ElfStoreService;
-use sqlx::migrate::MigrateDatabase;
-use sqlx::postgres::PgPoolOptions;
+use remote_db::{remote_db::v1::elf_store_server::ElfStoreServer, ElfStoreService};
+use sqlx::{migrate::MigrateDatabase, postgres::PgPoolOptions};
 use std::env;
 use tonic::transport::Server;
 

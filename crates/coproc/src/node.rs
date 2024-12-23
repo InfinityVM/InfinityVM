@@ -1,6 +1,7 @@
 //! Run the coprocessor node.
 
 use crate::{
+    config,
     event::{self, JobEventListener},
     gateway::{self, HttpGrpcGateway},
     intake::IntakeHandlers,
@@ -199,6 +200,7 @@ where
         writer_tx.clone(),
         relay_tx.clone(),
         unsafe_skip_program_id_check,
+        config::Config::default(),
     );
 
     let job_event_listener = {

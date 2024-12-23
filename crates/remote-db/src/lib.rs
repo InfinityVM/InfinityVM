@@ -7,8 +7,7 @@ pub mod remote_db {
 use remote_db::v1::{
     elf_store_server::ElfStore, GetElfRequest, GetElfResponse, StoreElfRequest, StoreElfResponse,
 };
-use sqlx::postgres::PgPool;
-use sqlx::Row;
+use sqlx::{postgres::PgPool, Row};
 use tonic::{Request, Response, Status};
 
 #[derive(Debug)]

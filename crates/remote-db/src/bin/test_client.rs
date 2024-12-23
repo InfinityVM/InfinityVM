@@ -1,5 +1,4 @@
-use remote_db::remote_db::v1::elf_store_client::ElfStoreClient;
-use remote_db::remote_db::v1::{GetElfRequest, StoreElfRequest};
+use remote_db::remote_db::v1::{elf_store_client::ElfStoreClient, GetElfRequest, StoreElfRequest};
 use std::fs;
 
 #[tokio::main]
