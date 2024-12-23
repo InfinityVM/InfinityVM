@@ -132,7 +132,6 @@ mod test {
     };
     use reth_provider::AccountReader;
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
-    // use revm::precompile::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
     use reth::{
         core::primitives::SignedTransaction,
         revm::db::{CacheDB, EmptyDBTyped},
