@@ -3,8 +3,8 @@
 use crate::{
     metrics::Metrics,
     relayer::Relay,
-    writer::{Write, WriterMsg},
     remote_db::RemoteElfClientTrait,
+    writer::{Write, WriterMsg},
 };
 use alloy::{
     primitives::PrimitiveSignature,
@@ -201,10 +201,12 @@ where
                         match client.get_elf(job.program_id.clone()).await {
                             Ok(elf_with_meta) => {
                                 // Cache the ELF in embedded DB
-                                let vm_type = VmType::try_from(elf_with_meta.vm_type as i32).map_err(|_| {
-                                    metrics.incr_job_err(&FailureReason::MissingElf.to_string());
-                                    FailureReason::MissingElf
-                                })?;
+                                let vm_type = VmType::try_from(elf_with_meta.vm_type as i32)
+                                    .map_err(|_| {
+                                        metrics
+                                            .incr_job_err(&FailureReason::MissingElf.to_string());
+                                        FailureReason::MissingElf
+                                    })?;
 
                                 // Store in embedded DB
                                 writer_tx

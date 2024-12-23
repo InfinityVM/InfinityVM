@@ -1,9 +1,5 @@
 use super::mocks::{MockRemoteElfClient, MockRemoteElfClientTrait};
-use crate::{
-    config::Config,
-    job_executor::JobExecutor,
-    remote_db::RemoteElfClientTrait,
-};
+use crate::{config::Config, job_executor::JobExecutor, remote_db::RemoteElfClientTrait};
 use ivm_db::tables::ElfWithMeta;
 use mockall::predicate::*;
 use std::sync::Arc;
@@ -13,7 +9,7 @@ use tokio::sync::mpsc::channel;
 async fn test_get_elf_from_remote_db() {
     // Setup mock client
     let mut mock_client = MockRemoteElfClient::new();
-    
+
     // Create test data
     let program_id = vec![1, 2, 3, 4];
     let elf_data = vec![5, 6, 7, 8];
@@ -24,7 +20,7 @@ async fn test_get_elf_from_remote_db() {
 
     // Test get_elf
     let result = mock_client.get_elf(program_id.clone()).await;
-    
+
     // Verify results
     assert!(result.is_ok(), "Failed to get ELF from remote DB");
     if let Ok(elf) = result {
@@ -37,7 +33,7 @@ async fn test_get_elf_from_remote_db() {
 async fn test_store_elf_in_remote_db() {
     // Setup mock client
     let mut mock_client = MockRemoteElfClient::new();
-    
+
     // Create test data
     let program_id = vec![1, 2, 3, 4];
     let elf_data = vec![5, 6, 7, 8];
@@ -60,10 +56,10 @@ async fn test_store_elf_in_remote_db() {
 async fn test_get_nonexistent_elf() {
     // Setup mock client
     let mut mock_client = MockRemoteElfClient::new();
-    
+
     // Try to get non-existent ELF
     let result = mock_client.get_elf(vec![99, 99, 99, 99]).await;
-    
+
     // Verify error response
     assert!(result.is_err(), "Expected error when getting non-existent ELF");
     assert_eq!(

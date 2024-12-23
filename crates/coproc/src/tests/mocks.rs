@@ -11,9 +11,7 @@ pub struct MockRemoteElfClient {
 
 impl MockRemoteElfClient {
     pub fn new() -> Self {
-        Self {
-            stored_elfs: Arc::new(Mutex::new(Vec::new())),
-        }
+        Self { stored_elfs: Arc::new(Mutex::new(Vec::new())) }
     }
 
     pub async fn add_elf(&self, program_id: Vec<u8>, elf: ElfWithMeta) {
@@ -34,7 +32,11 @@ impl RemoteElfClientTrait for MockRemoteElfClient {
         }
     }
 
-    async fn store_elf(&mut self, program_id: Vec<u8>, elf: ElfWithMeta) -> Result<(), tonic::Status> {
+    async fn store_elf(
+        &mut self,
+        program_id: Vec<u8>,
+        elf: ElfWithMeta,
+    ) -> Result<(), tonic::Status> {
         let mut elfs = self.stored_elfs.lock().await;
         elfs.push((program_id, elf));
         Ok(())

@@ -11,7 +11,11 @@ use tracing::{debug, warn};
 #[async_trait]
 pub trait RemoteElfClientTrait {
     async fn get_elf(&mut self, program_id: Vec<u8>) -> Result<ElfWithMeta, tonic::Status>;
-    async fn store_elf(&mut self, program_id: Vec<u8>, elf: ElfWithMeta) -> Result<(), tonic::Status>;
+    async fn store_elf(
+        &mut self,
+        program_id: Vec<u8>,
+        elf: ElfWithMeta,
+    ) -> Result<(), tonic::Status>;
 }
 
 /// Client for interacting with the remote ELF store.
@@ -38,10 +42,7 @@ impl RemoteElfClientTrait for RemoteElfClient {
         match self.client.get_elf(request).await {
             Ok(response) => {
                 let response = response.into_inner();
-                Ok(ElfWithMeta {
-                    vm_type: response.vm_type as u8,
-                    elf: response.program_elf,
-                })
+                Ok(ElfWithMeta { vm_type: response.vm_type as u8, elf: response.program_elf })
             }
             Err(e) => {
                 warn!("Error retrieving ELF from remote DB: {}", e);
@@ -50,7 +51,11 @@ impl RemoteElfClientTrait for RemoteElfClient {
         }
     }
 
-    async fn store_elf(&mut self, program_id: Vec<u8>, elf: ElfWithMeta) -> Result<(), tonic::Status> {
+    async fn store_elf(
+        &mut self,
+        program_id: Vec<u8>,
+        elf: ElfWithMeta,
+    ) -> Result<(), tonic::Status> {
         debug!("Storing ELF in remote DB");
         let request = tonic::Request::new(StoreElfRequest {
             program_id,

@@ -6,8 +6,8 @@
 
 use crate::{
     relayer::Relay,
-    writer::{Write, WriterMsg},
     remote_db::RemoteElfClientTrait,
+    writer::{Write, WriterMsg},
 };
 use alloy::{
     hex,
@@ -196,7 +196,10 @@ where
         // Store the ELF in remote DB
         match crate::remote_db::RemoteElfClient::connect(&self.config.remote_db.endpoint).await {
             Ok(mut client) => {
-                if let Err(e) = client.store_elf(program_id.clone(), ElfWithMeta { vm_type: vm_type as u8, elf }).await {
+                if let Err(e) = client
+                    .store_elf(program_id.clone(), ElfWithMeta { vm_type: vm_type as u8, elf })
+                    .await
+                {
                     tracing::warn!("Failed to store ELF in remote DB: {}", e);
                     // Continue since we already stored it in embedded DB
                 }
