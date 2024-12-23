@@ -242,7 +242,7 @@ where
     let threads = tokio::spawn(async {
         loop {
             if writer_handle.is_finished() {
-                return writer_handle.join().map_err(Error::StdJoin)
+                return writer_handle.join().map_err(Error::StdJoin);
             }
             tokio::time::sleep(Duration::from_secs(10)).await;
         }

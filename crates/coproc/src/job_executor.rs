@@ -103,7 +103,16 @@ where
         relay_tx: Sender<Relay>,
         config: crate::config::Config,
     ) -> Self {
-        Self { db, exec_queue_receiver, zk_executor, metrics, num_workers, writer_tx, relay_tx, config }
+        Self {
+            db,
+            exec_queue_receiver,
+            zk_executor,
+            metrics,
+            num_workers,
+            writer_tx,
+            relay_tx,
+            config,
+        }
     }
 
     /// Spawns `num_workers` worker tasks.
@@ -143,10 +152,11 @@ where
         let writer_tx2 = writer_tx;
 
         while let Ok(mut job) = exec_queue_receiver.recv() {
-            let elf_with_meta = match rt.block_on(Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone())) {
-                Ok(elf) => elf,
-                Err(_) => continue,
-            };
+            let elf_with_meta =
+                match rt.block_on(Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone())) {
+                    Ok(elf) => elf,
+                    Err(_) => continue,
+                };
 
             let executed_job = match Self::execute_job(
                 job,
@@ -176,21 +186,20 @@ where
             Some(elf) => Ok(elf),
             None => {
                 // Try remote DB
-                match crate::remote_db::RemoteElfClient::connect(&self.config.remote_db.endpoint).await {
+                match crate::remote_db::RemoteElfClient::connect(&self.config.remote_db.endpoint)
+                    .await
+                {
                     Ok(mut client) => {
                         match client.get_elf(job.program_id.clone()).await {
                             Ok(Some((program_elf, vm_type))) => {
                                 // Cache the ELF in embedded DB
-                                let vm_type = VmType::try_from(vm_type)
-                                    .map_err(|_| {
-                                        metrics.incr_job_err(&FailureReason::MissingElf.to_string());
-                                        FailureReason::MissingElf
-                                    })?;
-                                
-                                let elf_with_meta = ElfWithMeta {
-                                    vm_type: vm_type as u8,
-                                    elf: program_elf,
-                                };
+                                let vm_type = VmType::try_from(vm_type).map_err(|_| {
+                                    metrics.incr_job_err(&FailureReason::MissingElf.to_string());
+                                    FailureReason::MissingElf
+                                })?;
+
+                                let elf_with_meta =
+                                    ElfWithMeta { vm_type: vm_type as u8, elf: program_elf };
 
                                 // Store in embedded DB
                                 writer_tx
@@ -214,7 +223,8 @@ where
                                     failure_reason: Some(FailureReason::MissingElf.to_string()),
                                     retries: 0,
                                 };
-                                writer_tx.send((Write::JobTable(job.clone()), None))
+                                writer_tx
+                                    .send((Write::JobTable(job.clone()), None))
                                     .expect("db writer broken");
                                 Err(FailureReason::DbErrMissingElf)
                             }
@@ -227,7 +237,8 @@ where
                                     failure_reason: Some(FailureReason::DbErrGetElf.to_string()),
                                     retries: 0,
                                 };
-                                writer_tx.send((Write::JobTable(job.clone()), None))
+                                writer_tx
+                                    .send((Write::JobTable(job.clone()), None))
                                     .expect("db writer broken");
                                 Err(FailureReason::DbErrGetElf)
                             }
@@ -242,7 +253,8 @@ where
                             failure_reason: Some(FailureReason::DbErrGetElf.to_string()),
                             retries: 0,
                         };
-                        writer_tx.send((Write::JobTable(job.clone()), None))
+                        writer_tx
+                            .send((Write::JobTable(job.clone()), None))
                             .expect("db writer broken");
                         Err(FailureReason::DbErrGetElf)
                     }

@@ -10,8 +10,8 @@ pub mod metrics;
 pub mod node;
 pub mod queue;
 pub mod relayer;
-pub mod server;
 pub mod remote_db;
+pub mod server;
 pub mod writer;
 
 /// Default maximum bytes of DA allowed per job.

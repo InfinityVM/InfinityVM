@@ -11,9 +11,7 @@ pub struct RemoteDbConfig {
 
 impl Default for RemoteDbConfig {
     fn default() -> Self {
-        Self {
-            endpoint: "http://localhost:50051".to_string(),
-        }
+        Self { endpoint: "http://localhost:50051".to_string() }
     }
 }
 
@@ -26,8 +24,6 @@ pub struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Self {
-            remote_db: RemoteDbConfig::default(),
-        }
+        Self { remote_db: RemoteDbConfig::default() }
     }
 }

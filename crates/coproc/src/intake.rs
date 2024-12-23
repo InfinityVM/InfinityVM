@@ -185,7 +185,10 @@ where
         // Write the elf to embedded DB and make sure it completes before continuing
         let (tx, rx) = oneshot::channel();
         self.writer_tx
-            .send((Write::Elf { vm_type, program_id: program_id.clone(), elf: elf.clone() }, Some(tx)))
+            .send((
+                Write::Elf { vm_type, program_id: program_id.clone(), elf: elf.clone() },
+                Some(tx),
+            ))
             .expect("writer channel broken");
         let _ = rx.await;
 

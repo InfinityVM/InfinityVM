@@ -1,8 +1,7 @@
 //! Remote DB client for ELF storage and retrieval.
 
 use ivm_remote_db::remote_db::v1::{
-    elf_store_client::ElfStoreClient,
-    StoreElfRequest, GetElfRequest,
+    elf_store_client::ElfStoreClient, GetElfRequest, StoreElfRequest,
 };
 use tonic::transport::Channel;
 use tracing::{debug, warn};
@@ -29,12 +28,8 @@ impl RemoteElfClient {
         vm_type: i32,
     ) -> Result<bool, tonic::Status> {
         debug!("Storing ELF in remote DB");
-        let request = tonic::Request::new(StoreElfRequest {
-            program_id,
-            program_elf,
-            vm_type,
-        });
-        
+        let request = tonic::Request::new(StoreElfRequest { program_id, program_elf, vm_type });
+
         match self.client.store_elf(request).await {
             Ok(response) => {
                 let success = response.into_inner().success;
@@ -57,7 +52,7 @@ impl RemoteElfClient {
     ) -> Result<Option<(Vec<u8>, i32)>, tonic::Status> {
         debug!("Retrieving ELF from remote DB");
         let request = tonic::Request::new(GetElfRequest { program_id });
-        
+
         match self.client.get_elf(request).await {
             Ok(response) => {
                 let response = response.into_inner();
