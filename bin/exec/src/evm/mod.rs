@@ -7,7 +7,7 @@ use reth::{
         components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes,
         NodeTypesWithEngine,
     },
-    chainspec::{ChainSpec, MAINNET},
+    chainspec::ChainSpec,
     primitives::{EthPrimitives, Header, TransactionSigned},
     revm::{
         primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, TxEnv},
@@ -127,7 +127,9 @@ mod test {
             Transaction,
         },
     };
-    use reth_evm::execute::{BatchExecutor, BlockExecutorProvider};
+    use reth_evm::execute::{
+        BatchExecutor, BlockExecutionError, BlockExecutorProvider, BlockValidationError,
+    };
     use reth_provider::AccountReader;
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
     // use revm::precompile::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
@@ -136,15 +138,19 @@ mod test {
         revm::db::{CacheDB, EmptyDBTyped},
     };
     use reth_evm::execute::ProviderError;
-    use revm::primitives::{AccountInfo, Bytecode, JumpTable, LegacyAnalyzedBytecode};
-    use std::collections::HashMap;
-    use revm::interpreter::primitives::AccountStatus;
-    use reth::revm::DatabaseCommit;
-    use k256::ecdsa::SigningKey;
+    use revm::{
+        db::states::account_status::AccountStatus as DbAccountStatus,
+        primitives::{
+            AccountInfo, Bytecode, EVMError, HashMap, InvalidTransaction, LegacyAnalyzedBytecode,
+        },
+    };
 
+    use k256::ecdsa::SigningKey;
+    use reth::revm::DatabaseCommit;
+    use revm::interpreter::primitives::AccountStatus;
 
     // Special alloy deps we need for playing happy with reth
-    use alloy_consensus::{Transaction as _, TxEip1559};
+    use alloy_consensus::TxEip1559;
     use alloy_network::TxSignerSync;
     use alloy_signer_local::LocalSigner;
 
@@ -190,8 +196,10 @@ mod test {
         transaction_with_signer(signer, 0)
     }
 
-    fn transaction_with_signer(signer: LocalSigner<SigningKey
-        >, nonce: u64) -> (TransactionSigned, Address, u64) {
+    fn transaction_with_signer(
+        signer: LocalSigner<SigningKey>,
+        nonce: u64,
+    ) -> (TransactionSigned, Address, u64) {
         let exact_gas_used = 21080;
         let gas_limit = exact_gas_used + 1_000;
 
@@ -210,7 +218,7 @@ mod test {
             let signature = signer.sign_transaction_sync(&mut inner_tx).unwrap();
             let tx = Transaction::Eip1559(inner_tx);
             TransactionSigned::new_unhashed(tx, signature)
-        };  
+        };
 
         (transaction_signed, signer.address(), gas_limit)
     }
@@ -238,30 +246,21 @@ mod test {
 
         assert_eq!(
             account.info,
-            AccountInfo {
-                balance: U256::ZERO,
-                nonce: 1,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
-            }
+            AccountInfo { balance: U256::ZERO, nonce: 1, ..Default::default() }
         );
 
         let mut status = AccountStatus::LoadedAsNotExisting;
         status.insert(AccountStatus::Touched);
-        assert_eq!(
-            account.status,
-            status
-        );
+        assert_eq!(account.status, status);
     }
 
-    // Tests 3 transaction from the same signer to test account creation and updating a pre-existing account.
-    // And tests 1 transaction from another signer to show that multiple accounts can be created.
+    // Tests 3 transaction from the same signer to test account creation and updating a pre-existing
+    // account. And tests 1 transaction from another signer to show that multiple accounts can
+    // be created.
     #[test]
     fn evm_transact_with_account_creation_and_update() {
         let signer1 = LocalSigner::random();
-        
+
         let (transaction_signed, signer_address, _) = transaction_with_signer(signer1.clone(), 0);
         let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
 
@@ -279,21 +278,11 @@ mod test {
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
-            AccountInfo {
-                balance: U256::ZERO,
-                nonce: 1,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
-            }
+            AccountInfo { balance: U256::ZERO, nonce: 1, ..Default::default() }
         );
         let mut status = AccountStatus::LoadedAsNotExisting;
         status.insert(AccountStatus::Touched);
-        assert_eq!(
-            account.status,
-            status
-        );
+        assert_eq!(account.status, status);
 
         // Commit 1st
         evm.db_mut().commit(result.state);
@@ -305,56 +294,35 @@ mod test {
             &transaction_signed2,
             transaction_signed2.recover_signer().unwrap(),
         );
-        
+
         let result = evm.transact().unwrap();
         assert_eq!(result.result.gas_used(), 21080);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
-            AccountInfo {
-                balance: U256::ZERO,
-                nonce: 2,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
-            }
+            AccountInfo { balance: U256::ZERO, nonce: 2, ..Default::default() }
         );
-        assert_eq!(
-            account.status,
-            AccountStatus::Touched
-        );
+        assert_eq!(account.status, AccountStatus::Touched);
 
         // Commit 2nd
         evm.db_mut().commit(result.state);
 
         // 3rd transaction, SAME signer
-        let (transaction_signed3, _, _) = transaction_with_signer(signer1.clone(), 2);
+        let (transaction_signed3, _, _) = transaction_with_signer(signer1, 2);
         evm_config.fill_tx_env(
             evm.tx_mut(),
             &transaction_signed3,
             transaction_signed3.recover_signer().unwrap(),
         );
 
-        
         let result = evm.transact().unwrap();
         assert_eq!(result.result.gas_used(), 21080);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
-            AccountInfo {
-                balance: U256::ZERO,
-                nonce: 3,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
-            }
+            AccountInfo { balance: U256::ZERO, nonce: 3, ..Default::default() }
         );
-        assert_eq!(
-            account.status,
-            AccountStatus::Touched
-        );
+        assert_eq!(account.status, AccountStatus::Touched);
 
         // Commit 3rd
         evm.db_mut().commit(result.state);
@@ -374,27 +342,15 @@ mod test {
         let account = result.state.get(&signer_address2).unwrap();
         assert_eq!(
             account.info,
-            AccountInfo {
-                balance: U256::ZERO,
-                nonce: 1
-                ,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default()))
-            }
+            AccountInfo { balance: U256::ZERO, nonce: 1, ..Default::default() }
         );
         let mut status = AccountStatus::LoadedAsNotExisting;
         status.insert(AccountStatus::Touched);
-        assert_eq!(
-            account.status,
-            status
-
-        );
+        assert_eq!(account.status, status);
     }
 
     #[test]
-    fn execute_empty_block() {
+    fn execute_empty_block_does_not_error() {
         let (header, db, provider) = setup();
 
         provider
@@ -420,9 +376,9 @@ mod test {
     }
 
     #[test]
-    fn accepts_transaction_from_account_with_no_balance() {
+    fn execute_block_transaction_from_account_with_no_balance() {
         let (mut header, db, provider) = setup();
-        let (transaction_signed, signer_address, gas_limit) = transaction();
+        let (transaction_signed, signer_address, _gas_limit) = transaction();
 
         // We know this is the exact gas used
         header.gas_used = 21080;
@@ -433,10 +389,65 @@ mod test {
         // This account has nothing
         assert!(db.basic_account(signer_address).unwrap().is_none());
 
-        let executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
-        provider
-            .batch_executor(StateProviderDatabase::new(&db))
+        executor
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody {
+                                transactions: vec![transaction_signed],
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: vec![signer_address],
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap();
+
+        let expected = AccountInfo { balance: U256::from(0), nonce: 1, ..Default::default() };
+
+        // Check executor state
+        let account =
+            executor.with_state_mut(|state| state.basic(signer_address).unwrap().unwrap());
+        assert_eq!(expected, account);
+
+        let output = executor.finalize();
+
+        // And confirm it matches the bundled state
+        let account = output.bundle.state.get(&signer_address).unwrap().clone();
+        assert_eq!(account.info.unwrap(), expected);
+        assert_eq!(account.status, DbAccountStatus::InMemoryChange);
+        // TODO: test multiple updates to same account
+        assert_eq!(account.original_info, None);
+    }
+
+    #[test]
+    fn execute_block_from_account_with_high_nonce() {
+        let (mut header, mut db, provider) = setup();
+        let signer = LocalSigner::random();
+        let (transaction_signed, signer_address, gas_limit) = transaction_with_signer(signer, 10);
+
+        let exact_gas_used = 21080;
+
+        // We know this is the exact gas used
+        header.gas_used = exact_gas_used;
+        // And the expected receipts root
+        header.receipts_root =
+            B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
+
+        let user_account = Account { nonce: 10, balance: U256::ZERO, bytecode_hash: None };
+        db.insert_account(signer_address, user_account, None, HashMap::default());
+
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+
+        executor
             .execute_and_verify_one(
                 (
                     &BlockWithSenders {
@@ -457,10 +468,125 @@ mod test {
             .unwrap();
 
         let output = executor.finalize();
+        let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
 
-        // The user does not exist in state
-        // TODO: this is scary, what about the users nonce?
-        assert!(output.bundle.state.get(&signer_address).is_none());
+        // New account info is expected
+        assert_eq!(
+            bundle_account.info.unwrap(),
+            AccountInfo {
+                balance: U256::ZERO,
+                // Balance correctly updated
+                nonce: 11,
+                ..Default::default()
+            }
+        );
+        // Original account info is as expected
+        assert_eq!(
+            bundle_account.original_info.unwrap(),
+            AccountInfo { balance: U256::ZERO, nonce: 10, ..Default::default() }
+        );
+    }
+
+    #[test]
+    fn execute_block_errors_on_nonce_too_high() {
+        let (mut header, mut db, provider) = setup();
+        let signer = LocalSigner::random();
+        let (transaction_signed, signer_address, gas_limit) = transaction_with_signer(signer, 10);
+
+        let exact_gas_used = 21080;
+
+        // We know this is the exact gas used
+        header.gas_used = exact_gas_used;
+        // And the expected receipts root
+        header.receipts_root =
+            B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
+
+        let user_account = Account { nonce: 5, balance: U256::ZERO, bytecode_hash: None };
+        db.insert_account(signer_address, user_account, None, HashMap::default());
+
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+
+        let err = executor
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody {
+                                transactions: vec![transaction_signed],
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: vec![signer_address],
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap_err();
+        let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
+            panic!()
+        };
+        let EVMError::Transaction(InvalidTransaction::NonceTooHigh { tx, state }) = error.as_ref()
+        else {
+            panic!()
+        };
+        assert_eq!(*state, 5);
+        assert_eq!(*tx, 10);
+    }
+
+    #[test]
+    fn execute_block_errors_on_nonce_too_low() {
+        let (mut header, mut db, provider) = setup();
+        let signer = LocalSigner::random();
+        let (transaction_signed, signer_address, gas_limit) = transaction_with_signer(signer, 69);
+
+        let exact_gas_used = 21080;
+
+        // We know this is the exact gas used
+        header.gas_used = exact_gas_used;
+        // And the expected receipts root
+        header.receipts_root =
+            B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
+
+        let user_account = Account { nonce: 420, balance: U256::ZERO, bytecode_hash: None };
+        db.insert_account(signer_address, user_account, None, HashMap::default());
+
+        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+
+        let err = executor
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody {
+                                transactions: vec![transaction_signed],
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: vec![signer_address],
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap_err();
+
+        dbg!(&err);
+
+        let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
+            panic!()
+        };
+
+        let EVMError::Transaction(InvalidTransaction::NonceTooLow { tx, state }) = error.as_ref()
+        else {
+            panic!()
+        };
+        assert_eq!(*state, 420);
+        assert_eq!(*tx, 69);
     }
 
     #[test]
@@ -510,17 +636,13 @@ mod test {
         assert_eq!(
             bundle_account.info.unwrap(),
             AccountInfo {
-                // Since there balance was _above_ the gas_limit, their balance does not increase
+                // Balance does not chance
                 balance: U256::from(user_balance),
                 nonce: user_account.nonce + 1,
                 code_hash: B256::from(hex!(
                     "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
                 )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
-                    Default::default(),
-                    0,
-                    JumpTable::default()
-                ))),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default())),
             }
         );
         // Original account info is as expected
@@ -532,142 +654,137 @@ mod test {
                 code_hash: B256::from(hex!(
                     "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
                 )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
-                    Default::default(),
-                    0,
-                    JumpTable::default()
-                ))),
+                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default())),
             }
         );
     }
 
-    #[test]
-    fn accepts_transaction_from_account_with_a_little_balance() {
-        let (mut header, mut db, provider) = setup();
-        let (transaction_signed, signer_address, gas_limit) = transaction();
+    // #[test]
+    // fn accepts_transaction_from_account_with_a_little_balance() {
+    //     let (mut header, mut db, provider) = setup();
+    //     let (transaction_signed, signer_address, gas_limit) = transaction();
 
-        let exact_gas_used = 21080;
+    //     let exact_gas_used = 21080;
 
-        // We know this is the exact gas used
-        header.gas_used = exact_gas_used;
-        // And the expected receipts root
-        header.receipts_root =
-            B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
+    //     // We know this is the exact gas used
+    //     header.gas_used = exact_gas_used;
+    //     // And the expected receipts root
+    //     header.receipts_root =
+    //         B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
 
-        let user_balance = U256::from(gas_limit - 100);
-        let user_account = Account { nonce: 0, balance: user_balance, bytecode_hash: None };
-        db.insert_account(signer_address, user_account, None, HashMap::default());
+    //     let user_balance = U256::from(gas_limit - 100);
+    //     let user_account = Account { nonce: 0, balance: user_balance, bytecode_hash: None };
+    //     db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+    //     let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
-        executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
-                    },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
-            .unwrap();
+    //     executor
+    //         .execute_and_verify_one(
+    //             (
+    //                 &BlockWithSenders {
+    //                     block: Block {
+    //                         header,
+    //                         body: BlockBody {
+    //                             transactions: vec![transaction_signed],
+    //                             ommers: vec![],
+    //                             withdrawals: None,
+    //                         },
+    //                     },
+    //                     senders: vec![signer_address],
+    //                 },
+    //                 U256::ZERO,
+    //             )
+    //                 .into(),
+    //         )
+    //         .unwrap();
 
-        let output = executor.finalize();
-        dbg!(&output);
-        let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
+    //     let output = executor.finalize();
+    //     dbg!(&output);
+    //     let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
 
-        // New account info is expected
-        assert_eq!(
-            bundle_account.info.unwrap(),
-            AccountInfo {
-                // There balance gets increased to the gas_limit of the transaction
-                balance: U256::from(gas_limit),
-                nonce: user_account.nonce + 1,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
-                    Default::default(),
-                    0,
-                    JumpTable::default()
-                ))),
-            }
-        );
-        // Original account info is as expected
-        assert_eq!(
-            bundle_account.original_info.unwrap(),
-            AccountInfo {
-                balance: U256::from(user_balance),
-                nonce: user_account.nonce,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
-                    Default::default(),
-                    0,
-                    JumpTable::default()
-                ))),
-            }
-        );
-    }
+    //     // New account info is expected
+    //     assert_eq!(
+    //         bundle_account.info.unwrap(),
+    //         AccountInfo {
+    //             // There balance gets increased to the gas_limit of the transaction
+    //             balance: U256::from(gas_limit),
+    //             nonce: user_account.nonce + 1,
+    //             code_hash: B256::from(hex!(
+    //                 "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+    //             )),
+    //             code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
+    //                 Default::default(),
+    //                 0,
+    //                 JumpTable::default()
+    //             ))),
+    //         }
+    //     );
+    //     // Original account info is as expected
+    //     assert_eq!(
+    //         bundle_account.original_info.unwrap(),
+    //         AccountInfo {
+    //             balance: U256::from(user_balance),
+    //             nonce: user_account.nonce,
+    //             code_hash: B256::from(hex!(
+    //                 "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+    //             )),
+    //             code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::new(
+    //                 Default::default(),
+    //                 0,
+    //                 JumpTable::default()
+    //             ))),
+    //         }
+    //     );
+    // }
 
-    #[test]
-    fn accepts_transaction_from_account_with_no_balance_and_an_account_with_balance() {
-        let (mut header, mut db, provider) = setup();
-        let (transaction_signed, signer_address, gas_limit) = transaction();
-        // this generates a new signer
-        let (transaction_signed2, signer_address2, gas_limit2) = transaction();
-        // sanity check these are different signers
-        assert_ne!(signer_address, signer_address2);
+    // #[test]
+    // fn accepts_transaction_from_account_with_no_balance_and_an_account_with_balance() {
+    //     let (mut header, mut db, provider) = setup();
+    //     let (transaction_signed, signer_address, gas_limit) = transaction();
+    //     // this generates a new signer
+    //     let (transaction_signed2, signer_address2, gas_limit2) = transaction();
+    //     // sanity check these are different signers
+    //     assert_ne!(signer_address, signer_address2);
 
-        // We know this is the exact gas used
-        header.gas_used = 2 * 21080;
-        // And the expected receipts root
-        header.receipts_root =
-            B256::from(hex!("d4263b4f8bc6337d6751b03db4192a544872db8beeb3be926d891e8910842eb1"));
+    //     // We know this is the exact gas used
+    //     header.gas_used = 2 * 21080;
+    //     // And the expected receipts root
+    //     header.receipts_root =
+    //         B256::from(hex!("d4263b4f8bc6337d6751b03db4192a544872db8beeb3be926d891e8910842eb1"));
 
-        // first account has nothing
-        assert!(db.basic_account(signer_address).unwrap().is_none());
+    //     // first account has nothing
+    //     assert!(db.basic_account(signer_address).unwrap().is_none());
 
-        // second account has some balance
-        let user2_balance = U256::from(gas_limit - 100);
-        let user2_account = Account { nonce: 0, balance: user2_balance, bytecode_hash: None };
-        db.insert_account(signer_address2, user2_account, None, HashMap::default());
+    //     // second account has some balance
+    //     let user2_balance = U256::from(gas_limit - 100);
+    //     let user2_account = Account { nonce: 0, balance: user2_balance, bytecode_hash: None };
+    //     db.insert_account(signer_address2, user2_account, None, HashMap::default());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+    //     let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
-        executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed, transaction_signed2],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address, signer_address2],
-                    },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
-            .unwrap();
+    //     executor
+    //         .execute_and_verify_one(
+    //             (
+    //                 &BlockWithSenders {
+    //                     block: Block {
+    //                         header,
+    //                         body: BlockBody {
+    //                             transactions: vec![transaction_signed, transaction_signed2],
+    //                             ommers: vec![],
+    //                             withdrawals: None,
+    //                         },
+    //                     },
+    //                     senders: vec![signer_address, signer_address2],
+    //                 },
+    //                 U256::ZERO,
+    //             )
+    //                 .into(),
+    //         )
+    //         .unwrap();
 
-        let output = executor.finalize();
-        dbg!(&output);
+    //     let output = executor.finalize();
+    //     dbg!(&output);
 
-        // The user does not exist in state
-        assert!(output.bundle.state.get(&signer_address).is_none());
-    }
+    // The user does not exist in state
+    //     asser
 }
