@@ -122,26 +122,22 @@ mod test {
     use alloy::primitives::{hex, Address, TxKind, B256};
     use reth::{
         chainspec::{ChainSpecBuilder, MAINNET},
+        core::primitives::SignedTransaction,
         primitives::{
             Account, Block, BlockBody, BlockWithSenders, EthereumHardfork, ForkCondition,
             Transaction,
         },
+        revm::db::{CacheDB, EmptyDBTyped},
     };
     use reth_evm::execute::{
         BatchExecutor, BlockExecutionError, BlockExecutorProvider, BlockValidationError,
+        ProviderError,
     };
     use reth_provider::AccountReader;
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
-    use reth::{
-        core::primitives::SignedTransaction,
-        revm::db::{CacheDB, EmptyDBTyped},
-    };
-    use reth_evm::execute::ProviderError;
     use revm::{
         db::states::account_status::AccountStatus as DbAccountStatus,
-        primitives::{
-            AccountInfo, EVMError, HashMap, InvalidTransaction,
-        },
+        primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction},
     };
 
     use k256::ecdsa::SigningKey;
