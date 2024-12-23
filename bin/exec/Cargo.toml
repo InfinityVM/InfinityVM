@@ -27,9 +27,8 @@ reth-provider = { workspace = true, features = ["test-utils"] }
 reth-revm = { workspace = true }
 reth-evm = { workspace = true }
 alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
-revm = "*"
+revm = { workspace = true }
 k256 = { workspace = true }
-
 
 # Hacks to play happy with reth types
 # We normally use the alloy facade crate, but a reth type expects some types from these crate
