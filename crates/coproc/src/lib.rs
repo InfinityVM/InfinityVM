@@ -1,6 +1,7 @@
 //! Coprocessor Node components.
 
 pub mod cli;
+pub mod config;
 pub mod event;
 pub mod gateway;
 pub mod intake;
@@ -10,6 +11,7 @@ pub mod node;
 pub mod queue;
 pub mod relayer;
 pub mod server;
+pub mod remote_db;
 pub mod writer;
 
 /// Default maximum bytes of DA allowed per job.

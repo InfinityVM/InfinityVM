@@ -33,6 +33,9 @@ pub enum Error {
     /// ELF with given program ID already exists in DB
     #[error("elf with program ID {0} already exists")]
     ElfAlreadyExists(String),
+    /// Remote DB error
+    #[error("remote db error: {0}")]
+    RemoteDb(#[from] tonic::transport::Error),
     /// Job already exists in DB
     #[error("job already exists")]
     JobAlreadyExists,
@@ -65,6 +68,7 @@ pub struct IntakeHandlers<S, D> {
     writer_tx: Sender<WriterMsg>,
     relay_tx: Sender<Relay>,
     unsafe_skip_program_id_check: bool,
+    config: crate::config::Config,
 }
 
 impl<S, D> Clone for IntakeHandlers<S, D>
@@ -80,6 +84,7 @@ where
             writer_tx: self.writer_tx.clone(),
             relay_tx: self.relay_tx.clone(),
             unsafe_skip_program_id_check: self.unsafe_skip_program_id_check,
+            config: self.config.clone(),
         }
     }
 }
@@ -98,6 +103,7 @@ where
         writer_tx: Sender<WriterMsg>,
         relay_tx: Sender<Relay>,
         unsafe_skip_program_id_check: bool,
+        config: crate::config::Config,
     ) -> Self {
         Self {
             db,
@@ -107,6 +113,7 @@ where
             writer_tx,
             relay_tx,
             unsafe_skip_program_id_check,
+            config,
         }
     }
 
@@ -150,7 +157,7 @@ where
     }
 
     /// Submit program ELF, save it in DB, and return program ID.
-    pub fn submit_elf(
+    pub async fn submit_elf(
         &self,
         elf: Vec<u8>,
         vm_type: i32,
@@ -175,12 +182,26 @@ where
             return Err(Error::ElfAlreadyExists(hex::encode(program_id.as_slice())));
         }
 
-        // Write the elf and make sure it completes before responding to the user.
+        // Write the elf to embedded DB and make sure it completes before continuing
         let (tx, rx) = oneshot::channel();
         self.writer_tx
-            .send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
+            .send((Write::Elf { vm_type, program_id: program_id.clone(), elf: elf.clone() }, Some(tx)))
             .expect("writer channel broken");
-        let _ = rx.blocking_recv();
+        let _ = rx.await;
+
+        // Store the ELF in remote DB
+        match crate::remote_db::RemoteElfClient::connect(&self.config.remote_db.endpoint).await {
+            Ok(mut client) => {
+                if let Err(e) = client.store_elf(program_id.clone(), elf, vm_type.into()).await {
+                    tracing::warn!("Failed to store ELF in remote DB: {}", e);
+                    // Continue since we already stored it in embedded DB
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Failed to connect to remote DB: {}", e);
+                // Continue since we already stored it in embedded DB
+            }
+        }
 
         Ok(program_id)
     }

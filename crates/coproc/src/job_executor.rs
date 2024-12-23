@@ -84,6 +84,7 @@ pub struct JobExecutor<S, D> {
     num_workers: usize,
     writer_tx: Sender<WriterMsg>,
     relay_tx: Sender<Relay>,
+    config: crate::config::Config,
 }
 
 impl<S, D> JobExecutor<S, D>
@@ -100,8 +101,9 @@ where
         num_workers: usize,
         writer_tx: Sender<WriterMsg>,
         relay_tx: Sender<Relay>,
+        config: crate::config::Config,
     ) -> Self {
-        Self { db, exec_queue_receiver, zk_executor, metrics, num_workers, writer_tx, relay_tx }
+        Self { db, exec_queue_receiver, zk_executor, metrics, num_workers, writer_tx, relay_tx, config }
     }
 
     /// Spawns `num_workers` worker tasks.
@@ -137,10 +139,11 @@ where
         writer_tx: Sender<WriterMsg>,
         relay_tx: Sender<Relay>,
     ) -> Result<(), Error> {
+        let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
         let writer_tx2 = writer_tx;
 
         while let Ok(mut job) = exec_queue_receiver.recv() {
-            let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone()) {
+            let elf_with_meta = match rt.block_on(Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone())) {
                 Ok(elf) => elf,
                 Err(_) => continue,
             };
@@ -162,27 +165,88 @@ where
         Err(Error::ExecQueueChannelClosed)
     }
 
-    fn get_elf(
+    async fn get_elf(
         db: &Arc<D>,
         job: &mut Job,
         metrics: &Arc<Metrics>,
         writer_tx: Sender<WriterMsg>,
     ) -> Result<ElfWithMeta, FailureReason> {
+        // Try embedded DB first
         match ivm_db::get_elf(db.clone(), &job.program_id).expect("DB reads cannot fail") {
             Some(elf) => Ok(elf),
             None => {
-                // TODO: include job ID in metrics
-                // https://github.com/InfinityVM/InfinityVM/issues/362
-                metrics.incr_job_err(&FailureReason::MissingElf.to_string());
-                // Update the job status
-                job.status = JobStatus {
-                    status: JobStatusType::Failed as i32,
-                    failure_reason: Some(FailureReason::MissingElf.to_string()),
-                    retries: 0,
-                };
-                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
+                // Try remote DB
+                match crate::remote_db::RemoteElfClient::connect(&self.config.remote_db.endpoint).await {
+                    Ok(mut client) => {
+                        match client.get_elf(job.program_id.clone()).await {
+                            Ok(Some((program_elf, vm_type))) => {
+                                // Cache the ELF in embedded DB
+                                let vm_type = VmType::try_from(vm_type)
+                                    .map_err(|_| {
+                                        metrics.incr_job_err(&FailureReason::MissingElf.to_string());
+                                        FailureReason::MissingElf
+                                    })?;
+                                
+                                let elf_with_meta = ElfWithMeta {
+                                    vm_type: vm_type as u8,
+                                    elf: program_elf,
+                                };
 
-                Err(FailureReason::DbErrMissingElf)
+                                // Store in embedded DB
+                                writer_tx
+                                    .send((
+                                        Write::Elf {
+                                            vm_type,
+                                            program_id: job.program_id.clone(),
+                                            elf: elf_with_meta.elf.clone(),
+                                        },
+                                        None,
+                                    ))
+                                    .expect("db writer broken");
+
+                                Ok(elf_with_meta)
+                            }
+                            Ok(None) => {
+                                // ELF not found in either DB
+                                metrics.incr_job_err(&FailureReason::MissingElf.to_string());
+                                job.status = JobStatus {
+                                    status: JobStatusType::Failed as i32,
+                                    failure_reason: Some(FailureReason::MissingElf.to_string()),
+                                    retries: 0,
+                                };
+                                writer_tx.send((Write::JobTable(job.clone()), None))
+                                    .expect("db writer broken");
+                                Err(FailureReason::DbErrMissingElf)
+                            }
+                            Err(e) => {
+                                // Remote DB error
+                                tracing::warn!("Error querying remote DB: {}", e);
+                                metrics.incr_job_err(&FailureReason::DbErrGetElf.to_string());
+                                job.status = JobStatus {
+                                    status: JobStatusType::Failed as i32,
+                                    failure_reason: Some(FailureReason::DbErrGetElf.to_string()),
+                                    retries: 0,
+                                };
+                                writer_tx.send((Write::JobTable(job.clone()), None))
+                                    .expect("db writer broken");
+                                Err(FailureReason::DbErrGetElf)
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        // Connection error
+                        tracing::warn!("Failed to connect to remote DB: {}", e);
+                        metrics.incr_job_err(&FailureReason::DbErrGetElf.to_string());
+                        job.status = JobStatus {
+                            status: JobStatusType::Failed as i32,
+                            failure_reason: Some(FailureReason::DbErrGetElf.to_string()),
+                            retries: 0,
+                        };
+                        writer_tx.send((Write::JobTable(job.clone()), None))
+                            .expect("db writer broken");
+                        Err(FailureReason::DbErrGetElf)
+                    }
+                }
             }
         }
     }
