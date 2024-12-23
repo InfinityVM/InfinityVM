@@ -226,7 +226,10 @@ mod test {
     #[test]
     fn evm_transact_with_account_creation() {
         let (transaction_signed, signer_address, _) = transaction();
-        let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
+        let mut db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
+
+        // Show that the account doesn't exist
+        assert!(db.basic(signer_address).unwrap().is_none());
 
         let evm_config = IvmEvmConfig::new(MAINNET.clone());
         let mut evm = evm_config.evm(db);
