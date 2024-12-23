@@ -225,7 +225,6 @@ mod test {
 
     #[test]
     fn evm_transact_with_account_creation() {
-        // let (header, db, provider) = setup();
         let (transaction_signed, signer_address, _) = transaction();
         let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
 
