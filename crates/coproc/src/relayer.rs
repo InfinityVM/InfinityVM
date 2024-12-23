@@ -76,7 +76,7 @@ pub struct RelayConfig {
     /// Number of required confirmations to wait before considering a result tx included on chain.
     pub confirmations: u64,
     /// Maximum number of retries for a job.
-    pub max_retries: u32,
+    pub dlq_max_retries: u32,
 }
 
 /// Relayer errors
@@ -132,7 +132,7 @@ pub struct RelayCoordinator<D> {
     relay_rx: Receiver<Relay>,
     job_relayer: Arc<JobRelayer>,
     db: Arc<D>,
-    max_retries: u32,
+    dlq_max_retries: u32,
     metrics: Arc<Metrics>,
 }
 
@@ -146,10 +146,10 @@ where
         relay_rx: Receiver<Relay>,
         job_relayer: Arc<JobRelayer>,
         db: Arc<D>,
-        max_retries: u32,
+        dlq_max_retries: u32,
         metrics: Arc<Metrics>,
     ) -> Self {
-        Self { writer_tx, relay_rx, job_relayer, db, max_retries, metrics }
+        Self { writer_tx, relay_rx, job_relayer, db, dlq_max_retries, metrics }
     }
 
     /// Start the relay coordinator
@@ -157,7 +157,7 @@ where
         let db = Arc::clone(&self.db);
         let job_relayer = Arc::clone(&self.job_relayer);
         let metrics = Arc::clone(&self.metrics);
-        let max_retries = self.max_retries;
+        let max_retries = self.dlq_max_retries;
         let writer_tx = self.writer_tx.clone();
         tokio::spawn(async move {
             Self::start_job_retry_task(db, job_relayer, metrics, max_retries, writer_tx).await
@@ -247,7 +247,7 @@ where
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
         metrics: Arc<Metrics>,
-        max_retries: u32,
+        dlq_max_retries: u32,
         writer_tx: Sender<WriterMsg>,
     ) -> Result<(), Error> {
         loop {
@@ -297,7 +297,7 @@ where
                         let _ = rx.await;
                     }
                     Err(e) => {
-                        if job.status.retries == max_retries {
+                        if job.status.retries == dlq_max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
                             jobs_to_delete.push(id);
                             info!(

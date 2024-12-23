@@ -124,9 +124,10 @@ struct Opts {
     #[arg(long, default_value_t = 3.max(num_cpus::get_physical() - 3))]
     worker_count: usize,
 
-    /// Max number of retries for relaying a job
+    /// Max number of retries for relaying a job in the dead letter queue (DLQ) before giving up. Note
+    /// that each job in the DLQ is tried once before trying again.
     #[arg(long, default_value_t = 3)]
-    max_retries: usize,
+    dlq_max_retries: usize,
 
     /// Max size for the exec queue
     #[arg(long, default_value_t = 256)]
@@ -196,7 +197,7 @@ impl Cli {
             worker_count: opts.worker_count,
             relay_config: RelayConfig {
                 confirmations: opts.confirmations,
-                max_retries: opts.max_retries as u32,
+                dlq_max_retries: opts.dlq_max_retries as u32,
             },
             ws_config: WsConfig {
                 ws_eth_rpc: opts.ws_eth_rpc,
