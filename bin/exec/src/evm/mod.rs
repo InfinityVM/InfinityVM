@@ -140,7 +140,7 @@ mod test {
     use revm::{
         db::states::account_status::AccountStatus as DbAccountStatus,
         primitives::{
-            AccountInfo, Bytecode, EVMError, HashMap, InvalidTransaction, LegacyAnalyzedBytecode,
+            AccountInfo, EVMError, HashMap, InvalidTransaction,
         },
     };
 
@@ -152,6 +152,8 @@ mod test {
     use alloy_consensus::TxEip1559;
     use alloy_network::TxSignerSync;
     use alloy_signer_local::LocalSigner;
+
+    const EXACT_GAS_USED: u64 = 21080;
 
     fn executor_provider(
         chain_spec: Arc<ChainSpec>,
@@ -199,8 +201,7 @@ mod test {
         signer: LocalSigner<SigningKey>,
         nonce: u64,
     ) -> (TransactionSigned, Address, u64) {
-        let exact_gas_used = 21080;
-        let gas_limit = exact_gas_used + 1_000;
+        let gas_limit = EXACT_GAS_USED + 1_000;
 
         // Create a TX with random data
         let transaction_signed = {
@@ -238,7 +239,7 @@ mod test {
 
         let result = evm.transact().unwrap();
 
-        assert_eq!(result.result.gas_used(), 21080);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
 
         let account = result.state.get(&signer_address).unwrap();
 
@@ -272,7 +273,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), 21080);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -294,7 +295,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), 21080);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -314,7 +315,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), 21080);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -333,7 +334,7 @@ mod test {
             transaction_signed4.recover_signer().unwrap(),
         );
 
-        assert_eq!(result.result.gas_used(), 21080);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
 
         let result = evm.transact().unwrap();
 
@@ -379,7 +380,7 @@ mod test {
         let (transaction_signed, signer_address, _gas_limit) = transaction();
 
         // We know this is the exact gas used
-        header.gas_used = 21080;
+        header.gas_used = EXACT_GAS_USED;
         // And the expected receipts root
         header.receipts_root =
             B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
@@ -422,7 +423,6 @@ mod test {
         let account = output.bundle.state.get(&signer_address).unwrap().clone();
         assert_eq!(account.info.unwrap(), expected);
         assert_eq!(account.status, DbAccountStatus::InMemoryChange);
-        // TODO: test multiple updates to same account
         assert_eq!(account.original_info, None);
     }
 
@@ -432,7 +432,7 @@ mod test {
         let signer = LocalSigner::random();
         let (transaction_signed, signer_address, _) = transaction_with_signer(signer, 10);
 
-        let exact_gas_used = 21080;
+        let exact_gas_used = EXACT_GAS_USED;
 
         // We know this is the exact gas used
         header.gas_used = exact_gas_used;
@@ -491,7 +491,7 @@ mod test {
         let signer = LocalSigner::random();
         let (transaction_signed, signer_address, _) = transaction_with_signer(signer, 10);
 
-        let exact_gas_used = 21080;
+        let exact_gas_used = EXACT_GAS_USED;
 
         // We know this is the exact gas used
         header.gas_used = exact_gas_used;
@@ -541,7 +541,7 @@ mod test {
         let signer = LocalSigner::random();
         let (transaction_signed, signer_address, _) = transaction_with_signer(signer, 69);
 
-        let exact_gas_used = 21080;
+        let exact_gas_used = EXACT_GAS_USED;
 
         // We know this is the exact gas used
         header.gas_used = exact_gas_used;
@@ -590,7 +590,7 @@ mod test {
         let (mut header, mut db, provider) = setup();
         let (transaction_signed, signer_address, gas_limit) = transaction();
 
-        let exact_gas_used = 21080;
+        let exact_gas_used = EXACT_GAS_USED;
 
         // We know this is the exact gas used
         header.gas_used = exact_gas_used;
@@ -635,10 +635,7 @@ mod test {
                 // Balance does not chance
                 balance: U256::from(user_balance),
                 nonce: user_account.nonce + 1,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default())),
+                ..Default::default()
             }
         );
         // Original account info is as expected
@@ -647,10 +644,7 @@ mod test {
             AccountInfo {
                 balance: U256::from(user_balance),
                 nonce: user_account.nonce,
-                code_hash: B256::from(hex!(
-                    "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
-                )),
-                code: Some(Bytecode::LegacyAnalyzed(LegacyAnalyzedBytecode::default())),
+                ..Default::default()
             }
         );
     }
@@ -660,7 +654,7 @@ mod test {
         let (mut header, mut db, provider) = setup();
         let (transaction_signed, signer_address, gas_limit) = transaction();
 
-        let exact_gas_used = 21080;
+        let exact_gas_used = EXACT_GAS_USED;
 
         // We know this is the exact gas used
         header.gas_used = exact_gas_used;
@@ -731,13 +725,10 @@ mod test {
         let (transaction_signed6, _, _) = transaction_with_signer(signer1, 7);
 
         // We know this is the exact gas used
-        header.gas_used = 6 * 21080;
+        header.gas_used = 6 * EXACT_GAS_USED;
         // And the expected receipts root
-        header.receipts_root = B256::from(hex!(
-            "
-            
-            ad6b6e2b36bd06ab7c61110083c396ab8bba9d62feb2e4b8c9c38513dcdff7ce"
-        ));
+        header.receipts_root =
+            B256::from(hex!("ad6b6e2b36bd06ab7c61110083c396ab8bba9d62feb2e4b8c9c38513dcdff7ce"));
 
         // first account has nothing
         assert!(db.basic_account(signer_address1).unwrap().is_none());
@@ -798,7 +789,6 @@ mod test {
         );
         // Original account info is as expected
         assert!(bundle_account1.original_info.is_none());
-        // TODO: why is this inmmemorychange while pre-existing account is change?
         assert_eq!(bundle_account1.status, DbAccountStatus::InMemoryChange,);
 
         let bundle_account2 = output.bundle.state.get(&signer_address2).unwrap().clone();
