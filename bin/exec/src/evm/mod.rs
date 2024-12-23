@@ -728,6 +728,8 @@ mod test {
         // And the expected receipts root
         header.receipts_root =
             B256::from(hex!("ad6b6e2b36bd06ab7c61110083c396ab8bba9d62feb2e4b8c9c38513dcdff7ce"));
+        // Set exact gas limit for the entire block
+        header.gas_limit = 5 * EXACT_GAS_USED + gas_limit;
 
         // first account has nothing
         assert!(db.basic_account(signer_address1).unwrap().is_none());
@@ -807,5 +809,77 @@ mod test {
             AccountInfo { balance: U256::from(user2_balance), nonce: 5, ..Default::default() }
         );
         assert_eq!(bundle_account2.status, DbAccountStatus::Changed);
+    }
+
+    #[test]
+    fn execute_block_errors_when_gas_limit_is_reached() {
+        let (mut header, db, provider) = setup();
+        let (transaction_signed1, signer_address1, gas_limit) = transaction();
+        let (transaction_signed2, signer_address2, _) = transaction();
+
+        // Set exact gas limit for the entire block - we expect this to work
+        header.gas_limit = EXACT_GAS_USED + gas_limit;
+        header.gas_used = 2 * EXACT_GAS_USED;
+        header.receipts_root =
+            B256::from(hex!("d4263b4f8bc6337d6751b03db4192a544872db8beeb3be926d891e8910842eb1"));
+
+        let transactions = vec![transaction_signed1, transaction_signed2];
+        let senders = vec![signer_address1, signer_address2];
+
+        // It works when the header has the exact gas used
+        provider
+            .batch_executor(StateProviderDatabase::new(&db))
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header: header.clone(),
+                            body: BlockBody {
+                                transactions: transactions.clone(),
+                                ommers: vec![],
+                                withdrawals: None,
+                            },
+                        },
+                        senders: senders.clone(),
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap();
+
+        // Set the header to have one less gwei then what we need - we expect this to error.
+        // The first transaction is fully processed and reth is able to account for the exact gas
+        // used. The second transaction is rejected when its gas limit is greater then the
+        // available gas.
+        header.gas_limit = EXACT_GAS_USED + gas_limit - 1;
+        let err = provider
+            .batch_executor(StateProviderDatabase::new(&db))
+            .execute_and_verify_one(
+                (
+                    &BlockWithSenders {
+                        block: Block {
+                            header,
+                            body: BlockBody { transactions, ommers: vec![], withdrawals: None },
+                        },
+                        senders,
+                    },
+                    U256::ZERO,
+                )
+                    .into(),
+            )
+            .unwrap_err();
+
+        let BlockExecutionError::Validation(
+            BlockValidationError::TransactionGasLimitMoreThanAvailableBlockGas {
+                transaction_gas_limit,
+                block_available_gas,
+            },
+        ) = err
+        else {
+            panic!()
+        };
+        assert_eq!(transaction_gas_limit, gas_limit);
+        assert_eq!(block_available_gas, gas_limit - 1);
     }
 }
