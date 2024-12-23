@@ -53,13 +53,14 @@ contract ClobConsumer is StatefulConsumer, SingleOffchainSigner {
     mapping(address => uint256) public lockedBalanceBase;
     mapping(address => uint256) public lockedBalanceQuote;
 
-    constructor(address jobManager, address offchainSigner, IERC20 _baseToken, IERC20 _quoteToken) StatefulConsumer(jobManager) SingleOffchainSigner(offchainSigner) {
+    constructor(IERC20 _baseToken, IERC20 _quoteToken) StatefulConsumer() SingleOffchainSigner() {
         baseToken = _baseToken;
         quoteToken = _quoteToken;
     }
 
-    function initialize(address initialOwner, uint64 initialMaxNonce, bytes32 initialStateRoot) public override initializer {
-        StatefulConsumer.initialize(initialOwner, initialMaxNonce, initialStateRoot);
+    function initialize(address initialOwner, address jobManager, uint64 initialMaxNonce, bytes32 initialStateRoot, address offchainSigner) public virtual initializer {
+        StatefulConsumer.initialize(initialOwner, jobManager, initialMaxNonce, initialStateRoot);
+        SingleOffchainSigner.initialize(offchainSigner);
     }
 
     // Getter functions for balances

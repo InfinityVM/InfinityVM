@@ -19,10 +19,9 @@ contract MatchingGameConsumer is StatefulConsumer, SingleOffchainSigner {
     // Mapping to store user --> partner
     mapping(address => address) public userToPartner;
 
-    constructor(address jobManager, address offchainSigner) StatefulConsumer(jobManager) SingleOffchainSigner(offchainSigner) {}
-
-    function initialize(address initialOwner, uint64 initialMaxNonce, bytes32 initialStateRoot) public override initializer {
-        StatefulConsumer.initialize(initialOwner, initialMaxNonce, initialStateRoot);
+    function initialize(address initialOwner, address jobManager, uint64 initialMaxNonce, bytes32 initialStateRoot, address offchainSigner) public virtual initializer {
+        StatefulConsumer.initialize(initialOwner, jobManager, initialMaxNonce, initialStateRoot);
+        SingleOffchainSigner.initialize(offchainSigner);
     }
 
     // Getter function for matched users

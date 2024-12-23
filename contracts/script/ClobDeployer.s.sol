@@ -6,13 +6,17 @@ import "forge-std/StdJson.sol";
 import {ClobConsumer} from "../src/clob/ClobConsumer.sol";
 import {Utils} from "./utils/Utils.sol";
 import {E2EMockERC20} from "../test/mocks/E2EMockERC20.sol";
+import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 
 // To deploy and verify:
 // forge script ClobDeployer.s.sol:ClobDeployer --sig "deployClobContracts(address offchainRequestSigner, uint64 initialMaxNonce, bool writeJson)" $OFFCHAIN_REQUEST_SIGNER $INITIAL_MAX_NONCE $WRITE_JSON --rpc-url $RPC_URL --private-key $PRIVATE_KEY --chain-id $CHAIN_ID --broadcast -v
 contract ClobDeployer is Script, Utils {
+    ClobConsumer public consumerImplementation;
     ClobConsumer public consumer;
-    E2EMockERC20 baseToken;
-    E2EMockERC20 quoteToken;
+    ProxyAdmin public proxyAdmin;
+    E2EMockERC20 public baseToken;
+    E2EMockERC20 public quoteToken;
 
     function deployClobContracts(address offchainRequestSigner, uint64 initialMaxNonce, bool writeJson) public {
         string memory coprocessorDeployedContracts = readOutput(
@@ -28,9 +32,32 @@ contract ClobDeployer is Script, Utils {
 
         baseToken = new E2EMockERC20("Token A", "WETH");
         quoteToken = new E2EMockERC20("Token B", "USDC");
+        
+        // Deploy implementation contract
+        consumerImplementation = new ClobConsumer(baseToken, quoteToken);
 
+        // Deploy ProxyAdmin
+        proxyAdmin = new ProxyAdmin();
+
+        // Prepare initialization data
         bytes32 initialLatestStateRoot = 0x0;
-        consumer = new ClobConsumer(jobManager, offchainRequestSigner, initialMaxNonce, baseToken, quoteToken, initialLatestStateRoot);
+        bytes memory initData = abi.encodeWithSelector(
+            ClobConsumer.initialize.selector,
+            msg.sender, // initial owner
+            jobManager,
+            initialMaxNonce,
+            initialLatestStateRoot,
+            offchainRequestSigner
+        );
+
+        // Deploy proxy contract
+        TransparentUpgradeableProxy proxyContract = new TransparentUpgradeableProxy(
+            address(consumerImplementation),
+            address(proxyAdmin),
+            initData
+        );
+
+        consumer = ClobConsumer(address(proxyContract));
 
         if (writeJson) {
             // WRITE JSON DATA
@@ -40,8 +67,20 @@ contract ClobDeployer is Script, Utils {
 
             vm.serializeAddress(
                 deployed_addresses,
+                "consumerImplementation",
+                address(consumerImplementation)
+            );
+
+            vm.serializeAddress(
+                deployed_addresses,
                 "consumer",
                 address(consumer)
+            );
+
+            vm.serializeAddress(
+                deployed_addresses,
+                "proxyAdmin",
+                address(proxyAdmin)
             );
 
             vm.serializeAddress(

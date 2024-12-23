@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 import {JobManager} from "./JobManager.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
-
+import {console} from "forge-std/console.sol";
 abstract contract Consumer is 
     Initializable,
     OwnableUpgradeable 
@@ -13,18 +13,14 @@ abstract contract Consumer is
         bytes32 offchainInputHash;
     }
     
-    JobManager internal immutable _jobManager;
+    JobManager internal _jobManager;
     uint64 public maxNonce;
     
     mapping(bytes32 => JobInputs) internal jobIDToInputs;
 
-    constructor(address __jobManager) {
-        _jobManager = JobManager(__jobManager);
-        _disableInitializers();
-    }
-
-    function initialize(address initialOwner, uint64 initialMaxNonce) public virtual initializer {
+    function initialize(address initialOwner, address jobManager, uint64 initialMaxNonce) public virtual onlyInitializing {
         _transferOwnership(initialOwner);
+        _jobManager = JobManager(jobManager);
         maxNonce = initialMaxNonce;
     }
 

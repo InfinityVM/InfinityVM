@@ -20,17 +20,14 @@ abstract contract StatefulConsumer is Consumer {
 
     bytes32 public latestStateRoot;
 
-    constructor(address __jobManager) Consumer(__jobManager) {
-        _disableInitializers();
-    }
-
     function initialize(
         address initialOwner,
+        address jobManager,
         uint64 initialMaxNonce,
         bytes32 initialStateRoot
-    ) public virtual initializer {
+    ) public virtual onlyInitializing {
         // Call parent initializer
-        Consumer.initialize(initialOwner, initialMaxNonce);
+        Consumer.initialize(initialOwner, jobManager, initialMaxNonce);
         
         // Initialize StatefulConsumer state
         latestStateRoot = initialStateRoot;
