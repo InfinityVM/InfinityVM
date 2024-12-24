@@ -10,6 +10,7 @@ use std::path::PathBuf;
 
 pub mod config;
 pub mod engine;
+pub mod evm;
 pub mod pool;
 
 /// RPC add on that includes [`IvmEngineValidatorBuilder`].
