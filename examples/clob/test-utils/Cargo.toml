@@ -12,3 +12,4 @@ tokio = { workspace = true }
 clob-core = { workspace = true }
 clob-contracts = { workspace = true }
 ivm-test-utils = { workspace = true }
+ivm-contracts = { workspace = true }

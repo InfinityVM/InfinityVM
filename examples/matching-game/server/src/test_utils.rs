@@ -10,8 +10,10 @@ use alloy::{
         local::{LocalSigner, PrivateKeySigner},
     },
 };
+use ivm_contracts::{
+    proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
+};
 use ivm_test_utils::{get_signers, AnvilJobManager};
-
 /// Local Signer
 pub type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -49,17 +51,33 @@ pub async fn matching_game_consumer_deploy(
 
     let init_state_hash: [u8; 32] = Default::default();
 
-    // Deploy the matching game consumer
-    let matching_game_consumer = *MatchingGameConsumer::deploy(
-        provider,
+    // Deploy matching game consumer implementation
+    let matching_game_consumer_impl = MatchingGameConsumer::deploy(provider.clone()).await.unwrap();
+
+    // Deploy proxy admin
+    let proxy_admin = ProxyAdmin::deploy(provider.clone()).await.unwrap();
+
+    let initializer = matching_game_consumer_impl.initialize_2(
+        consumer_owner.address(),
         *job_manager,
-        matching_game_signer.address(),
         0,
         init_state_hash.into(),
+        matching_game_signer.address(),
+    );
+    let initializer_calldata = initializer.calldata();
+
+    // Deploy a proxy contract for MatchingGameConsumer
+    let matching_game_consumer = TransparentUpgradeableProxy::deploy(
+        &provider,
+        *matching_game_consumer_impl.address(),
+        *proxy_admin.address(),
+        initializer_calldata.clone(),
     )
     .await
-    .unwrap()
-    .address();
+    .unwrap();
 
-    AnvilMatchingGame { matching_game_signer, matching_game_consumer }
+    AnvilMatchingGame {
+        matching_game_signer,
+        matching_game_consumer: *matching_game_consumer.address(),
+    }
 }
