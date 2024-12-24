@@ -27,6 +27,10 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }
 
+    function testFailWhen_Consumer_InitializeTwice() public {
+        consumer.initialize(address(0), address(0), 0, address(0));
+    }
+
     function test_JobManager_CreateJob() public {
         assertEq(consumer.getNextNonce(), DEFAULT_NONCE);
         vm.expectEmit(true, true, true, true);
