@@ -114,7 +114,7 @@ impl E2E {
             http_eth_rpc: http_rpc_url.clone(),
             job_manager_address: anvil.job_manager,
             worker_count: 2,
-            relay_config: RelayConfig { confirmations: 1, dlq_max_retries: 1 },
+            relay_config: RelayConfig { confirmations: 1, dlq_max_retries: 0, initial_relay_max_retries: 1 },
             ws_config: WsConfig {
                 ws_eth_rpc: ws_rpc_url.clone(),
                 backoff_limit_ms: 1000,
