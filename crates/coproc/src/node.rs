@@ -172,7 +172,8 @@ where
             relay_rx,
             job_relayer.clone(),
             db.clone(),
-            relay_config.max_retries,
+            relay_config.dlq_max_retries,
+            relay_config.initial_relay_max_retries,
             metrics.clone(),
         );
         tokio::spawn(async move { relay_coordinator.start().await })

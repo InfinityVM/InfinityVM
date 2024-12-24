@@ -37,7 +37,8 @@ use tracing::{error, info};
 
 /// Delay between retrying failed jobs, in milliseconds.
 const JOB_RETRY_DELAY_MS: u64 = 500;
-const JOB_RETRY_COUNT: usize = 3;
+/// Max duration between retries in `relay_job_result`.
+const JOB_RETRY_MAX_DELAY_MS: u64 = 30 * 1_000;
 
 type RecommendedFiller = alloy::providers::fillers::JoinFill<
     alloy::providers::Identity,
@@ -75,8 +76,10 @@ const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
 pub struct RelayConfig {
     /// Number of required confirmations to wait before considering a result tx included on chain.
     pub confirmations: u64,
-    /// Maximum number of retries for a job.
-    pub max_retries: u32,
+    /// Maximum number of retries for a job in the dead letter queue.
+    pub dlq_max_retries: u32,
+    /// Maximum number of retries when initially attempting to relay a job.
+    pub initial_relay_max_retries: u32,
 }
 
 /// Relayer errors
@@ -132,7 +135,8 @@ pub struct RelayCoordinator<D> {
     relay_rx: Receiver<Relay>,
     job_relayer: Arc<JobRelayer>,
     db: Arc<D>,
-    max_retries: u32,
+    dlq_max_retries: u32,
+    initial_relay_max_retries: u32,
     metrics: Arc<Metrics>,
 }
 
@@ -146,10 +150,19 @@ where
         relay_rx: Receiver<Relay>,
         job_relayer: Arc<JobRelayer>,
         db: Arc<D>,
-        max_retries: u32,
+        dlq_max_retries: u32,
+        initial_relay_max_retries: u32,
         metrics: Arc<Metrics>,
     ) -> Self {
-        Self { writer_tx, relay_rx, job_relayer, db, max_retries, metrics }
+        Self {
+            writer_tx,
+            relay_rx,
+            job_relayer,
+            db,
+            dlq_max_retries,
+            metrics,
+            initial_relay_max_retries,
+        }
     }
 
     /// Start the relay coordinator
@@ -157,7 +170,7 @@ where
         let db = Arc::clone(&self.db);
         let job_relayer = Arc::clone(&self.job_relayer);
         let metrics = Arc::clone(&self.metrics);
-        let max_retries = self.max_retries;
+        let max_retries = self.dlq_max_retries;
         let writer_tx = self.writer_tx.clone();
         tokio::spawn(async move {
             Self::start_job_retry_task(db, job_relayer, metrics, max_retries, writer_tx).await
@@ -180,8 +193,15 @@ where
                         let relayer2 = self.job_relayer.clone();
                         let writer_tx2 = self.writer_tx.clone();
                         tokio::spawn(async move {
-                            Self::start_queue_poller(consumer, queues2, relayer2, writer_tx2, db2)
-                                .await
+                            Self::start_queue_poller(
+                                consumer,
+                                queues2,
+                                relayer2,
+                                writer_tx2,
+                                db2,
+                                self.initial_relay_max_retries,
+                            )
+                            .await
                         });
                     };
                 }
@@ -193,7 +213,13 @@ where
                             let job_relayer2 = self.job_relayer.clone();
                             let writer_tx2 = self.writer_tx.clone();
                             tokio::spawn(async move {
-                                Self::relay_job_result(*job, job_relayer2, writer_tx2.clone()).await
+                                Self::relay_job_result(
+                                    *job,
+                                    job_relayer2,
+                                    writer_tx2.clone(),
+                                    self.initial_relay_max_retries,
+                                )
+                                .await
                             });
                         }
                         RelayStrategy::Ordered => {
@@ -213,6 +239,7 @@ where
         relayer: Arc<JobRelayer>,
         writer_tx: Sender<WriterMsg>,
         db: Arc<D>,
+        initial_relay_max_retries: u32,
     ) {
         let mut interval = interval(Duration::from_millis(100));
         // The first tick is immediate
@@ -220,7 +247,7 @@ where
 
         while let Some(job_id) = queues.peek_front(consumer) {
             interval.tick().await;
-            let job = match get_job(db.clone(), job_id).expect("job get db error") {
+            let job = match get_job(db.clone(), job_id).await.expect("job get db error") {
                 Some(job) => job,
                 // Edge case where the job has not been written yet
                 None => continue,
@@ -238,7 +265,13 @@ where
                 _ => continue,
             }
 
-            let _ = Self::relay_job_result(job, relayer.clone(), writer_tx.clone()).await;
+            let _ = Self::relay_job_result(
+                job,
+                relayer.clone(),
+                writer_tx.clone(),
+                initial_relay_max_retries,
+            )
+            .await;
         }
     }
 
@@ -247,14 +280,14 @@ where
         db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
         metrics: Arc<Metrics>,
-        max_retries: u32,
+        dlq_max_retries: u32,
         writer_tx: Sender<WriterMsg>,
     ) -> Result<(), Error> {
         loop {
             // Jobs that we no longer want to retry
             let mut jobs_to_delete = Vec::new();
 
-            let retry_jobs = match get_all_failed_jobs(db.clone()) {
+            let retry_jobs = match get_all_failed_jobs(db.clone()).await {
                 Ok(jobs) => jobs,
                 Err(e) => {
                     error!("error retrieving relay error jobs: {:?}", e);
@@ -297,7 +330,7 @@ where
                         let _ = rx.await;
                     }
                     Err(e) => {
-                        if job.status.retries == max_retries {
+                        if job.status.retries == dlq_max_retries {
                             metrics.incr_relay_err(&FailureReason::RelayErrExceedRetry.to_string());
                             jobs_to_delete.push(id);
                             info!(
@@ -339,11 +372,12 @@ where
     }
 
     /// Relay the job result, and if the transaction fails record it in the DLQ.
-    /// We retry the transaction [`JOB_RETRY_COUNT`] times.
+    /// We retry the transaction `initial_relay_max_retries` times.
     async fn relay_job_result(
         mut job: Job,
         job_relayer: Arc<JobRelayer>,
         writer_tx: Sender<WriterMsg>,
+        initial_relay_max_retries: u32,
     ) -> Result<(), FailureReason> {
         let id = job.id;
 
@@ -360,10 +394,15 @@ where
                 }
             };
 
-            if i > JOB_RETRY_COUNT + 1 {
+            if i > initial_relay_max_retries + 1 {
                 break relay_receipt_result
             } else if relay_receipt_result.is_err() {
-                let backoff = JOB_RETRY_DELAY_MS * i as u64;
+                let calc_backoff = JOB_RETRY_DELAY_MS * i as u64;
+                let backoff = if calc_backoff > JOB_RETRY_MAX_DELAY_MS {
+                    JOB_RETRY_MAX_DELAY_MS
+                } else {
+                    calc_backoff
+                };
                 tokio::time::sleep(Duration::from_millis(backoff)).await;
             } else {
                 break relay_receipt_result

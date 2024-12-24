@@ -5032,6 +5032,7 @@ dependencies = [
  "sha2 0.10.8",
  "tempfile",
  "thiserror 1.0.69",
+ "tokio",
 ]
 
 [[package]]
