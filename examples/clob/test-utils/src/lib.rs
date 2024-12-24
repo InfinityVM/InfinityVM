@@ -79,21 +79,22 @@ pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> Anv
     // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
     let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
 
-    // Deploy the clob consumer
-    let clob_consumer = *ClobConsumer::deploy(
-        provider,
-        *job_manager,
-        clob_signer.address(),
-        0,
-        base_erc20,
-        quote_erc20,
-        init_state_hash.into(),
-    )
-    .await
-    .unwrap()
-    .address();
+    // TODO (Maanav): Fix
+    // // Deploy the clob consumer
+    // let clob_consumer = *ClobConsumer::deploy(
+    //     provider,
+    //     *job_manager,
+    //     clob_signer.address(),
+    //     0,
+    //     base_erc20,
+    //     quote_erc20,
+    //     init_state_hash.into(),
+    // )
+    // .await
+    // .unwrap()
+    // .address();
 
-    AnvilClob { clob_signer, clob_consumer, quote_erc20, base_erc20 }
+    AnvilClob { clob_signer, clob_consumer: Address::ZERO, quote_erc20, base_erc20 }
 }
 
 /// Mint erc20s and approve transfers to the first `count` anvil auto seeded accounts.

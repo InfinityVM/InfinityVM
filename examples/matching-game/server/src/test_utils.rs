@@ -49,17 +49,18 @@ pub async fn matching_game_consumer_deploy(
 
     let init_state_hash: [u8; 32] = Default::default();
 
+    // TODO (Maanav): Fix
     // Deploy the matching game consumer
-    let matching_game_consumer = *MatchingGameConsumer::deploy(
-        provider,
-        *job_manager,
-        matching_game_signer.address(),
-        0,
-        init_state_hash.into(),
-    )
-    .await
-    .unwrap()
-    .address();
+    // let matching_game_consumer = *MatchingGameConsumer::deploy(
+    //     provider,
+    //     *job_manager,
+    //     matching_game_signer.address(),
+    //     0,
+    //     init_state_hash.into(),
+    // )
+    // .await
+    // .unwrap()
+    // .address();
 
-    AnvilMatchingGame { matching_game_signer, matching_game_consumer }
+    AnvilMatchingGame { matching_game_signer, matching_game_consumer: Address::ZERO }
 }
