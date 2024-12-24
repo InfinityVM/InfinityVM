@@ -124,13 +124,13 @@ struct Opts {
     #[arg(long, default_value_t = 3.max(num_cpus::get_physical() - 3))]
     worker_count: usize,
 
-    /// Max number of retries for relaying a job in the dead letter queue (DLQ) before giving up. Note
-    /// that each job in the DLQ is tried once before trying again.
+    /// Max number of retries for relaying a job in the dead letter queue (DLQ) before giving up.
+    /// Note that each job in the DLQ is tried once before trying again.
     #[arg(long, default_value_t = 3)]
     dlq_max_retries: usize,
 
-
-    /// Max number of retries when initially attempting to relay a job. If a job fails this many times it will be added to the DLQ.
+    /// Max number of retries when initially attempting to relay a job. If a job fails this many
+    /// times it will be added to the DLQ.
     #[arg(long, default_value_t = 1_000)]
     initial_relay_max_retries: usize,
 

@@ -39,27 +39,50 @@ pub enum Error {
 }
 
 /// Read in an ELF file from the database. [None] if it does not exist
-pub fn get_elf<D: Database>(db: Arc<D>, program_id: &[u8]) -> Result<Option<ElfWithMeta>, Error> {
+#[inline(always)]
+pub fn get_elf_sync<D: Database>(
+    db: Arc<D>,
+    program_id: &[u8],
+) -> Result<Option<ElfWithMeta>, Error> {
     db.view(|tx| tx.get::<ElfTable>(Sha256Key::new(program_id)))?.map_err(Into::into)
 }
 
 /// Read in an Job from the database. [None] if it does not exist
-pub fn get_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
+#[inline(always)]
+pub fn get_job_sync<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
     db.view(|tx| tx.get::<JobTable>(B256Key(job_id)))?.map_err(Into::into)
 }
 
+/// Read in an Job from the database. [None] if it does not exist
+#[inline(always)]
+pub async fn get_job<D: Database + 'static>(
+    db: Arc<D>,
+    job_id: [u8; 32],
+) -> Result<Option<Job>, Error> {
+    tokio::task::spawn_blocking(move || get_job_sync(db, job_id))
+        .await
+        .expect("tokio spawn block should work. qed.")
+}
+
 /// Read last block height from the database.
-pub fn get_last_block_height<D: Database>(db: Arc<D>) -> Result<Option<u64>, Error> {
+#[inline(always)]
+pub fn get_last_block_height_sync<D: Database>(db: Arc<D>) -> Result<Option<u64>, Error> {
     db.view(|tx| tx.get::<LastBlockHeight>(LAST_HEIGHT_KEY))?.map_err(Into::into)
 }
 
-/// Read in a failed relayed Job from the database. [None] if it does not exist
-pub fn get_fail_relay_job<D: Database>(db: Arc<D>, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-    db.view(|tx| tx.get::<RelayFailureJobs>(B256Key(job_id)))?.map_err(Into::into)
+/// Read last block height from the database.
+#[inline(always)]
+pub async fn get_last_block_height<D: Database + 'static>(
+    db: Arc<D>,
+) -> Result<Option<u64>, Error> {
+    tokio::task::spawn_blocking(move || get_last_block_height_sync(db))
+        .await
+        .expect("tokio spawn block should work. qed.")
 }
 
 /// Read all failed relayed Jobs from the database. [None] if it does not exist
-pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
+#[inline(always)]
+pub fn get_all_failed_jobs_sync<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
     db.view(|tx| -> Result<Vec<Job>, DatabaseError> {
         let mut failed_jobs = Vec::new();
         let mut cursor = tx.cursor_read::<RelayFailureJobs>()?;
@@ -71,6 +94,14 @@ pub fn get_all_failed_jobs<D: Database>(db: Arc<D>) -> Result<Vec<Job>, Error> {
         Ok(failed_jobs)
     })?
     .map_err(Into::into)
+}
+
+/// Read all failed relayed Jobs from the database. [None] if it does not exist
+#[inline(always)]
+pub async fn get_all_failed_jobs<D: Database + 'static>(db: Arc<D>) -> Result<Vec<Job>, Error> {
+    tokio::task::spawn_blocking(move || get_all_failed_jobs_sync(db))
+        .await
+        .expect("tokio spawn block should work. qed.")
 }
 
 /// Open a DB at `path`. Creates the DB if it does not exist.

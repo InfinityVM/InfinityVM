@@ -168,7 +168,7 @@ where
         metrics: &Arc<Metrics>,
         writer_tx: Sender<WriterMsg>,
     ) -> Result<ElfWithMeta, FailureReason> {
-        match ivm_db::get_elf(db.clone(), &job.program_id).expect("DB reads cannot fail") {
+        match ivm_db::get_elf_sync(db.clone(), &job.program_id).expect("DB reads cannot fail") {
             Some(elf) => Ok(elf),
             None => {
                 // TODO: include job ID in metrics
