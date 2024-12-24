@@ -5,8 +5,7 @@
 //! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
 
 use crate::{
-    relayer::Relay,
-    writer::{Write, WriterMsg},
+    actor::JobActorSpawner, relayer::Relay, writer::{Write, WriterMsg}
 };
 use alloy::{
     hex,
@@ -20,6 +19,7 @@ use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::sync::Arc;
 use tokio::sync::oneshot;
+use dashmap::DashMap;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -59,12 +59,13 @@ pub enum Error {
 #[derive(Debug)]
 pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
-    exec_queue_sender: Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
     writer_tx: Sender<WriterMsg>,
     relay_tx: Sender<Relay>,
     unsafe_skip_program_id_check: bool,
+    job_actor_spawner: JobActorSpawner,
+    active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
 }
 
 impl<S, D> Clone for IntakeHandlers<S, D>
@@ -74,12 +75,13 @@ where
     fn clone(&self) -> Self {
         Self {
             db: self.db.clone(),
-            exec_queue_sender: self.exec_queue_sender.clone(),
             zk_executor: self.zk_executor.clone(),
             max_da_per_job: self.max_da_per_job,
             writer_tx: self.writer_tx.clone(),
             relay_tx: self.relay_tx.clone(),
             unsafe_skip_program_id_check: self.unsafe_skip_program_id_check,
+            job_actor_spawner: self.job_actor_spawner.clone(),
+            active_actors: self.active_actors.clone(),
         }
     }
 }
@@ -90,27 +92,30 @@ where
     D: Database + 'static,
 {
     /// Create an instance of [Self].
-    pub const fn new(
+    pub fn new(
         db: Arc<D>,
-        exec_queue_sender: Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
         writer_tx: Sender<WriterMsg>,
         relay_tx: Sender<Relay>,
         unsafe_skip_program_id_check: bool,
+        job_actor_spawner: JobActorSpawner,
     ) -> Self {
         Self {
             db,
-            exec_queue_sender,
             zk_executor,
             max_da_per_job,
             writer_tx,
             relay_tx,
             unsafe_skip_program_id_check,
+            job_actor_spawner,
+            active_actors: Arc::new(DashMap::new())
         }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
+    /// 
+    /// Caution: this assumes the consumer address has already been validated to be exactly 20 bytes.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         if job.offchain_input.len() > self.max_da_per_job {
             return Err(Error::OffchainInputOverMaxDAPerJob);
@@ -131,19 +136,15 @@ where
             .await
             .expect("db writer broken");
 
-        if job.relay_strategy == RelayStrategy::Ordered {
-            let consumer = job
-                .consumer_address
-                .clone()
-                .try_into()
-                .expect("we checked for valid address length");
-            self.relay_tx
-                .send_async(Relay::Queue { consumer, job_id: job.id })
-                .await
-                .expect("relay channel broken");
-        };
+        let consumer_address: [u8; 20] = job.consumer_address.clone().try_into().expect("caller must validate address length.");
+        let actor_tx = self.active_actors.entry(consumer_address).or_insert_with(|| {
+            // If an entry doesn't exist, that means there is no actor for this consumer
+            self.job_actor_spawner.spawn()
+        });
+        // Send the job to actor for processing
+        actor_tx.send_async(job).await;
 
-        self.exec_queue_sender.send_async(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
+        // Before responding, make sure the write completes
         let _ = db_write_complete_rx.await;
 
         Ok(())
