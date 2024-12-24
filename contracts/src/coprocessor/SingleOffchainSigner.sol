@@ -3,12 +3,15 @@ pragma solidity ^0.8.13;
 
 import {OffchainRequester} from "./OffchainRequester.sol";
 import {ECDSA} from "solady/utils/ECDSA.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
+import {console} from "forge-std/console.sol";
 
 // SingleOffchainSigner allows a single offchainSigner address to sign all offchain job requests
 abstract contract SingleOffchainSigner is OffchainRequester {
     address private offchainSigner;
 
-    constructor(address _offchainSigner) OffchainRequester() {
+    function initialize(address _offchainSigner) public virtual onlyInitializing {
         offchainSigner = _offchainSigner;
     }
 
