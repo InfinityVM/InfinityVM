@@ -34,25 +34,20 @@ contract MatchingGameDeployer is Script, Utils {
         // Deploy ProxyAdmin
         proxyAdmin = new ProxyAdmin();
 
-        // Prepare initialization data
         bytes32 initialLatestStateRoot = 0x0;
-        bytes memory initData = abi.encodeWithSelector(
-            MatchingGameConsumer.initialize.selector,
-            msg.sender, // initial owner
-            jobManager,
-            initialMaxNonce,
-            initialLatestStateRoot,
-            offchainRequestSigner
-        );
-
         // Deploy proxy contract
-        TransparentUpgradeableProxy proxyContract = new TransparentUpgradeableProxy(
+        consumer = MatchingGameConsumer(address(new TransparentUpgradeableProxy(
             address(consumerImplementation),
             address(proxyAdmin),
-            initData
-        );
-
-        consumer = MatchingGameConsumer(address(proxyContract));
+            abi.encodeWithSelector(
+                MatchingGameConsumer.initialize.selector,
+                msg.sender, // initial owner
+                jobManager,
+                initialMaxNonce,
+                initialLatestStateRoot,
+                offchainRequestSigner
+            )
+        )));
 
         if (writeJson) {
             // WRITE JSON DATA

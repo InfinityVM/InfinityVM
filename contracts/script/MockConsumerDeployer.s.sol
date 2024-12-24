@@ -39,35 +39,17 @@ contract MockConsumerDeployer is Script, Utils {
         consumerImplementation = new MockConsumer();
 
         // Deploy proxy contract
-        bytes memory initData = abi.encodeWithSelector(
-            MockConsumer.initialize.selector,
-            msg.sender, // initial owner
-            jobManager,
-            initialMaxNonce,
-            offchainSigner
-        );
         consumer = MockConsumer(address(new TransparentUpgradeableProxy(
             address(consumerImplementation),
             address(proxyAdmin),
-            initData
+            abi.encodeWithSelector(
+                MockConsumer.initialize.selector,
+                msg.sender, // initial owner
+                jobManager,
+                initialMaxNonce,
+                offchainSigner
+            )
         )));
-
-        // proxyAdmin.upgradeAndCall(
-        //     TransparentUpgradeableProxy(
-        //         payable(address(consumer))
-        //     ),
-        //     address(consumerImplementation),
-        //     abi.encodeWithSelector(
-        //         MockConsumer.initialize.selector,
-        //         msg.sender, // initial owner
-        //         jobManager,
-        //         initialMaxNonce,
-        //         offchainSigner
-        //     )
-        // );
-
-        // // Create interface to proxy
-        // consumer = MockConsumer(address(proxyContract));
 
         if (writeJson) {
             string memory parent_object = "parent object";

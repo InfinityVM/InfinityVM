@@ -34,30 +34,27 @@ contract ClobDeployer is Script, Utils {
         quoteToken = new E2EMockERC20("Token B", "USDC");
         
         // Deploy implementation contract
-        consumerImplementation = new ClobConsumer(baseToken, quoteToken);
+        consumerImplementation = new ClobConsumer();
 
         // Deploy ProxyAdmin
         proxyAdmin = new ProxyAdmin();
 
-        // Prepare initialization data
         bytes32 initialLatestStateRoot = 0x0;
-        bytes memory initData = abi.encodeWithSelector(
-            ClobConsumer.initialize.selector,
-            msg.sender, // initial owner
-            jobManager,
-            initialMaxNonce,
-            initialLatestStateRoot,
-            offchainRequestSigner
-        );
-
         // Deploy proxy contract
-        TransparentUpgradeableProxy proxyContract = new TransparentUpgradeableProxy(
+        consumer = ClobConsumer(address(new TransparentUpgradeableProxy(
             address(consumerImplementation),
             address(proxyAdmin),
-            initData
-        );
-
-        consumer = ClobConsumer(address(proxyContract));
+            abi.encodeWithSelector(
+                ClobConsumer.initialize.selector,
+                msg.sender, // initial owner
+                jobManager,
+                initialMaxNonce,
+                initialLatestStateRoot,
+                offchainRequestSigner,
+                baseToken,
+                quoteToken
+            )
+        )));
 
         if (writeJson) {
             // WRITE JSON DATA

@@ -26,26 +26,26 @@ contract MatchingGameTest is Test, CoprocessorDeployer, MatchingGameDeployer {
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }
 
-    // function test_MatchingGameConsumer_ProcessMatches() public {
-    //     // Explicitly define the size of the array
-    //     MatchingGameConsumer.Match[] memory matches = new MatchingGameConsumer.Match[](1);
-    //     matches[0] = MatchingGameConsumer.Match({user1: alice, user2: bob});
+    function test_MatchingGameConsumer_ProcessMatches() public {
+        // Explicitly define the size of the array
+        MatchingGameConsumer.Match[] memory matches = new MatchingGameConsumer.Match[](1);
+        matches[0] = MatchingGameConsumer.Match({user1: alice, user2: bob});
 
-    //     StatefulConsumer.StatefulAppResult memory matchingGameResult = StatefulConsumer.StatefulAppResult({
-    //         outputStateRoot: 0x0,
-    //         result: abi.encode(matches)
-    //     });
+        StatefulConsumer.StatefulAppResult memory matchingGameResult = StatefulConsumer.StatefulAppResult({
+            outputStateRoot: 0x0,
+            result: abi.encode(matches)
+        });
 
-    //     bytes memory encodedResult = abi.encode(matchingGameResult);
+        bytes memory encodedResult = abi.encode(matchingGameResult);
         
-    //     // Set the onchain input for the job here so we pass the StatefulConsumer state root check
-    //     vm.prank(address(jobManager));
-    //     consumer.setInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""), 0x0);
+        // Set the onchain input for the job here so we pass the StatefulConsumer state root check
+        vm.prank(address(jobManager));
+        consumer.setInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""), 0x0);
 
-    //     vm.prank(address(jobManager));
-    //     consumer.receiveResult(DEFAULT_JOB_ID, encodedResult);
+        vm.prank(address(jobManager));
+        consumer.receiveResult(DEFAULT_JOB_ID, encodedResult);
 
-    //     assertEq(consumer.getPartner(alice), bob);
-    //     assertEq(consumer.getPartner(bob), alice);
-    // }
+        assertEq(consumer.getPartner(alice), bob);
+        assertEq(consumer.getPartner(bob), alice);
+    }
 }

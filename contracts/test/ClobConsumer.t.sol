@@ -37,153 +37,153 @@ contract ClobConsumerTest is Test, CoprocessorDeployer, ClobDeployer {
         quoteToken.approve(address(consumer), 1000 ether);
     }
 
-    // function test_ClobConsumer_DepositInitiated() public {
-    //     vm.prank(alice);
-    //     vm.expectEmit(true, true, true, false);
-    //     emit Deposit(alice, 200, 0);
-    //     consumer.deposit(200, 0);
-    //     vm.prank(bob);
-    //     vm.expectEmit(true, true, true, false);
-    //     emit Deposit(bob, 0, 800);
-    //     consumer.deposit(0, 800);
+    function test_ClobConsumer_DepositInitiated() public {
+        vm.prank(alice);
+        vm.expectEmit(true, true, true, false);
+        emit Deposit(alice, 200, 0);
+        consumer.deposit(200, 0);
+        vm.prank(bob);
+        vm.expectEmit(true, true, true, false);
+        emit Deposit(bob, 0, 800);
+        consumer.deposit(0, 800);
 
-    //     assertEq(consumer.getDepositedBalanceBase(alice), 200);
-    //     assertEq(consumer.getDepositedBalanceQuote(bob), 800);
-    //     assertEq(baseToken.balanceOf(alice), 800);
-    //     assertEq(quoteToken.balanceOf(bob), 200);
-    //     assertEq(consumer.getFreeBalanceBase(alice), 0);
-    //     assertEq(consumer.getFreeBalanceQuote(bob), 0);
-    // }
+        assertEq(consumer.getDepositedBalanceBase(alice), 200);
+        assertEq(consumer.getDepositedBalanceQuote(bob), 800);
+        assertEq(baseToken.balanceOf(alice), 800);
+        assertEq(quoteToken.balanceOf(bob), 200);
+        assertEq(consumer.getFreeBalanceBase(alice), 0);
+        assertEq(consumer.getFreeBalanceQuote(bob), 0);
+    }
 
-    // function test_ClobConsumer_DepositConfirmed() public {
-    //     test_ClobConsumer_DepositInitiated();
+    function test_ClobConsumer_DepositConfirmed() public {
+        test_ClobConsumer_DepositInitiated();
 
-    //     vm.prank(address(jobManager));
-    //     consumer.setInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""), 0x0);
+        vm.prank(address(jobManager));
+        consumer.setInputsForJob(DEFAULT_JOB_ID, abi.encode(0x0, ""), 0x0);
     
-    //     ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](2);
-    //     depositDeltas[0] = ClobConsumer.DepositDelta({
-    //         user: alice,
-    //         baseDelta: 200,
-    //         quoteDelta: 0
-    //     });
-    //     depositDeltas[1] = ClobConsumer.DepositDelta({
-    //         user: bob,
-    //         baseDelta: 0,
-    //         quoteDelta: 800
-    //     });
+        ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](2);
+        depositDeltas[0] = ClobConsumer.DepositDelta({
+            user: alice,
+            baseDelta: 200,
+            quoteDelta: 0
+        });
+        depositDeltas[1] = ClobConsumer.DepositDelta({
+            user: bob,
+            baseDelta: 0,
+            quoteDelta: 800
+        });
 
-    //     ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](0);
-    //     ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
+        ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](0);
+        ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
-    //     ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
-    //         depositDeltas: depositDeltas,
-    //         orderDeltas: orderDeltas,
-    //         withdrawDeltas: withdrawDeltas
-    //     });
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
+            depositDeltas: depositDeltas,
+            orderDeltas: orderDeltas,
+            withdrawDeltas: withdrawDeltas
+        });
 
-    //     StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
-    //         outputStateRoot: 0x0,
-    //         result: abi.encode(deltas)
-    //     });
+        StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
+            outputStateRoot: 0x0,
+            result: abi.encode(deltas)
+        });
 
-    //     bytes memory encodedResult = abi.encode(clobResult);
+        bytes memory encodedResult = abi.encode(clobResult);
 
-    //     vm.prank(address(jobManager));
-    //     consumer.receiveResult(DEFAULT_JOB_ID, encodedResult);
+        vm.prank(address(jobManager));
+        consumer.receiveResult(DEFAULT_JOB_ID, encodedResult);
 
-    //     assertEq(consumer.getDepositedBalanceBase(alice), 0);
-    //     assertEq(consumer.getDepositedBalanceQuote(bob), 0);
-    //     assertEq(consumer.getFreeBalanceBase(alice), 200);
-    //     assertEq(consumer.getFreeBalanceQuote(bob), 800);
-    // }
+        assertEq(consumer.getDepositedBalanceBase(alice), 0);
+        assertEq(consumer.getDepositedBalanceQuote(bob), 0);
+        assertEq(consumer.getFreeBalanceBase(alice), 200);
+        assertEq(consumer.getFreeBalanceQuote(bob), 800);
+    }
 
-    // function test_ClobConsumer_FillOrder() public {
-    //     test_ClobConsumer_DepositConfirmed();
+    function test_ClobConsumer_FillOrder() public {
+        test_ClobConsumer_DepositConfirmed();
 
-    //     ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](0);
+        ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](0);
 
-    //     ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](2);
-    //     orderDeltas[0] = ClobConsumer.OrderDelta({
-    //         user: alice,
-    //         freeBaseDelta: -200,
-    //         lockedBaseDelta: 0,
-    //         freeQuoteDelta: 300,
-    //         lockedQuoteDelta: 0
-    //     });
-    //     orderDeltas[1] = ClobConsumer.OrderDelta({
-    //         user: bob,
-    //         freeBaseDelta: 200,
-    //         lockedBaseDelta: 0,
-    //         freeQuoteDelta: -700,
-    //         lockedQuoteDelta: 400 // Bob placed an order for 700 but only 300 got filled
-    //     });
+        ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](2);
+        orderDeltas[0] = ClobConsumer.OrderDelta({
+            user: alice,
+            freeBaseDelta: -200,
+            lockedBaseDelta: 0,
+            freeQuoteDelta: 300,
+            lockedQuoteDelta: 0
+        });
+        orderDeltas[1] = ClobConsumer.OrderDelta({
+            user: bob,
+            freeBaseDelta: 200,
+            lockedBaseDelta: 0,
+            freeQuoteDelta: -700,
+            lockedQuoteDelta: 400 // Bob placed an order for 700 but only 300 got filled
+        });
 
-    //     ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
+        ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](0);
 
-    //     ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
-    //         depositDeltas: depositDeltas,
-    //         orderDeltas: orderDeltas,
-    //         withdrawDeltas: withdrawDeltas
-    //     });
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
+            depositDeltas: depositDeltas,
+            orderDeltas: orderDeltas,
+            withdrawDeltas: withdrawDeltas
+        });
 
-    //     StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
-    //         outputStateRoot: 0x0,
-    //         result: abi.encode(deltas)
-    //     });
+        StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
+            outputStateRoot: 0x0,
+            result: abi.encode(deltas)
+        });
 
-    //     bytes memory encodedResult = abi.encode(clobResult);
-    //     vm.prank(address(jobManager));
-    //     consumer.receiveResult(DEFAULT_JOB_ID, encodedResult);
+        bytes memory encodedResult = abi.encode(clobResult);
+        vm.prank(address(jobManager));
+        consumer.receiveResult(DEFAULT_JOB_ID, encodedResult);
 
-    //     assertEq(consumer.getFreeBalanceBase(alice), 0);
-    //     assertEq(consumer.getFreeBalanceQuote(alice), 300);
-    //     assertEq(consumer.getFreeBalanceBase(bob), 200);
-    //     assertEq(consumer.getFreeBalanceQuote(bob), 100);
-    //     assertEq(consumer.getLockedBalanceBase(alice), 0);
-    //     assertEq(consumer.getLockedBalanceQuote(bob), 400);
-    // }
+        assertEq(consumer.getFreeBalanceBase(alice), 0);
+        assertEq(consumer.getFreeBalanceQuote(alice), 300);
+        assertEq(consumer.getFreeBalanceBase(bob), 200);
+        assertEq(consumer.getFreeBalanceQuote(bob), 100);
+        assertEq(consumer.getLockedBalanceBase(alice), 0);
+        assertEq(consumer.getLockedBalanceQuote(bob), 400);
+    }
 
-    // function test_ClobConsumer_Withdraw() public {
-    //     test_ClobConsumer_FillOrder();
+    function test_ClobConsumer_Withdraw() public {
+        test_ClobConsumer_FillOrder();
 
-    //     ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](0);
-    //     ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](0);
-    //     ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](2);
-    //     withdrawDeltas[0] = ClobConsumer.WithdrawDelta({
-    //         user: alice,
-    //         baseDelta: 0,
-    //         quoteDelta: 300
-    //     });
-    //     withdrawDeltas[1] = ClobConsumer.WithdrawDelta({
-    //         user: bob,
-    //         baseDelta: 200,
-    //         quoteDelta: 100
-    //     });
+        ClobConsumer.DepositDelta[] memory depositDeltas = new ClobConsumer.DepositDelta[](0);
+        ClobConsumer.OrderDelta[] memory orderDeltas = new ClobConsumer.OrderDelta[](0);
+        ClobConsumer.WithdrawDelta[] memory withdrawDeltas = new ClobConsumer.WithdrawDelta[](2);
+        withdrawDeltas[0] = ClobConsumer.WithdrawDelta({
+            user: alice,
+            baseDelta: 0,
+            quoteDelta: 300
+        });
+        withdrawDeltas[1] = ClobConsumer.WithdrawDelta({
+            user: bob,
+            baseDelta: 200,
+            quoteDelta: 100
+        });
 
-    //     ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
-    //         depositDeltas: depositDeltas,
-    //         orderDeltas: orderDeltas,
-    //         withdrawDeltas: withdrawDeltas
-    //     });
+        ClobConsumer.ClobResultDeltas memory deltas = ClobConsumer.ClobResultDeltas({
+            depositDeltas: depositDeltas,
+            orderDeltas: orderDeltas,
+            withdrawDeltas: withdrawDeltas
+        });
 
-    //     StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
-    //         outputStateRoot: 0x0,
-    //         result: abi.encode(deltas)
-    //     });
+        StatefulConsumer.StatefulAppResult memory clobResult = StatefulConsumer.StatefulAppResult({
+            outputStateRoot: 0x0,
+            result: abi.encode(deltas)
+        });
 
-    //     bytes memory encodedResult = abi.encode(clobResult);
-    //     vm.prank(address(jobManager));
-    //     consumer.receiveResult(DEFAULT_JOB_ID, encodedResult);
+        bytes memory encodedResult = abi.encode(clobResult);
+        vm.prank(address(jobManager));
+        consumer.receiveResult(DEFAULT_JOB_ID, encodedResult);
 
-    //     assertEq(consumer.getFreeBalanceBase(alice), 0);
-    //     assertEq(consumer.getFreeBalanceQuote(alice), 0);
-    //     assertEq(consumer.getFreeBalanceBase(bob), 0);
-    //     assertEq(consumer.getFreeBalanceQuote(bob), 0);
+        assertEq(consumer.getFreeBalanceBase(alice), 0);
+        assertEq(consumer.getFreeBalanceQuote(alice), 0);
+        assertEq(consumer.getFreeBalanceBase(bob), 0);
+        assertEq(consumer.getFreeBalanceQuote(bob), 0);
 
-    //     assertEq(baseToken.balanceOf(alice), 800); // Alice only deposited 200 earlier
-    //     assertEq(baseToken.balanceOf(bob), 200);
-    //     assertEq(quoteToken.balanceOf(alice), 300);
-    //     assertEq(quoteToken.balanceOf(bob), 200 + 100); // Bob only deposited 800 earlier
-    // }
+        assertEq(baseToken.balanceOf(alice), 800); // Alice only deposited 200 earlier
+        assertEq(baseToken.balanceOf(bob), 200);
+        assertEq(quoteToken.balanceOf(alice), 300);
+        assertEq(quoteToken.balanceOf(bob), 200 + 100); // Bob only deposited 800 earlier
+    }
 }
