@@ -41,14 +41,24 @@ where
     // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/primitives/src/env.rs#L220
     handler.validation.tx_against_state = Arc::new(|ctx| {
         let caller = ctx.evm.inner.env.tx.caller;
-        let state_nonce = ctx
+        let account = ctx
             .evm
             .inner
             .journaled_state
-            .load_account(caller, &mut ctx.evm.inner.db)?
-            .data
-            .info
-            .nonce;
+            .load_account(caller, &mut ctx.evm.inner.db)?.data;
+
+        // EIP-3607: Reject transactions from senders with deployed code
+        // Follows logic from here https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/primitives/src/env.rs#L228
+        {
+            let bytecode = &account.info.code.as_ref().unwrap();
+            // allow EOAs whose code is a valid delegation designation,
+            // i.e. 0xef0100 || address, to continue to originate transactions.
+            if !bytecode.is_empty() && !bytecode.is_eip7702() {
+                return Err(EVMError::Transaction(InvalidTransaction::RejectCallerWithCode));
+            }
+        }
+
+        let state_nonce = account.info.nonce;
 
         // Check that the transaction's nonce is correct
         if let Some(tx_nonce) = ctx.evm.inner.env.tx.nonce {
