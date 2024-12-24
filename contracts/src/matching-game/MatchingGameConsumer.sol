@@ -7,6 +7,8 @@ import {OffchainRequester} from "../coprocessor/OffchainRequester.sol";
 import {SingleOffchainSigner} from "../coprocessor/SingleOffchainSigner.sol";
 import {console} from "forge-std/Script.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 
 contract MatchingGameConsumer is StatefulConsumer, SingleOffchainSigner {
     struct Match {
@@ -17,7 +19,14 @@ contract MatchingGameConsumer is StatefulConsumer, SingleOffchainSigner {
     // Mapping to store user --> partner
     mapping(address => address) public userToPartner;
 
-    constructor(address jobManager, address offchainSigner, uint64 initialMaxNonce, bytes32 latestStateRoot) StatefulConsumer(jobManager, initialMaxNonce, latestStateRoot) SingleOffchainSigner(offchainSigner) {}
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(address initialOwner, address jobManager, uint64 initialMaxNonce, bytes32 initialStateRoot, address offchainSigner) public virtual initializer {
+        StatefulConsumer.initialize(initialOwner, jobManager, initialMaxNonce, initialStateRoot);
+        SingleOffchainSigner.initialize(offchainSigner);
+    }
 
     // Getter function for matched users
     function getPartner(address user) external view returns (address) {

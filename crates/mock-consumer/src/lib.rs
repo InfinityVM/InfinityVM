@@ -8,7 +8,10 @@ use alloy::{
     sol_types::SolValue,
 };
 use ivm_abi::{abi_encode_result_with_metadata, get_job_id};
-use ivm_contracts::mock_consumer::MockConsumer;
+use ivm_contracts::{
+    mock_consumer::MockConsumer, proxy_admin::ProxyAdmin,
+    transparent_upgradeable_proxy::TransparentUpgradeableProxy,
+};
 use ivm_db::tables::{Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType};
 use ivm_test_utils::{get_signers, AnvilJobManager};
@@ -40,18 +43,34 @@ pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> An
         .wallet(consumer_owner_wallet)
         .on_http(anvil.endpoint().parse().unwrap());
 
-    let initial_max_nonce = 0;
-    let mock_consumer = MockConsumer::deploy(
-        consumer_provider,
+    // Deploy mock consumer implementation
+    let mock_consumer_impl = MockConsumer::deploy(consumer_provider.clone()).await.unwrap();
+
+    // Deploy proxy admin
+    let proxy_admin = ProxyAdmin::deploy(consumer_provider.clone()).await.unwrap();
+
+    let initializer = mock_consumer_impl.initialize_0(
+        consumer_owner.address(),
         *job_manager,
+        0,
         offchain_signer.address(),
-        initial_max_nonce,
+    );
+    let initializer_calldata = initializer.calldata();
+
+    // Deploy a proxy contract for MockConsumer
+    let mock_consumer = TransparentUpgradeableProxy::deploy(
+        &consumer_provider,
+        *mock_consumer_impl.address(),
+        *proxy_admin.address(),
+        initializer_calldata.clone(),
     )
     .await
     .unwrap();
-    let mock_consumer = *mock_consumer.address();
 
-    AnvilMockConsumer { mock_consumer, mock_consumer_signer: offchain_signer }
+    AnvilMockConsumer {
+        mock_consumer: *mock_consumer.address(),
+        mock_consumer_signer: offchain_signer,
+    }
 }
 
 /// A mock address to use as input to the mock contract function calls
