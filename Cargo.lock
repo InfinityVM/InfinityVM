@@ -2537,6 +2537,7 @@ dependencies = [
  "alloy",
  "clob-contracts",
  "clob-core",
+ "ivm-contracts",
  "ivm-test-utils",
  "tokio",
 ]
@@ -5799,6 +5800,7 @@ dependencies = [
  "eyre",
  "http-body-util",
  "ivm-abi",
+ "ivm-contracts",
  "ivm-proto",
  "ivm-test-utils",
  "kairos-trie",

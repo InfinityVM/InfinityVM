@@ -36,6 +36,15 @@ pub mod transparent_upgradeable_proxy {
     }
 }
 
+/// `ProxyAdmin.sol` bindings
+pub mod proxy_admin {
+    alloy::sol! {
+      #[sol(rpc)]
+      ProxyAdmin,
+      "json/ProxyAdmin.json"
+    }
+}
+
 /// `MockConsumer.sol` bindings
 pub mod mock_consumer {
     alloy::sol! {

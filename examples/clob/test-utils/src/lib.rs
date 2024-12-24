@@ -12,6 +12,9 @@ use alloy::{
 };
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{api::Request, tick, BorshKeccak256, ClobState};
+use ivm_contracts::{
+    proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
+};
 use ivm_test_utils::{get_signers, AnvilJobManager};
 
 /// Local Signer
@@ -58,7 +61,7 @@ pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> Anv
 
     let provider = ProviderBuilder::new()
         .with_recommended_fillers()
-        .wallet(consumer_owner_wallet)
+        .wallet(consumer_owner_wallet.clone())
         .on_http(rpc_url.parse().unwrap());
 
     // Deploy base & quote erc20s
@@ -79,22 +82,34 @@ pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> Anv
     // [ref]: https://github.com/InfinityVM/InfinityVM/issues/320
     let init_state_hash: [u8; 32] = clob_state0.borsh_keccak256().into();
 
-    // TODO (Maanav): Fix
-    // // Deploy the clob consumer
-    // let clob_consumer = *ClobConsumer::deploy(
-    //     provider,
-    //     *job_manager,
-    //     clob_signer.address(),
-    //     0,
-    //     base_erc20,
-    //     quote_erc20,
-    //     init_state_hash.into(),
-    // )
-    // .await
-    // .unwrap()
-    // .address();
+    // Deploy clob consumer implementation
+    let clob_consumer_impl = ClobConsumer::deploy(provider.clone()).await.unwrap();
 
-    AnvilClob { clob_signer, clob_consumer: Address::ZERO, quote_erc20, base_erc20 }
+    // Deploy proxy admin
+    let proxy_admin = ProxyAdmin::deploy(provider.clone()).await.unwrap();
+
+    let initializer = clob_consumer_impl.initialize_3(
+        consumer_owner.address(),
+        *job_manager,
+        0,
+        init_state_hash.into(),
+        clob_signer.address(),
+        base_erc20,
+        quote_erc20,
+    );
+    let initializer_calldata = initializer.calldata();
+
+    // Deploy a proxy contract for ClobConsumer
+    let clob_consumer = TransparentUpgradeableProxy::deploy(
+        &provider,
+        *clob_consumer_impl.address(),
+        *proxy_admin.address(),
+        initializer_calldata.clone(),
+    )
+    .await
+    .unwrap();
+
+    AnvilClob { clob_signer, clob_consumer: *clob_consumer.address(), quote_erc20, base_erc20 }
 }
 
 /// Mint erc20s and approve transfers to the first `count` anvil auto seeded accounts.

@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import {Script, console} from "forge-std/Script.sol";
 import "forge-std/StdJson.sol";
 import {MockConsumer} from "../test/mocks/MockConsumer.sol";
-import {EmptyContract} from "../test/mocks/EmptyContract.sol";
 import {Utils} from "./utils/Utils.sol";
 import {TransparentUpgradeableProxy} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
 import {ProxyAdmin} from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";

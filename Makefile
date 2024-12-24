@@ -53,6 +53,7 @@ contracts:
 	cp contracts/out/IJobManager.sol/IJobManager.json crates/contracts/json
 	cp contracts/out/MockConsumer.sol/MockConsumer.json crates/contracts/json
 	cp contracts/out/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json crates/contracts/json
+	cp contracts/out/ProxyAdmin.sol/ProxyAdmin.json crates/contracts/json
 
 .PHONY: run
 run:
