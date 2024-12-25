@@ -1,13 +1,13 @@
 /// Configuration for remote ELF store.
 #[derive(Debug, Clone)]
 pub struct RemoteDbConfig {
-    /// Remote DB endpoint (e.g., "<http://localhost:50051>")
+    /// Remote DB endpoint
     pub endpoint: String,
 }
 
 impl Default for RemoteDbConfig {
     fn default() -> Self {
-        Self { endpoint: "http://localhost:50051".to_string() }
+        Self { endpoint: "http://127.0.0.1:50051".to_string() }
     }
 }
 
