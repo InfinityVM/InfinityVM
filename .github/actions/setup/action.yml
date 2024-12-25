@@ -9,6 +9,12 @@ runs:
 
       - uses: taiki-e/install-action@cargo-binstall
 
+      - name: Install protobuf compiler
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+
       - name: Install sp1 tooling
         shell: bash
         run: |

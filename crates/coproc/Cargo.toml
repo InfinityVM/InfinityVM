@@ -26,6 +26,7 @@ prometheus = { workspace = true }
 axum = { workspace = true }
 flume = { workspace = true }
 num_cpus = { workspace = true }
+async-trait = "0.1.74"
 
 ivm-contracts = { workspace = true }
 ivm-abi = { workspace = true }
@@ -34,7 +35,13 @@ ivm-proto = { workspace = true }
 ivm-zkvm-executor = { workspace = true }
 ivm-tracing = { workspace = true }
 ivm-eip4844 = { workspace = true }
+ivm-remote-db = { workspace = true }
 
 [dev-dependencies]
 ivm-test-utils = { workspace = true }
 ivm-mock-consumer = { workspace = true }
+mock-consumer-programs = { workspace = true }
+ivm-db = { workspace = true }
+ivm-zkvm-executor = { workspace = true }
+async-trait = "0.1.74"
+mockall = "0.11.4"

@@ -361,12 +361,12 @@ where
             };
 
             if i > JOB_RETRY_COUNT + 1 {
-                break relay_receipt_result
+                break relay_receipt_result;
             } else if relay_receipt_result.is_err() {
                 let backoff = JOB_RETRY_DELAY_MS * i as u64;
                 tokio::time::sleep(Duration::from_millis(backoff)).await;
             } else {
-                break relay_receipt_result
+                break relay_receipt_result;
             }
             i += 1;
         };

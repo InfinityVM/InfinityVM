@@ -3,6 +3,7 @@
 use crate::{
     metrics::Metrics,
     relayer::Relay,
+    remote_db::RemoteElfClientTrait,
     writer::{Write, WriterMsg},
 };
 use alloy::{
@@ -72,6 +73,21 @@ pub enum FailureReason {
     RelayErrExceedRetry,
 }
 
+/// Configuration for `JobExecutor`
+#[derive(Debug, Clone)]
+pub struct JobExecutorConfig {
+    /// Metrics registry for tracking execution metrics
+    pub metrics: Arc<Metrics>,
+    /// Number of worker threads to spawn
+    pub num_workers: usize,
+    /// Channel for sending write operations to the database
+    pub writer_tx: Sender<WriterMsg>,
+    /// Channel for sending relay operations
+    pub relay_tx: Sender<Relay>,
+    /// General configuration for the coprocessor node
+    pub config: crate::config::Config,
+}
+
 /// Job executor service.
 ///
 /// This stores a `JoinSet` with a handle to each job executor worker.
@@ -80,10 +96,7 @@ pub struct JobExecutor<S, D> {
     db: Arc<D>,
     exec_queue_receiver: Receiver<Job>,
     zk_executor: ZkvmExecutorService<S>,
-    metrics: Arc<Metrics>,
-    num_workers: usize,
-    writer_tx: Sender<WriterMsg>,
-    relay_tx: Sender<Relay>,
+    config: JobExecutorConfig,
 }
 
 impl<S, D> JobExecutor<S, D>
@@ -96,27 +109,26 @@ where
         db: Arc<D>,
         exec_queue_receiver: Receiver<Job>,
         zk_executor: ZkvmExecutorService<S>,
-        metrics: Arc<Metrics>,
-        num_workers: usize,
-        writer_tx: Sender<WriterMsg>,
-        relay_tx: Sender<Relay>,
+        config: JobExecutorConfig,
     ) -> Self {
-        Self { db, exec_queue_receiver, zk_executor, metrics, num_workers, writer_tx, relay_tx }
+        Self { db, exec_queue_receiver, zk_executor, config }
     }
 
     /// Spawns `num_workers` worker tasks.
     pub async fn start(&self) {
         let mut threads = vec![];
-        for _ in 0..self.num_workers {
+        for _ in 0..self.config.num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
-            let metrics = Arc::clone(&self.metrics);
-            let writer_tx = self.writer_tx.clone();
-            let relay_tx = self.relay_tx.clone();
+            let metrics = Arc::clone(&self.config.metrics);
+            let writer_tx = self.config.writer_tx.clone();
+            let relay_tx = self.config.relay_tx.clone();
+            let config = self.config.config.clone();
 
-            threads.push(std::thread::spawn(|| {
+            threads.push(std::thread::spawn(move || {
                 Self::start_executor_worker(
+                    &config,
                     exec_queue_receiver,
                     db,
                     zk_executor,
@@ -130,6 +142,7 @@ where
 
     /// Start a worker.
     fn start_executor_worker(
+        config: &crate::config::Config,
         exec_queue_receiver: Receiver<Job>,
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
@@ -137,10 +150,17 @@ where
         writer_tx: Sender<WriterMsg>,
         relay_tx: Sender<Relay>,
     ) -> Result<(), Error> {
+        let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
         let writer_tx2 = writer_tx;
 
         while let Ok(mut job) = exec_queue_receiver.recv() {
-            let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone()) {
+            let elf_with_meta = match rt.block_on(Self::get_elf(
+                config,
+                &db,
+                &mut job,
+                &metrics,
+                writer_tx2.clone(),
+            )) {
                 Ok(elf) => elf,
                 Err(_) => continue,
             };
@@ -162,27 +182,91 @@ where
         Err(Error::ExecQueueChannelClosed)
     }
 
-    fn get_elf(
+    async fn get_elf(
+        config: &crate::config::Config,
         db: &Arc<D>,
         job: &mut Job,
         metrics: &Arc<Metrics>,
         writer_tx: Sender<WriterMsg>,
     ) -> Result<ElfWithMeta, FailureReason> {
+        // Try embedded DB first
         match ivm_db::get_elf(db.clone(), &job.program_id).expect("DB reads cannot fail") {
             Some(elf) => Ok(elf),
             None => {
                 // TODO: include job ID in metrics
                 // https://github.com/InfinityVM/InfinityVM/issues/362
-                metrics.incr_job_err(&FailureReason::MissingElf.to_string());
-                // Update the job status
-                job.status = JobStatus {
-                    status: JobStatusType::Failed as i32,
-                    failure_reason: Some(FailureReason::MissingElf.to_string()),
-                    retries: 0,
-                };
-                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
+                // Try remote DB
+                match crate::remote_db::RemoteElfClient::connect(&config.remote_db.endpoint).await {
+                    Ok(mut client) => {
+                        match client.get_elf(job.program_id.clone()).await {
+                            Ok(elf_with_meta) => {
+                                // Cache the ELF in embedded DB
+                                let vm_type = VmType::try_from(elf_with_meta.vm_type as i32)
+                                    .map_err(|_| {
+                                        metrics
+                                            .incr_job_err(&FailureReason::MissingElf.to_string());
+                                        FailureReason::MissingElf
+                                    })?;
 
-                Err(FailureReason::DbErrMissingElf)
+                                // Store in embedded DB
+                                writer_tx
+                                    .send((
+                                        Write::Elf {
+                                            vm_type,
+                                            program_id: job.program_id.clone(),
+                                            elf: elf_with_meta.elf.clone(),
+                                        },
+                                        None,
+                                    ))
+                                    .expect("db writer broken");
+
+                                Ok(elf_with_meta)
+                            }
+                            Err(status) if status.code() == tonic::Code::NotFound => {
+                                // ELF not found in either DB
+                                metrics.incr_job_err(&FailureReason::MissingElf.to_string());
+                                // Update the job status
+                                job.status = JobStatus {
+                                    status: JobStatusType::Failed as i32,
+                                    failure_reason: Some(FailureReason::MissingElf.to_string()),
+                                    retries: 0,
+                                };
+                                writer_tx
+                                    .send((Write::JobTable(job.clone()), None))
+                                    .expect("db writer broken");
+                                Err(FailureReason::DbErrMissingElf)
+                            }
+                            Err(e) => {
+                                // Remote DB error
+                                tracing::warn!("Error querying remote DB: {}", e);
+                                metrics.incr_job_err(&FailureReason::DbErrGetElf.to_string());
+                                job.status = JobStatus {
+                                    status: JobStatusType::Failed as i32,
+                                    failure_reason: Some(FailureReason::DbErrGetElf.to_string()),
+                                    retries: 0,
+                                };
+                                writer_tx
+                                    .send((Write::JobTable(job.clone()), None))
+                                    .expect("db writer broken");
+                                Err(FailureReason::DbErrGetElf)
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        // Connection error
+                        tracing::warn!("Failed to connect to remote DB: {}", e);
+                        metrics.incr_job_err(&FailureReason::DbErrGetElf.to_string());
+                        job.status = JobStatus {
+                            status: JobStatusType::Failed as i32,
+                            failure_reason: Some(FailureReason::DbErrGetElf.to_string()),
+                            retries: 0,
+                        };
+                        writer_tx
+                            .send((Write::JobTable(job.clone()), None))
+                            .expect("db writer broken");
+                        Err(FailureReason::DbErrGetElf)
+                    }
+                }
             }
         }
     }

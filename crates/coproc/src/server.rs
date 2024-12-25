@@ -170,15 +170,11 @@ where
             return Err(Status::invalid_argument("program elf must not be empty"));
         }
 
-        // Deriving the program ID is expensive so we do it in a blocking task.
         let intake_service = self.intake_service.clone();
-        let program_id = tokio::task::spawn_blocking(move || {
-            intake_service
-                .submit_elf(req.program_elf, req.vm_type, req.program_id)
-                .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))
-        })
-        .await
-        .expect("tokio runtime failed")?;
+        let program_id = intake_service
+            .submit_elf(req.program_elf, req.vm_type, req.program_id)
+            .await
+            .map_err(|e| Status::internal(format!("failed to submit ELF: {e}")))?;
 
         info!(program_id = hex::encode(program_id.clone()), "new elf program");
 
