@@ -73,6 +73,21 @@ pub enum FailureReason {
     RelayErrExceedRetry,
 }
 
+/// Configuration for `JobExecutor`
+#[derive(Debug, Clone)]
+pub struct JobExecutorConfig {
+    /// Metrics registry for tracking execution metrics
+    pub metrics: Arc<Metrics>,
+    /// Number of worker threads to spawn
+    pub num_workers: usize,
+    /// Channel for sending write operations to the database
+    pub writer_tx: Sender<WriterMsg>,
+    /// Channel for sending relay operations
+    pub relay_tx: Sender<Relay>,
+    /// General configuration for the coprocessor node
+    pub config: crate::config::Config,
+}
+
 /// Job executor service.
 ///
 /// This stores a `JoinSet` with a handle to each job executor worker.
@@ -81,11 +96,7 @@ pub struct JobExecutor<S, D> {
     db: Arc<D>,
     exec_queue_receiver: Receiver<Job>,
     zk_executor: ZkvmExecutorService<S>,
-    metrics: Arc<Metrics>,
-    num_workers: usize,
-    writer_tx: Sender<WriterMsg>,
-    relay_tx: Sender<Relay>,
-    config: crate::config::Config,
+    config: JobExecutorConfig,
 }
 
 impl<S, D> JobExecutor<S, D>
@@ -98,35 +109,22 @@ where
         db: Arc<D>,
         exec_queue_receiver: Receiver<Job>,
         zk_executor: ZkvmExecutorService<S>,
-        metrics: Arc<Metrics>,
-        num_workers: usize,
-        writer_tx: Sender<WriterMsg>,
-        relay_tx: Sender<Relay>,
-        config: crate::config::Config,
+        config: JobExecutorConfig,
     ) -> Self {
-        Self {
-            db,
-            exec_queue_receiver,
-            zk_executor,
-            metrics,
-            num_workers,
-            writer_tx,
-            relay_tx,
-            config,
-        }
+        Self { db, exec_queue_receiver, zk_executor, config }
     }
 
     /// Spawns `num_workers` worker tasks.
     pub async fn start(&self) {
         let mut threads = vec![];
-        for _ in 0..self.num_workers {
+        for _ in 0..self.config.num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
-            let metrics = Arc::clone(&self.metrics);
-            let writer_tx = self.writer_tx.clone();
-            let relay_tx = self.relay_tx.clone();
-            let config = self.config.clone();
+            let metrics = Arc::clone(&self.config.metrics);
+            let writer_tx = self.config.writer_tx.clone();
+            let relay_tx = self.config.relay_tx.clone();
+            let config = self.config.config.clone();
 
             threads.push(std::thread::spawn(move || {
                 Self::start_executor_worker(
