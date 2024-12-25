@@ -6,6 +6,7 @@
 
 use crate::{
     relayer::Relay,
+    remote_db::RemoteElfClientTrait,
     writer::{Write, WriterMsg},
 };
 use alloy::{
@@ -14,7 +15,10 @@ use alloy::{
     signers::{Signer, SignerSync},
 };
 use flume::Sender;
-use ivm_db::{get_elf, get_job, tables::Job};
+use ivm_db::{
+    get_elf, get_job,
+    tables::{ElfWithMeta, Job},
+};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
@@ -33,6 +37,9 @@ pub enum Error {
     /// ELF with given program ID already exists in DB
     #[error("elf with program ID {0} already exists")]
     ElfAlreadyExists(String),
+    /// Remote DB error
+    #[error("remote db error: {0}")]
+    RemoteDb(#[from] tonic::transport::Error),
     /// Job already exists in DB
     #[error("job already exists")]
     JobAlreadyExists,
@@ -53,6 +60,21 @@ pub enum Error {
     MismatchProgramId(String, String),
 }
 
+/// Configuration for `IntakeHandlers`
+#[derive(Debug, Clone)]
+pub struct IntakeConfig {
+    /// Maximum bytes of DA allowed per job
+    pub max_da_per_job: usize,
+    /// Channel for sending write operations to the database
+    pub writer_tx: Sender<WriterMsg>,
+    /// Channel for sending relay operations
+    pub relay_tx: Sender<Relay>,
+    /// Whether to skip program ID verification (WARNING: should be false in production)
+    pub unsafe_skip_program_id_check: bool,
+    /// General configuration for the coprocessor node
+    pub config: crate::config::Config,
+}
+
 /// Job and program intake handlers.
 ///
 /// New, valid jobs submitted to this service will be sent over the exec queue to the job processor.
@@ -61,10 +83,7 @@ pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
     exec_queue_sender: Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
-    max_da_per_job: usize,
-    writer_tx: Sender<WriterMsg>,
-    relay_tx: Sender<Relay>,
-    unsafe_skip_program_id_check: bool,
+    config: IntakeConfig,
 }
 
 impl<S, D> Clone for IntakeHandlers<S, D>
@@ -76,10 +95,7 @@ where
             db: self.db.clone(),
             exec_queue_sender: self.exec_queue_sender.clone(),
             zk_executor: self.zk_executor.clone(),
-            max_da_per_job: self.max_da_per_job,
-            writer_tx: self.writer_tx.clone(),
-            relay_tx: self.relay_tx.clone(),
-            unsafe_skip_program_id_check: self.unsafe_skip_program_id_check,
+            config: self.config.clone(),
         }
     }
 }
@@ -94,25 +110,14 @@ where
         db: Arc<D>,
         exec_queue_sender: Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
-        max_da_per_job: usize,
-        writer_tx: Sender<WriterMsg>,
-        relay_tx: Sender<Relay>,
-        unsafe_skip_program_id_check: bool,
+        config: IntakeConfig,
     ) -> Self {
-        Self {
-            db,
-            exec_queue_sender,
-            zk_executor,
-            max_da_per_job,
-            writer_tx,
-            relay_tx,
-            unsafe_skip_program_id_check,
-        }
+        Self { db, exec_queue_sender, zk_executor, config }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        if job.offchain_input.len() > self.max_da_per_job {
+        if job.offchain_input.len() > self.config.max_da_per_job {
             return Err(Error::OffchainInputOverMaxDAPerJob);
         };
 
@@ -126,7 +131,8 @@ where
         job.status =
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
         let (tx, db_write_complete_rx) = oneshot::channel();
-        self.writer_tx
+        self.config
+            .writer_tx
             .send_async((Write::JobTable(job.clone()), Some(tx)))
             .await
             .expect("db writer broken");
@@ -137,7 +143,8 @@ where
                 .clone()
                 .try_into()
                 .expect("we checked for valid address length");
-            self.relay_tx
+            self.config
+                .relay_tx
                 .send_async(Relay::Queue { consumer, job_id: job.id })
                 .await
                 .expect("relay channel broken");
@@ -150,7 +157,7 @@ where
     }
 
     /// Submit program ELF, save it in DB, and return program ID.
-    pub fn submit_elf(
+    pub async fn submit_elf(
         &self,
         elf: Vec<u8>,
         vm_type: i32,
@@ -158,7 +165,7 @@ where
     ) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
 
-        if !self.unsafe_skip_program_id_check {
+        if !self.config.unsafe_skip_program_id_check {
             let derived_program_id = self.zk_executor.create_elf(&elf, vm_type)?;
             if program_id != derived_program_id {
                 return Err(Error::MismatchProgramId(
@@ -175,12 +182,33 @@ where
             return Err(Error::ElfAlreadyExists(hex::encode(program_id.as_slice())));
         }
 
-        // Write the elf and make sure it completes before responding to the user.
+        // Write the elf to embedded DB and make sure it completes before continuing
         let (tx, rx) = oneshot::channel();
-        self.writer_tx
-            .send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
+        self.config
+            .writer_tx
+            .send((
+                Write::Elf { vm_type, program_id: program_id.clone(), elf: elf.clone() },
+                Some(tx),
+            ))
             .expect("writer channel broken");
-        let _ = rx.blocking_recv();
+        let _ = rx.await;
+
+        // Store the ELF in remote DB
+        match crate::remote_db::RemoteElfClient::connect(&self.config.config.remote_db.endpoint)
+            .await
+        {
+            Ok(mut client) => {
+                if let Err(e) = client
+                    .store_elf(program_id.clone(), ElfWithMeta { vm_type: vm_type as u8, elf })
+                    .await
+                {
+                    tracing::warn!("Failed to store ELF in remote DB: {}", e);
+                }
+            }
+            Err(e) => {
+                tracing::warn!("Failed to connect to remote DB: {}", e);
+            }
+        }
 
         Ok(program_id)
     }

@@ -1,6 +1,8 @@
 //! Coprocessor Node components.
 
 pub mod cli;
+/// Configuration structures for the coprocessor node, including remote ELF store settings.
+pub mod config;
 pub mod event;
 pub mod gateway;
 pub mod intake;
@@ -9,6 +11,7 @@ pub mod metrics;
 pub mod node;
 pub mod queue;
 pub mod relayer;
+pub mod remote_db;
 pub mod server;
 pub mod writer;
 

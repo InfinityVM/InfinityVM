@@ -1,10 +1,11 @@
 //! Run the coprocessor node.
 
 use crate::{
+    config,
     event::{self, JobEventListener},
     gateway::{self, HttpGrpcGateway},
-    intake::IntakeHandlers,
-    job_executor::JobExecutor,
+    intake::{IntakeConfig, IntakeHandlers},
+    job_executor::{JobExecutor, JobExecutorConfig},
     metrics::{MetricServer, Metrics},
     relayer::{self, JobRelayerBuilder, RelayConfig, RelayCoordinator},
     server::CoprocessorNodeServerInner,
@@ -183,10 +184,13 @@ where
         Arc::clone(&db),
         exec_queue_receiver,
         executor.clone(),
-        metrics,
-        worker_count,
-        writer_tx.clone(),
-        relay_tx.clone(),
+        JobExecutorConfig {
+            metrics,
+            num_workers: worker_count,
+            writer_tx: writer_tx.clone(),
+            relay_tx: relay_tx.clone(),
+            config: config::Config::default(),
+        },
     );
     // Start the job processor workers
     job_executor.start().await;
@@ -195,10 +199,13 @@ where
         Arc::clone(&db),
         exec_queue_sender.clone(),
         executor.clone(),
-        max_da_per_job,
-        writer_tx.clone(),
-        relay_tx.clone(),
-        unsafe_skip_program_id_check,
+        IntakeConfig {
+            max_da_per_job,
+            writer_tx: writer_tx.clone(),
+            relay_tx: relay_tx.clone(),
+            unsafe_skip_program_id_check,
+            config: config::Config::default(),
+        },
     );
 
     let job_event_listener = {
@@ -242,7 +249,7 @@ where
     let threads = tokio::spawn(async {
         loop {
             if writer_handle.is_finished() {
-                return writer_handle.join().map_err(Error::StdJoin)
+                return writer_handle.join().map_err(Error::StdJoin);
             }
             tokio::time::sleep(Duration::from_secs(10)).await;
         }
