@@ -1,6 +1,7 @@
 //! Run the coprocessor node.
 
 use crate::{
+    config,
     event::{self, JobEventListener},
     gateway::{self, HttpGrpcGateway},
     intake::IntakeHandlers,
@@ -187,6 +188,7 @@ where
         worker_count,
         writer_tx.clone(),
         relay_tx.clone(),
+        config::Config::default(),
     );
     // Start the job processor workers
     job_executor.start().await;
@@ -199,6 +201,7 @@ where
         writer_tx.clone(),
         relay_tx.clone(),
         unsafe_skip_program_id_check,
+        config::Config::default(),
     );
 
     let job_event_listener = {
@@ -242,7 +245,7 @@ where
     let threads = tokio::spawn(async {
         loop {
             if writer_handle.is_finished() {
-                return writer_handle.join().map_err(Error::StdJoin)
+                return writer_handle.join().map_err(Error::StdJoin);
             }
             tokio::time::sleep(Duration::from_secs(10)).await;
         }

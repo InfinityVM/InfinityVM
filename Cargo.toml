@@ -119,6 +119,7 @@ significant_drop_in_scrutinee = "allow"
 significant_drop_tightening = "allow"
 
 [workspace.dependencies]
+ivm-remote-db = { path = "crates/remote-db" }
 # a
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
