@@ -3,6 +3,9 @@ name = "ivm-remote-db"
 version = "0.1.0"
 edition = "2021"
 
+[package.metadata.cargo-machete]
+ignored = ["prost"]
+
 [[bin]]
 name = "server"
 path = "src/bin/server.rs"
