@@ -132,7 +132,7 @@ struct Opts {
     /// Max number of retries when initially attempting to relay a job. If a job fails this many
     /// times it will be added to the DLQ.
     #[arg(long, default_value_t = 1_000)]
-    initial_relay_max_retries: usize,
+    initial_relay_max_retries: u32,
 
     /// Max size for the exec queue
     #[arg(long, default_value_t = 256)]
@@ -203,7 +203,7 @@ impl Cli {
             relay_config: RelayConfig {
                 confirmations: opts.confirmations,
                 dlq_max_retries: opts.dlq_max_retries as u32,
-                initial_relay_max_retries: opts.initial_relay_max_retries as u32,
+                initial_relay_max_retries: opts.initial_relay_max_retries,
             },
             ws_config: WsConfig {
                 ws_eth_rpc: opts.ws_eth_rpc,
