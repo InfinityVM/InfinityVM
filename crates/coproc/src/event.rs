@@ -80,7 +80,7 @@ where
     /// Run the job event listener
     pub async fn run(&self) -> Result<JoinHandle<Result<(), Error>>, Error> {
         let mut last_seen_block = self.from_block.as_number().unwrap_or_default();
-        let last_saved_height = self.get_last_block_height_or_0();
+        let last_saved_height = self.get_last_block_height_or_0().await;
         if last_saved_height > last_seen_block {
             // update last seen block height
             last_seen_block = last_saved_height;
@@ -176,7 +176,7 @@ where
     }
 
     /// Ergonomic helper to get the last block height from DB
-    fn get_last_block_height_or_0(&self) -> u64 {
-        get_last_block_height(self.db.clone()).unwrap_or_default().unwrap_or_default()
+    async fn get_last_block_height_or_0(&self) -> u64 {
+        get_last_block_height(self.db.clone()).await.unwrap_or_default().unwrap_or_default()
     }
 }

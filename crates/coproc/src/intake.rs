@@ -14,7 +14,7 @@ use alloy::{
     signers::{Signer, SignerSync},
 };
 use flume::Sender;
-use ivm_db::{get_elf, get_job, tables::Job};
+use ivm_db::{get_elf_sync, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
@@ -119,7 +119,7 @@ where
         // TODO: add new table for just job ID so we can avoid writing full job here and reading.
         // We can just pass the job itself along the channel
         // full job https://github.com/InfinityVM/InfinityVM/issues/354
-        if get_job(self.db.clone(), job.id)?.is_some() {
+        if get_job(self.db.clone(), job.id).await?.is_some() {
             return Err(Error::JobAlreadyExists);
         }
 
@@ -168,7 +168,7 @@ where
             }
         };
 
-        if get_elf(self.db.clone(), &program_id)
+        if get_elf_sync(self.db.clone(), &program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
             .is_some()
         {
@@ -186,8 +186,9 @@ where
     }
 
     /// Returns job with `job_id` from DB
+    #[inline(always)]
     pub async fn get_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
-        let job = get_job(self.db.clone(), job_id)?;
+        let job = get_job(self.db.clone(), job_id).await?;
         Ok(job)
     }
 }

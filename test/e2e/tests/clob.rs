@@ -100,7 +100,7 @@ async fn state_job_submission_clob_consumer() {
 
         // Wait for CLOB node and coprocessor to process deposits and send batch to contracts.
         // This is necessary because the CLOB node will automatically pick up the deposit events.
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_secs(10)).await;
 
         let requests1 = vec![
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),

@@ -222,7 +222,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
 
         // Check saved height
         let current_block_number = consumer_provider.get_block_number().await.unwrap();
-        let saved_height = ivm_db::get_last_block_height(args.db.clone()).unwrap().unwrap();
+        let saved_height = ivm_db::get_last_block_height(args.db.clone()).await.unwrap().unwrap();
         assert_ne!(current_block_number, 0);
         assert_eq!(current_block_number + 1, saved_height);
 
