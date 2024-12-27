@@ -1,12 +1,11 @@
 //! Coprocessor Node components.
 
-pub mod actor;
 pub mod cli;
 pub mod event;
+pub mod execute;
 pub mod gateway;
 pub mod intake;
 pub mod job_executor;
-pub mod job_executor2;
 pub mod metrics;
 pub mod node;
 pub mod queue;

@@ -2,24 +2,26 @@
 //!
 //! For new programs we check that they do not already exist and then persist.
 //!
-//! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
+//! For new jobs we check that the job does not exist, persist it and send it to the execution actor
+//! associated with the consumer.
 
 use crate::{
-    actor::JobActorSpawner, relayer::Relay, writer::{Write, WriterMsg}
+    execute::ExecutionActorSpawner,
+    writer::{Write, WriterMsg},
 };
 use alloy::{
     hex,
     primitives::PrimitiveSignature,
     signers::{Signer, SignerSync},
 };
+use dashmap::DashMap;
 use flume::Sender;
 use ivm_db::{get_elf_sync, get_job, tables::Job};
-use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
+use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::sync::Arc;
 use tokio::sync::oneshot;
-use dashmap::DashMap;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -62,9 +64,8 @@ pub struct IntakeHandlers<S, D> {
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
     writer_tx: Sender<WriterMsg>,
-    relay_tx: Sender<Relay>,
     unsafe_skip_program_id_check: bool,
-    job_actor_spawner: JobActorSpawner,
+    execution_actor_spawner: ExecutionActorSpawner,
     active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
 }
 
@@ -78,9 +79,8 @@ where
             zk_executor: self.zk_executor.clone(),
             max_da_per_job: self.max_da_per_job,
             writer_tx: self.writer_tx.clone(),
-            relay_tx: self.relay_tx.clone(),
             unsafe_skip_program_id_check: self.unsafe_skip_program_id_check,
-            job_actor_spawner: self.job_actor_spawner.clone(),
+            execution_actor_spawner: self.execution_actor_spawner.clone(),
             active_actors: self.active_actors.clone(),
         }
     }
@@ -97,25 +97,24 @@ where
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
         writer_tx: Sender<WriterMsg>,
-        relay_tx: Sender<Relay>,
         unsafe_skip_program_id_check: bool,
-        job_actor_spawner: JobActorSpawner,
+        execution_actor_spawner: ExecutionActorSpawner,
     ) -> Self {
         Self {
             db,
             zk_executor,
             max_da_per_job,
             writer_tx,
-            relay_tx,
             unsafe_skip_program_id_check,
-            job_actor_spawner,
-            active_actors: Arc::new(DashMap::new())
+            execution_actor_spawner,
+            active_actors: Arc::new(DashMap::new()),
         }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
-    /// 
-    /// Caution: this assumes the consumer address has already been validated to be exactly 20 bytes.
+    ///
+    /// Caution: this assumes the consumer address has already been validated to be exactly 20
+    /// bytes.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         if job.offchain_input.len() > self.max_da_per_job {
             return Err(Error::OffchainInputOverMaxDAPerJob);
@@ -136,13 +135,14 @@ where
             .await
             .expect("db writer broken");
 
-        let consumer_address: [u8; 20] = job.consumer_address.clone().try_into().expect("caller must validate address length.");
-        let actor_tx = self.active_actors.entry(consumer_address).or_insert_with(|| {
+        let consumer_address: [u8; 20] =
+            job.consumer_address.clone().try_into().expect("caller must validate address length.");
+        let execution_tx = self.active_actors.entry(consumer_address).or_insert_with(|| {
             // If an entry doesn't exist, that means there is no actor for this consumer
-            self.job_actor_spawner.spawn()
+            self.execution_actor_spawner.spawn()
         });
         // Send the job to actor for processing
-        actor_tx.send_async(job).await;
+        execution_tx.send_async(job).await.expect("execution tx failed");
 
         // Before responding, make sure the write completes
         let _ = db_write_complete_rx.await;

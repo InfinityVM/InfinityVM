@@ -2,11 +2,12 @@
 
 use crate::{
     event::{self, JobEventListener},
+    execute::{ExecutionActorSpawner},
     gateway::{self, HttpGrpcGateway},
     intake::IntakeHandlers,
     job_executor::JobExecutor,
     metrics::{MetricServer, Metrics},
-    relayer::{self, JobRelayerBuilder, RelayConfig, RelayCoordinator},
+    relayer::{self, JobRelayerBuilder, RelayActorSpawner, RelayConfig, RelayRetry},
     server::CoprocessorNodeServerInner,
     writer::{self, Write, Writer},
 };
@@ -48,12 +49,15 @@ pub enum Error {
     /// job event listener error
     #[error("job event listener error: {0}")]
     JobEventListener(#[from] event::Error),
-    /// relayer error
+    /// relay actor error
     #[error("relayer error: {0}")]
     Relayer(#[from] relayer::Error),
     /// writer error
     #[error("writer error: {0}")]
     Writer(#[from] writer::Error),
+    // /// execute actor error
+    // #[error("writer error: {0}")]
+    // Execute(#[from] execute::Error),
     /// thread join error
     #[error("thread join error: ")]
     StdJoin(Box<dyn Any + Send + 'static>),
@@ -148,8 +152,6 @@ where
     let (exec_queue_sender, exec_queue_receiver) = flume::bounded(exec_queue_bound);
     // Initialize the writer channel
     let (writer_tx, writer_rx) = flume::bounded(exec_queue_bound * 4);
-    // Initialize channel to relay coordinator
-    let (relay_tx, relay_rx) = flume::bounded(exec_queue_bound * 4);
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
@@ -166,17 +168,15 @@ where
     )?;
     let job_relayer = Arc::new(job_relayer);
 
-    let relay_coordinator = {
-        let relay_coordinator = RelayCoordinator::new(
-            writer_tx.clone(),
-            relay_rx,
-            job_relayer.clone(),
+    let relay_retry = {
+        let relay_retry = RelayRetry::new(
             db.clone(),
-            relay_config.dlq_max_retries,
-            relay_config.initial_relay_max_retries,
+            job_relayer.clone(),
             metrics.clone(),
+            relay_config.dlq_max_retries,
+            writer_tx.clone(),
         );
-        tokio::spawn(async move { relay_coordinator.start().await })
+        tokio::spawn(async move { RelayRetry::start(relay_retry).await })
     };
 
     // Configure the job processor
@@ -187,19 +187,27 @@ where
         metrics,
         worker_count,
         writer_tx.clone(),
-        relay_tx.clone(),
     );
     // Start the job processor workers
     job_executor.start().await;
 
+    
+    let execute_actor_spawner = {
+        let relay_actor_spawner = RelayActorSpawner::new(
+            writer_tx.clone(),
+            job_relayer.clone(),
+            relay_config.initial_relay_max_retries,
+        );
+         ExecutionActorSpawner::new(exec_queue_sender, relay_actor_spawner)
+    };
+
     let intake = IntakeHandlers::new(
         Arc::clone(&db),
-        exec_queue_sender.clone(),
         executor.clone(),
         max_da_per_job,
         writer_tx.clone(),
-        relay_tx.clone(),
         unsafe_skip_program_id_check,
+        execute_actor_spawner,
     );
 
     let job_event_listener = {
@@ -254,7 +262,7 @@ where
         flatten(grpc_server),
         flatten(prometheus_server),
         flatten(http_grpc_gateway_server),
-        flatten(relay_coordinator),
+        flatten(relay_retry),
         flatten(threads)
     )
     .map(|_| ());
