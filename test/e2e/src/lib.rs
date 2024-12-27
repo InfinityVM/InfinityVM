@@ -113,7 +113,7 @@ impl E2E {
             exec_queue_bound: 256,
             http_eth_rpc: http_rpc_url.clone(),
             job_manager_address: anvil.job_manager,
-            worker_count: 2,
+            worker_count: 4,
             relay_config: RelayConfig {
                 confirmations: 1,
                 dlq_max_retries: 0,

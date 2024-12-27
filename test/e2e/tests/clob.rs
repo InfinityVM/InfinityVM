@@ -402,7 +402,7 @@ async fn clob_node_e2e() {
         );
 
         // Give the batcher some time to process and hit the chain
-        sleep(Duration::from_secs(6)).await;
+        sleep(Duration::from_secs(20)).await;
 
         // Check that balances have been updated on chain from the batch.
         let bob_free_base = consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
