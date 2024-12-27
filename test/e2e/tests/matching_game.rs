@@ -27,7 +27,7 @@ use std::rc::Rc;
 use tokio::time::{sleep, Duration};
 
 #[ignore]
-#[tokio::test(flavor = "multi_thread")]
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn state_job_submission_matching_game_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
@@ -77,7 +77,7 @@ async fn state_job_submission_matching_game_consumer() {
             vec![Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 69 })];
         let (merkle_root3, _, _) = next_state(trie_db.clone(), merkle_root2, &requests3);
 
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(6));
         interval.tick().await; // First tick processes immediately
         let mut nonce = 2;
 
@@ -130,6 +130,8 @@ async fn state_job_submission_matching_game_consumer() {
 
             // Wait for the job to be processed
             interval.tick().await;
+            interval.tick().await;
+            interval.tick().await;
 
             let job_id = submit_job_response.job_id;
             let offchain_result_with_metadata = args
@@ -160,6 +162,11 @@ async fn state_job_submission_matching_game_consumer() {
 
             nonce += 1;
         }
+
+        interval.tick().await;
+        interval.tick().await;
+        interval.tick().await;
+        interval.tick().await;
 
         let consumer_contract =
             MatchingGameConsumer::new(matching_game.matching_game_consumer, &consumer_provider);

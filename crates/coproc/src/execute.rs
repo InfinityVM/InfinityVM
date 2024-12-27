@@ -9,7 +9,7 @@ use ivm_db::tables::Job;
 use ivm_proto::RelayStrategy;
 use std::collections::BTreeMap;
 use tokio::{sync::oneshot, task::JoinSet};
-use tracing::{debug, error, warn, info};
+use tracing::{debug, error, warn};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -71,14 +71,12 @@ async fn start_actor(
             new_job = rx.recv_async() => {
                 match new_job {
                     Ok(job) => {
-                        info!("received {:?}", job.nonce);
                         let executor_tx2 = executor_tx.clone();
                         join_set.spawn(async move {
                             // Send the job to be executed
                             let (tx, executor_complete_rx) = oneshot::channel();
                             executor_tx2.send_async((job, tx)).await.expect("todo");
 
-                            info!("waiting for job to finish executing");
                             // Return the executed job
                             executor_complete_rx.await
                         });
@@ -90,7 +88,6 @@ async fn start_actor(
             completed = join_set.join_next() => {
                 match completed {
                     Some(Ok(Ok(job))) => {
-                        info!(?next_job_to_submit, "completed {:?}", job.nonce);
                         // Short circuit ordering logic and relay immediately if this job is
                         // not ordered relay.
                         if job.relay_strategy == RelayStrategy::Unordered {
@@ -100,9 +97,7 @@ async fn start_actor(
 
                         // If the completed job is the next job to relay, perform the relay
                         if job.nonce == next_job_to_submit {
-                            info!(?next_job_to_submit, "completed relay now {:?}", job.nonce);
                             relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
-                            info!(?next_job_to_submit, "completed relay msg sent");
 
                             next_job_to_submit += 1;
                             while let Some(next_job) = completed_tasks.remove(&next_job_to_submit) {
