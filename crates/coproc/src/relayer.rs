@@ -23,7 +23,7 @@ use ivm_db::{
 use ivm_proto::{JobStatusType, RelayStrategy};
 use reth_db::Database;
 use std::{sync::Arc, time::Duration};
-use tokio::sync::oneshot;
+use tokio::{sync::oneshot, time};
 use tracing::{error, info};
 
 /// Delay between retrying failed jobs, in milliseconds.
@@ -257,17 +257,19 @@ impl RelayActorSpawner {
     /// It is expected that the caller will spawn exactly one relay actor per execution actor.
     pub fn spawn(&self) -> Sender<RelayMsg> {
         // TODO: add bound config
-        let (actor_tx, actor_rx) = flume::bounded(4094);
+        let (relay_tx, relay_rx) = flume::bounded(4094);
         let actor = RelayActor::new(
             self.writer_tx.clone(),
-            actor_rx,
+            relay_rx,
             self.job_relayer.clone(),
             self.initial_relay_max_retries,
         );
 
         tokio::spawn(async move { actor.start().await });
 
-        actor_tx
+        info!("relay actor spawned");
+
+        relay_tx
     }
 }
 
@@ -292,13 +294,26 @@ impl RelayActor {
     }
 
     /// Start the relay actor
-    async fn start(self) -> Result<(), Error> {
-        let relay_rx = self.relay_rx;
-        while let Ok(msg) = relay_rx.recv_async().await {
+    async fn start(self) {
+        info!("relayer started");
+        // let relay_rx = self.relay_rx;
+        loop {
+            let msg = match self.relay_rx.try_recv() {
+                Err(e) => {
+                    info!(?e, "tried relayer channel");
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    continue;
+                }
+                Ok(relay_msg) => relay_msg,
+            };
+
+            info!("relayer got job 1");
             let job = match msg {
                 RelayMsg::Relay(job) => job,
-                RelayMsg::Exit => return Ok(()),
+                // RelayMsg::Exit => return Ok(()),
+                RelayMsg::Exit => return,
             };
+            info!(?job.id, "relayer got job");
 
             match job.relay_strategy {
                 RelayStrategy::Ordered => {
@@ -326,7 +341,8 @@ impl RelayActor {
             }
         }
 
-        Err(Error::RelayRxDropped)
+        panic!("relay rx dropped");
+        // Err(Error::RelayRxDropped)
     }
 
     /// Relay the job result, and if the transaction fails record it in the DLQ.

@@ -9,7 +9,7 @@ use ivm_db::tables::Job;
 use ivm_proto::RelayStrategy;
 use std::collections::BTreeMap;
 use tokio::{sync::oneshot, task::JoinSet};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, warn, info};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -55,7 +55,7 @@ impl ExecutionActorSpawner {
 async fn start_actor(
     executor_tx: Sender<ExecutorMsg>,
     rx: Receiver<Job>,
-    relay_rx: Sender<RelayMsg>,
+    relay_tx: Sender<RelayMsg>,
 ) {
     let mut join_set = JoinSet::new();
 
@@ -63,7 +63,7 @@ async fn start_actor(
     let mut completed_tasks = ExecutedJobs::new();
 
     // TODO: robust logic to initialize job
-    let mut next_job_to_submit: JobNonce = 1;
+    let mut next_job_to_submit: JobNonce = 0;
 
     loop {
         tokio::select! {
@@ -71,13 +71,14 @@ async fn start_actor(
             new_job = rx.recv_async() => {
                 match new_job {
                     Ok(job) => {
-                        println!("received {:?}", job.nonce);
+                        info!("received {:?}", job.nonce);
                         let executor_tx2 = executor_tx.clone();
                         join_set.spawn(async move {
                             // Send the job to be executed
                             let (tx, executor_complete_rx) = oneshot::channel();
                             executor_tx2.send_async((job, tx)).await.expect("todo");
 
+                            info!("waiting for job to finish executing");
                             // Return the executed job
                             executor_complete_rx.await
                         });
@@ -85,24 +86,27 @@ async fn start_actor(
                     Err(_e) => continue, // TODO
                 }
             }
-            // As jobs complete
+            // As jobs complete, relay them as determined by their nonce
             completed = join_set.join_next() => {
                 match completed {
                     Some(Ok(Ok(job))) => {
+                        info!(?next_job_to_submit, "completed {:?}", job.nonce);
                         // Short circuit ordering logic and relay immediately if this job is
                         // not ordered relay.
                         if job.relay_strategy == RelayStrategy::Unordered {
-                            relay_rx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
+                            relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
                             continue;
                         }
 
                         // If the completed job is the next job to relay, perform the relay
                         if job.nonce == next_job_to_submit {
-                            relay_rx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
+                            info!(?next_job_to_submit, "completed relay now {:?}", job.nonce);
+                            relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
+                            info!(?next_job_to_submit, "completed relay msg sent");
 
                             next_job_to_submit += 1;
                             while let Some(next_job) = completed_tasks.remove(&next_job_to_submit) {
-                                relay_rx.send_async(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
+                                relay_tx.send_async(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
                                 next_job_to_submit += 1;
                             }
                         } else {
@@ -119,7 +123,7 @@ async fn start_actor(
                     // TODO: do we want to end just on the subscriber being empty? Seems like it would never actually become disconnected
                     None => if rx.is_empty() && rx.is_disconnected() {
                         debug!("exiting execution actor");
-                        let _ = relay_rx.send_async(RelayMsg::Exit).await;
+                        let _ = relay_tx.send_async(RelayMsg::Exit).await;
                         break;
                     } else {
                         continue;

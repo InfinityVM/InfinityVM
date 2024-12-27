@@ -15,7 +15,7 @@ use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::{marker::Send, sync::Arc};
 use tokio::sync::oneshot;
-use tracing::{error, instrument};
+use tracing::{error, instrument, info};
 
 /// A message to the executor
 pub type ExecutorMsg = (Job, oneshot::Sender<Job>);
@@ -135,6 +135,7 @@ where
                 Err(_) => continue,
             };
 
+            info!("executed received {}", job.nonce);
             let executed_job = match Self::execute_job(
                 job,
                 &zk_executor,
@@ -145,6 +146,8 @@ where
                 Ok(executed_job) => executed_job,
                 Err(_) => continue,
             };
+
+            info!("executed executed {}", executed_job.nonce);
 
             reply_tx.send(executed_job).expect("executor reply one shot channel is broken");
         }
