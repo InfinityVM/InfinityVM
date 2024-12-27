@@ -2,7 +2,7 @@
 
 use crate::{
     event::{self, JobEventListener},
-    execute::{ExecutionActorSpawner},
+    execute::ExecutionActorSpawner,
     gateway::{self, HttpGrpcGateway},
     intake::IntakeHandlers,
     job_executor::JobExecutor,
@@ -191,14 +191,13 @@ where
     // Start the job processor workers
     job_executor.start().await;
 
-    
     let execute_actor_spawner = {
         let relay_actor_spawner = RelayActorSpawner::new(
             writer_tx.clone(),
             job_relayer.clone(),
             relay_config.initial_relay_max_retries,
         );
-         ExecutionActorSpawner::new(exec_queue_sender, relay_actor_spawner)
+        ExecutionActorSpawner::new(exec_queue_sender, relay_actor_spawner)
     };
 
     let intake = IntakeHandlers::new(

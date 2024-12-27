@@ -252,8 +252,8 @@ impl RelayActorSpawner {
         Self { writer_tx, job_relayer, initial_relay_max_retries }
     }
 
-    /// Spawn a new relay actor. 
-    /// 
+    /// Spawn a new relay actor.
+    ///
     /// It is expected that the caller will spawn exactly one relay actor per execution actor.
     pub fn spawn(&self) -> Sender<RelayMsg> {
         // TODO: add bound config
@@ -296,13 +296,14 @@ impl RelayActor {
         let relay_rx = self.relay_rx;
         while let Ok(msg) = relay_rx.recv_async().await {
             let job = match msg {
-                RelayMsg::Relay(job) => job, 
-                RelayMsg::Exit => return Ok(())
+                RelayMsg::Relay(job) => job,
+                RelayMsg::Exit => return Ok(()),
             };
 
             match job.relay_strategy {
                 RelayStrategy::Ordered => {
-                    // Wait until this job has made its way into a block before relaying the next job.
+                    // Wait until this job has made its way into a block before relaying the next
+                    // job.
                     let _ = Self::relay_job_result(
                         job,
                         self.job_relayer.clone(),
@@ -312,7 +313,8 @@ impl RelayActor {
                     .await;
                 }
                 RelayStrategy::Unordered => {
-                    // Don't wait for the job to make its way into a block before relaying the next job.
+                    // Don't wait for the job to make its way into a block before relaying the next
+                    // job.
                     let fut = Self::relay_job_result(
                         job,
                         self.job_relayer.clone(),

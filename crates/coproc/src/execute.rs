@@ -1,14 +1,15 @@
 //! Actor for processing jobs on a per consumer basis.
 
-use std::collections::BTreeMap;
-
-use crate::{job_executor::ExecutorMsg, relayer::RelayActorSpawner};
+use crate::{
+    job_executor::ExecutorMsg,
+    relayer::{RelayActorSpawner, RelayMsg},
+};
 use flume::{Receiver, Sender};
 use ivm_db::tables::Job;
 use ivm_proto::RelayStrategy;
+use std::collections::BTreeMap;
 use tokio::{sync::oneshot, task::JoinSet};
 use tracing::{debug, error, warn};
-use crate::relayer::RelayMsg;
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -22,7 +23,10 @@ pub struct ExecutionActorSpawner {
 
 impl ExecutionActorSpawner {
     /// Create a new instance of [Self].
-    pub const fn new(executor_tx: Sender<ExecutorMsg>, relay_actor_spawner: RelayActorSpawner) -> Self {
+    pub const fn new(
+        executor_tx: Sender<ExecutorMsg>,
+        relay_actor_spawner: RelayActorSpawner,
+    ) -> Self {
         Self { executor_tx, relay_actor_spawner }
     }
 
