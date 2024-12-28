@@ -15,8 +15,8 @@ use ivm_test_utils::{
 use matching_game_server::test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
 use rand::Rng;
 use reth_db::DatabaseEnv;
-use tokio::runtime::Runtime;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
+use tokio::runtime::Runtime;
 use tonic::transport::Channel;
 
 /// Arguments passed to the test function.
@@ -163,19 +163,22 @@ impl E2E {
             let operator_signer = clob_consumer.clob_signer.clone();
 
             std::thread::spawn(move || {
-                Runtime::new().unwrap().block_on(async move {
-                    clob_node::run(
-                        clob_db_dir,
-                        listen_addr2,
-                        batcher_duration_ms,
-                        operator_signer,
-                        cn_grpc_client_url.clone(),
-                        ws_rpc_url,
-                        **clob_consumer_addr,
-                        BlockNumberOrTag::Earliest,
-                    )
-                    .await
-                }).unwrap();
+                Runtime::new()
+                    .unwrap()
+                    .block_on(async move {
+                        clob_node::run(
+                            clob_db_dir,
+                            listen_addr2,
+                            batcher_duration_ms,
+                            operator_signer,
+                            cn_grpc_client_url.clone(),
+                            ws_rpc_url,
+                            **clob_consumer_addr,
+                            BlockNumberOrTag::Earliest,
+                        )
+                        .await
+                    })
+                    .unwrap();
             });
 
             sleep_until_bound(listen_port).await;

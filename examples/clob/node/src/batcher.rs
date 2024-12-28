@@ -90,20 +90,25 @@ where
         let prev_state_index = start_index - 1;
         let db2 = db.clone();
         let (state_borsh, requests_borsh) = tokio::task::spawn_blocking(move || {
-            let start_state = db2.view(|tx| tx.get::<ClobStateTable>(prev_state_index)).unwrap().unwrap().unwrap().0;
+            let start_state = db2
+                .view(|tx| tx.get::<ClobStateTable>(prev_state_index))
+                .unwrap()
+                .unwrap()
+                .unwrap()
+                .0;
 
             let mut requests = Vec::with_capacity((end_index - start_index + 1) as usize);
             for i in start_index..=end_index {
-                let r = db2
-                    .view(|tx| tx.get::<RequestTable>(i)).unwrap().unwrap().unwrap()
-                    .0;
+                let r = db2.view(|tx| tx.get::<RequestTable>(i)).unwrap().unwrap().unwrap().0;
                 requests.push(r);
             }
 
             let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
             let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
             (state_borsh, requests_borsh)
-        }).await.unwrap();
+        })
+        .await
+        .unwrap();
 
         // Combine requests_borsh and state_borsh
         let mut combined_offchain_input = Vec::new();
