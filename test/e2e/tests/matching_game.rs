@@ -84,7 +84,10 @@ async fn state_job_submission_matching_game_consumer() {
             (requests1, merkle_root0, merkle_root1),
             (requests2, merkle_root1, merkle_root2),
             (requests3, merkle_root2, merkle_root3),
-        ].into_iter().enumerate() {
+        ]
+        .into_iter()
+        .enumerate()
+        {
             let requests_bytes = bincode::serialize(&requests).unwrap();
 
             let (_, snapshot, _) = next_state(trie_db.clone(), pre_txn_merkle_root, &requests);

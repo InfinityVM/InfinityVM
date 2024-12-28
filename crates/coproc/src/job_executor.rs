@@ -1,4 +1,5 @@
-//! [`JobExecutor`] handles the execution of jobs.
+//! [`JobExecutor`] handles the execution of jobs. It does this by maintaining a pool of worker
+//! threads that pull [`ExecutorMsg`]s off of the execution queue.
 
 use crate::{
     metrics::Metrics,

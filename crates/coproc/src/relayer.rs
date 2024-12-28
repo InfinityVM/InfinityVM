@@ -240,6 +240,7 @@ pub struct RelayActorSpawner {
     writer_tx: Sender<WriterMsg>,
     job_relayer: Arc<JobRelayer>,
     initial_relay_max_retries: u32,
+    channel_bound: usize,
 }
 
 impl RelayActorSpawner {
@@ -248,16 +249,16 @@ impl RelayActorSpawner {
         writer_tx: Sender<WriterMsg>,
         job_relayer: Arc<JobRelayer>,
         initial_relay_max_retries: u32,
+        channel_bound: usize,
     ) -> Self {
-        Self { writer_tx, job_relayer, initial_relay_max_retries }
+        Self { writer_tx, job_relayer, initial_relay_max_retries, channel_bound }
     }
 
     /// Spawn a new relay actor.
     ///
     /// It is expected that the caller will spawn exactly one relay actor per execution actor.
     pub fn spawn(&self) -> Sender<RelayMsg> {
-        // TODO: add bound config
-        let (relay_tx, relay_rx) = flume::bounded(4094);
+        let (relay_tx, relay_rx) = flume::bounded(self.channel_bound);
         let actor = RelayActor::new(
             self.writer_tx.clone(),
             relay_rx,
@@ -266,8 +267,6 @@ impl RelayActorSpawner {
         );
 
         tokio::spawn(async move { actor.start().await });
-
-        info!("relay actor spawned");
 
         relay_tx
     }

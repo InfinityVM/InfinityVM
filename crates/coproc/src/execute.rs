@@ -19,6 +19,7 @@ type ExecutedJobs = BTreeMap<JobNonce, Job>;
 pub struct ExecutionActorSpawner {
     relay_actor_spawner: RelayActorSpawner,
     executor_tx: Sender<ExecutorMsg>,
+    channel_bound: usize,
 }
 
 impl ExecutionActorSpawner {
@@ -26,8 +27,9 @@ impl ExecutionActorSpawner {
     pub const fn new(
         executor_tx: Sender<ExecutorMsg>,
         relay_actor_spawner: RelayActorSpawner,
+        channel_bound: usize,
     ) -> Self {
-        Self { executor_tx, relay_actor_spawner }
+        Self { executor_tx, relay_actor_spawner, channel_bound }
     }
 
     /// Spawn a new job actor.
@@ -38,108 +40,104 @@ impl ExecutionActorSpawner {
     pub fn spawn(&self) -> Sender<Job> {
         // Spawn a relay actor
         let relay_tx = self.relay_actor_spawner.spawn();
+        let (tx, rx) = flume::bounded(self.channel_bound);
+        let actor = ExecutionActor::new(self.executor_tx.clone(), rx, relay_tx);
 
-        // TODO: add bound
-        let (tx, rx) = flume::bounded(4094);
-
-        let executor_tx2 = self.executor_tx.clone();
-        tokio::spawn(async move { start_actor(executor_tx2, rx, relay_tx).await });
+        tokio::spawn(async move { actor.start().await });
 
         tx
     }
 }
 
-/// The primary routine of the execution actor.
-///
-/// We assume that the caller spawns exactly one job actor per consumer.
-async fn start_actor(
+struct ExecutionActor {
     executor_tx: Sender<ExecutorMsg>,
     rx: Receiver<Job>,
     relay_tx: Sender<RelayMsg>,
-) {
-    let mut join_set = JoinSet::new();
+}
 
-    // Use a priority queue.
-    let mut completed_tasks = ExecutedJobs::new();
+impl ExecutionActor {
+    const fn new(
+        executor_tx: Sender<ExecutorMsg>,
+        rx: Receiver<Job>,
+        relay_tx: Sender<RelayMsg>,
+    ) -> Self {
+        Self { executor_tx, rx, relay_tx }
+    }
 
-    // TODO: robust logic to initialize job
-    let mut next_job_to_submit: JobNonce = 0;
+    /// The primary routine of the execution actor.
+    ///
+    /// We assume that the caller spawns exactly one job actor per consumer.
+    async fn start(self) {
+        let mut join_set = JoinSet::new();
 
-    loop {
-        tokio::select! {
-            // Handle a new job request by starting execution
-            new_job = rx.recv_async() => {
-                match new_job {
-                    Ok(job) => {
-                        let executor_tx2 = executor_tx.clone();
-                        join_set.spawn(async move {
-                            // Send the job to be executed
-                            let (tx, executor_complete_rx) = oneshot::channel();
-                            executor_tx2.send_async((job, tx)).await.expect("todo");
+        // Use a priority queue.
+        let mut completed_tasks = ExecutedJobs::new();
 
-                            // Return the executed job
-                            executor_complete_rx.await
-                        });
-                    },
-                    Err(_e) => continue, // TODO
-                }
-            }
-            // As jobs complete, relay them as determined by their nonce
-            completed = join_set.join_next() => {
-                match completed {
-                    Some(Ok(Ok(job))) => {
-                        info!(
-                            job.nonce,
-                            next_job_to_submit,
-                            "completed, about to handle"
-                        );
-                        // Short circuit ordering logic and relay immediately if this job is
-                        // not ordered relay.
-                        if job.relay_strategy == RelayStrategy::Unordered {
-                            relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
-                            continue;
-                        }
+        // TODO: robust logic to initialize job
+        let mut next_job_to_submit: JobNonce = 0;
 
-                        // If the completed job is the next job to relay, perform the relay
-                        if job.nonce == next_job_to_submit {
-                            relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
-                            info!(
-                                next_job_to_submit,
-                                "completed, sent as matching next nonce"
-                            );
+        loop {
+            tokio::select! {
+                // Handle a new job request by starting execution
+                new_job = self.rx.recv_async() => {
+                    match new_job {
+                        Ok(job) => {
+                            let executor_tx2 = self.executor_tx.clone();
+                            join_set.spawn(async move {
+                                // Send the job to be executed
+                                let (tx, executor_complete_rx) = oneshot::channel();
+                                executor_tx2.send_async((job, tx)).await.expect("executor pool send failed");
 
-                            next_job_to_submit += 1;
-                            while let Some(next_job) = completed_tasks.remove(&next_job_to_submit) {
-                                info!(
-                                    next_job_to_submit,
-                                    "completed, sent as backlogged job"
-                                );
-                                relay_tx.send_async(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
-                                next_job_to_submit += 1;
-                            }
-                        } else {
-                            info!(
-                                next_job_to_submit,
-                                "completed, inserted into completed tasks"
-                            );
-                            completed_tasks.insert(job.nonce, job);
-                        }
-                    },
-                    Some(Ok(Err(error)))  => {
-                        warn!(?error, "execution error");
-                    },
-                    Some(Err(error)) => {
-                        error!(?error, "fatal error exiting execution actor for");
+                                // Return the executed job
+                                executor_complete_rx.await
+                            });
+                        },
+                        Err(error) => {
+                            warn!(error, "execute actor receiver error");
+                            break
+                        },
                     }
-                    // The join set is empty so we check if the channel is still open
-                    // TODO: do we want to end just on the subscriber being empty? Seems like it would never actually become disconnected
-                    None => if rx.is_empty() && rx.is_disconnected() {
-                        debug!("exiting execution actor");
-                        let _ = relay_tx.send_async(RelayMsg::Exit).await;
-                        break;
-                    } else {
-                        continue;
-                    },
+                }
+                // As jobs complete, relay them as determined by their nonce
+                completed = join_set.join_next() => {
+                    match completed {
+                        Some(Ok(Ok(job))) => {
+                            // Short circuit ordering logic and relay immediately if this job is
+                            // not ordered relay.
+                            if job.relay_strategy == RelayStrategy::Unordered {
+                                self.relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
+                                continue;
+                            }
+
+                            // If the completed job is the next job to relay, perform the relay
+                            if job.nonce == next_job_to_submit {
+                                self.relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
+
+                                next_job_to_submit += 1;
+                                while let Some(next_job) = completed_tasks.remove(&next_job_to_submit) {
+                                    self.relay_tx.send_async(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
+                                    next_job_to_submit += 1;
+                                }
+                            } else {
+                                completed_tasks.insert(job.nonce, job);
+                            }
+                        },
+                        Some(Ok(Err(error)))  => {
+                            warn!(?error, "execution error");
+                        },
+                        Some(Err(error)) => {
+                            error!(?error, "fatal error exiting execution actor for");
+                        }
+                        // The join set is empty so we check if the channel is still open
+                        // TODO: do we want to end just on the subscriber being empty? Seems like it would never actually become disconnected
+                        None => if self.rx.is_empty() && self.rx.is_disconnected() {
+                            debug!("exiting execution actor");
+                            let _ = self.relay_tx.send_async(RelayMsg::Exit).await;
+                            break;
+                        } else {
+                            continue;
+                        },
+                    }
                 }
             }
         }

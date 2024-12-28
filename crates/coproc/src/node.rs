@@ -193,8 +193,9 @@ where
             writer_tx.clone(),
             job_relayer.clone(),
             relay_config.initial_relay_max_retries,
+            exec_queue_bound,
         );
-        ExecutionActorSpawner::new(exec_queue_sender, relay_actor_spawner)
+        ExecutionActorSpawner::new(exec_queue_sender, relay_actor_spawner, exec_queue_bound)
     };
 
     let intake = IntakeHandlers::new(
