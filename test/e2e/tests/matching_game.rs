@@ -77,15 +77,14 @@ async fn state_job_submission_matching_game_consumer() {
             vec![Request::SubmitNumber(SubmitNumberRequest { address: alice, number: 69 })];
         let (merkle_root3, _, _) = next_state(trie_db.clone(), merkle_root2, &requests3);
 
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(6));
+        let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
         interval.tick().await; // First tick processes immediately
-        let mut nonce = 2;
 
-        for (requests, pre_txn_merkle_root, post_txn_merkle_root) in [
+        for (nonce, (requests, pre_txn_merkle_root, post_txn_merkle_root)) in [
             (requests1, merkle_root0, merkle_root1),
             (requests2, merkle_root1, merkle_root2),
             (requests3, merkle_root2, merkle_root3),
-        ] {
+        ].into_iter().enumerate() {
             let requests_bytes = bincode::serialize(&requests).unwrap();
 
             let (_, snapshot, _) = next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
@@ -104,7 +103,7 @@ async fn state_job_submission_matching_game_consumer() {
             let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
             let params = JobParams {
-                nonce,
+                nonce: nonce as u64,
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **matching_game.matching_game_consumer,
                 onchain_input: onchain_input_abi_encoded.as_slice(),
@@ -129,8 +128,6 @@ async fn state_job_submission_matching_game_consumer() {
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
-            interval.tick().await;
-            interval.tick().await;
             interval.tick().await;
 
             let job_id = submit_job_response.job_id;
@@ -159,13 +156,7 @@ async fn state_job_submission_matching_game_consumer() {
                     get_merkle_root_bytes(post_txn_merkle_root)
                 );
             }
-
-            nonce += 1;
         }
-
-        interval.tick().await;
-        interval.tick().await;
-        interval.tick().await;
         interval.tick().await;
 
         let consumer_contract =

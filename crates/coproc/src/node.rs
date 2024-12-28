@@ -55,10 +55,6 @@ pub enum Error {
     /// writer error
     #[error("writer error: {0}")]
     Writer(#[from] writer::Error),
-    // /// execute actor error
-    // #[error("writer error: {0}")]
-    // Execute(#[from] execute::Error),
-    /// thread join error
     #[error("thread join error: ")]
     StdJoin(Box<dyn Any + Send + 'static>),
 }

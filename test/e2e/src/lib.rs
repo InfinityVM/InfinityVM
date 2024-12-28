@@ -180,7 +180,6 @@ impl E2E {
                     })
                     .unwrap();
             });
-
             sleep_until_bound(listen_port).await;
 
             let clob_endpoint = format!("http://{listen_addr}");
@@ -200,15 +199,17 @@ impl E2E {
             let matching_game_consumer_addr = matching_game_consumer.matching_game_consumer;
             let listen_addr2 = listen_addr.clone();
             let operator_signer = matching_game_consumer.matching_game_signer.clone();
-            tokio::spawn(async move {
-                matching_game_server::run(
-                    listen_addr2,
-                    batcher_duration_ms,
-                    operator_signer,
-                    cn_grpc_client_url2,
-                    **matching_game_consumer_addr,
-                )
-                .await
+            std::thread::spawn(move || {
+                Runtime::new().unwrap().block_on(async move {
+                    matching_game_server::run(
+                        listen_addr2,
+                        batcher_duration_ms,
+                        operator_signer,
+                        cn_grpc_client_url2,
+                        **matching_game_consumer_addr,
+                    )
+                    .await
+                })
             });
             sleep_until_bound(listen_port).await;
 
