@@ -1,4 +1,4 @@
-use ivm_remote_db::{remote_db::v1::elf_store_server::ElfStoreServer, ElfStoreService};
+use ivm_elf_store::{elf_store::v1::elf_store_server::ElfStoreServer, ElfStoreService};
 use sqlx::{migrate::MigrateDatabase, postgres::PgPoolOptions};
 use std::env;
 use tonic::transport::Server;

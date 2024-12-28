@@ -5085,9 +5085,9 @@ dependencies = [
  "ivm-contracts",
  "ivm-db",
  "ivm-eip4844",
+ "ivm-elf-store",
  "ivm-mock-consumer",
  "ivm-proto",
- "ivm-remote-db",
  "ivm-test-utils",
  "ivm-tracing",
  "ivm-zkvm-executor",
@@ -5133,6 +5133,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "ivm-elf-store"
+version = "0.1.0"
+dependencies = [
+ "prost",
+ "sqlx",
+ "tokio",
+ "tonic",
+ "tonic-build",
+]
+
+[[package]]
 name = "ivm-exec"
 version = "0.0.1"
 dependencies = [
@@ -5171,17 +5182,6 @@ dependencies = [
  "serde",
  "serde_with",
  "tonic",
-]
-
-[[package]]
-name = "ivm-remote-db"
-version = "0.1.0"
-dependencies = [
- "prost",
- "sqlx",
- "tokio",
- "tonic",
- "tonic-build",
 ]
 
 [[package]]

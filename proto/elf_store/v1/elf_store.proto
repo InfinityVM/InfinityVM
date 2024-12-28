@@ -1,5 +1,5 @@
 syntax = "proto3";
-package remote_db.v1;
+package elf_store.v1;
 
 service ElfStore {
   // Store an ELF program in the db

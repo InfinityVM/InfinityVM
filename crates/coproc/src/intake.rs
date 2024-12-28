@@ -6,7 +6,7 @@
 
 use crate::{
     relayer::Relay,
-    remote_db::RemoteElfClientTrait,
+    elf_store::RemoteElfClientTrait,
     writer::{Write, WriterMsg},
 };
 use alloy::{
@@ -194,7 +194,7 @@ where
         let _ = rx.await;
 
         // Store the ELF in remote DB
-        match crate::remote_db::RemoteElfClient::connect(&self.config.config.remote_db.endpoint)
+        match crate::elf_store::RemoteElfClient::connect(&self.config.config.elf_store.endpoint)
             .await
         {
             Ok(mut client) => {

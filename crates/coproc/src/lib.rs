@@ -11,7 +11,7 @@ pub mod metrics;
 pub mod node;
 pub mod queue;
 pub mod relayer;
-pub mod remote_db;
+pub mod elf_store;
 pub mod server;
 pub mod writer;
 

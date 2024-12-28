@@ -35,7 +35,7 @@ ivm-proto = { workspace = true }
 ivm-zkvm-executor = { workspace = true }
 ivm-tracing = { workspace = true }
 ivm-eip4844 = { workspace = true }
-ivm-remote-db = { workspace = true }
+ivm-elf-store = { workspace = true }
 
 [dev-dependencies]
 ivm-test-utils = { workspace = true }

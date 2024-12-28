@@ -11,7 +11,7 @@ members = [
 	"crates/db",
 	"crates/eip4844",
 	"crates/mock-consumer",
-	"crates/remote-db",
+	"crates/elf-store",
 	"crates/scripts",
 	"crates/sdk/abi",
 	"crates/sdk/proto",
@@ -232,7 +232,7 @@ ivm-mock-consumer = { path = "crates/mock-consumer" }
 ivm-abi = { path = "crates/sdk/abi" }
 ivm-contracts = { path = "crates/contracts" }
 ivm-coproc = { path = "crates/coproc" }
-ivm-remote-db = { path = "crates/remote-db" }
+ivm-elf-store = { path = "crates/elf-store" }
 ivm-db = { path = "crates/db" }
 ivm-eip4844 = { path = "crates/eip4844" }
 ivm-proto = { path = "crates/sdk/proto" }

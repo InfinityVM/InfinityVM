@@ -1,10 +1,10 @@
-pub mod remote_db {
+pub mod elf_store {
     pub mod v1 {
-        tonic::include_proto!("remote_db.v1");
+        tonic::include_proto!("elf_store.v1");
     }
 }
 
-use remote_db::v1::{
+use elf_store::v1::{
     elf_store_server::ElfStore, GetElfRequest, GetElfResponse, StoreElfRequest, StoreElfResponse,
 };
 use sqlx::{postgres::PgPool, Row};

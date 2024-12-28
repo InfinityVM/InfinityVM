@@ -4,5 +4,3 @@ CREATE TABLE IF NOT EXISTS elf_programs (
     vm_type INTEGER NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE INDEX idx_program_id ON elf_programs(program_id); 

@@ -15,5 +15,5 @@ impl Default for RemoteDbConfig {
 #[derive(Debug, Clone, Default)]
 pub struct Config {
     /// Remote DB configuration
-    pub remote_db: RemoteDbConfig,
+    pub elf_store: RemoteDbConfig,
 }

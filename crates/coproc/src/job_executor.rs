@@ -3,7 +3,7 @@
 use crate::{
     metrics::Metrics,
     relayer::Relay,
-    remote_db::RemoteElfClientTrait,
+    elf_store::RemoteElfClientTrait,
     writer::{Write, WriterMsg},
 };
 use alloy::{
@@ -198,7 +198,7 @@ where
         // TODO: include job ID in metrics
         // https://github.com/InfinityVM/InfinityVM/issues/362
         // Try remote DB
-        let mut client = match crate::remote_db::RemoteElfClient::connect(&config.remote_db.endpoint).await {
+        let mut client = match crate::elf_store::RemoteElfClient::connect(&config.elf_store.endpoint).await {
             Ok(client) => client,
             Err(e) => {
                 // Connection error

@@ -2,7 +2,7 @@
 
 use async_trait::async_trait;
 use ivm_db::tables::ElfWithMeta;
-use ivm_remote_db::remote_db::v1::{
+use ivm_elf_store::elf_store::v1::{
     elf_store_client::ElfStoreClient, GetElfRequest, StoreElfRequest,
 };
 use tonic::transport::Channel;
