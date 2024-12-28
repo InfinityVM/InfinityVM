@@ -178,19 +178,6 @@ impl E2E {
                 }).unwrap();
             });
 
-            // tokio::spawn(async move {
-            //     clob_node::run(
-            //         clob_db_dir,
-            //         listen_addr2,
-            //         batcher_duration_ms,
-            //         operator_signer,
-            //         cn_grpc_client_url.clone(),
-            //         ws_rpc_url,
-            //         **clob_consumer_addr,
-            //         BlockNumberOrTag::Earliest,
-            //     )
-            //     .await
-            // });
             sleep_until_bound(listen_port).await;
 
             let clob_endpoint = format!("http://{listen_addr}");
