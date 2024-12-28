@@ -8,7 +8,6 @@ pub mod intake;
 pub mod job_executor;
 pub mod metrics;
 pub mod node;
-pub mod queue;
 pub mod relayer;
 pub mod server;
 pub mod writer;
