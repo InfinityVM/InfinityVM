@@ -119,7 +119,6 @@ significant_drop_in_scrutinee = "allow"
 significant_drop_tightening = "allow"
 
 [workspace.dependencies]
-ivm-remote-db = { path = "crates/remote-db" }
 # a
 anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
@@ -233,6 +232,7 @@ ivm-mock-consumer = { path = "crates/mock-consumer" }
 ivm-abi = { path = "crates/sdk/abi" }
 ivm-contracts = { path = "crates/contracts" }
 ivm-coproc = { path = "crates/coproc" }
+ivm-remote-db = { path = "crates/remote-db" }
 ivm-db = { path = "crates/db" }
 ivm-eip4844 = { path = "crates/eip4844" }
 ivm-proto = { path = "crates/sdk/proto" }
