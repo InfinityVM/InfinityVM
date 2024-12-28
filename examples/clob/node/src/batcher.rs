@@ -81,7 +81,7 @@ where
             .ok_or_eyre("end_index")?;
 
         if start_index > end_index {
-            info!(start_index, end_index, job_nonce, "skipping batch creation");
+            debug!(start_index, end_index, job_nonce, "skipping batch creation");
             continue;
         }
 
@@ -138,7 +138,6 @@ where
             relay_strategy: RelayStrategy::Ordered as i32,
         };
 
-        info!(job_nonce, "submitting job request with nonce");
         submit_job_with_backoff(&mut coprocessor_node, job_request).await?;
 
         let next_batch_idx = end_index + 1;
