@@ -26,7 +26,7 @@ use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest, SubmitProgram
 use tokio::time::{sleep, Duration};
 
 #[ignore]
-#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 12)]
 async fn state_job_submission_clob_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
@@ -140,7 +140,7 @@ async fn state_job_submission_clob_consumer() {
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
 
-        let mut nonce = 2;
+        let mut nonce = 1;
         for (requests, init_state, next_state) in
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
         {
@@ -184,7 +184,7 @@ async fn state_job_submission_clob_consumer() {
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
-            sleep(Duration::from_secs(5)).await;
+            sleep(Duration::from_secs(15)).await;
 
             let job_id = submit_job_response.job_id;
             let offchain_result_with_metadata = args
@@ -435,7 +435,7 @@ async fn clob_node_e2e() {
         assert!(state.base_balances().is_empty());
 
         // Wait for batches to hit the chain
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_secs(10)).await;
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));

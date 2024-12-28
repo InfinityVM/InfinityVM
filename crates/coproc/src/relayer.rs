@@ -501,6 +501,8 @@ impl JobRelayer {
             ?receipt.block_hash,
             ?receipt.transaction_hash,
             id=hex::encode(job.id),
+            consumer=hex::encode(job.consumer_address),
+            job.nonce,
             "tx included"
         );
 
@@ -578,6 +580,8 @@ impl JobRelayer {
             ?receipt.block_hash,
             ?receipt.transaction_hash,
             id=hex::encode(job.id),
+            consumer=hex::encode(job.consumer_address),
+            job.nonce,
             "tx included"
         );
 

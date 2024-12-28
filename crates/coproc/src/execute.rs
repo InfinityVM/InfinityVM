@@ -9,7 +9,7 @@ use ivm_db::tables::Job;
 use ivm_proto::RelayStrategy;
 use std::collections::BTreeMap;
 use tokio::{sync::oneshot, task::JoinSet};
-use tracing::{debug, error, warn};
+use tracing::{debug, error, info, warn};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -88,6 +88,11 @@ async fn start_actor(
             completed = join_set.join_next() => {
                 match completed {
                     Some(Ok(Ok(job))) => {
+                        info!(
+                            job.nonce,
+                            next_job_to_submit,
+                            "completed, about to handle"
+                        );
                         // Short circuit ordering logic and relay immediately if this job is
                         // not ordered relay.
                         if job.relay_strategy == RelayStrategy::Unordered {
@@ -98,13 +103,25 @@ async fn start_actor(
                         // If the completed job is the next job to relay, perform the relay
                         if job.nonce == next_job_to_submit {
                             relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
+                            info!(
+                                next_job_to_submit,
+                                "completed, sent as matching next nonce"
+                            );
 
                             next_job_to_submit += 1;
                             while let Some(next_job) = completed_tasks.remove(&next_job_to_submit) {
+                                info!(
+                                    next_job_to_submit,
+                                    "completed, sent as backlogged job"
+                                );
                                 relay_tx.send_async(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
                                 next_job_to_submit += 1;
                             }
                         } else {
+                            info!(
+                                next_job_to_submit,
+                                "completed, inserted into completed tasks"
+                            );
                             completed_tasks.insert(job.nonce, job);
                         }
                     },
