@@ -9,7 +9,7 @@ use ivm_db::tables::Job;
 use ivm_proto::RelayStrategy;
 use std::collections::BTreeMap;
 use tokio::{sync::oneshot, task::JoinSet};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, warn};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -34,9 +34,9 @@ impl ExecutionActorSpawner {
 
     /// Spawn a new job actor.
     ///
-    /// Note that this will also spawn a corresponding
+    /// Note that this will also spawn a corresponding relay actor.
     ///
-    /// Caution: We assume that the caller spawns exactly one job actor per consumer.
+    /// Caution: we assume that the caller spawns exactly one job actor per consumer.
     pub fn spawn(&self) -> Sender<Job> {
         // Spawn a relay actor
         let relay_tx = self.relay_actor_spawner.spawn();
@@ -92,8 +92,8 @@ impl ExecutionActor {
                                 executor_complete_rx.await
                             });
                         },
-                        Err(error) => {
-                            warn!(error, "execute actor receiver error");
+                        Err(_e) => {
+                            warn!("execute actor receiver error, exiting");
                             break
                         },
                     }
@@ -126,15 +126,16 @@ impl ExecutionActor {
                             warn!(?error, "execution error");
                         },
                         Some(Err(error)) => {
-                            error!(?error, "fatal error exiting execution actor for");
+                            error!(?error, "fatal error, exiting execution actor");
+                            break;
                         }
                         // The join set is empty so we check if the channel is still open
-                        // TODO: do we want to end just on the subscriber being empty? Seems like it would never actually become disconnected
                         None => if self.rx.is_empty() && self.rx.is_disconnected() {
                             debug!("exiting execution actor");
                             let _ = self.relay_tx.send_async(RelayMsg::Exit).await;
                             break;
                         } else {
+                            // The channel is still open, so we continue to wait for new messages
                             continue;
                         },
                     }
