@@ -58,7 +58,12 @@ pub enum Error {
     /// thread join error
     #[error("thread join error: ")]
     StdJoin(Box<dyn Any + Send + 'static>),
+    /// url parsing error
+    #[error("failed to parse ETH HTTP RPC URL: {0}")]
+    ParseEthHTTPRpc(#[from] url::ParseError
+    )
 }
+
 
 /// Configuration for ETH RPC websocket connection.
 #[derive(Debug)]
@@ -205,6 +210,7 @@ where
         writer_tx.clone(),
         unsafe_skip_program_id_check,
         execute_actor_spawner,
+        http_eth_rpc.parse()?,
     );
 
     let job_event_listener = {

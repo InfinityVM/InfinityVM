@@ -10,9 +10,7 @@ use crate::{
     writer::{Write, WriterMsg},
 };
 use alloy::{
-    hex,
-    primitives::PrimitiveSignature,
-    signers::{Signer, SignerSync},
+    hex, primitives::PrimitiveSignature, providers::ProviderBuilder, signers::{Signer, SignerSync}, transports::http::reqwest::Url
 };
 use dashmap::DashMap;
 use flume::Sender;
@@ -53,6 +51,9 @@ pub enum Error {
     /// given program ID does not match derived program ID
     #[error("given program ID does not match derived program ID: given: {0}, derived: {1}")]
     MismatchProgramId(String, String),
+    /// failed while trying to read the nonce from the consumer contract
+    #[error("could not read the nonce from the consumer contract {0}")]
+    GetNonceFail(#[from] alloy::contract::Error),
 }
 
 /// Job and program intake handlers.
@@ -67,6 +68,7 @@ pub struct IntakeHandlers<S, D> {
     unsafe_skip_program_id_check: bool,
     execution_actor_spawner: ExecutionActorSpawner,
     active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
+    http_eth_rpc: Url,
 }
 
 impl<S, D> Clone for IntakeHandlers<S, D>
@@ -82,6 +84,7 @@ where
             unsafe_skip_program_id_check: self.unsafe_skip_program_id_check,
             execution_actor_spawner: self.execution_actor_spawner.clone(),
             active_actors: self.active_actors.clone(),
+            http_eth_rpc: self.http_eth_rpc.clone(),
         }
     }
 }
@@ -99,6 +102,7 @@ where
         writer_tx: Sender<WriterMsg>,
         unsafe_skip_program_id_check: bool,
         execution_actor_spawner: ExecutionActorSpawner,
+        http_eth_rpc: Url,
     ) -> Self {
         Self {
             db,
@@ -108,6 +112,7 @@ where
             unsafe_skip_program_id_check,
             execution_actor_spawner,
             active_actors: Arc::new(DashMap::new()),
+            http_eth_rpc
         }
     }
 
@@ -137,10 +142,24 @@ where
 
         let consumer_address: [u8; 20] =
             job.consumer_address.clone().try_into().expect("caller must validate address length.");
-        let execution_tx = self.active_actors.entry(consumer_address).or_insert_with(|| {
-            // If an entry doesn't exist, that means there is no actor for this consumer
-            self.execution_actor_spawner.spawn()
-        });
+
+        let execution_tx = if !self.active_actors.contains_key(&consumer_address) {
+            // Get the latest nonce to initialize the execution actor with
+            let provider = ProviderBuilder::new()
+                .on_http(self.http_eth_rpc.clone());
+            let consumer = ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
+            let nonce = consumer.getNextNonce().call().await?._0;
+            // Spawn the actor
+            
+            let execution_tx = self.execution_actor_spawner.spawn(nonce);
+            self.active_actors.insert(consumer_address, execution_tx.clone());
+            execution_tx
+        } else {
+            self.active_actors.get(&consumer_address)
+                .expect("we checked above that the entry exists. qed.")
+                .clone()
+        };
+
         // Send the job to actor for processing
         execution_tx.send_async(job).await.expect("execution tx failed");
 

@@ -37,13 +37,13 @@ impl ExecutionActorSpawner {
     /// Note that this will also spawn a corresponding relay actor.
     ///
     /// Caution: we assume that the caller spawns exactly one job actor per consumer.
-    pub fn spawn(&self) -> Sender<Job> {
+    pub fn spawn(&self, nonce: u64) -> Sender<Job> {
         // Spawn a relay actor
         let relay_tx = self.relay_actor_spawner.spawn();
         let (tx, rx) = flume::bounded(self.channel_bound);
         let actor = ExecutionActor::new(self.executor_tx.clone(), rx, relay_tx);
 
-        tokio::spawn(async move { actor.start().await });
+        tokio::spawn(async move { actor.start(nonce).await });
 
         tx
     }
@@ -67,14 +67,10 @@ impl ExecutionActor {
     /// The primary routine of the execution actor.
     ///
     /// We assume that the caller spawns exactly one job actor per consumer.
-    async fn start(self) {
+    async fn start(self, nonce: JobNonce) {
+        let mut next_job_to_submit = nonce;
         let mut join_set = JoinSet::new();
-
-        // Use a priority queue.
         let mut completed_tasks = ExecutedJobs::new();
-
-        // TODO: robust logic to initialize job
-        let mut next_job_to_submit: JobNonce = 0;
 
         loop {
             tokio::select! {
