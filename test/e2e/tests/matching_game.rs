@@ -161,7 +161,6 @@ async fn state_job_submission_matching_game_consumer() {
                 );
             }
         }
-        interval.tick().await;
 
         let consumer_contract =
             MatchingGameConsumer::new(matching_game.matching_game_consumer, &consumer_provider);
@@ -240,7 +239,7 @@ async fn matching_game_server_e2e() {
             }
         );
 
-        sleep(Duration::from_secs(6)).await;
+        sleep(Duration::from_secs(5)).await;
 
         // Check that partners have been updated on chain from the batch.
         let partner = consumer_contract.getPartner(alice.into()).call().await.unwrap()._0;
