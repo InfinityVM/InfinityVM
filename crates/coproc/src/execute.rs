@@ -1,4 +1,4 @@
-//! Actor for processing jobs on a per consumer basis.
+//! Actor for executing jobs on a per consumer basis.
 
 use crate::{
     job_executor::ExecutorMsg,
@@ -14,7 +14,9 @@ use tracing::{debug, error, warn};
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
 
-/// The configuration for spawning job actors.
+/// The configuration for spawning job execution actors. A job execution actor will execute jobs as
+/// they come in. As jobs finish, it will wait until the job with the next nonce finishes and then
+/// send it to the relay actor.
 #[derive(Debug, Clone)]
 pub struct ExecutionActorSpawner {
     relay_actor_spawner: RelayActorSpawner,
