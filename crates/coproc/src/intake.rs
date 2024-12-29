@@ -152,10 +152,10 @@ where
             let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
             let consumer =
                 ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
-            // This is the next nonce, but we subtract 1 because we need the current nonce
+            // This is the next nonce; since we expect contracts to be initialized with nonce 0, the first nonce should be 1.
             let nonce = consumer.getNextNonce().call().await?._0;
-            // Spawn the actor
-            let execution_tx = self.execution_actor_spawner.spawn(nonce - 1);
+
+            let execution_tx = self.execution_actor_spawner.spawn(nonce);
             self.active_actors.insert(consumer_address, execution_tx.clone());
             execution_tx
         } else {

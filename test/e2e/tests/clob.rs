@@ -140,7 +140,7 @@ async fn state_job_submission_clob_consumer() {
         ];
         let clob_state3 = next_state(requests3.clone(), clob_state2.clone());
 
-        let mut nonce = 1;
+        let mut nonce = 2;
         for (requests, init_state, next_state) in
             [(requests2, &clob_state1, &clob_state2), (requests3, &clob_state2, &clob_state3)]
         {

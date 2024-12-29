@@ -69,7 +69,8 @@ where
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
     let mut interval = tokio::time::interval(sleep_duration);
 
-    let mut job_nonce = 0;
+    // The initial "next nonce" is 1 since the consumer is expected to be initialized with 0.
+    let mut job_nonce = 1;
     loop {
         interval.tick().await;
 

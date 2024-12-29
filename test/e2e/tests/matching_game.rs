@@ -80,7 +80,7 @@ async fn state_job_submission_matching_game_consumer() {
         let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(4));
         interval.tick().await; // First tick processes immediately
 
-        for (nonce, (requests, pre_txn_merkle_root, post_txn_merkle_root)) in [
+        for (i, (requests, pre_txn_merkle_root, post_txn_merkle_root)) in [
             (requests1, merkle_root0, merkle_root1),
             (requests2, merkle_root1, merkle_root2),
             (requests3, merkle_root2, merkle_root3),
@@ -88,6 +88,7 @@ async fn state_job_submission_matching_game_consumer() {
         .into_iter()
         .enumerate()
         {
+            let nonce = (i + 1) as u64;
             let requests_bytes = bincode::serialize(&requests).unwrap();
 
             let (_, snapshot, _) = next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
@@ -106,7 +107,7 @@ async fn state_job_submission_matching_game_consumer() {
             let onchain_input_abi_encoded = StatefulAppOnchainInput::abi_encode(&onchain_input);
 
             let params = JobParams {
-                nonce: nonce as u64,
+                nonce,
                 max_cycles: 32 * 1000 * 1000,
                 consumer_address: **matching_game.matching_game_consumer,
                 onchain_input: onchain_input_abi_encoded.as_slice(),
