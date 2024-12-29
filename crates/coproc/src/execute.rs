@@ -107,16 +107,18 @@ impl ExecutionActor {
                                 continue;
                             }
 
-                            // If the completed job is the next job to relay, perform the relay
                             if job.nonce == next_job_to_submit {
+                                // If the completed job is the next job to relay, perform the relay
                                 self.relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
 
                                 next_job_to_submit += 1;
                                 while let Some(next_job) = completed_tasks.remove(&next_job_to_submit) {
+                                    // Relay any directly subsequent jobs that have been completed
                                     self.relay_tx.send_async(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
                                     next_job_to_submit += 1;
                                 }
                             } else {
+                                // This is not the next job to relay, so just store it for later
                                 completed_tasks.insert(job.nonce, job);
                             }
                         },
