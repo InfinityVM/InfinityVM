@@ -4,30 +4,36 @@ use crate::{
     job_executor::ExecutorMsg,
     relayer::{RelayActorSpawner, RelayMsg},
 };
-use flume::{Receiver, Sender};
 use ivm_db::tables::Job;
 use ivm_proto::RelayStrategy;
 use std::collections::BTreeMap;
-use tokio::{sync::oneshot, task::JoinSet};
+use tokio::{
+    sync::{
+        mpsc,
+        mpsc::{Receiver, Sender},
+        oneshot,
+    },
+    task::JoinSet,
+};
 use tracing::{debug, error, warn};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
 
 /// The configuration for spawning job execution actors. A job execution actor will execute jobs as
-/// they come in. As jobs finish, it will wait until the job with the next nonce finishes and then
-/// send it to the relay actor.
+/// they come in. As jobs finish executing, it will wait until the job with the next nonce finishes
+/// and then send it to the relay actor.
 #[derive(Debug, Clone)]
 pub struct ExecutionActorSpawner {
     relay_actor_spawner: RelayActorSpawner,
-    executor_tx: Sender<ExecutorMsg>,
+    executor_tx: flume::Sender<ExecutorMsg>,
     channel_bound: usize,
 }
 
 impl ExecutionActorSpawner {
     /// Create a new instance of [Self].
     pub const fn new(
-        executor_tx: Sender<ExecutorMsg>,
+        executor_tx: flume::Sender<ExecutorMsg>,
         relay_actor_spawner: RelayActorSpawner,
         channel_bound: usize,
     ) -> Self {
@@ -42,7 +48,7 @@ impl ExecutionActorSpawner {
     pub fn spawn(&self, nonce: u64) -> Sender<Job> {
         // Spawn a relay actor
         let relay_tx = self.relay_actor_spawner.spawn();
-        let (tx, rx) = flume::bounded(self.channel_bound);
+        let (tx, rx) = mpsc::channel(self.channel_bound);
         let actor = ExecutionActor::new(self.executor_tx.clone(), rx, relay_tx);
 
         tokio::spawn(async move { actor.start(nonce).await });
@@ -52,14 +58,14 @@ impl ExecutionActorSpawner {
 }
 
 struct ExecutionActor {
-    executor_tx: Sender<ExecutorMsg>,
+    executor_tx: flume::Sender<ExecutorMsg>,
     rx: Receiver<Job>,
     relay_tx: Sender<RelayMsg>,
 }
 
 impl ExecutionActor {
     const fn new(
-        executor_tx: Sender<ExecutorMsg>,
+        executor_tx: flume::Sender<ExecutorMsg>,
         rx: Receiver<Job>,
         relay_tx: Sender<RelayMsg>,
     ) -> Self {
@@ -73,14 +79,15 @@ impl ExecutionActor {
         let mut next_job_to_submit = nonce;
         let mut join_set = JoinSet::new();
         let mut completed_tasks = ExecutedJobs::new();
+        let Self { mut rx, relay_tx, executor_tx } = self;
 
         loop {
             tokio::select! {
                 // Handle a new job request by starting execution
-                new_job = self.rx.recv_async() => {
+                new_job = rx.recv() => {
                     match new_job {
-                        Ok(job) => {
-                            let executor_tx2 = self.executor_tx.clone();
+                        Some(job) => {
+                            let executor_tx2 = executor_tx.clone();
                             join_set.spawn(async move {
                                 // Send the job to be executed
                                 let (tx, executor_complete_rx) = oneshot::channel();
@@ -90,8 +97,8 @@ impl ExecutionActor {
                                 executor_complete_rx.await
                             });
                         },
-                        Err(_e) => {
-                            warn!("execute actor receiver error, exiting");
+                        None => {
+                            warn!("execute actor channel closed, exiting");
                             break
                         },
                     }
@@ -103,18 +110,18 @@ impl ExecutionActor {
                             // Short circuit ordering logic and relay immediately if this job is
                             // not ordered relay.
                             if job.relay_strategy == RelayStrategy::Unordered {
-                                self.relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
+                                relay_tx.send(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
                                 continue;
                             }
 
                             if job.nonce == next_job_to_submit {
                                 // If the completed job is the next job to relay, perform the relay
-                                self.relay_tx.send_async(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
+                                relay_tx.send(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
 
                                 next_job_to_submit += 1;
                                 while let Some(next_job) = completed_tasks.remove(&next_job_to_submit) {
                                     // Relay any directly subsequent jobs that have been completed
-                                    self.relay_tx.send_async(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
+                                    relay_tx.send(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
                                     next_job_to_submit += 1;
                                 }
                             } else {
@@ -130,9 +137,9 @@ impl ExecutionActor {
                             break;
                         }
                         // The join set is empty so we check if the channel is still open
-                        None => if self.rx.is_empty() && self.rx.is_disconnected() {
+                        None => if rx.is_empty() && rx.is_closed() {
                             debug!("exiting execution actor");
-                            let _ = self.relay_tx.send_async(RelayMsg::Exit).await;
+                            let _ = relay_tx.send(RelayMsg::Exit).await;
                             break;
                         } else {
                             // The channel is still open, so we continue to wait for new messages

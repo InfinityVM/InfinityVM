@@ -13,7 +13,6 @@ use alloy::{
     rpc::types::TransactionReceipt,
     transports::http::{reqwest, Client, Http},
 };
-use flume::{Receiver, Sender, TryRecvError};
 use ivm_abi::abi_encode_offchain_job_request;
 use ivm_contracts::i_job_manager::IJobManager;
 use ivm_db::{
@@ -23,7 +22,10 @@ use ivm_db::{
 use ivm_proto::{JobStatusType, RelayStrategy};
 use reth_db::Database;
 use std::{sync::Arc, time::Duration};
-use tokio::sync::oneshot;
+use tokio::sync::{
+    mpsc::{self, Receiver, Sender},
+    oneshot,
+};
 use tracing::{error, info};
 
 /// Delay between retrying failed jobs, in milliseconds.
@@ -112,7 +114,7 @@ pub struct RelayRetry<D> {
     job_relayer: Arc<JobRelayer>,
     metrics: Arc<Metrics>,
     dlq_max_retries: u32,
-    writer_tx: Sender<WriterMsg>,
+    writer_tx: flume::Sender<WriterMsg>,
 }
 
 impl<D> RelayRetry<D>
@@ -125,7 +127,7 @@ where
         job_relayer: Arc<JobRelayer>,
         metrics: Arc<Metrics>,
         dlq_max_retries: u32,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: flume::Sender<WriterMsg>,
     ) -> Self {
         Self { db, job_relayer, metrics, dlq_max_retries, writer_tx }
     }
@@ -237,7 +239,7 @@ pub enum RelayMsg {
 /// This is a type used to spawn new relay actors.
 #[derive(Debug, Clone)]
 pub struct RelayActorSpawner {
-    writer_tx: Sender<WriterMsg>,
+    writer_tx: flume::Sender<WriterMsg>,
     job_relayer: Arc<JobRelayer>,
     initial_relay_max_retries: u32,
     channel_bound: usize,
@@ -246,7 +248,7 @@ pub struct RelayActorSpawner {
 impl RelayActorSpawner {
     /// Create a new instance of [Self].
     pub const fn new(
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: flume::Sender<WriterMsg>,
         job_relayer: Arc<JobRelayer>,
         initial_relay_max_retries: u32,
         channel_bound: usize,
@@ -258,7 +260,7 @@ impl RelayActorSpawner {
     ///
     /// It is expected that the caller will spawn exactly one relay actor per execution actor.
     pub fn spawn(&self) -> Sender<RelayMsg> {
-        let (relay_tx, relay_rx) = flume::bounded(self.channel_bound);
+        let (relay_tx, relay_rx) = mpsc::channel(self.channel_bound);
         let actor = RelayActor::new(
             self.writer_tx.clone(),
             relay_rx,
@@ -275,7 +277,7 @@ impl RelayActorSpawner {
 /// The service in charge of handling all routines related to relay transactions onchain.
 #[derive(Debug)]
 struct RelayActor {
-    writer_tx: Sender<WriterMsg>,
+    writer_tx: flume::Sender<WriterMsg>,
     relay_rx: Receiver<RelayMsg>,
     job_relayer: Arc<JobRelayer>,
     initial_relay_max_retries: u32,
@@ -284,7 +286,7 @@ struct RelayActor {
 impl RelayActor {
     /// Create a new instance of [Self].
     const fn new(
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: flume::Sender<WriterMsg>,
         relay_rx: Receiver<RelayMsg>,
         job_relayer: Arc<JobRelayer>,
         initial_relay_max_retries: u32,
@@ -294,20 +296,28 @@ impl RelayActor {
 
     /// Start the relay actor
     async fn start(self) {
+        let mut relay_rx = self.relay_rx;
         loop {
             // TODO: for some reason recv_async was not working and never pulling from
             // the channel. This is a hack, but I assume there is some other issue I am
             // missing
-            let msg = match self.relay_rx.try_recv() {
-                Err(TryRecvError::Disconnected) => {
-                    error!("exiting relay actor");
+            // let msg = match self.relay_rx.try_recv() {
+            //     Err(TryRecvError::Disconnected) => {
+            //         error!("exiting relay actor");
+            //         return;
+            //     }
+            //     Err(_error) => {
+            //         tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
+            //         continue;
+            //     }
+            //     Ok(relay_msg) => relay_msg,
+            // };
+            let msg = match relay_rx.recv().await {
+                Some(relay_msg) => relay_msg,
+                None => {
+                    tracing::warn!("relay rx unexpectedly closed");
                     return;
                 }
-                Err(_error) => {
-                    tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
-                    continue;
-                }
-                Ok(relay_msg) => relay_msg,
             };
 
             let job = match msg {
@@ -353,7 +363,7 @@ impl RelayActor {
     async fn relay_job_result(
         mut job: Job,
         job_relayer: Arc<JobRelayer>,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: flume::Sender<WriterMsg>,
         initial_relay_max_retries: u32,
     ) -> Result<(), FailureReason> {
         let id = job.id;

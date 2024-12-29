@@ -17,13 +17,12 @@ use alloy::{
     transports::http::reqwest::Url,
 };
 use dashmap::DashMap;
-use flume::Sender;
 use ivm_db::{get_elf_sync, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::sync::Arc;
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc::Sender, oneshot};
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -68,7 +67,7 @@ pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
-    writer_tx: Sender<WriterMsg>,
+    writer_tx: flume::Sender<WriterMsg>,
     unsafe_skip_program_id_check: bool,
     execution_actor_spawner: ExecutionActorSpawner,
     active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
@@ -103,7 +102,7 @@ where
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: flume::Sender<WriterMsg>,
         unsafe_skip_program_id_check: bool,
         execution_actor_spawner: ExecutionActorSpawner,
         http_eth_rpc: Url,
@@ -167,7 +166,7 @@ where
         };
 
         // Send the job to actor for processing
-        execution_tx.send_async(job).await.expect("execution tx failed");
+        execution_tx.send(job).await.expect("execution tx failed");
 
         // Before responding, make sure the write completes
         let _ = db_write_complete_rx.await;
