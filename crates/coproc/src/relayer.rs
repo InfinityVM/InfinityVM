@@ -23,7 +23,7 @@ use ivm_proto::{JobStatusType, RelayStrategy};
 use reth_db::Database;
 use std::{sync::Arc, time::Duration};
 use tokio::sync::{
-    mpsc::{self, Receiver, Sender},
+    mpsc::{self, error::TryRecvError, Receiver, Sender},
     oneshot,
 };
 use tracing::{error, info};
@@ -133,9 +133,8 @@ where
     }
 
     /// Retry jobs that failed to relay
-    pub async fn start(
-        Self { db, job_relayer, metrics, dlq_max_retries, writer_tx }: Self,
-    ) -> Result<(), Error> {
+    pub async fn start(self) -> Result<(), Error> {
+        let Self { db, job_relayer, metrics, dlq_max_retries, writer_tx } = self;
         loop {
             // Jobs that we no longer want to retry
             let mut jobs_to_delete = Vec::new();
@@ -297,28 +296,25 @@ impl RelayActor {
     /// Start the relay actor
     async fn start(self) {
         let mut relay_rx = self.relay_rx;
+
         loop {
-            // TODO: for some reason recv_async was not working and never pulling from
+            // while let Some(msg) = relay_rx.recv().await {
+            // TODO: for some reason recv_async was not working and never receiving from
             // the channel. This is a hack, but I assume there is some other issue I am
             // missing
-            // let msg = match self.relay_rx.try_recv() {
-            //     Err(TryRecvError::Disconnected) => {
-            //         error!("exiting relay actor");
-            //         return;
-            //     }
-            //     Err(_error) => {
-            //         tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
-            //         continue;
-            //     }
-            //     Ok(relay_msg) => relay_msg,
-            // };
-            let msg = match relay_rx.recv().await {
-                Some(relay_msg) => relay_msg,
-                None => {
-                    tracing::warn!("relay rx unexpectedly closed");
+            let msg = match relay_rx.try_recv() {
+                Err(TryRecvError::Disconnected) => {
+                    error!("exiting relay actor");
                     return;
                 }
+                Err(_error) => {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
+                    continue;
+                }
+                Ok(relay_msg) => relay_msg,
             };
+
+            info!("got msg");
 
             let job = match msg {
                 RelayMsg::Relay(job) => job,

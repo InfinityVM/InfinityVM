@@ -175,7 +175,7 @@ where
             relay_config.dlq_max_retries,
             writer_tx.clone(),
         );
-        tokio::spawn(async move { RelayRetry::start(relay_retry).await })
+        tokio::spawn(async move { relay_retry.start().await })
     };
 
     // Configure the job processor
