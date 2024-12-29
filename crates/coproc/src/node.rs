@@ -150,7 +150,7 @@ where
     // Initialize the async channels
     let (exec_queue_sender, exec_queue_receiver) = flume::bounded(exec_queue_bound);
     // Initialize the writer channel
-    let (writer_tx, writer_rx) = flume::bounded(exec_queue_bound * 4);
+    let (writer_tx, writer_rx) = tokio::sync::mpsc::channel(exec_queue_bound * 4);
 
     // Configure the ZKVM executor
     let executor = ZkvmExecutorService::new(zkvm_operator);
@@ -268,7 +268,7 @@ where
     .map(|_| ());
 
     // We need to manually shutdown any standard threads
-    let _ = writer_tx.send_async((Write::Kill, None)).await;
+    let _ = writer_tx.send((Write::Kill, None)).await;
 
     result
 }

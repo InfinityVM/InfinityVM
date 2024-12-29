@@ -114,7 +114,7 @@ pub struct RelayRetry<D> {
     job_relayer: Arc<JobRelayer>,
     metrics: Arc<Metrics>,
     dlq_max_retries: u32,
-    writer_tx: flume::Sender<WriterMsg>,
+    writer_tx: Sender<WriterMsg>,
 }
 
 impl<D> RelayRetry<D>
@@ -127,7 +127,7 @@ where
         job_relayer: Arc<JobRelayer>,
         metrics: Arc<Metrics>,
         dlq_max_retries: u32,
-        writer_tx: flume::Sender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
     ) -> Self {
         Self { db, job_relayer, metrics, dlq_max_retries, writer_tx }
     }
@@ -176,7 +176,7 @@ where
                         // We are not in a rush, so we can wait for the write
                         let (tx, rx) = oneshot::channel();
                         writer_tx
-                            .send_async((Write::JobTable(job.clone()), Some(tx)))
+                            .send((Write::JobTable(job.clone()), Some(tx)))
                             .await
                             .expect("db writer broken");
                         let _ = rx.await;
@@ -201,6 +201,7 @@ where
                             let (tx, rx) = oneshot::channel();
                             writer_tx
                                 .send((Write::FailureJobs(job.clone()), Some(tx)))
+                                .await
                                 .expect("db writer broken");
                             let _ = rx.await;
                         }
@@ -216,6 +217,7 @@ where
                 let (tx, rx) = oneshot::channel();
                 writer_tx
                     .send((Write::FailureJobsDelete(*job_id), Some(tx)))
+                    .await
                     .expect("db writer broken");
                 let _ = rx.await;
             }
@@ -238,7 +240,7 @@ pub enum RelayMsg {
 /// This is a type used to spawn new relay actors.
 #[derive(Debug, Clone)]
 pub struct RelayActorSpawner {
-    writer_tx: flume::Sender<WriterMsg>,
+    writer_tx: Sender<WriterMsg>,
     job_relayer: Arc<JobRelayer>,
     initial_relay_max_retries: u32,
     channel_bound: usize,
@@ -247,7 +249,7 @@ pub struct RelayActorSpawner {
 impl RelayActorSpawner {
     /// Create a new instance of [Self].
     pub const fn new(
-        writer_tx: flume::Sender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         job_relayer: Arc<JobRelayer>,
         initial_relay_max_retries: u32,
         channel_bound: usize,
@@ -276,7 +278,7 @@ impl RelayActorSpawner {
 /// The service in charge of handling all routines related to relay transactions onchain.
 #[derive(Debug)]
 struct RelayActor {
-    writer_tx: flume::Sender<WriterMsg>,
+    writer_tx: Sender<WriterMsg>,
     relay_rx: Receiver<RelayMsg>,
     job_relayer: Arc<JobRelayer>,
     initial_relay_max_retries: u32,
@@ -285,7 +287,7 @@ struct RelayActor {
 impl RelayActor {
     /// Create a new instance of [Self].
     const fn new(
-        writer_tx: flume::Sender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         relay_rx: Receiver<RelayMsg>,
         job_relayer: Arc<JobRelayer>,
         initial_relay_max_retries: u32,
@@ -359,7 +361,7 @@ impl RelayActor {
     async fn relay_job_result(
         mut job: Job,
         job_relayer: Arc<JobRelayer>,
-        writer_tx: flume::Sender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         initial_relay_max_retries: u32,
     ) -> Result<(), FailureReason> {
         let id = job.id;
@@ -397,10 +399,7 @@ impl RelayActor {
             Ok(receipt) => receipt.transaction_hash,
             Err(e) => {
                 error!("failed to relay job {:?}: {:?}", id, e);
-                writer_tx
-                    .send_async((Write::FailureJobs(job), None))
-                    .await
-                    .expect("db writer broken");
+                writer_tx.send((Write::FailureJobs(job), None)).await.expect("db writer broken");
 
                 return Err(FailureReason::RelayErr);
             }
@@ -409,7 +408,7 @@ impl RelayActor {
         // Save the relay tx hash and status to DB
         job.relay_tx_hash = relay_tx_hash.to_vec();
         job.status.status = JobStatusType::Relayed as i32;
-        writer_tx.send_async((Write::JobTable(job), None)).await.expect("db writer broken");
+        writer_tx.send((Write::JobTable(job), None)).await.expect("db writer broken");
 
         Ok(())
     }

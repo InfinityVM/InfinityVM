@@ -67,7 +67,7 @@ pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
-    writer_tx: flume::Sender<WriterMsg>,
+    writer_tx: Sender<WriterMsg>,
     unsafe_skip_program_id_check: bool,
     execution_actor_spawner: ExecutionActorSpawner,
     active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
@@ -102,7 +102,7 @@ where
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
-        writer_tx: flume::Sender<WriterMsg>,
+        writer_tx: Sender<WriterMsg>,
         unsafe_skip_program_id_check: bool,
         execution_actor_spawner: ExecutionActorSpawner,
         http_eth_rpc: Url,
@@ -139,7 +139,7 @@ where
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
         let (tx, db_write_complete_rx) = oneshot::channel();
         self.writer_tx
-            .send_async((Write::JobTable(job.clone()), Some(tx)))
+            .send((Write::JobTable(job.clone()), Some(tx)))
             .await
             .expect("db writer broken");
 
@@ -203,7 +203,7 @@ where
         // Write the elf and make sure it completes before responding to the user.
         let (tx, rx) = oneshot::channel();
         self.writer_tx
-            .send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
+            .blocking_send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
             .expect("writer channel broken");
         let _ = rx.blocking_recv();
 

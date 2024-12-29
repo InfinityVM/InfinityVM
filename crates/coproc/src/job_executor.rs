@@ -9,7 +9,7 @@ use alloy::{
     primitives::PrimitiveSignature,
     signers::{Signer, SignerSync},
 };
-use flume::{Receiver, Sender};
+use flume::Receiver;
 use ivm_db::tables::{ElfWithMeta, Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
@@ -84,7 +84,7 @@ pub struct JobExecutor<S, D> {
     zk_executor: ZkvmExecutorService<S>,
     metrics: Arc<Metrics>,
     num_workers: usize,
-    writer_tx: Sender<WriterMsg>,
+    writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
 }
 
 impl<S, D> JobExecutor<S, D>
@@ -99,7 +99,7 @@ where
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
         num_workers: usize,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Self {
         Self { db, executor_rx, zk_executor, metrics, num_workers, writer_tx }
     }
@@ -126,7 +126,7 @@ where
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Result<(), Error> {
         let writer_tx2 = writer_tx;
 
@@ -157,7 +157,7 @@ where
         db: &Arc<D>,
         job: &mut Job,
         metrics: &Arc<Metrics>,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Result<ElfWithMeta, FailureReason> {
         match ivm_db::get_elf_sync(db.clone(), &job.program_id).expect("DB reads cannot fail") {
             Some(elf) => Ok(elf),
@@ -171,7 +171,9 @@ where
                     failure_reason: Some(FailureReason::MissingElf.to_string()),
                     retries: 0,
                 };
-                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
+                writer_tx
+                    .blocking_send((Write::JobTable(job.clone()), None))
+                    .expect("db writer broken");
 
                 Err(FailureReason::DbErrMissingElf)
             }
@@ -187,7 +189,7 @@ where
         zk_executor: &ZkvmExecutorService<S>,
         elf_with_meta: ElfWithMeta,
         metrics: &Arc<Metrics>,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Result<Job, FailureReason> {
         let id = job.id;
         let result = match job.request_type {
@@ -223,7 +225,9 @@ where
                 job.zkvm_operator_signature = zkvm_operator_signature;
                 job.blobs_sidecar = sidecar;
 
-                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
+                writer_tx
+                    .blocking_send((Write::JobTable(job.clone()), None))
+                    .expect("db writer broken");
 
                 Ok(job)
             }
@@ -240,7 +244,7 @@ where
                     retries: 0,
                 };
 
-                writer_tx.send((Write::JobTable(job), None)).expect("db writer broken");
+                writer_tx.blocking_send((Write::JobTable(job), None)).expect("db writer broken");
 
                 Err(FailureReason::ExecErr)
             }
