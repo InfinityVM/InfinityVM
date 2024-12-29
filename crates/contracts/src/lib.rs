@@ -47,11 +47,11 @@ pub mod proxy_admin {
 
 /// `Consumer.sol` bindings
 pub mod consumer {
-  alloy::sol! {
-    #[sol(rpc)]
-    Consumer,
-    "json/Consumer.json"
-  }
+    alloy::sol! {
+      #[sol(rpc)]
+      Consumer,
+      "json/Consumer.json"
+    }
 }
 
 /// `MockConsumer.sol` bindings

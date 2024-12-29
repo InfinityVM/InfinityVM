@@ -60,11 +60,8 @@ pub enum Error {
     StdJoin(Box<dyn Any + Send + 'static>),
     /// url parsing error
     #[error("failed to parse ETH HTTP RPC URL: {0}")]
-    ParseEthHTTPRpc(#[from] url::ParseError
-    )
+    ParseEthHTTPRpc(#[from] url::ParseError),
 }
-
-
 /// Configuration for ETH RPC websocket connection.
 #[derive(Debug)]
 pub struct WsConfig {

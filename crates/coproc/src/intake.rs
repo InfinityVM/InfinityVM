@@ -10,7 +10,11 @@ use crate::{
     writer::{Write, WriterMsg},
 };
 use alloy::{
-    hex, primitives::PrimitiveSignature, providers::ProviderBuilder, signers::{Signer, SignerSync}, transports::http::reqwest::Url
+    hex,
+    primitives::PrimitiveSignature,
+    providers::ProviderBuilder,
+    signers::{Signer, SignerSync},
+    transports::http::reqwest::Url,
 };
 use dashmap::DashMap;
 use flume::Sender;
@@ -112,7 +116,7 @@ where
             unsafe_skip_program_id_check,
             execution_actor_spawner,
             active_actors: Arc::new(DashMap::new()),
-            http_eth_rpc
+            http_eth_rpc,
         }
     }
 
@@ -145,17 +149,18 @@ where
 
         let execution_tx = if !self.active_actors.contains_key(&consumer_address) {
             // Get the latest nonce to initialize the execution actor with
-            let provider = ProviderBuilder::new()
-                .on_http(self.http_eth_rpc.clone());
-            let consumer = ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
+            let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
+            let consumer =
+                ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
             let nonce = consumer.getNextNonce().call().await?._0;
             // Spawn the actor
-            
+
             let execution_tx = self.execution_actor_spawner.spawn(nonce);
             self.active_actors.insert(consumer_address, execution_tx.clone());
             execution_tx
         } else {
-            self.active_actors.get(&consumer_address)
+            self.active_actors
+                .get(&consumer_address)
                 .expect("we checked above that the entry exists. qed.")
                 .clone()
         };
