@@ -312,7 +312,6 @@ impl RelayActor {
 
             let job = match msg {
                 RelayMsg::Relay(job) => job,
-                // RelayMsg::Exit => return Ok(()),
                 RelayMsg::Exit => return,
             };
 
