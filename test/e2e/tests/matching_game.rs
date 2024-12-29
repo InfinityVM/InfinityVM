@@ -27,7 +27,7 @@ use std::rc::Rc;
 use tokio::time::{sleep, Duration};
 
 #[ignore]
-#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[tokio::test(flavor = "multi_thread")]
 async fn state_job_submission_matching_game_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
@@ -239,7 +239,7 @@ async fn matching_game_server_e2e() {
             }
         );
 
-        sleep(Duration::from_secs(20)).await;
+        sleep(Duration::from_secs(6)).await;
 
         // Check that partners have been updated on chain from the batch.
         let partner = consumer_contract.getPartner(alice.into()).call().await.unwrap()._0;

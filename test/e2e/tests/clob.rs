@@ -435,7 +435,7 @@ async fn clob_node_e2e() {
         assert!(state.base_balances().is_empty());
 
         // Wait for batches to hit the chain
-        sleep(Duration::from_secs(6)).await;
+        sleep(Duration::from_secs(5)).await;
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));
