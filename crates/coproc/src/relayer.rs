@@ -316,8 +316,6 @@ impl RelayActor {
                 Ok(relay_msg) => relay_msg,
             };
 
-            info!("got msg");
-
             let job = match msg {
                 RelayMsg::Relay(job) => job,
                 RelayMsg::Exit => return,
@@ -326,7 +324,8 @@ impl RelayActor {
             info!(
                 id = hex::encode(job.id),
                 consumer = hex::encode(&job.consumer_address),
-                "job to relay"
+                job.nonce,
+                "received job to relay"
             );
 
             match job.relay_strategy {
@@ -344,13 +343,13 @@ impl RelayActor {
                 RelayStrategy::Unordered => {
                     // Don't wait for the job to make its way into a block before relaying the next
                     // job.
-                    let fut = Self::relay_job_result(
+                    let future = Self::relay_job_result(
                         job,
                         self.job_relayer.clone(),
                         self.writer_tx.clone(),
                         self.initial_relay_max_retries,
                     );
-                    tokio::spawn(fut);
+                    tokio::spawn(future);
                 }
             }
         }

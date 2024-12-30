@@ -122,7 +122,8 @@ where
     /// Submits job, saves it in DB, and pushes on the exec queue.
     ///
     /// Caution: this assumes the consumer address has already been validated to be exactly 20
-    /// bytes.
+    /// bytes. For the gRPC service, we do this in the `submit_job` endpoint implementation before
+    /// call this method.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         if job.offchain_input.len() > self.max_da_per_job {
             return Err(Error::OffchainInputOverMaxDAPerJob);

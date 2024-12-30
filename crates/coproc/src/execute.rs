@@ -98,8 +98,8 @@ impl ExecutionActor {
                             });
                         },
                         None => {
-                            warn!("execute actor channel closed, exiting");
-                            break
+                            warn!("execute actor channel closed");
+                            continue
                         },
                     }
                 }
