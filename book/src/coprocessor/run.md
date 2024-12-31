@@ -2,7 +2,7 @@
 
 ## Docker
 
-We do not yet have a public docker repository, but you can build [this docker image](https://github.com/InfinityVM/InfinityVM/blob/main/Dockerfile.coproc-node) located in the InfinityVM repo.
+We do not yet have a public docker repository, but you can build [this docker image](https://github.com/InfinityVM/InfinityVM/blob/main/Dockerfile.coprocessor-node) located in the InfinityVM repo.
 
 ## Build from source
 
