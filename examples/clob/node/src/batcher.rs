@@ -69,7 +69,8 @@ where
     let mut coprocessor_node = CoprocessorNodeClient::connect(cn_grpc_url).await.unwrap();
     let mut interval = tokio::time::interval(sleep_duration);
 
-    let mut job_nonce = 0;
+    // The initial "next nonce" is 1 since the consumer is expected to be initialized with 0.
+    let mut job_nonce = 1;
     loop {
         interval.tick().await;
 
@@ -81,29 +82,34 @@ where
             .ok_or_eyre("end_index")?;
 
         if start_index > end_index {
-            debug!(start_index, end_index, "skipping batch creation");
+            debug!(start_index, end_index, job_nonce, "skipping batch creation");
             continue;
         }
 
-        info!("creating batch {start_index}..={end_index}");
+        info!(job_nonce, "creating batch {start_index}..={end_index}");
 
         let prev_state_index = start_index - 1;
-        let start_state =
-            db.view(|tx| tx.get::<ClobStateTable>(prev_state_index))??.ok_or_eyre("start_state")?.0;
-        tokio::task::yield_now().await;
-
-        let mut requests = Vec::with_capacity((end_index - start_index + 1) as usize);
-        for i in start_index..=end_index {
-            let r = db
-                .view(|tx| tx.get::<RequestTable>(i))??
-                .ok_or_eyre(format!("batcher: request {i}"))?
+        let db2 = db.clone();
+        let (state_borsh, requests_borsh) = tokio::task::spawn_blocking(move || {
+            let start_state = db2
+                .view(|tx| tx.get::<ClobStateTable>(prev_state_index))
+                .unwrap()
+                .unwrap()
+                .unwrap()
                 .0;
-            requests.push(r);
-            tokio::task::yield_now().await;
-        }
 
-        let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
-        let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
+            let mut requests = Vec::with_capacity((end_index - start_index + 1) as usize);
+            for i in start_index..=end_index {
+                let r = db2.view(|tx| tx.get::<RequestTable>(i)).unwrap().unwrap().unwrap().0;
+                requests.push(r);
+            }
+
+            let requests_borsh = borsh::to_vec(&requests).expect("borsh works. qed.");
+            let state_borsh = borsh::to_vec(&start_state).expect("borsh works. qed.");
+            (state_borsh, requests_borsh)
+        })
+        .await
+        .unwrap();
 
         // Combine requests_borsh and state_borsh
         let mut combined_offchain_input = Vec::new();

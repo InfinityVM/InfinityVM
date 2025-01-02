@@ -1,21 +1,25 @@
-//! [`JobExecutor`] handles the execution of jobs.
+//! [`JobExecutor`] handles the execution of jobs. It does this by maintaining a pool of worker
+//! threads that pull [`ExecutorMsg`]s off of the execution queue.
 
 use crate::{
     metrics::Metrics,
-    relayer::Relay,
     writer::{Write, WriterMsg},
 };
 use alloy::{
     primitives::PrimitiveSignature,
     signers::{Signer, SignerSync},
 };
-use flume::{Receiver, Sender};
+use flume::Receiver;
 use ivm_db::tables::{ElfWithMeta, Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::{marker::Send, sync::Arc};
+use tokio::sync::oneshot;
 use tracing::{error, instrument};
+
+/// A message to the executor
+pub type ExecutorMsg = (Job, oneshot::Sender<Job>);
 
 /// Errors for this module.
 #[derive(thiserror::Error, Debug)]
@@ -72,18 +76,15 @@ pub enum FailureReason {
     RelayErrExceedRetry,
 }
 
-/// Job executor service.
-///
-/// This stores a `JoinSet` with a handle to each job executor worker.
+/// Job executor service. This is essentially a thread pool for job execution.
 #[derive(Debug)]
 pub struct JobExecutor<S, D> {
     db: Arc<D>,
-    exec_queue_receiver: Receiver<Job>,
+    executor_rx: Receiver<ExecutorMsg>,
     zk_executor: ZkvmExecutorService<S>,
     metrics: Arc<Metrics>,
     num_workers: usize,
-    writer_tx: Sender<WriterMsg>,
-    relay_tx: Sender<Relay>,
+    writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
 }
 
 impl<S, D> JobExecutor<S, D>
@@ -94,52 +95,42 @@ where
     /// Create a new instance of [Self].
     pub const fn new(
         db: Arc<D>,
-        exec_queue_receiver: Receiver<Job>,
+        executor_rx: Receiver<ExecutorMsg>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
         num_workers: usize,
-        writer_tx: Sender<WriterMsg>,
-        relay_tx: Sender<Relay>,
+        writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Self {
-        Self { db, exec_queue_receiver, zk_executor, metrics, num_workers, writer_tx, relay_tx }
+        Self { db, executor_rx, zk_executor, metrics, num_workers, writer_tx }
     }
 
     /// Spawns `num_workers` worker tasks.
     pub async fn start(&self) {
         let mut threads = vec![];
         for _ in 0..self.num_workers {
-            let exec_queue_receiver = self.exec_queue_receiver.clone();
+            let executor_rx = self.executor_rx.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
             let metrics = Arc::clone(&self.metrics);
             let writer_tx = self.writer_tx.clone();
-            let relay_tx = self.relay_tx.clone();
 
             threads.push(std::thread::spawn(|| {
-                Self::start_executor_worker(
-                    exec_queue_receiver,
-                    db,
-                    zk_executor,
-                    metrics,
-                    writer_tx,
-                    relay_tx,
-                )
+                Self::start_executor_worker(executor_rx, db, zk_executor, metrics, writer_tx)
             }));
         }
     }
 
     /// Start a worker.
     fn start_executor_worker(
-        exec_queue_receiver: Receiver<Job>,
+        executor_rx: Receiver<ExecutorMsg>,
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
-        writer_tx: Sender<WriterMsg>,
-        relay_tx: Sender<Relay>,
+        writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Result<(), Error> {
         let writer_tx2 = writer_tx;
 
-        while let Ok(mut job) = exec_queue_receiver.recv() {
+        while let Ok((mut job, reply_tx)) = executor_rx.recv() {
             let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone()) {
                 Ok(elf) => elf,
                 Err(_) => continue,
@@ -156,7 +147,7 @@ where
                 Err(_) => continue,
             };
 
-            relay_tx.send(Relay::Now(Box::new(executed_job))).expect("relay channel is broken");
+            reply_tx.send(executed_job).expect("executor reply one shot channel is broken");
         }
 
         Err(Error::ExecQueueChannelClosed)
@@ -166,7 +157,7 @@ where
         db: &Arc<D>,
         job: &mut Job,
         metrics: &Arc<Metrics>,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Result<ElfWithMeta, FailureReason> {
         match ivm_db::get_elf_sync(db.clone(), &job.program_id).expect("DB reads cannot fail") {
             Some(elf) => Ok(elf),
@@ -180,20 +171,25 @@ where
                     failure_reason: Some(FailureReason::MissingElf.to_string()),
                     retries: 0,
                 };
-                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
+                writer_tx
+                    .blocking_send((Write::JobTable(job.clone()), None))
+                    .expect("db writer broken");
 
                 Err(FailureReason::DbErrMissingElf)
             }
         }
     }
 
+    /// Returns a job updated with the execution result.
+    ///
+    /// As a side effect, this will write the updated job to the DB.
     #[instrument(skip_all, level = "debug")]
     fn execute_job(
         mut job: Job,
         zk_executor: &ZkvmExecutorService<S>,
         elf_with_meta: ElfWithMeta,
         metrics: &Arc<Metrics>,
-        writer_tx: Sender<WriterMsg>,
+        writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Result<Job, FailureReason> {
         let id = job.id;
         let result = match job.request_type {
@@ -229,7 +225,9 @@ where
                 job.zkvm_operator_signature = zkvm_operator_signature;
                 job.blobs_sidecar = sidecar;
 
-                writer_tx.send((Write::JobTable(job.clone()), None)).expect("db writer broken");
+                writer_tx
+                    .blocking_send((Write::JobTable(job.clone()), None))
+                    .expect("db writer broken");
 
                 Ok(job)
             }
@@ -246,7 +244,7 @@ where
                     retries: 0,
                 };
 
-                writer_tx.send((Write::JobTable(job), None)).expect("db writer broken");
+                writer_tx.blocking_send((Write::JobTable(job), None)).expect("db writer broken");
 
                 Err(FailureReason::ExecErr)
             }

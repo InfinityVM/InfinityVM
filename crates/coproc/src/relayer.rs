@@ -1,17 +1,8 @@
-//! Logic to broadcast job result onchain.
-//!
-//! The primary type is the [`RelayCoordinator`]. The [`RelayCoordinator`] is in charge of managing
-//! broadcast queues on a per consumer basis, managing tasks queue polling tasks, and all final
-//! broadcasting logic. Other subsystems communicate with the [`RelayCoordinator`] by sending the
-//! [Relay] message over a mpsc channel. While the [Relay] channel is the only public API for this
-//! subsystem its important to note that this systems updates job statuses in the DB.
-//!
-//! The actual relaying logic is encapsulated by the [`JobRelayer`] abstraction.
+//! This module contains all components for broadcasting job results onchain.
 
 use crate::{
     job_executor::FailureReason,
     metrics::Metrics,
-    queue::Queues,
     writer::{Write, WriterMsg},
 };
 use alloy::{
@@ -22,17 +13,19 @@ use alloy::{
     rpc::types::TransactionReceipt,
     transports::http::{reqwest, Client, Http},
 };
-use flume::{Receiver, Sender};
 use ivm_abi::abi_encode_offchain_job_request;
 use ivm_contracts::i_job_manager::IJobManager;
 use ivm_db::{
-    get_all_failed_jobs, get_job,
+    get_all_failed_jobs,
     tables::{Job, RequestType},
 };
 use ivm_proto::{JobStatusType, RelayStrategy};
 use reth_db::Database;
 use std::{sync::Arc, time::Duration};
-use tokio::{sync::oneshot, time::interval};
+use tokio::sync::{
+    mpsc::{self, error::TryRecvError, Receiver, Sender},
+    oneshot,
+};
 use tracing::{error, info};
 
 /// Delay between retrying failed jobs, in milliseconds.
@@ -114,175 +107,34 @@ pub enum Error {
     Database(#[from] ivm_db::Error),
 }
 
-/// A message to the job relayer
+/// Service to retry relaying jobs on the dead letter queue.
 #[derive(Debug)]
-pub enum Relay {
-    /// Queue a job, setting the order it should be relayed in.
-    Queue {
-        /// Consumer address.
-        consumer: [u8; 20],
-        /// Job ID.
-        job_id: [u8; 32],
-    },
-    /// The given job is ready to be relayed now
-    Now(Box<Job>),
-}
-
-/// The service in charge of handling all routines related to relay transactions onchain.
-#[derive(Debug)]
-pub struct RelayCoordinator<D> {
-    writer_tx: Sender<WriterMsg>,
-    relay_rx: Receiver<Relay>,
-    job_relayer: Arc<JobRelayer>,
+pub struct RelayRetry<D> {
     db: Arc<D>,
-    dlq_max_retries: u32,
-    initial_relay_max_retries: u32,
+    job_relayer: Arc<JobRelayer>,
     metrics: Arc<Metrics>,
+    dlq_max_retries: u32,
+    writer_tx: Sender<WriterMsg>,
 }
 
-impl<D> RelayCoordinator<D>
+impl<D> RelayRetry<D>
 where
     D: Database + 'static,
 {
     /// Create a new instance of [Self].
     pub const fn new(
-        writer_tx: Sender<WriterMsg>,
-        relay_rx: Receiver<Relay>,
+        db: Arc<D>,
         job_relayer: Arc<JobRelayer>,
-        db: Arc<D>,
-        dlq_max_retries: u32,
-        initial_relay_max_retries: u32,
         metrics: Arc<Metrics>,
-    ) -> Self {
-        Self {
-            writer_tx,
-            relay_rx,
-            job_relayer,
-            db,
-            dlq_max_retries,
-            metrics,
-            initial_relay_max_retries,
-        }
-    }
-
-    /// Start the relay coordinator
-    pub async fn start(self) -> Result<(), Error> {
-        let db = Arc::clone(&self.db);
-        let job_relayer = Arc::clone(&self.job_relayer);
-        let metrics = Arc::clone(&self.metrics);
-        let max_retries = self.dlq_max_retries;
-        let writer_tx = self.writer_tx.clone();
-        tokio::spawn(async move {
-            Self::start_job_retry_task(db, job_relayer, metrics, max_retries, writer_tx).await
-        });
-
-        let queues = Queues::new();
-        let relay_rx = self.relay_rx;
-
-        while let Ok(relay) = relay_rx.recv_async().await {
-            match relay {
-                Relay::Queue { consumer, job_id } => {
-                    let empty_queue = queues.peek_front(consumer).is_none();
-                    queues.push_back(consumer, job_id);
-
-                    // Queue pollers exit once a queue is empty. So we know that if the queue is
-                    // empty then we need to start a new queue poller.
-                    if empty_queue {
-                        let queues2 = queues.clone();
-                        let db2 = self.db.clone();
-                        let relayer2 = self.job_relayer.clone();
-                        let writer_tx2 = self.writer_tx.clone();
-                        tokio::spawn(async move {
-                            Self::start_queue_poller(
-                                consumer,
-                                queues2,
-                                relayer2,
-                                writer_tx2,
-                                db2,
-                                self.initial_relay_max_retries,
-                            )
-                            .await
-                        });
-                    };
-                }
-                Relay::Now(job) => {
-                    match &job.relay_strategy {
-                        RelayStrategy::Unordered => {
-                            // error metrics are handled internally and the job is written to the
-                            // failed table.
-                            let job_relayer2 = self.job_relayer.clone();
-                            let writer_tx2 = self.writer_tx.clone();
-                            tokio::spawn(async move {
-                                Self::relay_job_result(
-                                    *job,
-                                    job_relayer2,
-                                    writer_tx2.clone(),
-                                    self.initial_relay_max_retries,
-                                )
-                                .await
-                            });
-                        }
-                        RelayStrategy::Ordered => {
-                            // There should already be a background task
-                        }
-                    }
-                }
-            };
-        }
-
-        Err(Error::RelayRxDropped)
-    }
-
-    async fn start_queue_poller(
-        consumer: [u8; 20],
-        queues: Queues,
-        relayer: Arc<JobRelayer>,
+        dlq_max_retries: u32,
         writer_tx: Sender<WriterMsg>,
-        db: Arc<D>,
-        initial_relay_max_retries: u32,
-    ) {
-        let mut interval = interval(Duration::from_millis(100));
-        // The first tick is immediate
-        interval.tick().await;
-
-        while let Some(job_id) = queues.peek_front(consumer) {
-            interval.tick().await;
-            let job = match get_job(db.clone(), job_id).await.expect("job get db error") {
-                Some(job) => job,
-                // Edge case where the job has not been written yet
-                None => continue,
-            };
-
-            match job.status.status() {
-                JobStatusType::Done => {
-                    let _job_id = queues.pop_front(consumer).expect("queue is unexpected empty");
-                    debug_assert_eq!(job_id, _job_id);
-                }
-                JobStatusType::Relayed => {
-                    tracing::error!("logical error: a job in the queue was already relayed");
-                    continue;
-                }
-                _ => continue,
-            }
-
-            let _ = Self::relay_job_result(
-                job,
-                relayer.clone(),
-                writer_tx.clone(),
-                initial_relay_max_retries,
-            )
-            .await;
-        }
+    ) -> Self {
+        Self { db, job_relayer, metrics, dlq_max_retries, writer_tx }
     }
 
     /// Retry jobs that failed to relay
-    async fn start_job_retry_task(
-        db: Arc<D>,
-        job_relayer: Arc<JobRelayer>,
-        metrics: Arc<Metrics>,
-        dlq_max_retries: u32,
-        writer_tx: Sender<WriterMsg>,
-    ) -> Result<(), Error> {
+    pub async fn start(self) -> Result<(), Error> {
+        let Self { db, job_relayer, metrics, dlq_max_retries, writer_tx } = self;
         loop {
             // Jobs that we no longer want to retry
             let mut jobs_to_delete = Vec::new();
@@ -324,7 +176,7 @@ where
                         // We are not in a rush, so we can wait for the write
                         let (tx, rx) = oneshot::channel();
                         writer_tx
-                            .send_async((Write::JobTable(job.clone()), Some(tx)))
+                            .send((Write::JobTable(job.clone()), Some(tx)))
                             .await
                             .expect("db writer broken");
                         let _ = rx.await;
@@ -349,6 +201,7 @@ where
                             let (tx, rx) = oneshot::channel();
                             writer_tx
                                 .send((Write::FailureJobs(job.clone()), Some(tx)))
+                                .await
                                 .expect("db writer broken");
                             let _ = rx.await;
                         }
@@ -364,10 +217,141 @@ where
                 let (tx, rx) = oneshot::channel();
                 writer_tx
                     .send((Write::FailureJobsDelete(*job_id), Some(tx)))
+                    .await
                     .expect("db writer broken");
                 let _ = rx.await;
             }
             tokio::time::sleep(Duration::from_secs(30)).await;
+        }
+    }
+}
+
+/// A message to a relay actor.
+#[allow(clippy::large_enum_variant)]
+#[derive(Debug)]
+pub enum RelayMsg {
+    /// Tell the actor to relay the given `Job`.
+    Relay(Job),
+
+    /// Tell the actor to exit.
+    Exit,
+}
+
+/// This is a type used to spawn new relay actors.
+#[derive(Debug, Clone)]
+pub struct RelayActorSpawner {
+    writer_tx: Sender<WriterMsg>,
+    job_relayer: Arc<JobRelayer>,
+    initial_relay_max_retries: u32,
+    channel_bound: usize,
+}
+
+impl RelayActorSpawner {
+    /// Create a new instance of [Self].
+    pub const fn new(
+        writer_tx: Sender<WriterMsg>,
+        job_relayer: Arc<JobRelayer>,
+        initial_relay_max_retries: u32,
+        channel_bound: usize,
+    ) -> Self {
+        Self { writer_tx, job_relayer, initial_relay_max_retries, channel_bound }
+    }
+
+    /// Spawn a new relay actor.
+    ///
+    /// It is expected that the caller will spawn exactly one relay actor per execution actor.
+    pub fn spawn(&self) -> Sender<RelayMsg> {
+        let (relay_tx, relay_rx) = mpsc::channel(self.channel_bound);
+        let actor = RelayActor::new(
+            self.writer_tx.clone(),
+            relay_rx,
+            self.job_relayer.clone(),
+            self.initial_relay_max_retries,
+        );
+
+        tokio::spawn(async move { actor.start().await });
+
+        relay_tx
+    }
+}
+
+/// The service in charge of handling all routines related to relay transactions onchain.
+#[derive(Debug)]
+struct RelayActor {
+    writer_tx: Sender<WriterMsg>,
+    relay_rx: Receiver<RelayMsg>,
+    job_relayer: Arc<JobRelayer>,
+    initial_relay_max_retries: u32,
+}
+
+impl RelayActor {
+    /// Create a new instance of [Self].
+    const fn new(
+        writer_tx: Sender<WriterMsg>,
+        relay_rx: Receiver<RelayMsg>,
+        job_relayer: Arc<JobRelayer>,
+        initial_relay_max_retries: u32,
+    ) -> Self {
+        Self { writer_tx, relay_rx, job_relayer, initial_relay_max_retries }
+    }
+
+    /// Start the relay actor
+    async fn start(self) {
+        let mut relay_rx = self.relay_rx;
+
+        loop {
+            // TODO: for some reason recv_async was not working and never receiving from
+            // the channel. This is a hack, but I assume there is some other issue I am
+            // missing
+            // https://github.com/InfinityVM/InfinityVM/issues/437
+            let msg = match relay_rx.try_recv() {
+                Err(TryRecvError::Disconnected) => {
+                    error!("exiting relay actor");
+                    return;
+                }
+                Err(_error) => {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
+                    continue;
+                }
+                Ok(relay_msg) => relay_msg,
+            };
+
+            let job = match msg {
+                RelayMsg::Relay(job) => job,
+                RelayMsg::Exit => return,
+            };
+
+            info!(
+                id = hex::encode(job.id),
+                consumer = hex::encode(&job.consumer_address),
+                job.nonce,
+                "received job to relay"
+            );
+
+            match job.relay_strategy {
+                RelayStrategy::Ordered => {
+                    // Wait until this job has made its way into a block before relaying the next
+                    // job.
+                    let _ = Self::relay_job_result(
+                        job,
+                        self.job_relayer.clone(),
+                        self.writer_tx.clone(),
+                        self.initial_relay_max_retries,
+                    )
+                    .await;
+                }
+                RelayStrategy::Unordered => {
+                    // Don't wait for the job to make its way into a block before relaying the next
+                    // job.
+                    let future = Self::relay_job_result(
+                        job,
+                        self.job_relayer.clone(),
+                        self.writer_tx.clone(),
+                        self.initial_relay_max_retries,
+                    );
+                    tokio::spawn(future);
+                }
+            }
         }
     }
 
@@ -414,10 +398,7 @@ where
             Ok(receipt) => receipt.transaction_hash,
             Err(e) => {
                 error!("failed to relay job {:?}: {:?}", id, e);
-                writer_tx
-                    .send_async((Write::FailureJobs(job), None))
-                    .await
-                    .expect("db writer broken");
+                writer_tx.send((Write::FailureJobs(job), None)).await.expect("db writer broken");
 
                 return Err(FailureReason::RelayErr);
             }
@@ -426,7 +407,7 @@ where
         // Save the relay tx hash and status to DB
         job.relay_tx_hash = relay_tx_hash.to_vec();
         job.status.status = JobStatusType::Relayed as i32;
-        writer_tx.send_async((Write::JobTable(job), None)).await.expect("db writer broken");
+        writer_tx.send((Write::JobTable(job), None)).await.expect("db writer broken");
 
         Ok(())
     }
@@ -522,6 +503,8 @@ impl JobRelayer {
             ?receipt.block_hash,
             ?receipt.transaction_hash,
             id=hex::encode(job.id),
+            consumer=hex::encode(job.consumer_address),
+            job.nonce,
             "tx included"
         );
 
@@ -599,6 +582,8 @@ impl JobRelayer {
             ?receipt.block_hash,
             ?receipt.transaction_hash,
             id=hex::encode(job.id),
+            consumer=hex::encode(job.consumer_address),
+            job.nonce,
             "tx included"
         );
 

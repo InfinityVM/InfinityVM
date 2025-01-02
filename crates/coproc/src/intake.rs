@@ -2,24 +2,27 @@
 //!
 //! For new programs we check that they do not already exist and then persist.
 //!
-//! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
+//! For new jobs we check that the job does not exist, persist it and send it to the execution actor
+//! associated with the consumer.
 
 use crate::{
-    relayer::Relay,
+    execute::ExecutionActorSpawner,
     writer::{Write, WriterMsg},
 };
 use alloy::{
     hex,
     primitives::PrimitiveSignature,
+    providers::ProviderBuilder,
     signers::{Signer, SignerSync},
+    transports::http::reqwest::Url,
 };
-use flume::Sender;
+use dashmap::DashMap;
 use ivm_db::{get_elf_sync, get_job, tables::Job};
-use ivm_proto::{JobStatus, JobStatusType, RelayStrategy, VmType};
+use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::sync::Arc;
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc::Sender, oneshot};
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -51,6 +54,9 @@ pub enum Error {
     /// given program ID does not match derived program ID
     #[error("given program ID does not match derived program ID: given: {0}, derived: {1}")]
     MismatchProgramId(String, String),
+    /// failed while trying to read the nonce from the consumer contract
+    #[error("could not read the nonce from the consumer contract {0}")]
+    GetNonceFail(#[from] alloy::contract::Error),
 }
 
 /// Job and program intake handlers.
@@ -59,12 +65,13 @@ pub enum Error {
 #[derive(Debug)]
 pub struct IntakeHandlers<S, D> {
     db: Arc<D>,
-    exec_queue_sender: Sender<Job>,
     zk_executor: ZkvmExecutorService<S>,
     max_da_per_job: usize,
     writer_tx: Sender<WriterMsg>,
-    relay_tx: Sender<Relay>,
     unsafe_skip_program_id_check: bool,
+    execution_actor_spawner: ExecutionActorSpawner,
+    active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
+    http_eth_rpc: Url,
 }
 
 impl<S, D> Clone for IntakeHandlers<S, D>
@@ -74,12 +81,13 @@ where
     fn clone(&self) -> Self {
         Self {
             db: self.db.clone(),
-            exec_queue_sender: self.exec_queue_sender.clone(),
             zk_executor: self.zk_executor.clone(),
             max_da_per_job: self.max_da_per_job,
             writer_tx: self.writer_tx.clone(),
-            relay_tx: self.relay_tx.clone(),
             unsafe_skip_program_id_check: self.unsafe_skip_program_id_check,
+            execution_actor_spawner: self.execution_actor_spawner.clone(),
+            active_actors: self.active_actors.clone(),
+            http_eth_rpc: self.http_eth_rpc.clone(),
         }
     }
 }
@@ -90,27 +98,32 @@ where
     D: Database + 'static,
 {
     /// Create an instance of [Self].
-    pub const fn new(
+    pub fn new(
         db: Arc<D>,
-        exec_queue_sender: Sender<Job>,
         zk_executor: ZkvmExecutorService<S>,
         max_da_per_job: usize,
         writer_tx: Sender<WriterMsg>,
-        relay_tx: Sender<Relay>,
         unsafe_skip_program_id_check: bool,
+        execution_actor_spawner: ExecutionActorSpawner,
+        http_eth_rpc: Url,
     ) -> Self {
         Self {
             db,
-            exec_queue_sender,
             zk_executor,
             max_da_per_job,
             writer_tx,
-            relay_tx,
             unsafe_skip_program_id_check,
+            execution_actor_spawner,
+            active_actors: Arc::new(DashMap::new()),
+            http_eth_rpc,
         }
     }
 
     /// Submits job, saves it in DB, and pushes on the exec queue.
+    ///
+    /// Caution: this assumes the consumer address has already been validated to be exactly 20
+    /// bytes. For the gRPC service, we do this in the `submit_job` endpoint implementation before
+    /// call this method.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
         if job.offchain_input.len() > self.max_da_per_job {
             return Err(Error::OffchainInputOverMaxDAPerJob);
@@ -127,23 +140,36 @@ where
             JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
         let (tx, db_write_complete_rx) = oneshot::channel();
         self.writer_tx
-            .send_async((Write::JobTable(job.clone()), Some(tx)))
+            .send((Write::JobTable(job.clone()), Some(tx)))
             .await
             .expect("db writer broken");
 
-        if job.relay_strategy == RelayStrategy::Ordered {
-            let consumer = job
-                .consumer_address
+        let consumer_address: [u8; 20] =
+            job.consumer_address.clone().try_into().expect("caller must validate address length.");
+
+        let execution_tx = if !self.active_actors.contains_key(&consumer_address) {
+            // Get the latest nonce to initialize the execution actor with
+            let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
+            let consumer =
+                ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
+            // This is the next nonce; since we expect contracts to be initialized with nonce 0, the
+            // first nonce should be 1.
+            let nonce = consumer.getNextNonce().call().await?._0;
+
+            let execution_tx = self.execution_actor_spawner.spawn(nonce);
+            self.active_actors.insert(consumer_address, execution_tx.clone());
+            execution_tx
+        } else {
+            self.active_actors
+                .get(&consumer_address)
+                .expect("we checked above that the entry exists. qed.")
                 .clone()
-                .try_into()
-                .expect("we checked for valid address length");
-            self.relay_tx
-                .send_async(Relay::Queue { consumer, job_id: job.id })
-                .await
-                .expect("relay channel broken");
         };
 
-        self.exec_queue_sender.send_async(job).await.map_err(|_| Error::ExecQueueSendFailed)?;
+        // Send the job to actor for processing
+        execution_tx.send(job).await.expect("execution tx failed");
+
+        // Before responding, make sure the write completes
         let _ = db_write_complete_rx.await;
 
         Ok(())
@@ -178,7 +204,7 @@ where
         // Write the elf and make sure it completes before responding to the user.
         let (tx, rx) = oneshot::channel();
         self.writer_tx
-            .send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
+            .blocking_send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
             .expect("writer channel broken");
         let _ = rx.blocking_recv();
 

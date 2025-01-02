@@ -81,7 +81,12 @@ where
         // TODO: Make contract calls to verify nonce, signature, etc. on job request
         // [ref: https://github.com/InfinityVM/InfinityVM/issues/168]
 
-        info!(job_id = hex::encode(job_id), "new job request");
+        info!(
+            job_id = hex::encode(job_id),
+            consumer = hex::encode(consumer),
+            nonce,
+            "new job request"
+        );
 
         let relay_strategy = req.relay_strategy();
         let job = Job {

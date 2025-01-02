@@ -57,11 +57,18 @@ where
             receiver.recv().await.ok_or_eyre("engine channel sender unexpected dropped")?;
 
         let request2 = request.clone();
-        db.update(|tx| {
-            tx.put::<GlobalIndexTable>(SEEN_GLOBAL_INDEX_KEY, global_index)?;
-            tx.put::<RequestTable>(global_index, RequestModel(request2))
+        let db2 = db.clone();
+        tokio::task::spawn_blocking(move || {
+            db2.update(|tx| {
+                tx.put::<GlobalIndexTable>(SEEN_GLOBAL_INDEX_KEY, global_index).unwrap();
+                tx.put::<RequestTable>(global_index, RequestModel(request2))
+            })
+            .wrap_err_with(|| format!("failed to write request {global_index}"))
+            .unwrap()
+            .unwrap();
         })
-        .wrap_err_with(|| format!("failed to write request {global_index}"))??;
+        .await
+        .unwrap();
 
         let (response, post_state, diffs) = tick(request, state);
 
@@ -70,15 +77,25 @@ where
         // cloning entire state is not ideal, would be better to somehow just apply state diffs.
         let post_state2 = post_state.clone();
         let response2 = response.clone();
-        db.update(|tx| {
-            tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index)
-                .wrap_err("processed global index")?;
-            tx.put::<ResponseTable>(global_index, ResponseModel(response2)).wrap_err("response")?;
-            tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2))
-                .wrap_err("clob state")?;
-            tx.put::<DiffTable>(global_index, VecDiffModel(diffs)).wrap_err("vec dif")
+        let db2 = db.clone();
+        tokio::task::spawn_blocking(move || {
+            db2.update(|tx| {
+                tx.put::<GlobalIndexTable>(PROCESSED_GLOBAL_INDEX_KEY, global_index)
+                    .wrap_err("processed global index")?;
+                tx.put::<ResponseTable>(global_index, ResponseModel(response2))
+                    .wrap_err("response")
+                    .unwrap();
+                tx.put::<ClobStateTable>(global_index, ClobStateModel(post_state2))
+                    .wrap_err("clob state")
+                    .unwrap();
+                tx.put::<DiffTable>(global_index, VecDiffModel(diffs)).wrap_err("vec dif")
+            })
+            .wrap_err_with(|| format!("failed to write tick results {global_index}"))
+            .unwrap()
+            .unwrap();
         })
-        .wrap_err_with(|| format!("failed to write tick results {global_index}"))??;
+        .await
+        .unwrap();
 
         let api_response = ApiResponse { response, global_index };
 

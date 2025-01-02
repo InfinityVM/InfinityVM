@@ -5018,7 +5018,6 @@ dependencies = [
  "ivm-zkvm-executor",
  "k256",
  "num_cpus",
- "parking_lot",
  "prometheus",
  "reth-db",
  "serde",
@@ -5027,6 +5026,7 @@ dependencies = [
  "tonic",
  "tonic-reflection",
  "tracing",
+ "url",
 ]
 
 [[package]]

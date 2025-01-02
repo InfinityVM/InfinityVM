@@ -13,7 +13,6 @@ use alloy::{
     signers::{Signer, SignerSync},
     transports::{RpcError, TransportError, TransportErrorKind},
 };
-use flume::Sender;
 use ivm_contracts::job_manager::JobManager;
 use ivm_db::{
     get_last_block_height,
@@ -23,6 +22,7 @@ use ivm_proto::{JobStatus, JobStatusType, RelayStrategy};
 use reth_db::Database;
 use std::sync::Arc;
 use tokio::{
+    sync::mpsc::Sender,
     task::JoinHandle,
     time::{sleep, Duration},
 };
@@ -169,6 +169,7 @@ where
                     last_seen_block += 1;
                     self.writer_tx
                         .send((Write::LastBlockHeight(last_seen_block), None))
+                        .await
                         .expect("db writer tx failed");
                 }
             }

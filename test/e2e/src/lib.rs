@@ -16,6 +16,7 @@ use matching_game_server::test_utils::{anvil_with_matching_game_consumer, AnvilM
 use rand::Rng;
 use reth_db::DatabaseEnv;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
+use tokio::runtime::Runtime;
 use tonic::transport::Channel;
 
 /// Arguments passed to the test function.
@@ -113,7 +114,7 @@ impl E2E {
             exec_queue_bound: 256,
             http_eth_rpc: http_rpc_url.clone(),
             job_manager_address: anvil.job_manager,
-            worker_count: 2,
+            worker_count: 4,
             relay_config: RelayConfig {
                 confirmations: 1,
                 dlq_max_retries: 0,
@@ -160,18 +161,24 @@ impl E2E {
             let clob_consumer_addr = clob_consumer.clob_consumer;
             let listen_addr2 = listen_addr.clone();
             let operator_signer = clob_consumer.clob_signer.clone();
-            tokio::spawn(async move {
-                clob_node::run(
-                    clob_db_dir,
-                    listen_addr2,
-                    batcher_duration_ms,
-                    operator_signer,
-                    cn_grpc_client_url.clone(),
-                    ws_rpc_url,
-                    **clob_consumer_addr,
-                    BlockNumberOrTag::Earliest,
-                )
-                .await
+
+            std::thread::spawn(move || {
+                Runtime::new()
+                    .unwrap()
+                    .block_on(async move {
+                        clob_node::run(
+                            clob_db_dir,
+                            listen_addr2,
+                            batcher_duration_ms,
+                            operator_signer,
+                            cn_grpc_client_url.clone(),
+                            ws_rpc_url,
+                            **clob_consumer_addr,
+                            BlockNumberOrTag::Earliest,
+                        )
+                        .await
+                    })
+                    .unwrap();
             });
             sleep_until_bound(listen_port).await;
 
@@ -192,15 +199,17 @@ impl E2E {
             let matching_game_consumer_addr = matching_game_consumer.matching_game_consumer;
             let listen_addr2 = listen_addr.clone();
             let operator_signer = matching_game_consumer.matching_game_signer.clone();
-            tokio::spawn(async move {
-                matching_game_server::run(
-                    listen_addr2,
-                    batcher_duration_ms,
-                    operator_signer,
-                    cn_grpc_client_url2,
-                    **matching_game_consumer_addr,
-                )
-                .await
+            std::thread::spawn(move || {
+                Runtime::new().unwrap().block_on(async move {
+                    matching_game_server::run(
+                        listen_addr2,
+                        batcher_duration_ms,
+                        operator_signer,
+                        cn_grpc_client_url2,
+                        **matching_game_consumer_addr,
+                    )
+                    .await
+                })
             });
             sleep_until_bound(listen_port).await;
 

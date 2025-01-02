@@ -45,6 +45,15 @@ pub mod proxy_admin {
     }
 }
 
+/// `Consumer.sol` bindings
+pub mod consumer {
+    alloy::sol! {
+      #[sol(rpc)]
+      Consumer,
+      "json/Consumer.json"
+    }
+}
+
 /// `MockConsumer.sol` bindings
 pub mod mock_consumer {
     alloy::sol! {

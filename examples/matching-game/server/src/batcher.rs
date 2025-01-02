@@ -52,7 +52,8 @@ pub async fn run_batcher(
     let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
     state.set_merkle_root_batcher(TrieRoot::Empty);
 
-    let mut job_nonce = 0;
+    // The initial "next nonce" is 1 since the consumer is expected to be initialized with 0.
+    let mut job_nonce = 1;
     loop {
         interval.tick().await;
 

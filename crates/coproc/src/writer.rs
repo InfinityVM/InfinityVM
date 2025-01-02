@@ -1,6 +1,5 @@
 //! Synchronous database writer. All writes DB writes should go through this.
 
-use flume::Receiver;
 use ivm_db::tables::{
     B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, RelayFailureJobs, Sha256Key,
 };
@@ -10,7 +9,7 @@ use reth_db::{
     Database, DatabaseError,
 };
 use std::sync::Arc;
-use tokio::sync::oneshot;
+use tokio::sync::{mpsc::Receiver, oneshot};
 
 /// A write request to the [`Writer`]. If a sender is included, the writer
 /// will respond once the write has been completed.
@@ -75,7 +74,8 @@ where
 
     /// Start the job writer.
     pub fn start_blocking(self) -> Result<(), Error> {
-        while let Ok((target, resp)) = self.rx.recv() {
+        let mut rx = self.rx;
+        while let Some((target, resp)) = rx.blocking_recv() {
             let tx = self.db.tx_mut()?;
             match target {
                 Write::JobTable(job) => tx.put::<JobTable>(B256Key(job.id), job)?,

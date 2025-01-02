@@ -26,7 +26,7 @@ use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest, SubmitProgram
 use tokio::time::{sleep, Duration};
 
 #[ignore]
-#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+#[tokio::test(flavor = "multi_thread")]
 async fn state_job_submission_clob_consumer() {
     async fn test(mut args: Args) {
         let anvil = args.anvil;
@@ -184,7 +184,7 @@ async fn state_job_submission_clob_consumer() {
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
-            sleep(Duration::from_secs(5)).await;
+            sleep(Duration::from_secs(2)).await;
 
             let job_id = submit_job_response.job_id;
             let offchain_result_with_metadata = args
