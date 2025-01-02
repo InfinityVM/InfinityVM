@@ -300,10 +300,10 @@ impl RelayActor {
         let mut relay_rx = self.relay_rx;
 
         loop {
-            // while let Some(msg) = relay_rx.recv().await {
             // TODO: for some reason recv_async was not working and never receiving from
             // the channel. This is a hack, but I assume there is some other issue I am
             // missing
+            // https://github.com/InfinityVM/InfinityVM/issues/437
             let msg = match relay_rx.try_recv() {
                 Err(TryRecvError::Disconnected) => {
                     error!("exiting relay actor");
