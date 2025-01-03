@@ -17,8 +17,8 @@ fn main() {
             } else {
                 builder.config().datadir().data_dir().join(IVM_CONFIG_FILE)
             };
+            tracing::info!(path=?ivm_config_path, "IVM Configuration loading");
             let ivm_config = IvmConfig::from_path(&ivm_config_path)?;
-            tracing::info!(path=?ivm_config_path, "IVM Configuration loaded");
             let pool_builder = IvmPoolBuilder::new(ivm_config.transaction_allow);
 
             let handle = builder
