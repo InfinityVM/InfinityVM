@@ -8,7 +8,7 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-reth = { workspace = true, features = ["jemalloc", "asm-keccak", "min-info-logs"] }
+reth = { workspace = true, features = ["jemalloc", "asm-keccak"] }
 reth-node-ethereum = { workspace = true }
 reth-evm-ethereum = { workspace = true }
 reth-ethereum-engine-primitives = { workspace = true }
@@ -36,3 +36,11 @@ alloy-eips = { workspace = true }
 alloy-consensus = { workspace = true }
 alloy-signer-local = { workspace = true }
 alloy-network = { workspace = true }
+
+[features]
+default = ["min-trace-logs"]
+min-error-logs = ["reth/min-error-logs"]
+min-warn-logs = ["reth/min-warn-logs"]
+min-info-logs = ["reth/min-info-logs"]
+min-debug-logs = ["reth/min-debug-logs"]
+min-trace-logs = ["reth/min-trace-logs"]
