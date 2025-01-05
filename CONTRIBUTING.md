@@ -4,7 +4,7 @@ This repo is a rust workspace. The workspace configuration is defined by `Cargo.
 
 ## Develop
 
-This repo enforces conventional commits for [pull requests](https://www.conventionalcommits.org/en/v1.0.0/#summary).
+This repo enforces conventional commits for [pull requests](https://www.conventionalcommits.org/en/v1.0.0/#summary). Importantly, if you make a breaking change please append a `!` after the type/scope and include a `BREAKING CHANGE:` note.
 
 ### Install tools
 
