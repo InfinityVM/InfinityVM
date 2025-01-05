@@ -18,7 +18,7 @@ jobs:
           ignore_words_file: .codespellignore
 
   conventional-commits:
-    name: Conventional Commits
+    name: conventional commits
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
