@@ -3,10 +3,9 @@
 use crate::engine::IvmEngineValidatorBuilder;
 use reth::{
     builder::{
-        engine_tree_config::{
-            DEFAULT_MEMORY_BLOCK_BUFFER_TARGET, DEFAULT_PERSISTENCE_THRESHOLD,
-        },
-        rpc::RpcAddOns, FullNodeComponents, FullNodeTypes,
+        engine_tree_config::{DEFAULT_MEMORY_BLOCK_BUFFER_TARGET, DEFAULT_PERSISTENCE_THRESHOLD},
+        rpc::RpcAddOns,
+        FullNodeComponents, FullNodeTypes,
     },
     network::NetworkHandle,
     rpc::eth::EthApi,

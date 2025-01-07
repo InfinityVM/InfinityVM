@@ -5,7 +5,9 @@ use ivm_exec::{
     config::IvmConfig, evm::IvmExecutorBuilder, pool::IvmPoolBuilder, IvmAddOns, IvmCliExt,
 };
 use reth::{
-    builder::{engine_tree_config::TreeConfig, EngineNodeLauncher},
+    builder::{
+        engine_tree_config::TreeConfig, EngineNodeLauncher, LaunchNode, NodeBuilderWithComponents,
+    },
     chainspec::EthereumChainSpecParser,
     cli::Cli,
 };
