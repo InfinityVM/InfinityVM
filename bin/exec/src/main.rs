@@ -31,7 +31,7 @@ fn main() {
                     EthereumNode::components().pool(pool_builder).executor(IvmExecutorBuilder),
                 )
                 .with_add_ons(IvmAddOns::default())
-                // Use engine v2 (as in Engine API).
+                // Use engine v2.
                 // launch code ref: https://github.com/paradigmxyz/reth/blob/c697543af058cb0571710b21c1b8980ba83967e9/bin/reth/src/main.rs#L79
                 // engine v2 tracking issue ref: https://github.com/paradigmxyz/reth/issues/8742
                 .launch_with_fn(|builder| {
