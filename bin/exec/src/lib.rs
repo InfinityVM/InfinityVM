@@ -39,7 +39,7 @@ pub struct IvmCliExt {
     #[arg(long)]
     pub ivm_config: Option<PathBuf>,
 
-    /// Configure persistence threshold for engine experimental.
+    /// Configure persistence threshold for the engine.
     // ref: https://github.com/paradigmxyz/reth/blob/c697543af058cb0571710b21c1b8980ba83967e9/bin/reth/src/main.rs#L37
     #[arg(long = "engine.persistence-threshold", default_value_t = DEFAULT_PERSISTENCE_THRESHOLD)]
     pub persistence_threshold: u64,
