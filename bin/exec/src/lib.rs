@@ -2,7 +2,13 @@
 
 use crate::engine::IvmEngineValidatorBuilder;
 use reth::{
-    builder::{rpc::RpcAddOns, FullNodeComponents, FullNodeTypes},
+    builder::{
+        engine_tree_config::{
+            TreeConfig, DEFAULT_MEMORY_BLOCK_BUFFER_TARGET, DEFAULT_PERSISTENCE_THRESHOLD,
+        },
+        rpc::RpcAddOns,
+        EngineNodeLauncher, FullNodeComponents, FullNodeTypes,
+    },
     network::NetworkHandle,
     rpc::eth::EthApi,
 };
@@ -32,4 +38,14 @@ pub struct IvmCliExt {
     /// DATADIR>/ivm_config.toml`. If no file is found one is generated.
     #[arg(long)]
     pub ivm_config: Option<PathBuf>,
+
+    /// Configure persistence threshold for engine experimental.
+    // ref: https://github.com/paradigmxyz/reth/blob/c697543af058cb0571710b21c1b8980ba83967e9/bin/reth/src/main.rs#L37
+    #[arg(long = "engine.persistence-threshold", default_value_t = DEFAULT_PERSISTENCE_THRESHOLD)]
+    pub persistence_threshold: u64,
+
+    /// Configure the target number of blocks to keep in memory.
+    // ref: https://github.com/paradigmxyz/reth/blob/c697543af058cb0571710b21c1b8980ba83967e9/bin/reth/src/main.rs#L41
+    #[arg(long = "engine.memory-block-buffer-target", default_value_t = DEFAULT_MEMORY_BLOCK_BUFFER_TARGET)]
+    pub memory_block_buffer_target: u64,
 }
