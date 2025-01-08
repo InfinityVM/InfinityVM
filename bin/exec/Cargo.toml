@@ -20,6 +20,9 @@ reth-revm = { workspace = true }
 reth-network = { workspace = true }
 reth-rpc = { workspace = true }
 reth-primitives = { workspace = true }
+reth-providers = { workspace = true }
+reth-transaction-pool = { workspace = true }
+reth-payload-validator = { workspace = true }
 
 alloy-rpc-types = { workspace = true }
 

@@ -1,6 +1,6 @@
 //! Evm builder that includes custom logic for zero gas fee transactions.
 
-use reth::revm::{
+use reth_revm::{
     handler::register::EvmHandler,
     precompile::primitives::{EVMError, InvalidTransaction},
     primitives::{EnvWithHandlerCfg, TxKind},

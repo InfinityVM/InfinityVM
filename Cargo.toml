@@ -198,6 +198,9 @@ reth-node-builder = { git = "https://github.com/paradigmxyz/reth.git", rev = "28
 reth-network = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
 reth-rpc = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
 reth-primitives = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
+reth-providers = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
+reth-transaction-pool = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
+reth-payload-validator = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
 
 # revm needs to be kept in sync with reth
 revm = { version = "19.2.0", default-features = false }

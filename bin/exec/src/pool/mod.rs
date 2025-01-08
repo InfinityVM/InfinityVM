@@ -2,16 +2,15 @@
 //! additional validation logic.
 
 use crate::pool::validator::{IvmTransactionAllowConfig, IvmTransactionValidator};
-use reth::{
-    api::NodeTypes,
-    builder::{components::PoolBuilder, BuilderContext, FullNodeTypes},
-    chainspec::ChainSpec,
-    primitives::EthPrimitives,
-    providers::CanonStateSubscriptions,
-    transaction_pool::{
-        blobstore::DiskFileBlobStore, validate::EthTransactionValidatorBuilder,
-        CoinbaseTipOrdering, EthPooledTransaction, TransactionValidationTaskExecutor,
-    },
+
+use reth_node_api::NodeTypes;
+use reth_node_builder::{components::PoolBuilder, BuilderContext, FullNodeTypes};
+use reth_chainspec::ChainSpec;
+use reth_primitives::EthPrimitives;
+use reth_providers::CanonStateSubscriptions;
+use reth_transaction_pool::{
+    blobstore::DiskFileBlobStore, validate::EthTransactionValidatorBuilder,
+    CoinbaseTipOrdering, EthPooledTransaction, TransactionValidationTaskExecutor,
 };
 use tracing::{debug, info};
 
