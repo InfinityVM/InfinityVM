@@ -104,7 +104,8 @@ where
         //     .journaled_state
         //     .load_account(beneficiary, &mut ctx.evm.inner.db)?;
 
-        //     coinbase_account.data.mark_touch();
+        // coinbase_account.data.mark_touch();
+
         Ok(())
     });
 }

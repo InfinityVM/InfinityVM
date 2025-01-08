@@ -124,14 +124,13 @@ mod test {
     use alloy::{
         // consensus::proofs::calculate_transaction_root,
         //  signers::Signature
-         primitives::{hex, Address, TxKind, B256},
+        primitives::{hex, Address, TxKind, B256},
     };
     use k256::ecdsa::SigningKey;
     use reth::{
         beacon_consensus::EthBeaconConsensus,
         chainspec::{ChainSpecBuilder, MAINNET},
         consensus::{FullConsensus, PostExecutionInput},
-
         primitives::{
             Account, Block, BlockBody, BlockWithSenders, EthereumHardfork, ForkCondition,
             Transaction,
@@ -147,17 +146,15 @@ mod test {
         ProviderError,
     };
     // use reth_node_ethereum::EthExecutorProvider;
-    use reth_provider::{
-        AccountReader, ExecutionOutcome, HashedPostStateProvider,
-    };
+    use reth::core::primitives::SignedTransaction;
+    use reth_provider::{AccountReader, ExecutionOutcome, HashedPostStateProvider};
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
     use revm::{
         db::states::account_status::AccountStatus as DbAccountStatus,
         interpreter::primitives::AccountStatus,
         primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction},
     };
-    use reth::core::primitives::SignedTransaction;
-    
+
     // core::primitives::{Receipt as _, SignedTransaction},
     //  use reth::primitives::proofs::calculate_receipt_root;
     //  use reth::primitives::Receipt;
@@ -173,7 +170,7 @@ mod test {
     // use alloy_eips::eip1559::INITIAL_BASE_FEE;
     // use alloy_eips::eip4895::Withdrawals;
     // use alloy_genesis::{Genesis, GenesisAccount};
-    use alloy_consensus::{ TxEip1559, TxEip4844};
+    use alloy_consensus::{TxEip1559, TxEip4844};
     use alloy_network::TxSignerSync;
     use alloy_signer_local::LocalSigner;
 
@@ -397,7 +394,7 @@ mod test {
         let state_provider_db = StateProviderDatabase::new(&state_provider_test);
 
         // EthBeaconConsensus
-        let mut executor = block_executor_provider.executor(state_provider_db);
+        let executor = block_executor_provider.executor(state_provider_db);
 
         let block = BlockWithSenders {
             block: Block {
@@ -997,54 +994,49 @@ mod test {
 
 #[cfg(test)]
 mod tree {
-    use super::{IvmEvmConfig};
-    use std::collections::BTreeMap;
-    use std::sync::Arc;
-    use std::collections::HashMap;
+    use super::IvmEvmConfig;
+    use std::{
+        collections::{BTreeMap, HashMap},
+        sync::Arc,
+    };
 
     // use super::
     use alloy::{
-         primitives::{hex, TxKind, Address, 
-            B256, U256}, signers::Signature
+        primitives::{Address, B256, U256},
+        signers::Signature,
     };
     // use alloy_primitives::Address;
     use reth::{
-        blockchain_tree::{BlockValidationKind, BlockchainTree, BlockchainTreeConfig, TreeExternals}, chainspec::{ChainSpec, ChainSpecBuilder, MAINNET, MIN_TRANSACTION_GAS}, primitives::SealedBlockWithSenders
+        blockchain_tree::{
+            BlockAttachment, BlockStatus, BlockValidationKind, BlockchainTree,
+            BlockchainTreeConfig, CanonicalOutcome, InsertPayloadOk, TreeExternals,
+        },
+        chainspec::{ChainSpec, ChainSpecBuilder, MAINNET, MIN_TRANSACTION_GAS},
+        consensus::test_utils::TestConsensus,
+        primitives::SealedBlockWithSenders,
     };
-    use reth::consensus::test_utils::TestConsensus;
     use reth_primitives::Header;
 
-    use reth_evm::execute::{
-        BatchExecutor, BlockExecutionError, BlockExecutorProvider, BlockValidationError, Executor,
-        ProviderError,
-    };
     use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
     use reth_provider::{
-        test_utils::create_test_provider_factory_with_chain_spec, AccountReader, BlockWriter, ExecutionOutcome, HashedPostStateProvider, StateRootProvider, StorageLocation
+        test_utils::create_test_provider_factory_with_chain_spec, BlockWriter, StorageLocation,
     };
-    use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
-    use revm::{
-        primitives::{EVMError, InvalidTransaction},
-    };
+
+    use alloy::primitives::keccak256;
+    use reth::primitives::{SealedBlock, SealedHeader};
+    use reth_db::{tables, transaction::DbTxMut};
     use reth_primitives::{
         proofs::{calculate_receipt_root, calculate_transaction_root},
-        Account, BlockBody, RecoveredTx, Transaction, TransactionSigned, Receipt
+        Account, BlockBody, Receipt, RecoveredTx, Transaction, TransactionSigned,
     };
-    use reth::primitives::SealedBlock;
-    use reth::primitives::SealedHeader;
-    use alloy::primitives::keccak256;
-    use reth_db::tables;
-    use reth_db::transaction::DbTxMut;
     use reth_revm::primitives::AccountInfo;
 
-    use  reth_trie::{root::state_root_unhashed, StateRoot};
+    use reth_trie::root::state_root_unhashed;
 
     // Special alloy deps we need for playing happy with reth
     // use alloy_consensus::proofs::state_root_unhashed;
-    use alloy_consensus::{EMPTY_ROOT_HASH};
-    use alloy_consensus::{TxEip1559};
-    use alloy_eips::eip1559::INITIAL_BASE_FEE;
-    use alloy_eips::eip4895::Withdrawals;
+    use alloy_consensus::{TxEip1559, EMPTY_ROOT_HASH};
+    use alloy_eips::{eip1559::INITIAL_BASE_FEE, eip4895::Withdrawals};
     use alloy_genesis::{Genesis, GenesisAccount};
 
     fn executor_provider(
@@ -1055,7 +1047,6 @@ mod tree {
 
         BasicBlockExecutorProvider::new(strategy_factory)
     }
-
 
     #[test]
     fn blockchain_tree_works() {
@@ -1157,8 +1148,9 @@ mod tree {
                     signer,
                     (
                         AccountInfo {
-                            balance: initial_signer_balance -
-                                (single_tx_cost * U256::from(num_of_signer_txs)),
+                            // balance: initial_signer_balance -
+                            //     (single_tx_cost * U256::from(num_of_signer_txs)),
+                            balance: initial_signer_balance,
                             nonce: num_of_signer_txs,
                             ..Default::default()
                         },
@@ -1182,7 +1174,6 @@ mod tree {
             .unwrap()
         };
 
-
         let fork_block = mock_block(1, Some(chain_spec.genesis_hash()), Vec::from([mock_tx(0)]), 1);
 
         let canonical_block_1 =
@@ -1202,7 +1193,62 @@ mod tree {
         .expect("failed to create tree");
 
         tree.insert_block(fork_block.clone(), BlockValidationKind::Exhaustive).unwrap();
+
+        tree.insert_block(fork_block.clone(), BlockValidationKind::Exhaustive).unwrap();
+
+        assert_eq!(
+            tree.make_canonical(fork_block.hash()).unwrap(),
+            CanonicalOutcome::Committed { head: fork_block.header.clone() }
+        );
+
+        assert_eq!(
+            tree.insert_block(canonical_block_1.clone(), BlockValidationKind::Exhaustive).unwrap(),
+            InsertPayloadOk::Inserted(BlockStatus::Valid(BlockAttachment::Canonical))
+        );
+
+        assert_eq!(
+            tree.make_canonical(canonical_block_1.hash()).unwrap(),
+            CanonicalOutcome::Committed { head: canonical_block_1.header.clone() }
+        );
+
+        assert_eq!(
+            tree.insert_block(canonical_block_2, BlockValidationKind::Exhaustive).unwrap(),
+            InsertPayloadOk::Inserted(BlockStatus::Valid(BlockAttachment::Canonical))
+        );
+
+        assert_eq!(
+            tree.insert_block(sidechain_block_1.clone(), BlockValidationKind::Exhaustive).unwrap(),
+            InsertPayloadOk::Inserted(BlockStatus::Valid(BlockAttachment::HistoricalFork))
+        );
+
+        assert_eq!(
+            tree.make_canonical(sidechain_block_1.hash()).unwrap(),
+            CanonicalOutcome::Committed { head: sidechain_block_1.header.clone() }
+        );
+
+        assert_eq!(
+            tree.make_canonical(canonical_block_1.hash()).unwrap(),
+            CanonicalOutcome::Committed { head: canonical_block_1.header.clone() }
+        );
+
+        assert_eq!(
+            tree.insert_block(sidechain_block_2.clone(), BlockValidationKind::Exhaustive).unwrap(),
+            InsertPayloadOk::Inserted(BlockStatus::Valid(BlockAttachment::HistoricalFork))
+        );
+
+        assert_eq!(
+            tree.make_canonical(sidechain_block_2.hash()).unwrap(),
+            CanonicalOutcome::Committed { head: sidechain_block_2.header.clone() }
+        );
+
+        assert_eq!(
+            tree.insert_block(canonical_block_3.clone(), BlockValidationKind::Exhaustive).unwrap(),
+            InsertPayloadOk::Inserted(BlockStatus::Valid(BlockAttachment::HistoricalFork))
+        );
+
+        assert_eq!(
+            tree.make_canonical(canonical_block_3.hash()).unwrap(),
+            CanonicalOutcome::Committed { head: canonical_block_3.header.clone() }
+        );
     }
-
-
 }
