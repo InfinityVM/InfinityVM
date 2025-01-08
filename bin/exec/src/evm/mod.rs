@@ -122,22 +122,19 @@ mod test {
     use alloy::primitives::{hex, Address, TxKind, B256};
     use k256::ecdsa::SigningKey;
     use reth::{
-        chainspec::{ChainSpecBuilder, MAINNET},
-        core::primitives::SignedTransaction,
-        primitives::{
+        beacon_consensus::EthBeaconConsensus, chainspec::{ChainSpecBuilder, MAINNET}, consensus::{test_utils::TestConsensus, FullConsensus, PostExecutionInput}, core::primitives::SignedTransaction, primitives::{
             Account, Block, BlockBody, BlockWithSenders, EthereumHardfork, ForkCondition,
             Transaction,
-        },
-        revm::{
+        }, revm::{
             db::{CacheDB, EmptyDBTyped},
             DatabaseCommit,
-        },
+        }
     };
     use reth_evm::execute::{
-        BatchExecutor, BlockExecutionError, BlockExecutorProvider, BlockValidationError,
-        ProviderError,
+        BatchExecutor, BlockExecutionError, BlockExecutorProvider, BlockValidationError, Executor, ProviderError
     };
-    use reth_provider::AccountReader;
+    use reth_node_ethereum::EthExecutorProvider;
+    use reth_provider::{test_utils::create_test_provider_factory_with_chain_spec, AccountReader, ExecutionOutcome, HashedPostStateProvider, StateRootProvider};
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
     use revm::{
         db::states::account_status::AccountStatus as DbAccountStatus,
@@ -146,7 +143,7 @@ mod test {
     };
 
     // Special alloy deps we need for playing happy with reth
-    use alloy_consensus::{TxEip1559, TxEip4844};
+    use alloy_consensus::{BlockHeader, TxEip1559, TxEip4844};
     use alloy_network::TxSignerSync;
     use alloy_signer_local::LocalSigner;
 
@@ -160,6 +157,17 @@ mod test {
         let strategy_factory = EthExecutionStrategyFactory::new(chain_spec, evm_config);
 
         BasicBlockExecutorProvider::new(strategy_factory)
+    }
+
+    fn chain_spec() -> ChainSpec {
+        ChainSpecBuilder::from(&*MAINNET)
+            .shanghai_activated()
+            .with_fork(EthereumHardfork::Cancun, ForkCondition::Timestamp(1))
+            .build()
+    }
+
+    fn consensus() -> EthBeaconConsensus<ChainSpec> {
+        EthBeaconConsensus::new(Arc::new(chain_spec()))
     }
 
     fn setup() -> (
@@ -349,30 +357,67 @@ mod test {
         assert_eq!(account.status, status);
     }
 
+
+    #[test]
+    fn blockchain_tree_works() {
+        let chain_spec = Arc::new(chain_spec());
+        let provider_factory = create_test_provider_factory_with_chain_spec(chain_spec.clone());
+        let consensus = Arc::new(TestConsensus::default());
+        let executor_provider = executor_provider(chain_spec.clone());
+
+        
+    }
+
+    // The checks in here mimic `validate_and_execute`
     #[test]
     fn execute_empty_block_does_not_error() {
-        let (header, db, provider) = setup();
+        let (header, state_provider_test, block_executor_provider) = setup();
+        let consensus: Arc<dyn FullConsensus>  = Arc::new(consensus());
+        
+        // expects a state provider database
+        let state_provider_db = StateProviderDatabase::new(&state_provider_test);
 
-        provider
-            .batch_executor(StateProviderDatabase::new(&db))
-            .execute_and_verify_one(
+        // EthBeaconConsensus
+        let mut executor = block_executor_provider
+            .executor(state_provider_db);
+
+
+        let block = BlockWithSenders {
+            block: Block {
+                header,
+                body: BlockBody {
+                    transactions: vec![],
+                    ommers: vec![],
+                    withdrawals: None,
+                },
+            },
+            senders: vec![],
+        };
+
+        let state = executor
+            .execute(
                 (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![],
-                    },
+                    &block,
                     U256::ZERO,
                 )
                     .into(),
             )
-            .unwrap()
+            .unwrap();
+
+        consensus.validate_block_post_execution(
+            &block,
+        PostExecutionInput::new(&state.receipts, &state.requests)
+        ).unwrap();
+
+        let initial_execution_outcome = ExecutionOutcome::from((state, block.number));
+
+        // This is not supported yet
+        let hashed_state = state_provider_test.hashed_post_state(initial_execution_outcome.state());
+        // let state_root = state_provider_test.state_root(hashed_state).unwrap();
+
+        // assert_eq!(block.state_root(), state_root)
+        // let state_root = state_provider_test.state_root(hashed_state);
+        
     }
 
     #[test]
