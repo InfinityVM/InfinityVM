@@ -158,7 +158,6 @@ mod test {
     };
     use reth::core::primitives::SignedTransaction;
     
-
     // core::primitives::{Receipt as _, SignedTransaction},
     //  use reth::primitives::proofs::calculate_receipt_root;
     //  use reth::primitives::Receipt;
@@ -998,14 +997,17 @@ mod test {
 
 #[cfg(test)]
 mod tree {
-    use super::{IvmEvmConfig, };
+    use super::{IvmEvmConfig};
     use std::collections::BTreeMap;
     use std::sync::Arc;
+    use std::collections::HashMap;
 
     // use super::
     use alloy::{
-         primitives::{hex, Address, TxKind, B256, U256}, signers::Signature
+         primitives::{hex, TxKind, Address, 
+            B256, U256}, signers::Signature
     };
+    // use alloy_primitives::Address;
     use reth::{
         chainspec::{ChainSpec, ChainSpecBuilder, MAINNET, MIN_TRANSACTION_GAS},
         primitives::{
@@ -1025,7 +1027,7 @@ mod tree {
     };
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
     use revm::{
-        primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction},
+        primitives::{EVMError, InvalidTransaction},
     };
     use reth_primitives::{
         proofs::{calculate_receipt_root, calculate_transaction_root},
@@ -1036,9 +1038,12 @@ mod tree {
     use alloy::primitives::keccak256;
     use reth_db::tables;
     use reth_db::transaction::DbTxMut;
+    use reth_revm::primitives::AccountInfo;
+
+    use  reth_trie::{root::state_root_unhashed, StateRoot};
 
     // Special alloy deps we need for playing happy with reth
-    use alloy_consensus::proofs::state_root_unhashed;
+    // use alloy_consensus::proofs::state_root_unhashed;
     use alloy_consensus::{EMPTY_ROOT_HASH};
     use alloy_consensus::{TxEip1559};
     use alloy_eips::eip1559::INITIAL_BASE_FEE;
