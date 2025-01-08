@@ -6,6 +6,7 @@ use ivm_exec::{
 };
 use reth::cli::Cli;
 use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
+use reth_node_builder::{engine_tree_config::TreeConfig, EngineNodeLauncher};
 use reth_node_ethereum::EthereumNode;
 
 const IVM_CONFIG_FILE: &str = "ivm_config.toml";
@@ -31,7 +32,14 @@ fn main() {
                     EthereumNode::components().pool(pool_builder).executor(IvmExecutorBuilder),
                 )
                 .with_add_ons(IvmAddOns::default())
-                .launch()
+                .launch_with_fn(|launch_builder| {
+                    let launcher = EngineNodeLauncher::new(
+                        launch_builder.task_executor().clone(),
+                        launch_builder.config().datadir(),
+                        TreeConfig::default(),
+                    );
+                    launch_builder.launch_with(launcher)
+                })
                 .await?;
 
             handle.wait_for_node_exit().await
