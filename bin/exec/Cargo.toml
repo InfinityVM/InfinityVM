@@ -8,13 +8,20 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-reth = { workspace = true, features = ["jemalloc", "asm-keccak"] }
+reth-node-builder = { workspace = true }
 reth-node-ethereum = { workspace = true }
 reth-evm-ethereum = { workspace = true }
 reth-ethereum-engine-primitives = { workspace = true }
 reth-node-api = { workspace = true }
 reth-evm = { workspace = true }
 reth-primitives-traits = { workspace = true }
+reth-chainspec = { workspace = true }
+reth-revm = { workspace = true }
+reth-network = { workspace = true }
+reth-rpc = { workspace = true }
+reth-primitives = { workspace = true }
+
+alloy-rpc-types = { workspace = true }
 
 alloy = { workspace = true, features = ["genesis"] }
 eyre = { workspace = true  }
@@ -26,7 +33,6 @@ serde = { workspace = true }
 
 [dev-dependencies]
 reth-provider = { workspace = true, features = ["test-utils"] }
-reth-revm = { workspace = true }
 alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
 revm = { workspace = true }
 k256 = { workspace = true }
@@ -40,8 +46,8 @@ alloy-network = { workspace = true }
 
 [features]
 default = ["min-trace-logs"]
-min-error-logs = ["reth/min-error-logs"]
-min-warn-logs = ["reth/min-warn-logs"]
-min-info-logs = ["reth/min-info-logs"]
-min-debug-logs = ["reth/min-debug-logs"]
-min-trace-logs = ["reth/min-trace-logs"]
+min-error-logs = ["tracing/release_max_level_error"]
+min-warn-logs = ["tracing/release_max_level_warn"]
+min-info-logs = ["tracing/release_max_level_info"]
+min-debug-logs = ["tracing/release_max_level_debug"]
+min-trace-logs = ["tracing/release_max_level_trace"]
