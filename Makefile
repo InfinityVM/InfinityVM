@@ -59,3 +59,7 @@ contracts:
 .PHONY: run
 run:
 	cargo run --bin local
+
+.PHONY: ivm-exec-docker
+run:
+	docker buildx build -f ./Dockerfile.exec . --tag ivm-exec:latest
