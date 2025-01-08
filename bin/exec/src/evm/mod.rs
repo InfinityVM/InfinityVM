@@ -1009,10 +1009,7 @@ mod tree {
     };
     // use alloy_primitives::Address;
     use reth::{
-        chainspec::{ChainSpec, ChainSpecBuilder, MAINNET, MIN_TRANSACTION_GAS},
-        primitives::{
-            SealedBlockWithSenders,
-        },
+        blockchain_tree::{BlockValidationKind, BlockchainTree, BlockchainTreeConfig, TreeExternals}, chainspec::{ChainSpec, ChainSpecBuilder, MAINNET, MIN_TRANSACTION_GAS}, primitives::SealedBlockWithSenders
     };
     use reth::consensus::test_utils::TestConsensus;
     use reth_primitives::Header;
@@ -1184,5 +1181,28 @@ mod tree {
             )
             .unwrap()
         };
+
+
+        let fork_block = mock_block(1, Some(chain_spec.genesis_hash()), Vec::from([mock_tx(0)]), 1);
+
+        let canonical_block_1 =
+            mock_block(2, Some(fork_block.hash()), Vec::from([mock_tx(1), mock_tx(2)]), 3);
+        let canonical_block_2 = mock_block(3, Some(canonical_block_1.hash()), Vec::new(), 3);
+        let canonical_block_3 =
+            mock_block(4, Some(canonical_block_2.hash()), Vec::from([mock_tx(3)]), 4);
+
+        let sidechain_block_1 = mock_block(2, Some(fork_block.hash()), Vec::from([mock_tx(1)]), 2);
+        let sidechain_block_2 =
+            mock_block(3, Some(sidechain_block_1.hash()), Vec::from([mock_tx(2)]), 3);
+
+        let mut tree = BlockchainTree::new(
+            TreeExternals::new(provider_factory, consensus, executor_provider),
+            BlockchainTreeConfig::default(),
+        )
+        .expect("failed to create tree");
+
+        tree.insert_block(fork_block.clone(), BlockValidationKind::Exhaustive).unwrap();
     }
+
+
 }
