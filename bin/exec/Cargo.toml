@@ -23,10 +23,11 @@ toml = { workspace = true }
 serde = { workspace = true }
 
 [dev-dependencies]
+alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
 reth-provider = { workspace = true, features = ["test-utils"] }
 reth-revm = { workspace = true }
 reth-evm = { workspace = true }
-alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
+reth-db = { workspace = true }
 revm = { workspace = true }
 k256 = { workspace = true }
 
@@ -36,6 +37,7 @@ alloy-eips = { workspace = true }
 alloy-consensus = { workspace = true }
 alloy-signer-local = { workspace = true }
 alloy-network = { workspace = true }
+alloy-genesis = { workspace = true }
 
 [features]
 default = ["min-trace-logs"]

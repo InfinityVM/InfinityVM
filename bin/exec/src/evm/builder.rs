@@ -91,12 +91,11 @@ where
 
     // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L28
     handler.post_execution.reward_beneficiary = Arc::new(|_ctx, _gas| {
-
         // Beneficiary does not get rewards because no one paid gas
 
         // TODO: these are to ensure that the coinbase account is touched
         // Uncomment this once we have tests to show the state root does not match
-    
+
         // let beneficiary = ctx.evm.env.block.coinbase;
 
         // let coinbase_account = ctx
