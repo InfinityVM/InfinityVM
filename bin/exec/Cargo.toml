@@ -29,8 +29,8 @@ reth-provider = { workspace = true }
 reth-ethereum-cli = { workspace = true }
 
 alloy-rpc-types = { workspace = true }
+alloy-primitives = { workspace = true }
 
-alloy = { workspace = true, features = ["genesis"] }
 eyre = { workspace = true  }
 tokio = { workspace = true }
 tracing = { workspace = true }
@@ -40,7 +40,6 @@ serde = { workspace = true }
 
 [dev-dependencies]
 reth-provider = { workspace = true, features = ["test-utils"] }
-alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
 revm = { workspace = true }
 k256 = { workspace = true }
 

@@ -116,7 +116,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use alloy::primitives::{hex, U256};
+    use alloy_primitives::{hex, U256};
     use alloy_eips::eip2718::Decodable2718;
     use reth_chainspec::MAINNET;
     use reth_primitives::{

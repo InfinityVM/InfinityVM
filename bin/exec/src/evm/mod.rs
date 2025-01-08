@@ -1,7 +1,7 @@
 //! Configuration for IVM's EVM execution environment.
 
 use crate::evm::builder::IvmEvmBuilder;
-use alloy::primitives::{Address, Bytes};
+use alloy_primitives::{Address, Bytes};
 use reth_node_builder::{
     components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes,
     NodeTypesWithEngine,
@@ -112,7 +112,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use alloy::primitives::{hex, Address, TxKind, B256};
+    use alloy_primitives::{hex, Address, TxKind, B256};
     use k256::ecdsa::SigningKey;
     use reth::{
         chainspec::{ChainSpecBuilder, MAINNET},

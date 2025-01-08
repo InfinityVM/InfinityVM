@@ -42,7 +42,7 @@ impl IvmConfig {
 #[cfg(test)]
 mod test {
     use super::IvmConfig;
-    use alloy::primitives::address;
+    use alloy_primitives::address;
     use std::collections::HashSet;
 
     #[test]

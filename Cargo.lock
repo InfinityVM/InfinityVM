@@ -128,7 +128,6 @@ dependencies = [
  "alloy-contract",
  "alloy-core",
  "alloy-eips 0.9.2",
- "alloy-genesis",
  "alloy-network 0.9.2",
  "alloy-node-bindings",
  "alloy-provider",
@@ -4727,10 +4726,10 @@ dependencies = [
 name = "ivm-exec"
 version = "0.0.1"
 dependencies = [
- "alloy",
  "alloy-consensus 0.9.2",
  "alloy-eips 0.9.2",
  "alloy-network 0.9.2",
+ "alloy-primitives",
  "alloy-rpc-types",
  "alloy-signer-local 0.9.2",
  "clap",
