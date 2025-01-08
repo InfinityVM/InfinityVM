@@ -4737,6 +4737,7 @@ dependencies = [
  "k256",
  "reth",
  "reth-chainspec",
+ "reth-cli-util",
  "reth-ethereum-cli",
  "reth-ethereum-engine-primitives",
  "reth-evm",

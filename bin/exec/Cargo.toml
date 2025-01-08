@@ -27,6 +27,7 @@ reth-payload-validator = { workspace = true }
 reth-tasks = { workspace = true }
 reth-provider = { workspace = true }
 reth-ethereum-cli = { workspace = true }
+reth-cli-util = { workspace = true }
 
 alloy-rpc-types = { workspace = true }
 alloy-primitives = { workspace = true }
@@ -51,9 +52,19 @@ alloy-signer-local = { workspace = true }
 alloy-network = { workspace = true }
 
 [features]
-default = ["min-trace-logs"]
+default = ["min-trace-logs", "asm-keccak", "jemalloc"]
+
 min-error-logs = ["tracing/release_max_level_error"]
 min-warn-logs = ["tracing/release_max_level_warn"]
 min-info-logs = ["tracing/release_max_level_info"]
 min-debug-logs = ["tracing/release_max_level_debug"]
 min-trace-logs = ["tracing/release_max_level_trace"]
+
+asm-keccak = [
+	"reth-primitives/asm-keccak",
+	"alloy-primitives/asm-keccak"
+]
+
+jemalloc = [
+    "reth-cli-util/jemalloc",
+]

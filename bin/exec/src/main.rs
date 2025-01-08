@@ -4,15 +4,18 @@ use clap::Parser;
 use ivm_exec::{
     config::IvmConfig, evm::IvmExecutorBuilder, pool::IvmPoolBuilder, IvmAddOns, IvmCliExt,
 };
-use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
 use reth::cli::Cli;
+use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
 use reth_node_ethereum::EthereumNode;
 
 const IVM_CONFIG_FILE: &str = "ivm_config.toml";
 
+#[global_allocator]
+static ALLOC: reth_cli_util::allocator::Allocator = reth_cli_util::allocator::new_allocator();
+
 fn main() {
-    Cli::<EthereumChainSpecParser, IvmCliExt>::parse()
-        .run(|builder, args| async move {
+    if let Err(err) =
+        Cli::<EthereumChainSpecParser, IvmCliExt>::parse().run(|builder, args| async move {
             let ivm_config_path = if let Some(ivm_config) = args.ivm_config {
                 ivm_config
             } else {
@@ -33,5 +36,8 @@ fn main() {
 
             handle.wait_for_node_exit().await
         })
-        .unwrap();
+    {
+        eprintln!("Error: {err:?}");
+        std::process::exit(1);
+    }
 }
