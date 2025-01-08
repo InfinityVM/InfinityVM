@@ -121,7 +121,10 @@ mod test {
     use alloy_eips::eip2718::Decodable2718;
     use reth::{
         chainspec::MAINNET,
-        primitives::{transaction::SignedTransactionIntoRecoveredExt, InvalidTransactionError, PooledTransaction, PooledTransactionsElementEcRecovered},
+        primitives::{
+            transaction::SignedTransactionIntoRecoveredExt, InvalidTransactionError,
+            PooledTransaction,
+        },
         transaction_pool::{
             blobstore::InMemoryBlobStore,
             error::{InvalidPoolTransactionError, PoolErrorKind},
