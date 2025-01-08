@@ -28,6 +28,7 @@ reth-provider = { workspace = true, features = ["test-utils"] }
 reth-revm = { workspace = true }
 reth-evm = { workspace = true }
 reth-db = { workspace = true }
+reth-primitives = { workspace = true }
 revm = { workspace = true }
 k256 = { workspace = true }
 
