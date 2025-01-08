@@ -1,7 +1,7 @@
 //! Configuration for IVM's EVM execution environment.
 
 use crate::evm::builder::IvmEvmBuilder;
-use alloy::primitives::{Address, Bytes, U256};
+use alloy::primitives::{Address, Bytes};
 use reth::{
     builder::{
         components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes,
@@ -10,7 +10,7 @@ use reth::{
     chainspec::ChainSpec,
     primitives::{EthPrimitives, Header, TransactionSigned},
     revm::{
-        primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, TxEnv},
+        primitives::{CfgEnvWithHandlerCfg, Env, TxEnv},
         Database, Evm, GetInspector,
     },
 };
@@ -137,7 +137,7 @@ mod test {
     use revm::{
         db::states::account_status::AccountStatus as DbAccountStatus,
         interpreter::primitives::AccountStatus,
-        primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction},
+        primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction, U256},
     };
 
     // Special alloy deps we need for playing happy with reth

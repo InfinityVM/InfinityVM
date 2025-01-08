@@ -189,7 +189,12 @@ reth-node-api = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d523
 reth-revm = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
 reth-evm = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
 reth-primitives-traits = { git = "https://github.com/paradigmxyz/reth.git", rev = "28d5231", default-features = false }
-revm = "18"
+
+# alloy, revm reth need to be kept in sync
+revm = { version = "19.2.0", default-features = false }
+revm-primitives = { version = "15.1.0", default-features = false }
+revm-interpreter = { version = "15.0.0", default-features = false }
+revm-inspectors = "0.14.1"
 
 # s
 serde = { version = "1.0", features = ["derive", "std"], default-features = false }
