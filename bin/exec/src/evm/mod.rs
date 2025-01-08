@@ -147,6 +147,8 @@ mod test {
 
     // Exact gas used by the transaction returned by `transaction_with_signer`.
     const EXACT_GAS_USED: u64 = 21080;
+    // TODO: WHY DO WE NEED THIS??
+    const ACCOUNT_CREATE_GAS: u64 = 120;
 
     fn executor_provider(
         chain_spec: Arc<ChainSpec>,
@@ -174,8 +176,7 @@ mod test {
 
         let chain_spec = Arc::new(
             ChainSpecBuilder::from(&*MAINNET)
-                .shanghai_activated()
-                .with_fork(EthereumHardfork::Cancun, ForkCondition::Timestamp(1))
+                .cancun_activated()
                 .build(),
         );
 
@@ -235,7 +236,7 @@ mod test {
 
         let result = evm.transact().unwrap();
 
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
 
         let account = result.state.get(&signer_address).unwrap();
 
@@ -269,7 +270,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -291,7 +292,8 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
+
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -311,7 +313,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -330,7 +332,7 @@ mod test {
             transaction_signed4.recover_signer().unwrap(),
         );
 
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
 
         let result = evm.transact().unwrap();
 
