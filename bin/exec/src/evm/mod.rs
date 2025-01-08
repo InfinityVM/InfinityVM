@@ -119,10 +119,7 @@ mod test {
     use reth::{
         chainspec::{ChainSpecBuilder, MAINNET},
         core::primitives::SignedTransaction,
-        primitives::{
-            Account, Block, BlockBody, BlockWithSenders, EthereumHardfork, ForkCondition,
-            Transaction,
-        },
+        primitives::{Account, Block, BlockBody, BlockWithSenders, Transaction},
         revm::{
             db::{CacheDB, EmptyDBTyped},
             DatabaseCommit,
@@ -148,7 +145,7 @@ mod test {
     // Exact gas used by the transaction returned by `transaction_with_signer`.
     const EXACT_GAS_USED: u64 = 21080;
     // TODO: WHY DO WE NEED THIS??
-    const ACCOUNT_CREATE_GAS: u64 = 120;
+    const UNKNOWN_GAS_REGRESSION: u64 = 120;
 
     fn executor_provider(
         chain_spec: Arc<ChainSpec>,
@@ -157,6 +154,10 @@ mod test {
         let strategy_factory = EthExecutionStrategyFactory::new(chain_spec, evm_config);
 
         BasicBlockExecutorProvider::new(strategy_factory)
+    }
+
+    fn chain_spec() -> Arc<ChainSpec> {
+        Arc::new(ChainSpecBuilder::from(&*MAINNET).cancun_activated().build())
     }
 
     fn setup() -> (
@@ -174,13 +175,7 @@ mod test {
         };
         let db = StateProviderTest::default();
 
-        let chain_spec = Arc::new(
-            ChainSpecBuilder::from(&*MAINNET)
-                .cancun_activated()
-                .build(),
-        );
-
-        let provider = executor_provider(chain_spec);
+        let provider = executor_provider(chain_spec());
 
         (header, db, provider)
     }
@@ -225,7 +220,7 @@ mod test {
         // Show that the account doesn't exist
         assert!(db.basic(signer_address).unwrap().is_none());
 
-        let evm_config = IvmEvmConfig::new(MAINNET.clone());
+        let evm_config = IvmEvmConfig::new(chain_spec());
         let mut evm = evm_config.evm(db);
 
         evm_config.fill_tx_env(
@@ -236,7 +231,7 @@ mod test {
 
         let result = evm.transact().unwrap();
 
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
 
         let account = result.state.get(&signer_address).unwrap();
 
@@ -261,7 +256,7 @@ mod test {
         let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
 
         // 1st transaction, SAME signer
-        let evm_config = IvmEvmConfig::new(MAINNET.clone());
+        let evm_config = IvmEvmConfig::new(chain_spec());
         let mut evm = evm_config.evm(db);
         evm_config.fill_tx_env(
             evm.tx_mut(),
@@ -270,7 +265,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -292,7 +287,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
 
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
@@ -313,7 +308,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -332,7 +327,7 @@ mod test {
             transaction_signed4.recover_signer().unwrap(),
         );
 
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + ACCOUNT_CREATE_GAS);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
 
         let result = evm.transact().unwrap();
 
