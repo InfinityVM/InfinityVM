@@ -4742,6 +4742,7 @@ dependencies = [
  "reth-evm-ethereum",
  "reth-node-api",
  "reth-node-ethereum",
+ "reth-primitives-traits",
  "reth-provider",
  "reth-revm",
  "revm 18.0.0",

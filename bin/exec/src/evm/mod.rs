@@ -55,11 +55,7 @@ impl ConfigureEvmEnv for IvmEvmConfig {
         self.eth.fill_tx_env_system_contract_call(env, caller, contract, data);
     }
 
-    fn fill_cfg_env(
-        &self,
-        cfg_env: &mut CfgEnvWithHandlerCfg,
-        header: &Self::Header,
-    ) {
+    fn fill_cfg_env(&self, cfg_env: &mut CfgEnvWithHandlerCfg, header: &Self::Header) {
         self.eth.fill_cfg_env(cfg_env, header);
     }
 
