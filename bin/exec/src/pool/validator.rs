@@ -155,7 +155,7 @@ where
         self.validate_all(transactions)
     }
 
-    fn on_new_head_block(&self, new_tip_block: &SealedBlock) {
+    fn on_new_head_block<H, B>(&self, new_tip_block: &SealedBlock<H, B>) {
         self.eth.on_new_head_block(new_tip_block)
     }
 }

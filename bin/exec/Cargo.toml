@@ -13,6 +13,7 @@ reth-node-ethereum = { workspace = true }
 reth-evm-ethereum = { workspace = true }
 reth-ethereum-engine-primitives = { workspace = true }
 reth-node-api = { workspace = true }
+reth-evm = { workspace = true }
 
 alloy = { workspace = true, features = ["genesis"] }
 eyre = { workspace = true  }
@@ -25,7 +26,6 @@ serde = { workspace = true }
 [dev-dependencies]
 reth-provider = { workspace = true, features = ["test-utils"] }
 reth-revm = { workspace = true }
-reth-evm = { workspace = true }
 alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
 revm = { workspace = true }
 k256 = { workspace = true }

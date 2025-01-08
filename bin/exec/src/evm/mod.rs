@@ -59,16 +59,15 @@ impl ConfigureEvmEnv for IvmEvmConfig {
         &self,
         cfg_env: &mut CfgEnvWithHandlerCfg,
         header: &Self::Header,
-        total_difficulty: U256,
     ) {
-        self.eth.fill_cfg_env(cfg_env, header, total_difficulty);
+        self.eth.fill_cfg_env(cfg_env, header);
     }
 
     fn next_cfg_and_block_env(
         &self,
         parent: &Self::Header,
         attributes: NextBlockEnvAttributes,
-    ) -> Result<(CfgEnvWithHandlerCfg, BlockEnv), Self::Error> {
+    ) -> Result<reth_evm::env::EvmEnv, Infallible> {
         self.eth.next_cfg_and_block_env(parent, attributes)
     }
 }
