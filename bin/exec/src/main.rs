@@ -4,7 +4,8 @@ use clap::Parser;
 use ivm_exec::{
     config::IvmConfig, evm::IvmExecutorBuilder, pool::IvmPoolBuilder, IvmAddOns, IvmCliExt,
 };
-use reth::{chainspec::EthereumChainSpecParser, cli::Cli};
+use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
+use reth::cli::Cli;
 use reth_node_ethereum::EthereumNode;
 
 const IVM_CONFIG_FILE: &str = "ivm_config.toml";

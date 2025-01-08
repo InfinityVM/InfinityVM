@@ -7,7 +7,7 @@ use reth_node_api::NodeTypes;
 use reth_node_builder::{components::PoolBuilder, BuilderContext, FullNodeTypes};
 use reth_chainspec::ChainSpec;
 use reth_primitives::EthPrimitives;
-use reth_providers::CanonStateSubscriptions;
+use reth_provider::CanonStateSubscriptions;
 use reth_transaction_pool::{
     blobstore::DiskFileBlobStore, validate::EthTransactionValidatorBuilder,
     CoinbaseTipOrdering, EthPooledTransaction, TransactionValidationTaskExecutor,
@@ -17,7 +17,7 @@ use tracing::{debug, info};
 pub mod validator;
 
 /// Type describing the IVM transaction pool.
-pub type IvmTransactionPool<Client, S> = reth::transaction_pool::Pool<
+pub type IvmTransactionPool<Client, S> = reth_transaction_pool::Pool<
     TransactionValidationTaskExecutor<IvmTransactionValidator<Client, EthPooledTransaction>>,
     CoinbaseTipOrdering<EthPooledTransaction>,
     S,
@@ -66,7 +66,7 @@ where
             )
         };
 
-        let transaction_pool = reth::transaction_pool::Pool::new(
+        let transaction_pool = reth_transaction_pool::Pool::new(
             validator,
             CoinbaseTipOrdering::default(),
             blob_store,
@@ -82,12 +82,12 @@ where
             let chain_events = ctx.provider().canonical_state_stream();
             let client = ctx.provider().clone();
             let transactions_backup_config =
-                reth::transaction_pool::maintain::LocalTransactionBackupConfig::with_local_txs_backup(transactions_path);
+                reth_transaction_pool::maintain::LocalTransactionBackupConfig::with_local_txs_backup(transactions_path);
 
             ctx.task_executor().spawn_critical_with_graceful_shutdown_signal(
                 "local transactions backup task",
                 |shutdown| {
-                    reth::transaction_pool::maintain::backup_local_transactions_task(
+                    reth_transaction_pool::maintain::backup_local_transactions_task(
                         shutdown,
                         pool.clone(),
                         transactions_backup_config,
@@ -98,7 +98,7 @@ where
             // spawn the maintenance task
             ctx.task_executor().spawn_critical(
                 "txpool maintenance task",
-                reth::transaction_pool::maintain::maintain_transaction_pool_future(
+                reth_transaction_pool::maintain::maintain_transaction_pool_future(
                     client,
                     pool,
                     chain_events,
@@ -118,18 +118,16 @@ mod test {
     use super::*;
     use alloy::primitives::{hex, U256};
     use alloy_eips::eip2718::Decodable2718;
-    use reth::{
-        chainspec::MAINNET,
-        primitives::{
-            transaction::SignedTransactionIntoRecoveredExt, InvalidTransactionError,
-            PooledTransaction,
-        },
-        transaction_pool::{
-            blobstore::InMemoryBlobStore,
-            error::{InvalidPoolTransactionError, PoolErrorKind},
-            CoinbaseTipOrdering, EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin,
-            TransactionPool, TransactionValidationOutcome,
-        },
+    use reth_chainspec::MAINNET;
+    use reth_primitives::{
+        transaction::SignedTransactionIntoRecoveredExt, InvalidTransactionError,
+        PooledTransaction,
+    };
+    use reth_transaction_pool::{
+        blobstore::InMemoryBlobStore,
+        error::{InvalidPoolTransactionError, PoolErrorKind},
+        CoinbaseTipOrdering, EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin,
+        TransactionPool, TransactionValidationOutcome,
     };
     use reth_provider::test_utils::{ExtendedAccount, MockEthProvider};
     use std::collections::HashSet;

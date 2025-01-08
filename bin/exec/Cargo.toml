@@ -8,6 +8,8 @@ version.workspace = true
 workspace = true
 
 [dependencies]
+# only use reth for CLI
+reth = { workspace = true }
 reth-node-builder = { workspace = true }
 reth-node-ethereum = { workspace = true }
 reth-evm-ethereum = { workspace = true }
@@ -20,9 +22,11 @@ reth-revm = { workspace = true }
 reth-network = { workspace = true }
 reth-rpc = { workspace = true }
 reth-primitives = { workspace = true }
-reth-providers = { workspace = true }
 reth-transaction-pool = { workspace = true }
 reth-payload-validator = { workspace = true }
+reth-tasks = { workspace = true }
+reth-provider = { workspace = true }
+reth-ethereum-cli = { workspace = true }
 
 alloy-rpc-types = { workspace = true }
 
