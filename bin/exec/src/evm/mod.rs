@@ -366,6 +366,7 @@ mod test {
         let executor_provider = executor_provider(chain_spec.clone());
 
         
+        
     }
 
     // The checks in here mimic `validate_and_execute`
@@ -412,7 +413,8 @@ mod test {
         let initial_execution_outcome = ExecutionOutcome::from((state, block.number));
 
         // This is not supported yet
-        let hashed_state = state_provider_test.hashed_post_state(initial_execution_outcome.state());
+        let hashed_state = state_provider_test
+            .hashed_post_state(initial_execution_outcome.state());
         // let state_root = state_provider_test.state_root(hashed_state).unwrap();
 
         // assert_eq!(block.state_root(), state_root)
