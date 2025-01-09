@@ -1,10 +1,13 @@
 //! A script to send some transactions to a local node. The transactions are arbitrary and is mostly useful to sanity check.
 
+use std::hash::Hash;
+
 use alloy::network::{EthereumWallet, TransactionBuilder};
 use alloy::primitives::U256;
-use alloy::rpc::types::TransactionRequest;
+use alloy::rlp::Encodable;
+use alloy::rpc::types::{TransactionRequest, trace::parity::TraceType};
 use alloy::sol;
-use alloy::providers::{Provider, ProviderBuilder};
+use alloy::providers::{Provider, ProviderBuilder, ext::TraceApi};
 use ivm_test_utils::get_signers;
 
 const DEFAULT_DEV_HTTP: &str = "http://127.0.0.1:8545";
@@ -32,7 +35,6 @@ async fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
-
     // Normally the first 20 wallets are funded so we try to get a non-funded one
     let wallets = get_signers(22);
     let bob_wallet = EthereumWallet::from(wallets[10].clone());
@@ -53,9 +55,18 @@ async fn main() {
       let tx =
         TransactionRequest::default()
           .with_to(alice_address)
-          .with_from(bob_address).with_value(U256::from(100));
+          .with_from(bob_address).with_value(U256::from(0));
 
-      let _tx_receipt = provider.send_transaction(tx).await.unwrap().get_receipt().await.unwrap();
+    
+    let trace_type = [TraceType::Trace, TraceType::StateDiff, TraceType::VmTrace];
+    let result = provider.trace_call(&tx, &trace_type).await.unwrap();
+    dbg!(result);
+
+    let tx_receipt = provider.send_transaction(tx).await.unwrap().get_receipt().await.unwrap();
+    dbg!(tx_receipt.block_number);
+
+    let result = provider.trace_transaction(tx_receipt.transaction_hash).await.unwrap();
+    dbg!(result);
 
     // let counter_contract = Counter::deploy(&provider).await.unwrap();
 }
