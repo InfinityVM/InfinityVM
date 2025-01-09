@@ -1,0 +1,155 @@
+2025-01-09T21:52:10.766515Z  INFO payload_builder: pool_tx=ValidPoolTransaction { id: TransactionId { sender: SenderId(0), nonce: 0 }, pragate: true, origin: Local, hash: 0x279c19a47bbda88fdfe02a38549fce8ee52569657b99eba1a74ab98c6fb0d6a0, tx: EthPooledTransaction { transaction: Recovered { signer: 0xbcd4042de499d14e55001ccbb24a551f3b954096, tx: TransactionSigned { hash: OnceLock(0x279c19a47bbda88fdfe02a38549fce8ee52569657b99eba1a74ab98c6fb0d6a0), signature: PrimitiveSignature { y_parity: false, r: 69002763964050738035949560505262959908101780502852011875595221381644813805913, s: 49836816500401834928690365568313284590544188742237762471123863124529636051707 }, transaction: Eip1559(TxEip1559 { chain_id: 1337, nonce: 0, gas_limit: 21000, max_fee_per_gas: 897590639, max_priority_fee_per_gas: 1, to: Call(0x02484cb50aac86eae85610d6f4bf026f30f6627d), value: 0, access_list: AccessList([]), input: 0x }) } }, cost: 18849403419000, encoded_length: 107, blob_sidecar: None } }
+2025-01-09T21:52:10.768536Z DEBUG engine::tree: received new engine message msg=Request(NewPayload(parent: 0xf7ce72e3d4504f5a2b2d2712d8f02995ca1fb905083f98af981ea27de26e3bad, number: 5, hash: 0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0))
+2025-01-09T21:52:10.768589Z TRACE on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: invoked new payload
+2025-01-09T21:52:10.770571Z DEBUG on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: Inserting new block into tree block=NumHash { number: 5, hash: 0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 } parent=0xf7ce72e3d4504f5a2b2d2712d8f02995ca1fb905083f98af981ea27de26e3bad state_root=0xebb37fac7cc621ade1b730c5021e21069b70088f04232be528b9550be207b1d6
+2025-01-09T21:52:10.770892Z TRACE on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: Validating block consensus block=NumHash { number: 5, hash: 0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 }
+2025-01-09T21:52:10.771024Z TRACE on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: Fetching block state provider block=NumHash { number: 5, hash: 0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 } parent=0xf7ce72e3d4504f5a2b2d2712d8f02995ca1fb905083f98af981ea27de26e3bad
+2025-01-09T21:52:10.771279Z DEBUG on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: found canonical state for block in database hash=0xf7ce72e3d4504f5a2b2d2712d8f02995ca1fb905083f98af981ea27de26e3bad number=4
+2025-01-09T21:52:10.772028Z TRACE on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: Executing block block=NumHash { number: 5, hash: 0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 }
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:200:13] "execute transactions" = "execute transactions"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:200:13] &result_and_state.state = {
+    0x02484cb50aac86eae85610d6f4bf026f30f6627d: Account {
+        info: AccountInfo {
+            balance: 0,
+            nonce: 0,
+            code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+            code: Some(
+                LegacyAnalyzed(
+                    LegacyAnalyzedBytecode {
+                        bytecode: 0x00,
+                        original_len: 0,
+                        jump_table: JumpTable {
+                            map: "00",
+                        },
+                    },
+                ),
+            ),
+        },
+        storage: {},
+        status: AccountStatus(
+            Touched | LoadedAsNotExisting,
+        ),
+    },
+    0x642603418ecf994f2ba6f5ca2455b005626a54c6: Account {
+        info: AccountInfo {
+            balance: 0,
+            nonce: 0,
+            code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+            code: Some(
+                LegacyAnalyzed(
+                    LegacyAnalyzedBytecode {
+                        bytecode: 0x00,
+                        original_len: 0,
+                        jump_table: JumpTable {
+                            map: "00",
+                        },
+                    },
+                ),
+            ),
+        },
+        storage: {},
+        status: AccountStatus(
+            Touched | LoadedAsNotExisting,
+        ),
+    },
+    0xbcd4042de499d14e55001ccbb24a551f3b954096: Account {
+        info: AccountInfo {
+            balance: 999999999989228912323000,
+            nonce: 1,
+            code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+            code: None,
+        },
+        storage: {},
+        status: AccountStatus(
+            Touched,
+        ),
+    },
+}
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:201:13] "execute transactions gas used" = "execute transactions gas used"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:201:13] &result_and_state.result.gas_used() = 21000
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:202:13] "execute transactions result" = "execute transactions result"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:202:13] &result_and_state.result = Success {
+    reason: Stop,
+    gas_used: 21000,
+    gas_refunded: 0,
+    logs: [],
+    output: Call(
+        0x,
+    ),
+}
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:210:13] result_and_state == old_result_and_state = true
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:234:9] "receipts" = "receipts"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:234:9] &receipts = [
+    Receipt {
+        tx_type: Eip1559,
+        success: true,
+        cumulative_gas_used: 21000,
+        logs: [],
+    },
+]
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/ethereum/evm/src/execute.rs:235:9] "cumulative_gas_used" = "cumulative_gas_used"
+2025-01-09T21:52:10.773675Z TRACE on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: Executed block elapsed=1.565833ms block_number=5
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/engine/tree/src/tree/mod.rs:2340:13] "insert_inner creating hashed_state" = "insert_inner creating hashed_state"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/engine/tree/src/tree/mod.rs:2340:13] &output.state = BundleState {
+    state: {
+        0xbcd4042de499d14e55001ccbb24a551f3b954096: BundleAccount {
+            info: Some(
+                AccountInfo {
+                    balance: 999999999989228912323000,
+                    nonce: 1,
+                    code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                    code: None,
+                },
+            ),
+            original_info: Some(
+                AccountInfo {
+                    balance: 1000000000000000000000000,
+                    nonce: 0,
+                    code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                    code: None,
+                },
+            ),
+            storage: {},
+            status: InMemoryChange,
+        },
+    },
+    contracts: {},
+    reverts: Reverts(
+        [
+            [
+                (
+                    0xbcd4042de499d14e55001ccbb24a551f3b954096,
+                    AccountRevert {
+                        account: RevertTo(
+                            AccountInfo {
+                                balance: 1000000000000000000000000,
+                                nonce: 0,
+                                code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                                code: None,
+                            },
+                        ),
+                        storage: {},
+                        previous_status: Loaded,
+                        wipe_storage: false,
+                    },
+                ),
+            ],
+        ],
+    ),
+    state_size: 1,
+    reverts_size: 1,
+}
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/engine/tree/src/tree/mod.rs:2341:13] "insert_innercreating hashed_state" = "insert_innercreating hashed_state"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/cb03326/crates/engine/tree/src/tree/mod.rs:2341:13] &output.receipts = [
+    Receipt {
+        tx_type: Eip1559,
+        success: true,
+        cumulative_gas_used: 21000,
+        logs: [],
+    },
+]
+2025-01-09T21:52:10.774445Z TRACE on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: Calculating block state root block=NumHash { number: 5, hash: 0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 }
+2025-01-09T21:52:10.774635Z DEBUG on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: Parent found on disk parent_hash=0xf7ce72e3d4504f5a2b2d2712d8f02995ca1fb905083f98af981ea27de26e3bad
+2025-01-09T21:52:10.775954Z  INFO on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::tree: Regular root task finished block=NumHash { number: 5, hash: 0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 } regular_state_root=0x193a49c97bc2e2d3532dc5bb5f04366b6ddde7ece375ff9f7b9340ff46d0e875
+about to check state root vs given in header
+2025-01-09T21:52:10.780091Z  WARN on_new_payload{block_hash=0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0 block_num=5}: engine::invalid_block_hooks::witness: Re-executed state root does not match block state root header_state_root=0xebb37fac7cc621ade1b730c5021e21069b70088f04232be528b9550be207b1d6 re_executed_root=0x193a49c97bc2e2d3532dc5bb5f04366b6ddde7ece375ff9f7b9340ff46d0e875 diff_path=../datadir5/invalid_block_hooks/witness/5_0x0eaab060f8bf6323cc208d2fe24f47cef784d8f25bcd755b218fa75cbca74af0.header_state_root.diff
