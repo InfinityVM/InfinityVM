@@ -28,7 +28,7 @@ RUN apt-get update && \
 
 COPY --from=builder /app/target/release/ivm-exec /usr/local/bin/reth
 COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
-COPY --from=prom/node-exporter:v1.8.2 /bin/node_exporter /usr/local/bin/node_exporter
+COPY --from=prom/node-exporter:v1.8.2 /bin/node_exporter /usr/local/bin
 COPY entrypoint-exec.sh /usr/local/bin/entrypoint.sh
 
 RUN chmod +x /usr/local/bin/reth
