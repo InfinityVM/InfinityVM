@@ -1,6 +1,6 @@
 //! A script to send some transactions to a local node. The transactions are arbitrary and is mostly useful to sanity check.
 
-use alloy::network::{EthereumWallet, NetworkWallet, TransactionBuilder};
+use alloy::network::{EthereumWallet, TransactionBuilder};
 use alloy::primitives::U256;
 use alloy::rpc::types::TransactionRequest;
 use alloy::sol;
