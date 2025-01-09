@@ -5,8 +5,8 @@
 //! For new jobs we check that the job does not exist, persist it and push it onto the exec queue.
 
 use crate::{
-    relayer::Relay,
     elf_store::RemoteElfClientTrait,
+    relayer::Relay,
     writer::{Write, WriterMsg},
 };
 use alloy::{
@@ -166,7 +166,14 @@ where
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
 
         if !self.config.unsafe_skip_program_id_check {
-            let derived_program_id = self.zk_executor.create_elf(&elf, vm_type)?;
+            let zk_executor = self.zk_executor.clone();
+            let elf_clone = elf.clone();
+            let derived_program_id = tokio::task::spawn_blocking(move || {
+                zk_executor.create_elf(&elf_clone, vm_type)
+            })
+            .await
+            .map_err(|e| Error::CreateElfFailed(ivm_zkvm_executor::service::Error::ProgramIdDerivationFailed(e.to_string())))??;
+
             if program_id != derived_program_id {
                 return Err(Error::MismatchProgramId(
                     hex::encode(&program_id),
