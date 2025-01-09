@@ -20,6 +20,10 @@ path = "src/node_test.rs"
 name = "proto-build"
 path = "src/proto_build.rs"
 
+[[bin]]
+name = "send-tx"
+path = "src/send_tx.rs"
+
 [lints]
 workspace = true
 
