@@ -25,8 +25,8 @@ where
         let mut caller_account =
             ctx.evm.inner.journaled_state.load_account(caller, &mut ctx.evm.inner.db)?;
 
-        // // Bump the nonce for calls. Nonce for CREATE will be bumped in the create logic.
-        // // See `create_account_checkpoint` in `revm`
+        // Bump the nonce for calls. Nonce for CREATE will be bumped in the create logic.
+        // See `create_account_checkpoint` in `revm`
         if matches!(ctx.evm.inner.env.tx.transact_to, TxKind::Call(_)) {
             // Nonce is already checked, so this is safe
             caller_account.info.nonce = caller_account.info.nonce.saturating_add(1);
@@ -78,12 +78,9 @@ where
         Ok(())
     });
 
-    // TODO: eip7702 hook override?
-
     // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L59
     handler.post_execution.refund = Arc::new(|_ctx, _gas, _eip7702_refund| {
         // We can skip refund calculations because we do not reimburse the caller
-        // TODO: does gas.set_refund(0);
     });
 
     // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L73

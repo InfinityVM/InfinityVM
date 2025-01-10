@@ -1,4 +1,4 @@
-//! IVM payload building logic. This
+//! IVM payload builder.
 
 use alloy_rpc_types::engine::PayloadAttributes;
 use reth_chainspec::ChainSpec;
@@ -10,9 +10,6 @@ use reth_primitives::{EthPrimitives, TransactionSigned};
 use reth_transaction_pool::{PoolTransaction, TransactionPool};
 
 use crate::evm::IvmEvmConfig;
-
-// TODO: add test that payload building service and be re-executed with same state root
-// TODO: update priority logic (best_tx), to not use priority fee amd either be random or FIFO
 
 /// Builds a regular ethereum block executor that uses the custom EVM.
 #[derive(Debug, Default, Clone)]
