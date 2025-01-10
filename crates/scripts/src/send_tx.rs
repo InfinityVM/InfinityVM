@@ -1,13 +1,16 @@
-//! A script to send some transactions to a local node. The transactions are arbitrary and is mostly useful to sanity check.
+//! A script to send some transactions to a local node. The transactions are arbitrary and is mostly
+//! useful to sanity check.
 
 use std::hash::Hash;
 
-use alloy::network::{EthereumWallet, TransactionBuilder};
-use alloy::primitives::U256;
-use alloy::rlp::Encodable;
-use alloy::rpc::types::{TransactionRequest, trace::parity::TraceType};
-use alloy::sol;
-use alloy::providers::{Provider, ProviderBuilder, ext::TraceApi};
+use alloy::{
+    network::{EthereumWallet, TransactionBuilder},
+    primitives::U256,
+    providers::{ext::TraceApi, Provider, ProviderBuilder},
+    rlp::Encodable,
+    rpc::types::{trace::parity::TraceType, TransactionRequest},
+    sol,
+};
 use ivm_test_utils::get_signers;
 
 const DEFAULT_DEV_HTTP: &str = "http://127.0.0.1:8545";
@@ -48,16 +51,15 @@ async fn main() {
     tracing::info!(?alice_address);
 
     let provider = ProviderBuilder::new()
-      .with_recommended_fillers()
-      .wallet(bob_wallet.clone())
-      .on_http(DEFAULT_DEV_HTTP.parse().unwrap());
+        .with_recommended_fillers()
+        .wallet(bob_wallet.clone())
+        .on_http(DEFAULT_DEV_HTTP.parse().unwrap());
 
-      let tx =
-        TransactionRequest::default()
-          .with_to(alice_address)
-          .with_from(bob_address).with_value(U256::from(0));
+    let tx = TransactionRequest::default()
+        .with_to(alice_address)
+        .with_from(bob_address)
+        .with_value(U256::from(0));
 
-    
     let trace_type = [TraceType::Trace, TraceType::StateDiff, TraceType::VmTrace];
     let result = provider.trace_call(&tx, &trace_type).await.unwrap();
     dbg!(result);

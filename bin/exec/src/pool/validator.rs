@@ -39,10 +39,7 @@ impl IvmTransactionAllowConfig {
 
     /// Create a config that allows all transactions.
     pub fn with_all() -> Self {
-        Self {
-            all: true,
-            .. Default::default()
-        }
+        Self { all: true, ..Default::default() }
     }
 }
 

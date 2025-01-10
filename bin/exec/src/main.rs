@@ -2,7 +2,11 @@
 
 use clap::Parser;
 use ivm_exec::{
-    config::IvmConfig, evm::IvmExecutorBuilder, pool::{validator::IvmTransactionAllowConfig, IvmPoolBuilder}, IvmAddOns, IvmCliExt,
+    config::IvmConfig,
+    evm::IvmExecutorBuilder,
+    payload::IvmPayloadBuilder,
+    pool::{validator::IvmTransactionAllowConfig, IvmPoolBuilder},
+    IvmAddOns, IvmCliExt,
 };
 use reth::cli::Cli;
 use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
@@ -32,10 +36,15 @@ fn main() {
             };
             let pool_builder = IvmPoolBuilder::new(transaction_allow);
 
+            // TODO: do we need EthereumPayloadBuilder to have EVM
+
             let handle = builder
                 .with_types::<EthereumNode>()
                 .with_components(
-                    EthereumNode::components().pool(pool_builder).executor(IvmExecutorBuilder),
+                    EthereumNode::components()
+                        .pool(pool_builder)
+                        .executor(IvmExecutorBuilder)
+                        .payload(IvmPayloadBuilder::default()),
                 )
                 .with_add_ons(IvmAddOns::default())
                 .launch_with_fn(|launch_builder| {

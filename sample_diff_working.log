@@ -1,0 +1,316 @@
+    requests2025-01-09T23:01:19.724799Z  INFO pool_tx=ValidPoolTransaction { id: TransactionId { sender: SenderId(0), nonce: 0 }, pragate: true, origin: Local, hash: 0x26b80734c897e2a1b2d72d5f6edc03e00e13af71914e04dcb5719a422c440a82, tx: EthPooledTransaction { transaction: Recovered { signer: 0xbcd4042de499d14e55001ccbb24a551f3b954096, tx: TransactionSigned { hash: OnceLock(0x26b80734c897e2a1b2d72d5f6edc03e00e13af71914e04dcb5719a422c440a82), signature: PrimitiveSignature { y_parity: true, r: 19263034825241504034107803407937595949699114701169083681295206315736152689722, s: 37300460472777515722103133323991394696962608647939972345512410688458904284688 }, transaction: Eip1559(TxEip1559 { chain_id: 1337, nonce: 0, gas_limit: 21000, max_fee_per_gas: 18677211, max_priority_fee_per_gas: 1, to: Call(0x02484cb50aac86eae85610d6f4bf026f30f6627d), value: 0, access_list: AccessList([]), input: 0x }) } }, cost: 392221431000, encoded_length: 107, blob_sidecar: [
+: None } }
+        Requests(
+            [],
+        ),
+    ],
+}
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/payload/src/lib.rs:416:5] "build payload execution outcome" = "build payload execution outcome"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/payload/src/lib.rs:416:5] &execution_outcome = ExecutionOutcome {
+    bundle: BundleState {
+        state: {
+            0xd607fc5e4857c00b4ddfa0fa5dfb92ab0403b641: BundleAccount {
+                info: Some(
+                    AccountInfo {
+                        balance: 21000,
+                        nonce: 0,
+                        code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                        code: Some(
+                            LegacyAnalyzed(
+                                LegacyAnalyzedBytecode {
+                                    bytecode: 0x00,
+                                    original_len: 0,
+                                    jump_table: JumpTable {
+                                        map: "00",
+                                    },
+                                },
+                            ),
+                        ),
+                    },
+                ),
+                original_info: None,
+                storage: {},
+                status: InMemoryChange,
+            },
+            0xbcd4042de499d14e55001ccbb24a551f3b954096: BundleAccount {
+                info: Some(
+                    AccountInfo {
+                        balance: 999999999999828403099000,
+                        nonce: 1,
+                        code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                        code: Some(
+                            LegacyAnalyzed(
+                                LegacyAnalyzedBytecode {
+                                    bytecode: 0x00,
+                                    original_len: 0,
+                                    jump_table: JumpTable {
+                                        map: "00",
+                                    },
+                                },
+                            ),
+                        ),
+                    },
+                ),
+                original_info: Some(
+                    AccountInfo {
+                        balance: 1000000000000000000000000,
+                        nonce: 0,
+                        code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                        code: None,
+                    },
+                ),
+                storage: {},
+                status: InMemoryChange,
+            },
+        },
+        contracts: {
+            0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470: LegacyAnalyzed(
+                LegacyAnalyzedBytecode {
+                    bytecode: 0x00,
+                    original_len: 0,
+                    jump_table: JumpTable {
+                        map: "00",
+                    },
+                },
+            ),
+        },
+        reverts: Reverts(
+            [
+                [
+                    (
+                        0xd607fc5e4857c00b4ddfa0fa5dfb92ab0403b641,
+                        AccountRevert {
+                            account: DeleteIt,
+                            storage: {},
+                            previous_status: LoadedNotExisting,
+                            wipe_storage: false,
+                        },
+                    ),
+                    (
+                        0xbcd4042de499d14e55001ccbb24a551f3b954096,
+                        AccountRevert {
+                            account: RevertTo(
+                                AccountInfo {
+                                    balance: 1000000000000000000000000,
+                                    nonce: 0,
+                                    code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                                    code: None,
+                                },
+                            ),
+                            storage: {},
+                            previous_status: Loaded,
+                            wipe_storage: false,
+                        },
+                    ),
+                ],
+            ],
+        ),
+        state_size: 2,
+        reverts_size: 2,
+    },
+    receipts: Receipts {
+        receipt_vec: [
+            [
+                Some(
+                    Receipt {
+                        tx_type: Eip1559,
+                        success: true,
+                        cumulative_gas_used: 21000,
+                        logs: [],
+                    },
+                ),
+            ],
+        ],
+    },
+    first_block: 36,
+    requests: [
+        Requests(
+            [],
+        ),
+    ],
+}
+[bin/exec/src/evm/builder.rs:122:9] beneficiary = 0xd607fc5e4857c00b4ddfa0fa5dfb92ab0403b641
+[bin/exec/src/evm/builder.rs:122:9] beneficiary = 0xd607fc5e4857c00b4ddfa0fa5dfb92ab0403b641
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:200:13] "execute transactions" = "execute transactions"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:200:13] &result_and_state.state = {
+    0x02484cb50aac86eae85610d6f4bf026f30f6627d: Account {
+        info: AccountInfo {
+            balance: 0,
+            nonce: 0,
+            code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+            code: Some(
+                LegacyAnalyzed(
+                    LegacyAnalyzedBytecode {
+                        bytecode: 0x00,
+                        original_len: 0,
+                        jump_table: JumpTable {
+                            map: "00",
+                        },
+                    },
+                ),
+            ),
+        },
+        storage: {},
+        status: AccountStatus(
+            Touched | LoadedAsNotExisting,
+        ),
+    },
+    0xd607fc5e4857c00b4ddfa0fa5dfb92ab0403b641: Account {
+        info: AccountInfo {
+            balance: 21000,
+            nonce: 0,
+            code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+            code: Some(
+                LegacyAnalyzed(
+                    LegacyAnalyzedBytecode {
+                        bytecode: 0x00,
+                        original_len: 0,
+                        jump_table: JumpTable {
+                            map: "00",
+                        },
+                    },
+                ),
+            ),
+        },
+        storage: {},
+        status: AccountStatus(
+            Touched | LoadedAsNotExisting,
+        ),
+    },
+    0xbcd4042de499d14e55001ccbb24a551f3b954096: Account {
+        info: AccountInfo {
+            balance: 999999999999828403099000,
+            nonce: 1,
+            code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+            code: None,
+        },
+        storage: {},
+        status: AccountStatus(
+            Touched,
+        ),
+    },
+}
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:201:13] "execute transactions gas used" = "execute transactions gas used"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:201:13] &result_and_state.result.gas_used() = 21000
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:202:13] "execute transactions result" = "execute transactions result"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:202:13] &result_and_state.result = Success {
+    reason: Stop,
+    gas_used: 21000,
+    gas_refunded: 0,
+    logs: [],
+    output: Call(
+        0x,
+    ),
+}
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:210:13] result_and_state == old_result_and_state = true
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:234:9] &receipts = [
+    Receipt {
+        tx_type: Eip1559,
+        success: true,
+        cumulative_gas_used: 21000,
+        logs: [],
+    },
+]
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/ethereum/evm/src/execute.rs:235:9] cumulative_gas_used = 21000
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/engine/tree/src/tree/mod.rs:2340:13] "insert_inner creating hashed_state" = "insert_inner creating hashed_state"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/engine/tree/src/tree/mod.rs:2340:13] &output.state = BundleState {
+    state: {
+        0xd607fc5e4857c00b4ddfa0fa5dfb92ab0403b641: BundleAccount {
+            info: Some(
+                AccountInfo {
+                    balance: 21000,
+                    nonce: 0,
+                    code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                    code: Some(
+                        LegacyAnalyzed(
+                            LegacyAnalyzedBytecode {
+                                bytecode: 0x00,
+                                original_len: 0,
+                                jump_table: JumpTable {
+                                    map: "00",
+                                },
+                            },
+                        ),
+                    ),
+                },
+            ),
+            original_info: None,
+            storage: {},
+            status: InMemoryChange,
+        },
+        0xbcd4042de499d14e55001ccbb24a551f3b954096: BundleAccount {
+            info: Some(
+                AccountInfo {
+                    balance: 999999999999828403099000,
+                    nonce: 1,
+                    code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                    code: None,
+                },
+            ),
+            original_info: Some(
+                AccountInfo {
+                    balance: 1000000000000000000000000,
+                    nonce: 0,
+                    code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                    code: None,
+                },
+            ),
+            storage: {},
+            status: InMemoryChange,
+        },
+    },
+    contracts: {
+        0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470: LegacyAnalyzed(
+            LegacyAnalyzedBytecode {
+                bytecode: 0x00,
+                original_len: 0,
+                jump_table: JumpTable {
+                    map: "00",
+                },
+            },
+        ),
+    },
+    reverts: Reverts(
+        [
+            [
+                (
+                    0xd607fc5e4857c00b4ddfa0fa5dfb92ab0403b641,
+                    AccountRevert {
+                        account: DeleteIt,
+                        storage: {},
+                        previous_status: LoadedNotExisting,
+                        wipe_storage: false,
+                    },
+                ),
+                (
+                    0xbcd4042de499d14e55001ccbb24a551f3b954096,
+                    AccountRevert {
+                        account: RevertTo(
+                            AccountInfo {
+                                balance: 1000000000000000000000000,
+                                nonce: 0,
+                                code_hash: 0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470,
+                                code: None,
+                            },
+                        ),
+                        storage: {},
+                        previous_status: Loaded,
+                        wipe_storage: false,
+                    },
+                ),
+            ],
+        ],
+    ),
+    state_size: 2,
+    reverts_size: 2,
+}
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/engine/tree/src/tree/mod.rs:2341:13] "insert_innercreating hashed_state" = "insert_innercreating hashed_state"
+[/Users/zeke/.cargo/git/checkouts/reth-36d3ea1d1152b20c/7181677/crates/engine/tree/src/tree/mod.rs:2341:13] &output.receipts = [
+    Receipt {
+        tx_type: Eip1559,
+        success: true,
+        cumulative_gas_used: 21000,
+        logs: [],
+    },
+]
+2025-01-09T23:01:19.861770Z  INFO Regular root task finished block=NumHash { number: 36, hash: 0x562666617725e9f45921adba696df55779a3b383961c02c0e93e95f09d02fbd0 } regular_state_root=0x556b21f11698d2a1a8a68bd951bf47f2bff2c14c7d40fa15f3ddffe12fec849a

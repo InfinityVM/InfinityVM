@@ -28,37 +28,38 @@ where
 
         // // Bump the nonce for calls. Nonce for CREATE will be bumped in the create logic.
         // // See `create_account_checkpoint` in `revm`
-        // if matches!(ctx.evm.inner.env.tx.transact_to, TxKind::Call(_)) {
-        //     // Nonce is already checked, so this is safe
-        //     caller_account.info.nonce = caller_account.info.nonce.saturating_add(1);
-        // }
-
-        // // touch account so we know it is changed.
-        // caller_account.mark_touch();
-        let env = &ctx.evm.inner.env;
-
-        // TODO: changing this fux up state root calculation
-        let mut gas_cost = U256::from(env.tx.gas_limit).saturating_mul(env.effective_gas_price());
-        // let mut gas_cost = U256::from(0);
-        // let mut gas_cost = U256::from(env.tx.gas_limit);
-
-        // EIP-4844
-        // if SPEC::enabled(CANCUN) {
-            let data_fee = env.calc_data_fee().expect("already checked");
-            gas_cost = gas_cost.saturating_add(data_fee);
-        // }
-
-        // set new caller account balance.
-        caller_account.info.balance = caller_account.info.balance.saturating_sub(gas_cost);
-
-        // bump the nonce for calls. Nonce for CREATE will be bumped in `handle_create`.
-        if matches!(env.tx.transact_to, TxKind::Call(_)) {
-            // Nonce is already checked
+        if matches!(ctx.evm.inner.env.tx.transact_to, TxKind::Call(_)) {
+            // Nonce is already checked, so this is safe
             caller_account.info.nonce = caller_account.info.nonce.saturating_add(1);
         }
 
         // touch account so we know it is changed.
         caller_account.mark_touch();
+
+        // let env = &ctx.evm.inner.env;
+
+        // // TODO: changing this fux up state root calculation
+        // let mut gas_cost = U256::from(env.tx.gas_limit).saturating_mul(env.effective_gas_price());
+        // // let mut gas_cost = U256::from(0);
+        // // let mut gas_cost = U256::from(env.tx.gas_limit);
+
+        // // EIP-4844
+        // // if SPEC::enabled(CANCUN) {
+        // let data_fee = env.calc_data_fee().expect("already checked");
+        // gas_cost = gas_cost.saturating_add(data_fee);
+        // // }
+
+        // // set new caller account balance.
+        // caller_account.info.balance = caller_account.info.balance.saturating_sub(gas_cost);
+
+        // // bump the nonce for calls. Nonce for CREATE will be bumped in `handle_create`.
+        // if matches!(env.tx.transact_to, TxKind::Call(_)) {
+        //     // Nonce is already checked
+        //     caller_account.info.nonce = caller_account.info.nonce.saturating_add(1);
+        // }
+
+        // // touch account so we know it is changed.
+        // caller_account.mark_touch();
 
         Ok(())
     });
@@ -104,44 +105,41 @@ where
     });
 
     // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L59
-    // handler.post_execution.refund = Arc::new(|_ctx, gas, _eip7702_refund| {
-    //     // gas.set_refund(0);
-    //     // We can skip refund calculations because we do not reimburse the caller
-    // });
+    handler.post_execution.refund = Arc::new(|_ctx, gas, _eip7702_refund| {
+        gas.set_refund(0);
+        // We can skip refund calculations because we do not reimburse the caller
+    });
 
     // // // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L73
-    // handler.post_execution.reimburse_caller = Arc::new(|_ctx, _gas| {
-    //     // No reimbursement because we never deducted gas
-    //     Ok(())
-    // });
+    handler.post_execution.reimburse_caller = Arc::new(|_ctx, _gas| {
+        // No reimbursement because we never deducted gas
+        Ok(())
+    });
 
     // // canonical implementation: https://github.com/bluealloy/revm/blob/900409f134c1cbd4489d370a6b037f354afa4a5c/crates/revm/src/handler/mainnet/post_execution.rs#L28
     handler.post_execution.reward_beneficiary = Arc::new(|ctx, gas| {
         let beneficiary = ctx.evm.env.block.coinbase;
-        let effective_gas_price = ctx.evm.env.effective_gas_price();
+        dbg!(beneficiary);
+        // let effective_gas_price = ctx.evm.env.effective_gas_price();
 
         // transfer fee to coinbase/beneficiary.
         // EIP-1559 discard basefee for coinbase transfer. Basefee amount of gas is discarded.
         // let coinbase_gas_price = if SPEC::enabled(LONDON) {
-        let coinbase_gas_price =
-            effective_gas_price.saturating_sub(ctx.evm.env.block.basefee);
+        // let coinbase_gas_price = effective_gas_price.saturating_sub(ctx.evm.env.block.basefee);
         // } else {
-        let coinbase_gas_price =    U256::ZERO;
+        // let coinbase_gas_price =    U256::ZERO;
         // };
 
-        let coinbase_account = ctx
-            .evm
-            .inner
-            .journaled_state
-            .load_account(beneficiary, &mut ctx.evm.inner.db)?;
+        // let coinbase_account =
+        //     ctx.evm.inner.journaled_state.load_account(beneficiary, &mut ctx.evm.inner.db)?;
 
-        coinbase_account.data.mark_touch();
-        coinbase_account.data.info.balance = coinbase_account
-            .data
-            .info
-            .balance
-            .saturating_add(coinbase_gas_price * U256::from(gas.spent()));
-            // .saturating_add(U256::from(1));
+        // coinbase_account.data.mark_touch();
+        // coinbase_account.data.info.balance = coinbase_account
+        //     .data
+        //     .info
+        //     .balance
+        //     .saturating_add(coinbase_gas_price * U256::from(gas.spent()));
+        // .saturating_add(U256::from(1));
 
         Ok(())
     });
