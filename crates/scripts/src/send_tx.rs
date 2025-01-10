@@ -1,6 +1,6 @@
 //! A script to send some transactions to a local node. The transactions are arbitrary and is mostly
 //! useful to sanity check.
-//! 
+//!
 //! It covers sending a balance transfer, deploying a contract and calling a contract method.
 
 use alloy::{
