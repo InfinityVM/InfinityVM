@@ -36,8 +36,6 @@ fn main() {
             };
             let pool_builder = IvmPoolBuilder::new(transaction_allow);
 
-            // TODO: do we need EthereumPayloadBuilder to have EVM
-
             let handle = builder
                 .with_types::<EthereumNode>()
                 .with_components(

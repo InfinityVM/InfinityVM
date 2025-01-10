@@ -141,7 +141,8 @@ mod test {
 
     // Exact gas used by the transaction returned by `transaction_with_signer`.
     const EXACT_GAS_USED: u64 = 21080;
-    // TODO: WHY DO WE NEED THIS??
+    // This was introduced when bumping revm from 18.0.0 to 19.2.0 (along with bumping reth).
+    // https://github.com/InfinityVM/InfinityVM/issues/448
     const UNKNOWN_GAS_REGRESSION: u64 = 120;
 
     fn executor_provider(
