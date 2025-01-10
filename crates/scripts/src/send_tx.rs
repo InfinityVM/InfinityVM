@@ -56,7 +56,7 @@ async fn main() {
         .with_from(bob_address)
         .with_value(U256::from(0));
 
-    let tx_receipt = provider.send_transaction(tx).await.unwrap().register().await.unwrap();
+    let tx_receipt = provider.send_transaction(tx).await.unwrap().get_receipt().await.unwrap();
     // This only works if the trace rpc endpoint is enabled
     let tracing_result = provider.trace_transaction(tx_receipt.transaction_hash).await.unwrap();
     tracing::info!(?tracing_result);
