@@ -17,8 +17,8 @@ macro_rules! impl_compress_decompress {
         impl reth_db::table::Compress for $name {
             type Compressed = Vec<u8>;
 
-            fn compress_to_buf<B: bytes::buf::BufMut + AsMut<[u8]>>(self, dest: &mut B) {
-                let src = bincode::serialize(&self).expect("failed to serialize into bufmut.");
+            fn compress_to_buf<B: bytes::buf::BufMut + AsMut<[u8]>>(&self, dest: &mut B) {
+                let src = bincode::serialize(self).expect("failed to serialize into bufmut.");
                 // ideally we would use `bincode::serialize_into(dest.writer(), &self)` so we could
                 // use the `Write` api, but dest is behind a mutable ref and `.writer` needs
                 // to take ownership

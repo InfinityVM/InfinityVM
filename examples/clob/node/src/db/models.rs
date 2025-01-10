@@ -34,7 +34,7 @@ macro_rules! create_model {
             impl reth_db_api::table::Compress for [<$name Model>] {
                 type Compressed = Vec<u8>;
 
-                fn compress_to_buf<B: bytes::buf::BufMut + AsMut<[u8]>>(self, dest: &mut B) {
+                fn compress_to_buf<B: bytes::buf::BufMut + AsMut<[u8]>>(&self, dest: &mut B) {
                     let src = borsh::to_vec(&self).expect("borsh serialize works. qed.");
                     dest.put(&src[..])
                 }

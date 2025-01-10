@@ -1,22 +1,19 @@
 //! Configuration for IVM's EVM execution environment.
 
 use crate::evm::builder::IvmEvmBuilder;
-use alloy::primitives::{Address, Bytes, U256};
-use reth::{
-    builder::{
-        components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes,
-        NodeTypesWithEngine,
-    },
-    chainspec::ChainSpec,
-    primitives::{EthPrimitives, Header, TransactionSigned},
-    revm::{
-        primitives::{BlockEnv, CfgEnvWithHandlerCfg, Env, TxEnv},
-        Database, Evm, GetInspector,
-    },
-};
+use alloy_primitives::{Address, Bytes};
+use reth_chainspec::ChainSpec;
 use reth_evm_ethereum::EthEvmConfig;
 use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
+use reth_node_builder::{
+    components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes, NodeTypesWithEngine,
+};
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
+use reth_primitives::{EthPrimitives, Header, TransactionSigned};
+use reth_revm::{
+    primitives::{CfgEnvWithHandlerCfg, Env, TxEnv},
+    Database, Evm, GetInspector,
+};
 use std::{convert::Infallible, sync::Arc};
 
 pub mod builder;
@@ -55,20 +52,15 @@ impl ConfigureEvmEnv for IvmEvmConfig {
         self.eth.fill_tx_env_system_contract_call(env, caller, contract, data);
     }
 
-    fn fill_cfg_env(
-        &self,
-        cfg_env: &mut CfgEnvWithHandlerCfg,
-        header: &Self::Header,
-        total_difficulty: U256,
-    ) {
-        self.eth.fill_cfg_env(cfg_env, header, total_difficulty);
+    fn fill_cfg_env(&self, cfg_env: &mut CfgEnvWithHandlerCfg, header: &Self::Header) {
+        self.eth.fill_cfg_env(cfg_env, header);
     }
 
     fn next_cfg_and_block_env(
         &self,
         parent: &Self::Header,
         attributes: NextBlockEnvAttributes,
-    ) -> Result<(CfgEnvWithHandlerCfg, BlockEnv), Self::Error> {
+    ) -> Result<reth_evm::env::EvmEnv, Infallible> {
         self.eth.next_cfg_and_block_env(parent, attributes)
     }
 }
@@ -119,15 +111,12 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use alloy::primitives::{hex, Address, TxKind, B256};
+    use alloy_primitives::{hex, Address, TxKind, B256};
     use k256::ecdsa::SigningKey;
     use reth::{
         chainspec::{ChainSpecBuilder, MAINNET},
         core::primitives::SignedTransaction,
-        primitives::{
-            Account, Block, BlockBody, BlockWithSenders, EthereumHardfork, ForkCondition,
-            Transaction,
-        },
+        primitives::{Account, Block, BlockBody, BlockWithSenders, Transaction},
         revm::{
             db::{CacheDB, EmptyDBTyped},
             DatabaseCommit,
@@ -142,7 +131,7 @@ mod test {
     use revm::{
         db::states::account_status::AccountStatus as DbAccountStatus,
         interpreter::primitives::AccountStatus,
-        primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction},
+        primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction, U256},
     };
 
     // Special alloy deps we need for playing happy with reth
@@ -152,6 +141,9 @@ mod test {
 
     // Exact gas used by the transaction returned by `transaction_with_signer`.
     const EXACT_GAS_USED: u64 = 21080;
+    // This was introduced when bumping revm from 18.0.0 to 19.2.0 (along with bumping reth).
+    // https://github.com/InfinityVM/InfinityVM/issues/448
+    const UNKNOWN_GAS_REGRESSION: u64 = 120;
 
     fn executor_provider(
         chain_spec: Arc<ChainSpec>,
@@ -160,6 +152,10 @@ mod test {
         let strategy_factory = EthExecutionStrategyFactory::new(chain_spec, evm_config);
 
         BasicBlockExecutorProvider::new(strategy_factory)
+    }
+
+    fn chain_spec() -> Arc<ChainSpec> {
+        Arc::new(ChainSpecBuilder::from(&*MAINNET).cancun_activated().build())
     }
 
     fn setup() -> (
@@ -177,14 +173,7 @@ mod test {
         };
         let db = StateProviderTest::default();
 
-        let chain_spec = Arc::new(
-            ChainSpecBuilder::from(&*MAINNET)
-                .shanghai_activated()
-                .with_fork(EthereumHardfork::Cancun, ForkCondition::Timestamp(1))
-                .build(),
-        );
-
-        let provider = executor_provider(chain_spec);
+        let provider = executor_provider(chain_spec());
 
         (header, db, provider)
     }
@@ -229,7 +218,7 @@ mod test {
         // Show that the account doesn't exist
         assert!(db.basic(signer_address).unwrap().is_none());
 
-        let evm_config = IvmEvmConfig::new(MAINNET.clone());
+        let evm_config = IvmEvmConfig::new(chain_spec());
         let mut evm = evm_config.evm(db);
 
         evm_config.fill_tx_env(
@@ -240,7 +229,7 @@ mod test {
 
         let result = evm.transact().unwrap();
 
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
 
         let account = result.state.get(&signer_address).unwrap();
 
@@ -265,7 +254,7 @@ mod test {
         let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
 
         // 1st transaction, SAME signer
-        let evm_config = IvmEvmConfig::new(MAINNET.clone());
+        let evm_config = IvmEvmConfig::new(chain_spec());
         let mut evm = evm_config.evm(db);
         evm_config.fill_tx_env(
             evm.tx_mut(),
@@ -274,7 +263,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -296,7 +285,8 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
+
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -316,7 +306,7 @@ mod test {
         );
 
         let result = evm.transact().unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -335,7 +325,7 @@ mod test {
             transaction_signed4.recover_signer().unwrap(),
         );
 
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
 
         let result = evm.transact().unwrap();
 
@@ -355,23 +345,13 @@ mod test {
 
         provider
             .batch_executor(StateProviderDatabase::new(&db))
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![],
-                    },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody { transactions: vec![], ommers: vec![], withdrawals: None },
+                },
+                senders: vec![],
+            })
             .unwrap()
     }
 
@@ -387,28 +367,22 @@ mod test {
             B256::from(hex!("5240c13baa9d1e0d29a6c984ba919cb949d4c1a9ceb74060760c90e4d1fcd765"));
 
         // This account has nothing
-        assert!(db.basic_account(signer_address).unwrap().is_none());
+        assert!(db.basic_account(&signer_address).unwrap().is_none());
 
         let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody {
+                        transactions: vec![transaction_signed],
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: vec![signer_address],
+            })
             .unwrap();
 
         let expected = AccountInfo { balance: U256::from(0), nonce: 1, ..Default::default() };
@@ -447,23 +421,17 @@ mod test {
         let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody {
+                        transactions: vec![transaction_signed],
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: vec![signer_address],
+            })
             .unwrap();
 
         let output = executor.finalize();
@@ -507,23 +475,17 @@ mod test {
         let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody {
+                        transactions: vec![transaction_signed],
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: vec![signer_address],
+            })
             .unwrap();
 
         let output = executor.finalize();
@@ -570,23 +532,17 @@ mod test {
         let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody {
+                        transactions: vec![transaction_signed],
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: vec![signer_address],
+            })
             .unwrap();
 
         let output = executor.finalize();
@@ -634,7 +590,7 @@ mod test {
         header.gas_limit = 5 * EXACT_GAS_USED + gas_limit;
 
         // first account has nothing
-        assert!(db.basic_account(signer_address1).unwrap().is_none());
+        assert!(db.basic_account(&signer_address1).unwrap().is_none());
 
         // second account has some balance
         let user2_balance = U256::from(gas_limit - 100);
@@ -644,37 +600,31 @@ mod test {
         let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![
-                                    transaction_signed,
-                                    transaction_signed4,
-                                    transaction_signed2,
-                                    transaction_signed5,
-                                    transaction_signed3,
-                                    transaction_signed6,
-                                ],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![
-                            signer_address1,
-                            signer_address2,
-                            signer_address1,
-                            signer_address2,
-                            signer_address1,
-                            signer_address2,
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody {
+                        transactions: vec![
+                            transaction_signed,
+                            transaction_signed4,
+                            transaction_signed2,
+                            transaction_signed5,
+                            transaction_signed3,
+                            transaction_signed6,
                         ],
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: vec![
+                    signer_address1,
+                    signer_address2,
+                    signer_address1,
+                    signer_address2,
+                    signer_address1,
+                    signer_address2,
+                ],
+            })
             .unwrap();
 
         let output = executor.finalize();
@@ -733,23 +683,17 @@ mod test {
         let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         let err = executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody {
+                        transactions: vec![transaction_signed],
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: vec![signer_address],
+            })
             .unwrap_err();
 
         let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
@@ -783,23 +727,17 @@ mod test {
         let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
 
         let err = executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer_address],
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody {
+                        transactions: vec![transaction_signed],
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: vec![signer_address],
+            })
             .unwrap_err();
 
         let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
@@ -831,23 +769,17 @@ mod test {
         // It works when the header has the exact gas used
         provider
             .batch_executor(StateProviderDatabase::new(&db))
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header: header.clone(),
-                            body: BlockBody {
-                                transactions: transactions.clone(),
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: senders.clone(),
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header: header.clone(),
+                    body: BlockBody {
+                        transactions: transactions.clone(),
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: senders.clone(),
+            })
             .unwrap();
 
         // Set the header to have one less gwei then what we need - we expect this to error.
@@ -857,19 +789,13 @@ mod test {
         header.gas_limit = EXACT_GAS_USED + gas_limit - 1;
         let err = provider
             .batch_executor(StateProviderDatabase::new(&db))
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody { transactions, ommers: vec![], withdrawals: None },
-                        },
-                        senders,
-                    },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody { transactions, ommers: vec![], withdrawals: None },
+                },
+                senders,
+            })
             .unwrap_err();
 
         let BlockExecutionError::Validation(
@@ -913,23 +839,17 @@ mod test {
 
         let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
         executor
-            .execute_and_verify_one(
-                (
-                    &BlockWithSenders {
-                        block: Block {
-                            header,
-                            body: BlockBody {
-                                transactions: vec![transaction_signed],
-                                ommers: vec![],
-                                withdrawals: None,
-                            },
-                        },
-                        senders: vec![signer.address()],
+            .execute_and_verify_one(&BlockWithSenders {
+                block: Block {
+                    header,
+                    body: BlockBody {
+                        transactions: vec![transaction_signed],
+                        ommers: vec![],
+                        withdrawals: None,
                     },
-                    U256::ZERO,
-                )
-                    .into(),
-            )
+                },
+                senders: vec![signer.address()],
+            })
             .unwrap();
 
         let output = executor.finalize();
