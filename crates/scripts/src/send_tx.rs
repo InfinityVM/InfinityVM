@@ -1,14 +1,13 @@
 //! A script to send some transactions to a local node. The transactions are arbitrary and is mostly
 //! useful to sanity check.
-
-use std::hash::Hash;
+//! 
+//! It covers sending a balance transfer, deploying a contract and calling a contract method.
 
 use alloy::{
     network::{EthereumWallet, TransactionBuilder},
     primitives::U256,
     providers::{ext::TraceApi, Provider, ProviderBuilder},
-    rlp::Encodable,
-    rpc::types::{trace::parity::TraceType, TransactionRequest},
+    rpc::types::TransactionRequest,
     sol,
 };
 use ivm_test_utils::get_signers;
@@ -42,11 +41,8 @@ async fn main() {
     let wallets = get_signers(22);
     let bob_wallet = EthereumWallet::from(wallets[10].clone());
     let bob_address = wallets[10].address();
-
     tracing::info!(?bob_address);
-    // tracing::info!(bab_address = ;
 
-    // let alice_wallet = EthereumWallet::from(wallets[21].clone());
     let alice_address = wallets[21].address();
     tracing::info!(?alice_address);
 
@@ -60,15 +56,15 @@ async fn main() {
         .with_from(bob_address)
         .with_value(U256::from(0));
 
-    let trace_type = [TraceType::Trace, TraceType::StateDiff, TraceType::VmTrace];
-    let result = provider.trace_call(&tx, &trace_type).await.unwrap();
-    dbg!(result);
+    let tx_receipt = provider.send_transaction(tx).await.unwrap().register().await.unwrap();
+    // This only works if the trace rpc endpoint is enabled
+    let tracing_result = provider.trace_transaction(tx_receipt.transaction_hash).await.unwrap();
+    tracing::info!(?tracing_result);
 
-    let tx_receipt = provider.send_transaction(tx).await.unwrap().get_receipt().await.unwrap();
-    dbg!(tx_receipt.block_number);
+    let counter_contract = Counter::deploy(&provider).await.unwrap();
 
-    let result = provider.trace_transaction(tx_receipt.transaction_hash).await.unwrap();
-    dbg!(result);
-
-    // let counter_contract = Counter::deploy(&provider).await.unwrap();
+    let call = counter_contract.increment();
+    let tx_receipt = call.send().await.unwrap().get_receipt().await.unwrap();
+    let tracing_result = provider.trace_transaction(tx_receipt.transaction_hash).await.unwrap();
+    tracing::info!(?tracing_result);
 }
