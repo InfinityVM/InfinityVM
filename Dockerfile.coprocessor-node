@@ -28,6 +28,6 @@ RUN apt-get update && \
 
 COPY --from=builder /app/target/release/ivm-coproc /usr/local/bin/ivm-coproc
 COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
-COPY --from=prom/node-exporter:v1.8.2 /bin/node_exporter /usr/local/bin/node_exporter
+COPY --from=prom/node-exporter:v1.8.2 /bin/node_exporter /usr/local/bin
 
-EXPOSE 50069 50420 22
+EXPOSE 22 9100 50069 50420
