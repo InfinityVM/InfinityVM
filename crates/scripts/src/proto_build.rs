@@ -12,9 +12,11 @@ const SERDE_BYTES_HEX: &str = "#[serde_as(as = \"Hex\")]";
 const BORSH_USE_DISCRIMINANT_TRUE: &str = "#[borsh(use_discriminant=true)]";
 const SERDE_DEFAULT: &str = "#[serde(default)]";
 const PROTO_CRATE_SRC: &str = "crates/sdk/proto/src";
+const ELF_STORE_CRATE_SRC: &str = "crates/elf-store/src";
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let out_dir = PathBuf::from(PROTO_CRATE_SRC);
+    let proto_out_dir = PathBuf::from(PROTO_CRATE_SRC);
+    let elf_store_out_dir = PathBuf::from(ELF_STORE_CRATE_SRC);
 
     tonic_build::configure()
         .type_attribute(".coprocessor_node", SERDE_AS)
@@ -35,8 +37,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .field_attribute("zkvm_operator_signature", SERDE_BYTES_HEX)
         .field_attribute("consumer_address", SERDE_BYTES_HEX)
         .field_attribute("relay_tx_hash", SERDE_BYTES_HEX)
-        .file_descriptor_set_path(out_dir.join("descriptor.bin"))
-        .out_dir(out_dir)
+        .file_descriptor_set_path(proto_out_dir.join("descriptor.bin"))
+        .out_dir(&proto_out_dir)
         .compile_protos(
             &[
                 "proto/coprocessor_node/v1/coprocessor_node.proto",
@@ -44,6 +46,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ],
             &["proto"],
         )
+        .unwrap();
+
+    // Compile elf store protos
+    tonic_build::configure()
+        .type_attribute(".elf_store", SERDE_AS)
+        .type_attribute(".elf_store", SERDE_SER_DER_DERIVE)
+        .type_attribute(".elf_store", SERDE_RENAME_CAMELCASE)
+        .field_attribute("program_elf", SERDE_BYTES_HEX)
+        .field_attribute("program_id", SERDE_BYTES_HEX)
+        .file_descriptor_set_path(elf_store_out_dir.join("descriptor.bin"))
+        .out_dir(&elf_store_out_dir)
+        .compile_protos(&["proto/elf_store/v1/elf_store.proto"], &["proto"])
         .unwrap();
 
     Ok(())

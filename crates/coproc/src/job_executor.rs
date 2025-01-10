@@ -190,7 +190,11 @@ where
         writer_tx: Sender<WriterMsg>,
     ) -> Result<ElfWithMeta, FailureReason> {
         // Try embedded DB first
-        if let Some(elf) = ivm_db::get_elf(db.clone(), &job.program_id).expect("DB reads cannot fail") { return Ok(elf) }
+        if let Some(elf) =
+            ivm_db::get_elf(db.clone(), &job.program_id).expect("DB reads cannot fail")
+        {
+            return Ok(elf)
+        }
 
         // TODO: include job ID in metrics
         // https://github.com/InfinityVM/InfinityVM/issues/362

@@ -1,6 +1,7 @@
 pub mod elf_store {
     pub mod v1 {
-        tonic::include_proto!("elf_store.v1");
+        use serde_with::{hex::Hex, serde_as};
+        include!("elf_store.v1.rs");
     }
 }
 

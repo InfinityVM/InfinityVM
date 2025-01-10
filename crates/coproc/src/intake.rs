@@ -168,11 +168,16 @@ where
         if !self.config.unsafe_skip_program_id_check {
             let zk_executor = self.zk_executor.clone();
             let elf_clone = elf.clone();
-            let derived_program_id = tokio::task::spawn_blocking(move || {
-                zk_executor.create_elf(&elf_clone, vm_type)
-            })
-            .await
-            .map_err(|e| Error::CreateElfFailed(ivm_zkvm_executor::service::Error::ProgramIdDerivationFailed(e.to_string())))??;
+            let derived_program_id =
+                tokio::task::spawn_blocking(move || zk_executor.create_elf(&elf_clone, vm_type))
+                    .await
+                    .map_err(|e| {
+                        Error::CreateElfFailed(
+                            ivm_zkvm_executor::service::Error::ProgramIdDerivationFailed(
+                                e.to_string(),
+                            ),
+                        )
+                    })??;
 
             if program_id != derived_program_id {
                 return Err(Error::MismatchProgramId(

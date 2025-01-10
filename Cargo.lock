@@ -5137,6 +5137,8 @@ name = "ivm-elf-store"
 version = "0.1.0"
 dependencies = [
  "prost",
+ "serde",
+ "serde_with",
  "sqlx",
  "tokio",
  "tonic",

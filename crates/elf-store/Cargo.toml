@@ -18,6 +18,8 @@ path = "src/bin/test_client.rs"
 tonic = { workspace = true }
 tokio = { workspace = true }
 prost = { workspace = true }
+serde = { workspace = true }
+serde_with = { workspace = true }
 sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "migrate", "any", "macros"], default-features = false }
 tracing = "0.1"
 tracing-subscriber = "0.3"
