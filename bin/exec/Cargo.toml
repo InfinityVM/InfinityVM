@@ -8,15 +8,30 @@ version.workspace = true
 workspace = true
 
 [dependencies]
-reth = { workspace = true, features = ["jemalloc", "asm-keccak"] }
+# only use reth for CLI
+reth = { workspace = true }
+reth-node-builder = { workspace = true }
 reth-node-ethereum = { workspace = true }
 reth-evm-ethereum = { workspace = true }
 reth-ethereum-engine-primitives = { workspace = true }
 reth-node-api = { workspace = true }
 reth-evm = { workspace = true }
 reth-primitives-traits = { workspace = true }
+reth-chainspec = { workspace = true }
+reth-revm = { workspace = true }
+reth-network = { workspace = true }
+reth-rpc = { workspace = true }
+reth-primitives = { workspace = true }
+reth-transaction-pool = { workspace = true }
+reth-payload-validator = { workspace = true }
+reth-tasks = { workspace = true }
+reth-provider = { workspace = true }
+reth-ethereum-cli = { workspace = true }
+reth-cli-util = { workspace = true }
 
-alloy = { workspace = true, features = ["genesis"] }
+alloy-rpc-types = { workspace = true }
+alloy-primitives = { workspace = true }
+
 eyre = { workspace = true  }
 tokio = { workspace = true }
 tracing = { workspace = true }
@@ -26,8 +41,6 @@ serde = { workspace = true }
 
 [dev-dependencies]
 reth-provider = { workspace = true, features = ["test-utils"] }
-reth-revm = { workspace = true }
-alloy = { workspace = true, features = ["consensus", "signer-local", "network"] }
 revm = { workspace = true }
 k256 = { workspace = true }
 
@@ -39,9 +52,19 @@ alloy-signer-local = { workspace = true }
 alloy-network = { workspace = true }
 
 [features]
-default = ["min-trace-logs"]
-min-error-logs = ["reth/min-error-logs"]
-min-warn-logs = ["reth/min-warn-logs"]
-min-info-logs = ["reth/min-info-logs"]
-min-debug-logs = ["reth/min-debug-logs"]
-min-trace-logs = ["reth/min-trace-logs"]
+default = ["min-trace-logs", "asm-keccak", "jemalloc"]
+
+min-error-logs = ["tracing/release_max_level_error"]
+min-warn-logs = ["tracing/release_max_level_warn"]
+min-info-logs = ["tracing/release_max_level_info"]
+min-debug-logs = ["tracing/release_max_level_debug"]
+min-trace-logs = ["tracing/release_max_level_trace"]
+
+asm-keccak = [
+	"reth-primitives/asm-keccak",
+	"alloy-primitives/asm-keccak"
+]
+
+jemalloc = [
+    "reth-cli-util/jemalloc",
+]

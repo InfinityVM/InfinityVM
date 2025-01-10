@@ -1,11 +1,9 @@
 //! IVM execution client types for plugging into reth node builder.
 
 use crate::engine::IvmEngineValidatorBuilder;
-use reth::{
-    builder::{rpc::RpcAddOns, FullNodeComponents, FullNodeTypes},
-    network::NetworkHandle,
-    rpc::eth::EthApi,
-};
+use reth_network::NetworkHandle;
+use reth_node_builder::{rpc::RpcAddOns, FullNodeComponents, FullNodeTypes};
+use reth_rpc::eth::EthApi;
 use std::path::PathBuf;
 
 pub mod config;

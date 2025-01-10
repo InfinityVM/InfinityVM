@@ -1,16 +1,15 @@
 //! IVM has a custom transaction validator that performs allow list checks on top of the standard
 //! ethereum transaction checks.
 
-use alloy::primitives::Address;
-use reth::{
-    primitives::{InvalidTransactionError, SealedBlock},
-    providers::StateProviderFactory,
-    tasks::TaskSpawner,
-    transaction_pool::{
-        validate::ValidationTask, EthPoolTransaction, EthTransactionValidator, TransactionOrigin,
-        TransactionValidationOutcome, TransactionValidationTaskExecutor, TransactionValidator,
-    },
+use alloy_primitives::Address;
+use reth_primitives::{InvalidTransactionError, SealedBlock};
+use reth_provider::StateProviderFactory;
+use reth_tasks::TaskSpawner;
+use reth_transaction_pool::{
+    validate::ValidationTask, EthPoolTransaction, EthTransactionValidator, TransactionOrigin,
+    TransactionValidationOutcome, TransactionValidationTaskExecutor, TransactionValidator,
 };
+
 use std::{collections::HashSet, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -167,7 +166,7 @@ where
 #[cfg(test)]
 mod test {
     use super::IvmTransactionAllowConfig;
-    use alloy::primitives::Address;
+    use alloy_primitives::Address;
     use std::collections::HashSet;
 
     // Helpers to set/get values for tests

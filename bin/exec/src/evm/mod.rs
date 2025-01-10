@@ -1,22 +1,19 @@
 //! Configuration for IVM's EVM execution environment.
 
 use crate::evm::builder::IvmEvmBuilder;
-use alloy::primitives::{Address, Bytes};
-use reth::{
-    builder::{
-        components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes,
-        NodeTypesWithEngine,
-    },
-    chainspec::ChainSpec,
-    primitives::{EthPrimitives, Header, TransactionSigned},
-    revm::{
-        primitives::{CfgEnvWithHandlerCfg, Env, TxEnv},
-        Database, Evm, GetInspector,
-    },
-};
+use alloy_primitives::{Address, Bytes};
+use reth_chainspec::ChainSpec;
 use reth_evm_ethereum::EthEvmConfig;
 use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
+use reth_node_builder::{
+    components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes, NodeTypesWithEngine,
+};
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
+use reth_primitives::{EthPrimitives, Header, TransactionSigned};
+use reth_revm::{
+    primitives::{CfgEnvWithHandlerCfg, Env, TxEnv},
+    Database, Evm, GetInspector,
+};
 use std::{convert::Infallible, sync::Arc};
 
 pub mod builder;
@@ -114,7 +111,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
-    use alloy::primitives::{hex, Address, TxKind, B256};
+    use alloy_primitives::{hex, Address, TxKind, B256};
     use k256::ecdsa::SigningKey;
     use reth::{
         chainspec::{ChainSpecBuilder, MAINNET},
