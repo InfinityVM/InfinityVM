@@ -33,9 +33,11 @@ ivm-abi = { workspace = true }
 ivm-db = { workspace = true }
 ivm-proto = { workspace = true }
 ivm-zkvm-executor = { workspace = true }
+ivm-zkvm = { workspace = true }
 ivm-tracing = { workspace = true }
 ivm-eip4844 = { workspace = true }
 ivm-elf-store = { workspace = true }
+anyhow = { workspace = true }
 
 [dev-dependencies]
 ivm-test-utils = { workspace = true }

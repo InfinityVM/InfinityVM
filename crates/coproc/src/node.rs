@@ -102,9 +102,6 @@ pub struct NodeConfig<D> {
     pub job_sync_start: BlockNumberOrTag,
     /// The max bytes of DA per job.
     pub max_da_per_job: usize,
-    /// WARNING: this should never be set to true in production.
-    /// Do not check program IDs when accepting ELFS.
-    pub unsafe_skip_program_id_check: bool,
 }
 
 /// Run the coprocessor node.
@@ -124,7 +121,6 @@ pub async fn run<D>(
         ws_config,
         job_sync_start,
         max_da_per_job,
-        unsafe_skip_program_id_check,
     }: NodeConfig<D>,
 ) -> Result<(), Error>
 where
@@ -203,7 +199,6 @@ where
             max_da_per_job,
             writer_tx: writer_tx.clone(),
             relay_tx: relay_tx.clone(),
-            unsafe_skip_program_id_check,
             config: config::Config::default(),
         },
     );

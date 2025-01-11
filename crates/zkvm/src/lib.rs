@@ -4,13 +4,13 @@ use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
 use thiserror::Error;
 
 /// The error
-#[derive(Error, Debug)]
+#[derive(Error, Debug, Clone)]
 pub enum Error {
     /// Error from the Sp1
-    #[error("Sp1 error: {source}")]
+    #[error("Sp1 error: {msg}")]
     Sp1 {
-        /// The underlying error from the Sp1
-        source: anyhow::Error,
+        /// The error message
+        msg: String,
     },
 
     /// Error exceeded cycle limit
@@ -52,10 +52,11 @@ pub struct Sp1;
 
 impl Zkvm for Sp1 {
     fn derive_program_id(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-        let (_, program_id) = ProverClient::new().setup(program_elf);
-
-        let program_id_hash = program_id.hash_bytes().to_vec();
-        Ok(program_id_hash)
+        let client = ProverClient::new();
+        // ProverClient::setup can panic, but we'll let it propagate since it indicates
+        // a fundamental issue with the ELF that should fail the verification
+        let (_, program_id) = client.setup(program_elf);
+        Ok(program_id.hash_bytes().to_vec())
     }
 
     fn execute(
@@ -74,7 +75,7 @@ impl Zkvm for Sp1 {
             .execute(program_elf, stdin)
             .max_cycles(max_cycles)
             .run()
-            .map_err(|e| Error::Sp1 { source: e })?;
+            .map_err(|e| Error::Sp1 { msg: e.to_string() })?;
 
         Ok(output.to_vec())
     }
@@ -102,14 +103,20 @@ mod test {
     fn sp1_is_correct_program_id() {
         let program_id_bytes = mock_consumer_programs::MOCK_CONSUMER_PROGRAM_ID.to_vec();
 
-        let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes).unwrap();
-        assert!(correct);
+        // Test with correct program ID
+        match Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &program_id_bytes) {
+            Ok(correct) => assert!(correct, "Program ID should match"),
+            Err(e) => panic!("Program ID verification failed: {}", e),
+        }
 
+        // Test with modified program ID
         let mut modified_program_id = program_id_bytes;
         modified_program_id.pop();
         modified_program_id.push(255);
 
-        let correct = &Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &modified_program_id).unwrap();
-        assert!(!correct);
+        match Sp1.is_correct_program_id(MOCK_CONSUMER_ELF, &modified_program_id) {
+            Ok(correct) => assert!(!correct, "Modified program ID should not match"),
+            Err(e) => panic!("Program ID verification failed: {}", e),
+        }
     }
 }

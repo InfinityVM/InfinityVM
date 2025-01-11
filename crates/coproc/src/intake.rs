@@ -69,8 +69,6 @@ pub struct IntakeConfig {
     pub writer_tx: Sender<WriterMsg>,
     /// Channel for sending relay operations
     pub relay_tx: Sender<Relay>,
-    /// Whether to skip program ID verification (WARNING: should be false in production)
-    pub unsafe_skip_program_id_check: bool,
     /// General configuration for the coprocessor node
     pub config: crate::config::Config,
 }
@@ -164,29 +162,23 @@ where
         program_id: Vec<u8>,
     ) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
+        let zk_executor = self.zk_executor.clone();
+        let elf_clone = elf.clone();
+        let derived_program_id =
+            tokio::task::spawn_blocking(move || zk_executor.create_elf(&elf_clone, vm_type))
+                .await
+                .map_err(|e| {
+                    Error::CreateElfFailed(
+                        ivm_zkvm_executor::service::Error::ProgramIdDerivationFailed(e.to_string()),
+                    )
+                })??;
 
-        if !self.config.unsafe_skip_program_id_check {
-            let zk_executor = self.zk_executor.clone();
-            let elf_clone = elf.clone();
-            let derived_program_id =
-                tokio::task::spawn_blocking(move || zk_executor.create_elf(&elf_clone, vm_type))
-                    .await
-                    .map_err(|e| {
-                        Error::CreateElfFailed(
-                            ivm_zkvm_executor::service::Error::ProgramIdDerivationFailed(
-                                e.to_string(),
-                            ),
-                        )
-                    })??;
-
-            if program_id != derived_program_id {
-                return Err(Error::MismatchProgramId(
-                    hex::encode(&program_id),
-                    hex::encode(&derived_program_id),
-                ));
-            }
-        };
-
+        if program_id != derived_program_id {
+            return Err(Error::MismatchProgramId(
+                hex::encode(&program_id),
+                hex::encode(&derived_program_id),
+            ));
+        }
         if get_elf(self.db.clone(), &program_id)
             .map_err(|e| Error::ElfReadFailed(e.to_string()))?
             .is_some()

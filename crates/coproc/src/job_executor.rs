@@ -7,12 +7,14 @@ use crate::{
     writer::{Write, WriterMsg},
 };
 use alloy::{
+    hex,
     primitives::PrimitiveSignature,
     signers::{Signer, SignerSync},
 };
 use flume::{Receiver, Sender};
 use ivm_db::tables::{ElfWithMeta, Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
+use ivm_zkvm::{Error as ZkvmError, Zkvm};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::{marker::Send, sync::Arc};
@@ -71,6 +73,9 @@ pub enum FailureReason {
     /// Relay retry exceeded for job
     #[error("relay_error_exceed_retry")]
     RelayErrExceedRetry,
+    /// Program ID verification failed
+    #[error("program_id_verification_failed: {0}")]
+    ProgramIdVerificationFailed(#[from] ZkvmError),
 }
 
 /// Configuration for `JobExecutor`
@@ -91,7 +96,7 @@ pub struct JobExecutorConfig {
 /// Job executor service.
 ///
 /// This stores a `JoinSet` with a handle to each job executor worker.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JobExecutor<S, D> {
     db: Arc<D>,
     exec_queue_receiver: Receiver<Job>,
@@ -115,7 +120,7 @@ where
     }
 
     /// Spawns `num_workers` worker tasks.
-    pub async fn start(&self) {
+    pub async fn start(self) {
         let mut threads = vec![];
         for _ in 0..self.config.num_workers {
             let exec_queue_receiver = self.exec_queue_receiver.clone();
@@ -218,6 +223,42 @@ where
 
         match client.get_elf(job.program_id.clone()).await {
             Ok(elf_with_meta) => {
+                // Verify program ID matches the ELF before caching
+                let sp1 = ivm_zkvm::Sp1;
+                match sp1.is_correct_program_id(&elf_with_meta.elf, &job.program_id) {
+                    Ok(true) => (), // Program ID matches, continue
+                    Ok(false) => {
+                        tracing::warn!("Program ID mismatch for job {}", hex::encode(&job.id));
+                        let err = FailureReason::ProgramIdVerificationFailed(ZkvmError::Sp1 {
+                            msg: "Program ID mismatch".to_string(),
+                        });
+                        metrics.incr_job_err(&err.to_string());
+                        job.status = JobStatus {
+                            status: JobStatusType::Failed as i32,
+                            failure_reason: Some(err.to_string()),
+                            retries: 0,
+                        };
+                        writer_tx
+                            .send((Write::JobTable(job.clone()), None))
+                            .expect("db writer broken");
+                        return Err(err);
+                    }
+                    Err(e) => {
+                        tracing::warn!("Program ID verification failed: {}", e);
+                        let err = FailureReason::ProgramIdVerificationFailed(e.clone());
+                        metrics.incr_job_err(&err.to_string());
+                        job.status = JobStatus {
+                            status: JobStatusType::Failed as i32,
+                            failure_reason: Some(err.to_string()),
+                            retries: 0,
+                        };
+                        writer_tx
+                            .send((Write::JobTable(job.clone()), None))
+                            .expect("db writer broken");
+                        return Err(FailureReason::ProgramIdVerificationFailed(e));
+                    }
+                }
+
                 // Cache the ELF in embedded DB
                 let vm_type = VmType::try_from(elf_with_meta.vm_type as i32).map_err(|_| {
                     metrics.incr_job_err(&FailureReason::MissingElf.to_string());
