@@ -43,7 +43,5 @@ anyhow = { workspace = true }
 ivm-test-utils = { workspace = true }
 ivm-mock-consumer = { workspace = true }
 mock-consumer-programs = { workspace = true }
-ivm-db = { workspace = true }
-ivm-zkvm-executor = { workspace = true }
 async-trait = "0.1.74"
 mockall = "0.11.4"
