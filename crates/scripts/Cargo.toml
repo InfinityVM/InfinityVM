@@ -20,12 +20,22 @@ path = "src/node_test.rs"
 name = "proto-build"
 path = "src/proto_build.rs"
 
+[[bin]]
+name = "send-tx"
+path = "src/send_tx.rs"
+
 [lints]
 workspace = true
 
 [dependencies]
 tokio = { workspace = true, features = ["signal"] }
-alloy = { workspace = true }
+alloy = { version = "0.9", features = [
+    "json-rpc",
+    "node-bindings",
+    "rpc-client",
+    "rpc-types-debug",
+    "rpc-types-trace",
+] }
 k256 = { workspace = true }
 dotenvy = { workspace = true }
 tempfile = { workspace = true }

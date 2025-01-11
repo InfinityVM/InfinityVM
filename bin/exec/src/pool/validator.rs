@@ -36,6 +36,11 @@ impl IvmTransactionAllowConfig {
 
         self.sender.contains(sender)
     }
+
+    /// Create a config that allows all transactions.
+    pub fn with_all() -> Self {
+        Self { all: true, ..Default::default() }
+    }
 }
 
 /// IVM transaction pool validator.

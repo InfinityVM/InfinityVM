@@ -9,6 +9,7 @@ use std::path::PathBuf;
 pub mod config;
 pub mod engine;
 pub mod evm;
+pub mod payload;
 pub mod pool;
 
 /// RPC add on that includes [`IvmEngineValidatorBuilder`].
@@ -30,4 +31,9 @@ pub struct IvmCliExt {
     /// DATADIR>/ivm_config.toml`. If no file is found one is generated.
     #[arg(long)]
     pub ivm_config: Option<PathBuf>,
+
+    /// Do not enforce the transaction allow config; allow transactions from all senders.
+    /// This will override values in the IVM config.
+    #[arg(long = "tx-allow.all")]
+    pub allow_all: bool,
 }

@@ -2,7 +2,11 @@
 
 use clap::Parser;
 use ivm_exec::{
-    config::IvmConfig, evm::IvmExecutorBuilder, pool::IvmPoolBuilder, IvmAddOns, IvmCliExt,
+    config::IvmConfig,
+    evm::IvmExecutorBuilder,
+    payload::IvmPayloadBuilder,
+    pool::{validator::IvmTransactionAllowConfig, IvmPoolBuilder},
+    IvmAddOns, IvmCliExt,
 };
 use reth::cli::Cli;
 use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
@@ -17,19 +21,28 @@ static ALLOC: reth_cli_util::allocator::Allocator = reth_cli_util::allocator::ne
 fn main() {
     if let Err(err) =
         Cli::<EthereumChainSpecParser, IvmCliExt>::parse().run(|builder, args| async move {
-            let ivm_config_path = if let Some(ivm_config) = args.ivm_config {
-                ivm_config
+            let transaction_allow = if args.allow_all {
+                tracing::warn!("IVM Configuration overridden, all transactions will be allowed");
+                IvmTransactionAllowConfig::with_all()
             } else {
-                builder.config().datadir().data_dir().join(IVM_CONFIG_FILE)
+                let ivm_config_path = if let Some(ivm_config) = args.ivm_config {
+                    ivm_config
+                } else {
+                    builder.config().datadir().data_dir().join(IVM_CONFIG_FILE)
+                };
+                tracing::info!(path=?ivm_config_path, "IVM Configuration loading");
+                let ivm_config = IvmConfig::from_path(&ivm_config_path)?;
+                ivm_config.transaction_allow
             };
-            tracing::info!(path=?ivm_config_path, "IVM Configuration loading");
-            let ivm_config = IvmConfig::from_path(&ivm_config_path)?;
-            let pool_builder = IvmPoolBuilder::new(ivm_config.transaction_allow);
+            let pool_builder = IvmPoolBuilder::new(transaction_allow);
 
             let handle = builder
                 .with_types::<EthereumNode>()
                 .with_components(
-                    EthereumNode::components().pool(pool_builder).executor(IvmExecutorBuilder),
+                    EthereumNode::components()
+                        .pool(pool_builder)
+                        .executor(IvmExecutorBuilder)
+                        .payload(IvmPayloadBuilder::default()),
                 )
                 .with_add_ons(IvmAddOns::default())
                 .launch_with_fn(|launch_builder| {
