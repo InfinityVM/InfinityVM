@@ -1,6 +1,13 @@
 //! IVM has a custom transaction validator that performs allow list checks on top of the standard
 //! ethereum transaction checks.
 
+use alloy_consensus::{
+    constants::{
+        EIP1559_TX_TYPE_ID, EIP2930_TX_TYPE_ID, EIP4844_TX_TYPE_ID, EIP7702_TX_TYPE_ID,
+        LEGACY_TX_TYPE_ID,
+    },
+    BlockHeader,
+};
 use alloy_eips::{
     eip1559::ETHEREUM_BLOCK_GAS_LIMIT,
     eip4844::{env_settings::EnvKzgSettings, MAX_BLOBS_PER_BLOCK},
@@ -11,16 +18,25 @@ use reth_primitives::{InvalidTransactionError, SealedBlock};
 use reth_provider::{StateProvider, StateProviderFactory};
 use reth_tasks::TaskSpawner;
 use reth_transaction_pool::{
-    error::{Eip4844PoolTransactionError, Eip7702PoolTransactionError, InvalidPoolTransactionError}, validate::{ensure_intrinsic_gas, ForkTracker, ValidTransaction, ValidationTask, DEFAULT_MAX_TX_INPUT_BYTES, MAX_INIT_CODE_BYTE_SIZE}, BlobStore, EthBlobTransactionSidecar, EthPoolTransaction, EthTransactionValidator, LocalTransactionConfig, TransactionOrigin, TransactionValidationOutcome, TransactionValidationTaskExecutor, TransactionValidator
-};
-use alloy_consensus::{
-    constants::{
-        EIP1559_TX_TYPE_ID, EIP2930_TX_TYPE_ID, EIP4844_TX_TYPE_ID, EIP7702_TX_TYPE_ID,
-        LEGACY_TX_TYPE_ID,
+    error::{
+        Eip4844PoolTransactionError, Eip7702PoolTransactionError, InvalidPoolTransactionError,
     },
-    BlockHeader,
+    validate::{
+        ensure_intrinsic_gas, ForkTracker, ValidTransaction, ValidationTask,
+        DEFAULT_MAX_TX_INPUT_BYTES, MAX_INIT_CODE_BYTE_SIZE,
+    },
+    BlobStore, EthBlobTransactionSidecar, EthPoolTransaction, EthTransactionValidator,
+    LocalTransactionConfig, TransactionOrigin, TransactionValidationOutcome,
+    TransactionValidationTaskExecutor, TransactionValidator,
 };
-use std::{collections::HashSet, marker::PhantomData, sync::{atomic::{AtomicBool, AtomicU64}, Arc}};
+use std::{
+    collections::HashSet,
+    marker::PhantomData,
+    sync::{
+        atomic::{AtomicBool, AtomicU64},
+        Arc,
+    },
+};
 use tokio::sync::Mutex;
 
 /// Configuration for allow list based on sender and recipient.
@@ -54,10 +70,11 @@ impl IvmTransactionAllowConfig {
 }
 
 /// N.B. this is largely a copy of `EthTransactionValidatorInner` https://github.com/paradigmxyz/reth/blob/d761ac42f5e15c46c00db90ca1b5b6f7f62a4f7c/crates/transaction-pool/src/validate/eth.rs#L133
-/// The primary differences are that 
+/// The primary differences are that
 /// - do not check for having high enough of an account balance
-/// - return a hardcoded number for the current account balance that should ensure downstream checks pass
-/// 
+/// - return a hardcoded number for the current account balance that should ensure downstream checks
+///   pass
+///
 /// A [`TransactionValidator`] implementation that validates ethereum transaction.
 ///
 /// It supports all known ethereum transaction types:
@@ -461,9 +478,9 @@ where
     }
 }
 
-/// N.B. This is almost a direct copy of `EthTransactionValidatorBuilder` in reth. Just modified to return our type that does not include balance validation logic.
-/// https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/validate/eth.rs#L535.
-/// 
+/// N.B. This is almost a direct copy of `EthTransactionValidatorBuilder` in reth. Just modified to
+/// return our type that does not include balance validation logic. https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/validate/eth.rs#L535.
+///
 /// A builder for [`TransactionValidationTaskExecutor`]
 #[derive(Debug)]
 pub struct EthTransactionValidatorBuilder2 {
@@ -702,14 +719,10 @@ impl EthTransactionValidatorBuilder2 {
             _marker: Default::default(),
         };
 
-        IvmTransactionValidator {
-            eth: Arc::new(inner),
-            allow_config,
-        }
-        
+        IvmTransactionValidator { eth: Arc::new(inner), allow_config }
     }
 
-        /// Builds a [`IvmTransactionValidator`] and spawns validation tasks via the
+    /// Builds a [`IvmTransactionValidator`] and spawns validation tasks via the
     /// [`TransactionValidationTaskExecutor`]
     ///
     /// The validator will spawn `additional_tasks` additional tasks for validation.
@@ -724,7 +737,7 @@ impl EthTransactionValidatorBuilder2 {
     ) -> TransactionValidationTaskExecutor<IvmTransactionValidator<Client, Tx>>
     where
         T: TaskSpawner,
-        S: BlobStore
+        S: BlobStore,
     {
         let additional_tasks = self.additional_tasks;
         let validator = self.build(client, blob_store, allow_config);
@@ -798,13 +811,6 @@ where
     ) -> Vec<TransactionValidationOutcome<Tx>> {
         transactions.into_iter().map(|(origin, tx)| self.validate_one(origin, tx)).collect()
     }
-
-    // pub(crate) const fn new(
-    //     eth: Arc<EthTransactionValidatorInner<Client, Tx>>,
-    //     allow_config: IvmTransactionAllowConfig,
-    // ) -> Self {
-    //     Self { eth, allow_config }
-    // }
 }
 
 impl<Client, Tx> TransactionValidator for IvmTransactionValidator<Client, Tx>
