@@ -39,11 +39,11 @@ async fn main() {
 
     // Normally the first 20 wallets are funded so we try to get a non-funded one
     let wallets = get_signers(22);
-    let bob_wallet = EthereumWallet::from(wallets[10].clone());
-    let bob_address = wallets[10].address();
+    let bob_wallet = EthereumWallet::from(wallets[21].clone());
+    let bob_address = wallets[21].address();
     tracing::info!(?bob_address);
 
-    let alice_address = wallets[21].address();
+    let alice_address = wallets[20].address();
     tracing::info!(?alice_address);
 
     let provider = ProviderBuilder::new()
