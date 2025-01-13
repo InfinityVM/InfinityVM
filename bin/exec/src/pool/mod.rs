@@ -52,23 +52,17 @@ where
         let allow_config = self.allow_config;
         let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
-        let validator = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder2::new(ctx.chain_spec())
+        let txn_validator =  EthTransactionValidatorBuilder2::new(ctx.chain_spec())
                 .with_head_timestamp(ctx.head().timestamp)
                 .kzg_settings(ctx.kzg_settings()?)
                 .with_local_transactions_config(pool_config.local_transactions_config.clone())
-                .build(ctx.provider().clone(), blob_store.clone());
+                .with_additional_tasks(ctx.config().txpool.additional_validation_tasks)
+                
+                .build_with_tasks(ctx.provider().clone(), ctx.task_executor().clone(), blob_store.clone(), allow_config);
 
-            IvmTransactionValidator::build_with_tasks(
-                ctx.task_executor().clone(),
-                eth_transaction_validator,
-                allow_config,
-                ctx.config().txpool.additional_validation_tasks,
-            )
-        };
 
         let transaction_pool = reth_transaction_pool::Pool::new(
-            validator,
+            txn_validator,
             CoinbaseTipOrdering::default(),
             blob_store,
             pool_config,
@@ -177,12 +171,9 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder2::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = 
+            EthTransactionValidatorBuilder2::new(MAINNET.clone())
+                .build(provider, blob_store.clone(), allow_config);
 
         let pool = Pool::new(
             validator.clone(),
@@ -227,12 +218,8 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder2::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = EthTransactionValidatorBuilder2::new(MAINNET.clone())
+                .build(provider, blob_store.clone(), allow_config);
 
         let pool = Pool::new(
             validator.clone(),
@@ -288,12 +275,8 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder2::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = EthTransactionValidatorBuilder2::new(MAINNET.clone())
+                .build(provider, blob_store.clone(), allow_config);
 
         let pool = Pool::new(
             validator.clone(),
@@ -348,12 +331,8 @@ mod test {
             ExtendedAccount::new(other_transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder2::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = EthTransactionValidatorBuilder2::new(MAINNET.clone())
+            .build(provider, blob_store.clone(), allow_config);
 
         let pool = Pool::new(
             validator.clone(),
@@ -393,12 +372,8 @@ mod test {
         assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder2::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = EthTransactionValidatorBuilder2::new(MAINNET.clone())
+            .build(provider, blob_store.clone(), allow_config);
 
         let pool = Pool::new(
             validator.clone(),
@@ -448,12 +423,8 @@ mod test {
         assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder2::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = EthTransactionValidatorBuilder2::new(MAINNET.clone())
+            .build(provider, blob_store.clone(), allow_config);
 
         let pool = Pool::new(
             validator.clone(),
@@ -509,12 +480,8 @@ mod test {
             ExtendedAccount::new(other_transaction.nonce(), U256::from(10)),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder2::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = EthTransactionValidatorBuilder2::new(MAINNET.clone())
+            .build(provider, blob_store.clone(), allow_config);
 
         let pool = Pool::new(
             validator.clone(),

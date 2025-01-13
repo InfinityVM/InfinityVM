@@ -708,6 +708,50 @@ impl EthTransactionValidatorBuilder2 {
         }
         
     }
+
+        /// Builds a [`IvmTransactionValidator`] and spawns validation tasks via the
+    /// [`TransactionValidationTaskExecutor`]
+    ///
+    /// The validator will spawn `additional_tasks` additional tasks for validation.
+    ///
+    /// By default this will spawn 1 additional task.
+    pub fn build_with_tasks<Client, Tx, T, S>(
+        self,
+        client: Client,
+        tasks: T,
+        blob_store: S,
+        allow_config: IvmTransactionAllowConfig,
+    ) -> TransactionValidationTaskExecutor<IvmTransactionValidator<Client, Tx>>
+    where
+        T: TaskSpawner,
+        S: BlobStore
+    {
+        let additional_tasks = self.additional_tasks;
+        let validator = self.build(client, blob_store, allow_config);
+
+        let (tx, task) = ValidationTask::new();
+
+        // Spawn validation tasks, they are blocking because they perform db lookups
+        for _ in 0..additional_tasks {
+            let task = task.clone();
+            tasks.spawn_blocking(Box::pin(async move {
+                task.run().await;
+            }));
+        }
+
+        // We spawn them on critical tasks because validation, especially for EIP-4844 can be quite
+        // heavy
+        tasks.spawn_critical_blocking(
+            "transaction-validation-service",
+            Box::pin(async move {
+                task.run().await;
+            }),
+        );
+
+        let to_validation_task = Arc::new(Mutex::new(tx));
+
+        TransactionValidationTaskExecutor { validator, to_validation_task }
+    }
 }
 
 /// IVM transaction pool validator.
@@ -755,53 +799,12 @@ where
         transactions.into_iter().map(|(origin, tx)| self.validate_one(origin, tx)).collect()
     }
 
-    /// Builds a [`IvmTransactionValidator`] and spawns validation tasks via the
-    /// [`TransactionValidationTaskExecutor`]
-    ///
-    /// The validator will spawn `additional_tasks` additional tasks for validation.
-    ///
-    /// By default this will spawn 1 additional task.
-    pub fn build_with_tasks<T>(
-        tasks: T,
-        eth: Arc<EthTransactionValidatorInner<Client, Tx>>,
-        allow_config: IvmTransactionAllowConfig,
-        additional_tasks: usize,
-    ) -> TransactionValidationTaskExecutor<Self>
-    where
-        T: TaskSpawner,
-    {
-        let validator = Self::new(eth, allow_config);
-
-        let (tx, task) = ValidationTask::new();
-
-        // Spawn validation tasks, they are blocking because they perform db lookups
-        for _ in 0..additional_tasks {
-            let task = task.clone();
-            tasks.spawn_blocking(Box::pin(async move {
-                task.run().await;
-            }));
-        }
-
-        // We spawn them on critical tasks because validation, especially for EIP-4844 can be quite
-        // heavy
-        tasks.spawn_critical_blocking(
-            "transaction-validation-service",
-            Box::pin(async move {
-                task.run().await;
-            }),
-        );
-
-        let to_validation_task = Arc::new(Mutex::new(tx));
-
-        TransactionValidationTaskExecutor { validator, to_validation_task }
-    }
-
-    pub(crate) const fn new(
-        eth: Arc<EthTransactionValidatorInner<Client, Tx>>,
-        allow_config: IvmTransactionAllowConfig,
-    ) -> Self {
-        Self { eth, allow_config }
-    }
+    // pub(crate) const fn new(
+    //     eth: Arc<EthTransactionValidatorInner<Client, Tx>>,
+    //     allow_config: IvmTransactionAllowConfig,
+    // ) -> Self {
+    //     Self { eth, allow_config }
+    // }
 }
 
 impl<Client, Tx> TransactionValidator for IvmTransactionValidator<Client, Tx>
