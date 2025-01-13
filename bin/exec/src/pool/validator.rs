@@ -73,8 +73,8 @@ impl IvmTransactionAllowConfig {
 /// We try and stay as close as possible to the reth version to make it clear where we differ.
 /// The primary differences are that:
 ///
-/// 1) do not check for having high enough of an account balance
-/// 2) return a hardcoded number for the current account balance that should ensure downstream
+/// 1) We do not check that the account balance is greater then transaction cost.
+/// 2) We return a hardcoded number for the current account balance that should ensure downstream
 ///    checks pass.
 ///
 ///
