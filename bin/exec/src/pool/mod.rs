@@ -13,7 +13,7 @@ use reth_transaction_pool::{
     TransactionValidationTaskExecutor,
 };
 use tracing::{debug, info};
-use validator::EthTransactionValidatorBuilder2;
+use validator::IvmTransactionValidatorBuilder;
 
 pub mod validator;
 
@@ -52,7 +52,7 @@ where
         let allow_config = self.allow_config;
         let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
-        let txn_validator = EthTransactionValidatorBuilder2::new(ctx.chain_spec())
+        let txn_validator = IvmTransactionValidatorBuilder::new(ctx.chain_spec())
             .with_head_timestamp(ctx.head().timestamp)
             .kzg_settings(ctx.kzg_settings()?)
             .with_local_transactions_config(pool_config.local_transactions_config.clone())
@@ -178,7 +178,7 @@ mod test {
         );
 
         let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
-            EthTransactionValidatorBuilder2::new(MAINNET.clone()).build(
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 allow_config,
@@ -228,7 +228,7 @@ mod test {
         );
 
         let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
-            EthTransactionValidatorBuilder2::new(MAINNET.clone()).build(
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 allow_config,
@@ -289,7 +289,7 @@ mod test {
         );
 
         let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
-            EthTransactionValidatorBuilder2::new(MAINNET.clone()).build(
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 allow_config,
@@ -349,7 +349,7 @@ mod test {
         );
 
         let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
-            EthTransactionValidatorBuilder2::new(MAINNET.clone()).build(
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 allow_config,
@@ -394,7 +394,7 @@ mod test {
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
 
         let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
-            EthTransactionValidatorBuilder2::new(MAINNET.clone()).build(
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 allow_config,
@@ -449,7 +449,7 @@ mod test {
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
 
         let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
-            EthTransactionValidatorBuilder2::new(MAINNET.clone()).build(
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 allow_config,
@@ -499,7 +499,7 @@ mod test {
         let mut allow_config = IvmTransactionAllowConfig::deny_all();
         let allowed_senders = HashSet::from([transaction.sender()]);
         allow_config.set_sender(allowed_senders);
-        // Make sure the sender has enough gas
+        // Make sure the sender has some gas, but not enough for the transaction
         provider.add_account(
             transaction.sender(),
             ExtendedAccount::new(transaction.nonce(), U256::from(10)),
@@ -510,7 +510,7 @@ mod test {
         );
 
         let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
-            EthTransactionValidatorBuilder2::new(MAINNET.clone()).build(
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 allow_config,
@@ -524,7 +524,6 @@ mod test {
         );
         let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
 
-        dbg!(&outcome);
         // Validator says transaction is valid
         assert!(outcome.is_valid());
 
@@ -548,10 +547,5 @@ mod test {
         );
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
-    }
-
-    #[tokio::test]
-    async fn blob_tx_allows_valid_senders_with_no_balance() {
-        todo!()
     }
 }

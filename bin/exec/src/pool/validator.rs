@@ -25,9 +25,9 @@ use reth_transaction_pool::{
         ensure_intrinsic_gas, ForkTracker, ValidTransaction, ValidationTask,
         DEFAULT_MAX_TX_INPUT_BYTES, MAX_INIT_CODE_BYTE_SIZE,
     },
-    BlobStore, EthBlobTransactionSidecar, EthPoolTransaction, EthTransactionValidator,
-    LocalTransactionConfig, TransactionOrigin, TransactionValidationOutcome,
-    TransactionValidationTaskExecutor, TransactionValidator,
+    BlobStore, EthBlobTransactionSidecar, EthPoolTransaction, LocalTransactionConfig,
+    TransactionOrigin, TransactionValidationOutcome, TransactionValidationTaskExecutor,
+    TransactionValidator,
 };
 use std::{
     collections::HashSet,
@@ -69,11 +69,15 @@ impl IvmTransactionAllowConfig {
     }
 }
 
-/// N.B. this is largely a copy of `EthTransactionValidatorInner` https://github.com/paradigmxyz/reth/blob/d761ac42f5e15c46c00db90ca1b5b6f7f62a4f7c/crates/transaction-pool/src/validate/eth.rs#L133
-/// The primary differences are that
-/// - do not check for having high enough of an account balance
-/// - return a hardcoded number for the current account balance that should ensure downstream checks
-///   pass
+/// N.B. this is largely a copy of `IvmTransactionValidatorInner` <https://github.com/paradigmxyz/reth/blob/d761ac42f5e15c46c00db90ca1b5b6f7f62a4f7c/crates/transaction-pool/src/validate/eth.rs#L133>
+/// We try and stay as close as possible to the reth version to make it clear where we differ.
+/// The primary differences are that:
+///
+/// 1) do not check for having high enough of an account balance
+/// 2) return a hardcoded number for the current account balance that should ensure downstream
+///    checks pass.
+///
+///
 ///
 /// A [`TransactionValidator`] implementation that validates ethereum transaction.
 ///
@@ -90,7 +94,7 @@ impl IvmTransactionAllowConfig {
 ///
 /// And adheres to the configured [`LocalTransactionConfig`].
 #[derive(Debug)]
-pub(crate) struct EthTransactionValidatorInner<Client, T> {
+pub(crate) struct IvmTransactionValidatorInner<Client, T> {
     /// Spec of the chain
     chain_spec: Arc<ChainSpec>,
     /// This type fetches account info from the db
@@ -121,14 +125,14 @@ pub(crate) struct EthTransactionValidatorInner<Client, T> {
     _marker: PhantomData<T>,
 }
 
-impl<Client, Tx> EthTransactionValidatorInner<Client, Tx> {
+impl<Client, Tx> IvmTransactionValidatorInner<Client, Tx> {
     /// Returns the configured chain id
     pub(crate) fn chain_id(&self) -> u64 {
         self.chain_spec.chain().id()
     }
 }
 
-impl<Client, Tx> EthTransactionValidatorInner<Client, Tx>
+impl<Client, Tx> IvmTransactionValidatorInner<Client, Tx>
 where
     Client: StateProviderFactory,
     Tx: EthPoolTransaction,
@@ -419,8 +423,11 @@ where
 
         // Return the valid transaction
         TransactionValidationOutcome::Valid {
-            // balance: account.balance,
-            balance: U256::from(u32::MAX),
+            // WARNING: this is meant to represent the current account balance. Since we don't
+            // require an account to have a balance, we hardcode a high account balance that we
+            // are confident will ensure this transaction passes downstream checks.
+            // Upstream logic: https://github.com/paradigmxyz/reth/blob/d761ac42f5e15c46c00db90ca1b5b6f7f62a4f7c/crates/transaction-pool/src/validate/eth.rs#L475
+            balance: U256::from(u64::MAX),
             state_nonce: account.nonce,
             transaction: ValidTransaction::new(transaction, maybe_blob_sidecar),
             // by this point assume all external transactions should be propagated
@@ -442,18 +449,6 @@ where
     ) -> TransactionValidationOutcome<Tx> {
         let mut provider = None;
         self.validate_one_with_provider(origin, transaction, &mut provider)
-    }
-
-    /// Validates all given transactions.
-    fn validate_batch(
-        &self,
-        transactions: Vec<(TransactionOrigin, Tx)>,
-    ) -> Vec<TransactionValidationOutcome<Tx>> {
-        let mut provider = None;
-        transactions
-            .into_iter()
-            .map(|(origin, tx)| self.validate_one_with_provider(origin, tx, &mut provider))
-            .collect()
     }
 
     fn on_new_head_block<T: BlockHeader>(&self, new_tip_block: &T) {
@@ -479,11 +474,11 @@ where
 }
 
 /// N.B. This is almost a direct copy of `EthTransactionValidatorBuilder` in reth. Just modified to
-/// return our type that does not include balance validation logic. https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/validate/eth.rs#L535.
+/// return our type that does not include balance validation logic. <https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/validate/eth.rs#L535>.
 ///
 /// A builder for [`TransactionValidationTaskExecutor`]
 #[derive(Debug)]
-pub struct EthTransactionValidatorBuilder2 {
+pub struct IvmTransactionValidatorBuilder {
     chain_spec: Arc<ChainSpec>,
     /// Fork indicator whether we are in the Shanghai stage.
     shanghai: bool,
@@ -516,7 +511,7 @@ pub struct EthTransactionValidatorBuilder2 {
     max_tx_input_bytes: usize,
 }
 
-impl EthTransactionValidatorBuilder2 {
+impl IvmTransactionValidatorBuilder {
     /// Creates a new builder for the given [`ChainSpec`]
     ///
     /// By default this assumes the network is on the `Cancun` hardfork and the following
@@ -702,7 +697,7 @@ impl EthTransactionValidatorBuilder2 {
             prague: AtomicBool::new(prague),
         };
 
-        let inner = EthTransactionValidatorInner {
+        let inner = IvmTransactionValidatorInner {
             chain_spec,
             client,
             eip2718,
@@ -770,7 +765,7 @@ impl EthTransactionValidatorBuilder2 {
 /// IVM transaction pool validator.
 #[derive(Debug, Clone)]
 pub struct IvmTransactionValidator<Client, Tx> {
-    eth: Arc<EthTransactionValidatorInner<Client, Tx>>,
+    eth: Arc<IvmTransactionValidatorInner<Client, Tx>>,
     allow_config: IvmTransactionAllowConfig,
 }
 
