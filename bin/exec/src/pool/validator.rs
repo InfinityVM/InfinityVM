@@ -664,7 +664,7 @@ impl IvmTransactionValidatorBuilder {
         self
     }
 
-    /// Builds a the [`EthTransactionValidator`] without spawning validator tasks.
+    /// Builds a the [`IvmTransactionValidator`] without spawning validator tasks.
     pub fn build<Client, Tx, S>(
         self,
         client: Client,
