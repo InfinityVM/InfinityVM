@@ -2,22 +2,23 @@
 
 use alloy_consensus::constants::MAINNET_GENESIS_HASH;
 use alloy_genesis::Genesis;
-use alloy_primitives::{Address, B256};
-use alloy_rpc_types_engine::{PayloadAttributes, PayloadStatusEnum};
-use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmAddOns, IvmNode};
+use alloy_rpc_types_engine::{PayloadStatusEnum};
+use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmNode};
 use reth_chainspec::{ChainSpecBuilder, MAINNET};
 use reth_e2e_test_utils::{
     node::NodeTestContext, transaction::TransactionTestContext, wallet::Wallet,
 };
-use reth_ethereum_engine_primitives::EthPayloadBuilderAttributes;
 use reth_node_builder::{NodeBuilder, NodeHandle};
 use reth_node_core::{args::RpcServerArgs, node_config::NodeConfig};
-use reth_node_ethereum::EthereumNode;
 use reth_tasks::TaskManager;
 use reth_transaction_pool::TransactionPool;
 use std::sync::Arc;
 use std::collections::HashSet;
 use crate::utils::eth_payload_attributes;
+
+// TODO
+// - check that only 6 blobs allowed
+
 
 // This test shows that we can construct payloads that reference blobs, the payload can be added
 // to the fork, and then the payload can be removed and the blob tx will be valid in the mempool
@@ -114,6 +115,3 @@ async fn can_handle_blobs() -> eyre::Result<()> {
     Ok(())
 }
 
-// check that only 6 blobs allowed
-// check that gas estimate must be correct
-// that that can allow list works

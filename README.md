@@ -48,7 +48,7 @@ The following are some of the more important directories in the InfinityVM repos
 .
 ├── contracts              // Onchain business logic
 ├── crates                 // InfinityVM coprocessor
-│   ├── coprocessor-node   // Core logic of coprocessor
+│   ├── coproc             // Core logic of coprocessor
 │   ├── db                 // Database for coprocessor node
 │   ├── scripts            // Helper scripts for testing a remote node, generating signed requests/results, etc.
 │   ├── sdk                // Shared types and functions useful for interacting with coprocessor
