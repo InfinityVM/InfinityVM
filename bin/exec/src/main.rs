@@ -2,7 +2,11 @@
 
 use clap::Parser;
 use ivm_exec::{
-    config::IvmConfig, evm::IvmExecutorBuilder, ivm_components, payload::IvmPayloadBuilder, pool::{validator::IvmTransactionAllowConfig, IvmPoolBuilder}, IvmAddOns, IvmCliExt
+    config::IvmConfig,
+    evm::IvmExecutorBuilder,
+    payload::IvmPayloadBuilder,
+    pool::{validator::IvmTransactionAllowConfig, IvmPoolBuilder},
+    IvmAddOns, IvmCliExt, IvmNode,
 };
 use reth::cli::Cli;
 use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
@@ -31,12 +35,11 @@ fn main() {
                 ivm_config.transaction_allow
             };
 
+            let ivm_node = IvmNode::new(transaction_allow);
+
             let handle = builder
-                .with_types::<EthereumNode>()
-                .with_components(
-                    ivm_components(transaction_allow)
-                )
-                .with_add_ons(IvmAddOns::default())
+                // TODO: check this works with add ons and components
+                .node(ivm_node)
                 .launch_with_fn(|launch_builder| {
                     let launcher = EngineNodeLauncher::new(
                         launch_builder.task_executor().clone(),

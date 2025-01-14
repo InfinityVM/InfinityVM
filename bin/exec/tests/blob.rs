@@ -2,7 +2,7 @@ use alloy_consensus::constants::MAINNET_GENESIS_HASH;
 use alloy_genesis::Genesis;
 use alloy_primitives::{Address, B256};
 use alloy_rpc_types_engine::{PayloadAttributes, PayloadStatusEnum};
-use ivm_exec::{ivm_components, pool::validator::IvmTransactionAllowConfig, IvmAddOns};
+use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmAddOns, IvmNode};
 use reth_chainspec::{ChainSpecBuilder, MAINNET};
 use reth_e2e_test_utils::{
     node::NodeTestContext, transaction::TransactionTestContext, wallet::Wallet,
@@ -27,7 +27,6 @@ pub fn eth_payload_attributes(timestamp: u64) -> EthPayloadBuilderAttributes {
     EthPayloadBuilderAttributes::new(B256::ZERO, attributes)
 }
 
-
 #[tokio::test]
 async fn can_handle_blobs() -> eyre::Result<()> {
     ivm_test_utils::test_tracing();
@@ -48,21 +47,15 @@ async fn can_handle_blobs() -> eyre::Result<()> {
         .with_unused_ports()
         .with_rpc(RpcServerArgs::default().with_unused_ports().with_http());
 
+    let ivm_node_types = IvmNode::new(IvmTransactionAllowConfig::default());
     // TODO: transaction allow
     let transaction_allow = IvmTransactionAllowConfig::default();
-    let builder =  NodeBuilder::new(node_config.clone())
-      .testing_node(exec.clone())
-      .with_types::<EthereumNode>();
-
-      // .with_components(ivm_components(transaction_allow));
-      // .with_add_ons(IvmAddOns::default())
-
-    // let NodeHandle { node, node_exit_future: _ } =
-    //   // .testing_node(exec.clone())
-    //   //   .launch()
-    //   //   .await?;
-
-    // let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
+    let NodeHandle { node, node_exit_future: _ } = NodeBuilder::new(node_config.clone())
+        .testing_node(exec.clone())
+        .node(ivm_node_types)
+        .launch()
+        .await?;
+    let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
 
     // let wallets = Wallet::new(2).gen();
     // let blob_wallet = wallets.first().unwrap();

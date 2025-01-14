@@ -11,14 +11,17 @@ use reth_ethereum_engine_primitives::{
 use reth_network::NetworkHandle;
 use reth_node_api::{NodeTypes, NodeTypesWithEngine, PayloadTypes};
 use reth_node_builder::{
-    components::ComponentsBuilder, rpc::RpcAddOns, FullNodeComponents, FullNodeTypes, Node, NodeAdapter, NodeComponentsBuilder,
+    components::ComponentsBuilder, rpc::RpcAddOns, FullNodeComponents, FullNodeTypes, Node,
+    NodeAdapter, NodeComponentsBuilder,
 };
 use reth_node_ethereum::{
     node::{EthereumConsensusBuilder, EthereumNetworkBuilder},
-    EthereumNode,
+    EthEngineTypes, EthereumNode,
 };
 use reth_primitives::EthPrimitives;
+use reth_provider::EthStorage;
 use reth_rpc::eth::EthApi;
+use reth_trie_db::MerklePatriciaTrie;
 use std::path::PathBuf;
 
 pub mod config;
@@ -53,58 +56,81 @@ pub struct IvmCliExt {
     pub allow_all: bool,
 }
 
-// struct IvmNode;
-
-// impl<N> Node<N> for IvmNode
-// where
-//     N: FullNodeTypes<Types = Self>,
-// {
-//     type ComponentsBuilder = ComponentsBuilder<
-//         N,
-//         IvmPoolBuilder,
-//         IvmPayloadBuilder,
-//         EthereumNetworkBuilder,
-//         IvmExecutorBuilder,
-//         EthereumConsensusBuilder,
-//     >;
-
-//     type AddOns = IvmAddOns<
-//         NodeAdapter<N, <Self::ComponentsBuilder as NodeComponentsBuilder<N>>::Components>,
-//     >;
-
-//     /// Denies all transactions by default
-//     fn components_builder(&self) -> Self::ComponentsBuilder {
-//         ivm_components(IvmTransactionAllowConfig::default())
-//     }
-
-//     fn add_ons(&self) -> Self::AddOns {
-//         IvmAddOns::default()
-//     }
-// }
-
-/// Returns a `ComponentsBuilder` configured for an IVM node.
-pub fn ivm_components<Node>(
+/// Type configuration for an IVM node.
+#[derive(Debug, Clone)]
+pub struct IvmNode {
     transaction_allow: IvmTransactionAllowConfig,
-) -> ComponentsBuilder<
-    Node,
-    IvmPoolBuilder,
-    IvmPayloadBuilder,
-    EthereumNetworkBuilder,
-    IvmExecutorBuilder,
-    EthereumConsensusBuilder,
->
-where
-    Node: FullNodeTypes<Types: NodeTypes<ChainSpec = ChainSpec, Primitives = EthPrimitives>>,
-    <Node::Types as NodeTypesWithEngine>::Engine: PayloadTypes<
-        BuiltPayload = EthBuiltPayload,
-        PayloadAttributes = EthPayloadAttributes,
-        PayloadBuilderAttributes = EthPayloadBuilderAttributes,
-    >,
-{
-    let pool_builder = IvmPoolBuilder::new(transaction_allow);
+}
 
-    EthereumNode::components()
-        .pool(pool_builder)
-        .executor(IvmExecutorBuilder)
-        .payload(IvmPayloadBuilder::default())
+impl IvmNode {
+    /// Create an IVM node with the given allow list.
+    pub fn new(transaction_allow: IvmTransactionAllowConfig) -> Self {
+        Self { transaction_allow }
+    }
+
+    /// Returns a [`ComponentsBuilder`](reth_node_builder::components::builder::ComponentsBuilder)
+    /// configured for an IVM node.
+    pub fn components<Node>(
+        &self,
+    ) -> ComponentsBuilder<
+        Node,
+        IvmPoolBuilder,
+        IvmPayloadBuilder,
+        EthereumNetworkBuilder,
+        IvmExecutorBuilder,
+        EthereumConsensusBuilder,
+    >
+    where
+        Node: FullNodeTypes<Types: NodeTypes<ChainSpec = ChainSpec, Primitives = EthPrimitives>>,
+        <Node::Types as NodeTypesWithEngine>::Engine: PayloadTypes<
+            BuiltPayload = EthBuiltPayload,
+            PayloadAttributes = EthPayloadAttributes,
+            PayloadBuilderAttributes = EthPayloadBuilderAttributes,
+        >,
+    {
+        let pool_builder = IvmPoolBuilder::new(self.transaction_allow.clone());
+
+        EthereumNode::components()
+            .pool(pool_builder)
+            .executor(IvmExecutorBuilder)
+            .payload(IvmPayloadBuilder::default())
+    }
+}
+
+impl NodeTypes for IvmNode {
+    type Primitives = EthPrimitives;
+    type ChainSpec = ChainSpec;
+    type StateCommitment = MerklePatriciaTrie;
+    type Storage = EthStorage;
+}
+
+impl NodeTypesWithEngine for IvmNode {
+    type Engine = EthEngineTypes;
+}
+
+impl<N> Node<N> for IvmNode
+where
+    N: FullNodeTypes<Types = Self>,
+{
+    type ComponentsBuilder = ComponentsBuilder<
+        N,
+        IvmPoolBuilder,
+        IvmPayloadBuilder,
+        EthereumNetworkBuilder,
+        IvmExecutorBuilder,
+        EthereumConsensusBuilder,
+    >;
+
+    type AddOns = IvmAddOns<
+        NodeAdapter<N, <Self::ComponentsBuilder as NodeComponentsBuilder<N>>::Components>,
+    >;
+
+    /// Denies all transactions by default
+    fn components_builder(&self) -> Self::ComponentsBuilder {
+        self.components()
+    }
+
+    fn add_ons(&self) -> Self::AddOns {
+        IvmAddOns::default()
+    }
 }
