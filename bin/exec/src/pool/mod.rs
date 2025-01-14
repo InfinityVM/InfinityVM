@@ -9,10 +9,11 @@ use reth_node_builder::{components::PoolBuilder, BuilderContext, FullNodeTypes};
 use reth_primitives::EthPrimitives;
 use reth_provider::CanonStateSubscriptions;
 use reth_transaction_pool::{
-    blobstore::DiskFileBlobStore, validate::EthTransactionValidatorBuilder, CoinbaseTipOrdering,
-    EthPooledTransaction, TransactionValidationTaskExecutor,
+    blobstore::DiskFileBlobStore, CoinbaseTipOrdering, EthPooledTransaction,
+    TransactionValidationTaskExecutor,
 };
 use tracing::{debug, info};
+use validator::IvmTransactionValidatorBuilder;
 
 pub mod validator;
 
@@ -51,23 +52,20 @@ where
         let allow_config = self.allow_config;
         let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
-        let validator = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder::new(ctx.chain_spec())
-                .with_head_timestamp(ctx.head().timestamp)
-                .kzg_settings(ctx.kzg_settings()?)
-                .with_local_transactions_config(pool_config.local_transactions_config.clone())
-                .build(ctx.provider().clone(), blob_store.clone());
-
-            IvmTransactionValidator::build_with_tasks(
+        let txn_validator = IvmTransactionValidatorBuilder::new(ctx.chain_spec())
+            .with_head_timestamp(ctx.head().timestamp)
+            .kzg_settings(ctx.kzg_settings()?)
+            .with_local_transactions_config(pool_config.local_transactions_config.clone())
+            .with_additional_tasks(ctx.config().txpool.additional_validation_tasks)
+            .build_with_tasks(
+                ctx.provider().clone(),
                 ctx.task_executor().clone(),
-                eth_transaction_validator,
+                blob_store.clone(),
                 allow_config,
-                ctx.config().txpool.additional_validation_tasks,
-            )
-        };
+            );
 
         let transaction_pool = reth_transaction_pool::Pool::new(
-            validator,
+            txn_validator,
             CoinbaseTipOrdering::default(),
             blob_store,
             pool_config,
@@ -122,7 +120,10 @@ mod test {
     use reth_primitives::{
         transaction::SignedTransactionIntoRecoveredExt, InvalidTransactionError, PooledTransaction,
     };
-    use reth_provider::test_utils::{ExtendedAccount, MockEthProvider};
+    use reth_provider::{
+        test_utils::{ExtendedAccount, MockEthProvider},
+        StateProvider,
+    };
     use reth_transaction_pool::{
         blobstore::InMemoryBlobStore,
         error::{InvalidPoolTransactionError, PoolErrorKind},
@@ -176,12 +177,12 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
+                provider,
+                blob_store.clone(),
+                allow_config,
+            );
 
         let pool = Pool::new(
             validator.clone(),
@@ -226,12 +227,12 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
+                provider,
+                blob_store.clone(),
+                allow_config,
+            );
 
         let pool = Pool::new(
             validator.clone(),
@@ -287,12 +288,12 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
+                provider,
+                blob_store.clone(),
+                allow_config,
+            );
 
         let pool = Pool::new(
             validator.clone(),
@@ -347,12 +348,12 @@ mod test {
             ExtendedAccount::new(other_transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> = {
-            let eth_transaction_validator = EthTransactionValidatorBuilder::new(MAINNET.clone())
-                .build(provider, blob_store.clone());
-
-            IvmTransactionValidator::new(eth_transaction_validator, allow_config)
-        };
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
+                provider,
+                blob_store.clone(),
+                allow_config,
+            );
 
         let pool = Pool::new(
             validator.clone(),
@@ -374,5 +375,177 @@ mod test {
 
         pool.add_external_transaction(other_transaction.clone()).await.unwrap();
         assert_eq!(pool.get(other_transaction.hash()).unwrap().hash(), other_transaction.hash());
+    }
+
+    #[tokio::test]
+    async fn allows_valid_to_with_no_balance() {
+        let provider = MockEthProvider::default();
+        let blob_store = InMemoryBlobStore::default();
+        let transaction = get_swap_transaction();
+        let other_transaction = get_create_transaction();
+        let mut allow_config = IvmTransactionAllowConfig::deny_all();
+
+        // Set the allowed `to` addresses
+        let allowed_to = HashSet::from([transaction.to().unwrap()]);
+        allow_config.set_to(allowed_to);
+
+        // Check that the account balances are non-existent
+        assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
+        assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
+
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
+                provider,
+                blob_store.clone(),
+                allow_config,
+            );
+
+        let pool = Pool::new(
+            validator.clone(),
+            CoinbaseTipOrdering::default(),
+            blob_store,
+            Default::default(),
+        );
+
+        // validator says transaction valid
+        let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
+        assert!(outcome.is_valid());
+
+        // pool persists transaction
+        pool.add_external_transaction(transaction.clone()).await.unwrap();
+        assert_eq!(pool.get(transaction.hash()).unwrap().hash(), transaction.hash());
+
+        // And we check that it still denies a transaction that's not allowed
+        assert_ne!(other_transaction.to(), transaction.to());
+        let outcome =
+            validator.validate_one(TransactionOrigin::External, other_transaction.clone());
+        // The outcome is invalid
+        assert_outcome_tx_type_not_supported(outcome);
+        // Its an error when we try and add the transaction
+        let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
+        matches!(
+            pool_err.kind,
+            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
+                InvalidTransactionError::TxTypeNotSupported
+            ))
+        );
+        // Pool does not persist the transaction
+        assert!(pool.get(other_transaction.hash()).is_none());
+    }
+
+    #[tokio::test]
+    async fn allows_valid_senders_with_no_balance() {
+        let provider = MockEthProvider::default();
+        let blob_store = InMemoryBlobStore::default();
+        let transaction = get_swap_transaction();
+        let other_transaction = get_create_transaction();
+
+        // Set the allowed `sender`s
+        let mut allow_config = IvmTransactionAllowConfig::deny_all();
+        let allowed_senders = HashSet::from([transaction.sender()]);
+        allow_config.set_sender(allowed_senders);
+        // Make sure the sender has enough gas
+        assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
+        assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
+
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
+                provider,
+                blob_store.clone(),
+                allow_config,
+            );
+
+        let pool = Pool::new(
+            validator.clone(),
+            CoinbaseTipOrdering::default(),
+            blob_store,
+            Default::default(),
+        );
+        let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
+
+        // Validator says transaction is valid
+        assert!(outcome.is_valid());
+
+        // Pool persists transaction
+        pool.add_external_transaction(transaction.clone()).await.unwrap();
+        assert_eq!(pool.get(transaction.hash()).unwrap().hash(), transaction.hash());
+
+        // And we check that it still denies a transaction that's not allowed
+        assert_ne!(other_transaction.sender(), transaction.sender());
+        let outcome =
+            validator.validate_one(TransactionOrigin::External, other_transaction.clone());
+        // The outcome is invalid
+        assert_outcome_tx_type_not_supported(outcome);
+        // Its an error when we try and add the transaction
+        let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
+        matches!(
+            pool_err.kind,
+            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
+                InvalidTransactionError::TxTypeNotSupported
+            ))
+        );
+        // Pool does not persist the transaction
+        assert!(pool.get(other_transaction.hash()).is_none());
+    }
+
+    #[tokio::test]
+    async fn allows_valid_senders_with_low_balance() {
+        let provider = MockEthProvider::default();
+        let blob_store = InMemoryBlobStore::default();
+        let transaction = get_swap_transaction();
+        let other_transaction = get_create_transaction();
+
+        // Set the allowed `sender`s
+        let mut allow_config = IvmTransactionAllowConfig::deny_all();
+        let allowed_senders = HashSet::from([transaction.sender()]);
+        allow_config.set_sender(allowed_senders);
+        // Make sure the sender has some gas, but not enough for the transaction
+        provider.add_account(
+            transaction.sender(),
+            ExtendedAccount::new(transaction.nonce(), U256::from(10)),
+        );
+        provider.add_account(
+            other_transaction.sender(),
+            ExtendedAccount::new(other_transaction.nonce(), U256::from(10)),
+        );
+
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+            IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
+                provider,
+                blob_store.clone(),
+                allow_config,
+            );
+
+        let pool = Pool::new(
+            validator.clone(),
+            CoinbaseTipOrdering::default(),
+            blob_store,
+            Default::default(),
+        );
+        let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
+
+        // Validator says transaction is valid
+        assert!(outcome.is_valid());
+
+        // Pool persists transaction
+        pool.add_external_transaction(transaction.clone()).await.unwrap();
+        assert_eq!(pool.get(transaction.hash()).unwrap().hash(), transaction.hash());
+
+        // And we check that it still denies a transaction that's not allowed
+        assert_ne!(other_transaction.sender(), transaction.sender());
+        let outcome =
+            validator.validate_one(TransactionOrigin::External, other_transaction.clone());
+        // The outcome is invalid
+        assert_outcome_tx_type_not_supported(outcome);
+        // Its an error when we try and add the transaction
+        let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
+        matches!(
+            pool_err.kind,
+            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
+                InvalidTransactionError::TxTypeNotSupported
+            ))
+        );
+        // Pool does not persist the transaction
+        assert!(pool.get(other_transaction.hash()).is_none());
     }
 }
