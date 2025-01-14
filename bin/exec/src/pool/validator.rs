@@ -67,6 +67,41 @@ impl IvmTransactionAllowConfig {
     pub fn with_all() -> Self {
         Self { all: true, ..Default::default() }
     }
+
+        /// Create `IvmTransactionAllowConfig` that denys all transactions.
+    pub fn deny_all() -> Self {
+        Self { to: HashSet::new(), sender: HashSet::new(), all: false }
+    }
+
+    /// Set allowed `to` addresses.
+    pub fn set_to(&mut self, to: HashSet<Address>) {
+        self.to = to;
+    }
+
+    /// Get `to` addresses.
+    pub fn to(&self) -> HashSet<Address> {
+        self.to.clone()
+    }
+
+    /// Set allowed `sender` addresses.
+    pub fn set_sender(&mut self, sender: HashSet<Address>) {
+        self.sender = sender;
+    }
+
+    /// Get allowed sender addresses.
+    pub fn sender(&self) -> HashSet<Address> {
+        self.sender.clone()
+    }
+
+    /// Allow all transactions
+    pub fn set_all(&mut self, allow_all: bool) {
+        self.all = allow_all;
+    }
+
+    /// Get if all transactions are allowed.
+    pub const fn all(&self) -> bool {
+        self.all
+    }
 }
 
 /// N.B. this is largely a copy of `IvmTransactionValidatorInner` <https://github.com/paradigmxyz/reth/blob/d761ac42f5e15c46c00db90ca1b5b6f7f62a4f7c/crates/transaction-pool/src/validate/eth.rs#L133>
@@ -839,40 +874,5 @@ where
     }
 }
 
-#[cfg(test)]
-mod test {
-    use super::IvmTransactionAllowConfig;
-    use alloy_primitives::Address;
-    use std::collections::HashSet;
 
-    // Helpers to set/get values for tests
-    impl IvmTransactionAllowConfig {
-        pub(crate) fn deny_all() -> Self {
-            Self { to: HashSet::new(), sender: HashSet::new(), all: false }
-        }
 
-        pub(crate) fn set_to(&mut self, to: HashSet<Address>) {
-            self.to = to;
-        }
-
-        pub(crate) fn to(&self) -> HashSet<Address> {
-            self.to.clone()
-        }
-
-        pub(crate) fn set_sender(&mut self, sender: HashSet<Address>) {
-            self.sender = sender;
-        }
-
-        pub(crate) fn sender(&self) -> HashSet<Address> {
-            self.sender.clone()
-        }
-
-        pub(crate) fn set_all(&mut self, allow_all: bool) {
-            self.all = allow_all;
-        }
-
-        pub(crate) const fn all(&self) -> bool {
-            self.all
-        }
-    }
-}
