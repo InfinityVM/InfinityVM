@@ -4799,6 +4799,7 @@ dependencies = [
  "alloy-genesis",
  "alloy-network 0.9.2",
  "alloy-primitives",
+ "alloy-provider",
  "alloy-rpc-types",
  "alloy-rpc-types-engine",
  "alloy-signer-local 0.9.2",

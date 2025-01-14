@@ -19,11 +19,15 @@ use std::sync::Arc;
 use std::collections::HashSet;
 use crate::utils::eth_payload_attributes;
 
-// This test shows that we can construct payloads that refference blobs, the payload can be added
+// This test shows that we can construct payloads that reference blobs, the payload can be added
 // to the fork, and then the payload can be removed and the blob tx will be valid in the mempool
+//
+// RPCs implicitly tested:
+// - debug_getRawTransaction with `node.api.envelope_by_hash`
+// - eth_sendRawTransaction with `node.api.envelope_by_hash`
 #[tokio::test]
 async fn can_handle_blobs() -> eyre::Result<()> {
-    ivm_test_utils::test_tracing();
+    // ivm_test_utils::test_tracing();
 
     let tasks = TaskManager::current();
     let exec = tasks.executor();
@@ -33,7 +37,7 @@ async fn can_handle_blobs() -> eyre::Result<()> {
         ChainSpecBuilder::default()
             .chain(MAINNET.chain)
             .genesis(genesis)
-            // .cancun_activated()
+            .cancun_activated()
             .build(),
     );
     let node_config = NodeConfig::test()
@@ -63,17 +67,19 @@ async fn can_handle_blobs() -> eyre::Result<()> {
     // // inject normal tx
     let raw_tx = TransactionTestContext::transfer_tx_bytes(1, second_wallet.clone()).await;
     let tx_hash = node.rpc.inject_tx(raw_tx).await?;
-    // // build payload with normal tx
+    // // build payload with normal tx. This uses the node payload builder component
     let (payload, attributes) = node.new_payload().await?;
 
-    // // clean the pool
+    // clean the pool
     node.inner.pool().remove_transactions(vec![tx_hash]);
 
     // build blob tx
     let blob_tx = TransactionTestContext::tx_with_blobs_bytes(1, blob_wallet.clone()).await?;
 
-    // inject blob tx to the pool
+    // inject blob tx to the pool. This should be the only tx in the pool
     let blob_tx_hash = node.rpc.inject_tx(blob_tx).await?;
+    assert_eq!(node.inner.pool().pool_size().total, 1);
+
     // fetch it from rpc
     let envelope = node.rpc.envelope_by_hash(blob_tx_hash).await?;
     // validate sidecar
@@ -92,6 +98,8 @@ async fn can_handle_blobs() -> eyre::Result<()> {
         // send fcu with normal hash
         node.engine_api.update_forkchoice(MAINNET_GENESIS_HASH, payload.block().hash())
     );
+
+    assert_eq!(node.inner.pool().pool_size().total, 0);
 
     // submit normal payload
     node.engine_api.submit_payload(payload, attributes, PayloadStatusEnum::Valid).await?;
