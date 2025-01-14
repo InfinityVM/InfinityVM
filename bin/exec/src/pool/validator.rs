@@ -1,16 +1,15 @@
 //! IVM has a custom transaction validator that performs allow list checks on top of the standard
 //! ethereum transaction checks.
 
-use alloy::primitives::Address;
-use reth::{
-    primitives::{InvalidTransactionError, SealedBlock},
-    providers::StateProviderFactory,
-    tasks::TaskSpawner,
-    transaction_pool::{
-        validate::ValidationTask, EthPoolTransaction, EthTransactionValidator, TransactionOrigin,
-        TransactionValidationOutcome, TransactionValidationTaskExecutor, TransactionValidator,
-    },
+use alloy_primitives::Address;
+use reth_primitives::{InvalidTransactionError, SealedBlock};
+use reth_provider::StateProviderFactory;
+use reth_tasks::TaskSpawner;
+use reth_transaction_pool::{
+    validate::ValidationTask, EthPoolTransaction, EthTransactionValidator, TransactionOrigin,
+    TransactionValidationOutcome, TransactionValidationTaskExecutor, TransactionValidator,
 };
+
 use std::{collections::HashSet, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -36,6 +35,11 @@ impl IvmTransactionAllowConfig {
         }
 
         self.sender.contains(sender)
+    }
+
+    /// Create a config that allows all transactions.
+    pub fn with_all() -> Self {
+        Self { all: true, ..Default::default() }
     }
 }
 
@@ -155,7 +159,11 @@ where
         self.validate_all(transactions)
     }
 
-    fn on_new_head_block(&self, new_tip_block: &SealedBlock) {
+    fn on_new_head_block<H, B>(&self, new_tip_block: &SealedBlock<H, B>)
+    where
+        H: reth_primitives_traits::BlockHeader,
+        B: reth_primitives_traits::BlockBody,
+    {
         self.eth.on_new_head_block(new_tip_block)
     }
 }
@@ -163,7 +171,7 @@ where
 #[cfg(test)]
 mod test {
     use super::IvmTransactionAllowConfig;
-    use alloy::primitives::Address;
+    use alloy_primitives::Address;
     use std::collections::HashSet;
 
     // Helpers to set/get values for tests
