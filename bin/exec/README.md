@@ -2,7 +2,7 @@
 
 `ivm-exec` is the Infinity execution client. It is built using reth and closely follows ethereum specs except in two edge cases:
 
-1) It ignores timestamp checks in the Engine API. Timestamps are denominated in seconds and the Engine API dictates that the timestamp for an execution payload being requested must be greater then the previous execution payload. Ignoring checks allows us to request multiple execution payloads in the same second and thus achieve sub second block times. See [step 7](https://github.com/ethereum/execution-apis/blob/main/src/engine/paris.md#specification-1) of `engine_forkchoiceUpdatedV1` specifications for context.
+1) It ignores timestamp checks in the Engine API. Timestamps are denominated in seconds and the Engine API dictates that the timestamp for an execution payload being requested must be greater than the previous execution payload. Ignoring checks allows us to request multiple execution payloads in the same second and thus achieve sub second block times. See [step 7](https://github.com/ethereum/execution-apis/blob/main/src/engine/paris.md#specification-1) of `engine_forkchoiceUpdatedV1` specifications for context.
 2) Allow list for transaction sender and transaction `to` field value can be configured. This is intended for the bootstrap phase of the network where transactions will have zero gas fee, but will be tightly scoped to specific applications to reduce spamming.
 
 ## Usage
@@ -28,4 +28,4 @@ to = ["0x1111111111111111111111111111111111111111"]
 # Allow transactions signed by one of these addresses
 sender = ["0x2222222222222222222222222222222222222222", "0x1234567890123456789012345678901234567890"]
 ```
-NOTE: a transaction will be valid if it is a member `to` or a member of `sender`.
+NOTE: a transaction will be valid if it is a member of `to` or a member of `sender`.
