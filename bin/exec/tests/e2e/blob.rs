@@ -1,8 +1,9 @@
 //! E2E tests for blob transactions
 
+use crate::utils::eth_payload_attributes;
 use alloy_consensus::constants::MAINNET_GENESIS_HASH;
 use alloy_genesis::Genesis;
-use alloy_rpc_types_engine::{PayloadStatusEnum};
+use alloy_rpc_types_engine::PayloadStatusEnum;
 use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmNode};
 use reth_chainspec::{ChainSpecBuilder, MAINNET};
 use reth_e2e_test_utils::{
@@ -12,13 +13,10 @@ use reth_node_builder::{NodeBuilder, NodeHandle};
 use reth_node_core::{args::RpcServerArgs, node_config::NodeConfig};
 use reth_tasks::TaskManager;
 use reth_transaction_pool::TransactionPool;
-use std::sync::Arc;
-use std::collections::HashSet;
-use crate::utils::eth_payload_attributes;
+use std::{collections::HashSet, sync::Arc};
 
 // TODO
 // - check that only 6 blobs allowed
-
 
 // This test shows that we can construct payloads that reference blobs, the payload can be added
 // to the fork, and then the payload can be removed and the blob tx will be valid in the mempool
@@ -33,7 +31,8 @@ async fn can_handle_blobs() -> eyre::Result<()> {
     let tasks = TaskManager::current();
     let exec = tasks.executor();
 
-    let genesis: Genesis = serde_json::from_str(include_str!("../../mock/eth-genesis.json")).unwrap();
+    let genesis: Genesis =
+        serde_json::from_str(include_str!("../../mock/eth-genesis.json")).unwrap();
     let chain_spec = Arc::new(
         ChainSpecBuilder::default()
             .chain(MAINNET.chain)
@@ -52,9 +51,7 @@ async fn can_handle_blobs() -> eyre::Result<()> {
     let second_wallet = wallets.last().unwrap();
 
     let mut txn_allow = IvmTransactionAllowConfig::deny_all();
-    txn_allow.set_sender(HashSet::from([
-        blob_wallet.address(), second_wallet.address()
-    ]));
+    txn_allow.set_sender(HashSet::from([blob_wallet.address(), second_wallet.address()]));
 
     let ivm_node_types = IvmNode::new(txn_allow);
 
@@ -114,4 +111,3 @@ async fn can_handle_blobs() -> eyre::Result<()> {
 
     Ok(())
 }
-

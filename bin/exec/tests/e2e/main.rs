@@ -1,8 +1,8 @@
 #![allow(missing_docs)]
 
-mod blob;
 mod allow;
-mod utils;
+mod blob;
 mod rpc;
+mod utils;
 
 const fn main() {}

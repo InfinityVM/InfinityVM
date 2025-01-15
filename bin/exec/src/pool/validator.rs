@@ -68,7 +68,7 @@ impl IvmTransactionAllowConfig {
         Self { all: true, ..Default::default() }
     }
 
-        /// Create `IvmTransactionAllowConfig` that denys all transactions.
+    /// Create `IvmTransactionAllowConfig` that denys all transactions.
     pub fn deny_all() -> Self {
         Self { to: HashSet::new(), sender: HashSet::new(), all: false }
     }
@@ -873,6 +873,3 @@ where
         self.eth.on_new_head_block(new_tip_block.header())
     }
 }
-
-
-

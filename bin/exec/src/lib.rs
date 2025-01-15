@@ -64,7 +64,7 @@ pub struct IvmNode {
 
 impl IvmNode {
     /// Create an IVM node with the given allow list.
-    pub fn new(transaction_allow: IvmTransactionAllowConfig) -> Self {
+    pub const fn new(transaction_allow: IvmTransactionAllowConfig) -> Self {
         Self { transaction_allow }
     }
 

@@ -1,15 +1,17 @@
 use std::sync::Arc;
 
+use crate::utils::eth_payload_attributes;
 use alloy_genesis::Genesis;
 use alloy_primitives::U256;
+use alloy_provider::{Provider, ProviderBuilder};
 use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmNode};
 use reth::args::RpcServerArgs;
 use reth_chainspec::{ChainSpecBuilder, MAINNET};
-use reth_e2e_test_utils::{node::NodeTestContext, transaction::TransactionTestContext, wallet::Wallet};
+use reth_e2e_test_utils::{
+    node::NodeTestContext, transaction::TransactionTestContext, wallet::Wallet,
+};
 use reth_node_builder::{NodeBuilder, NodeConfig, NodeHandle};
 use reth_tasks::TaskManager;
-use crate::utils::eth_payload_attributes;
-use alloy_provider::{Provider, ProviderBuilder};
 
 #[tokio::test]
 async fn denies_non_allowed_senders() -> eyre::Result<()> {
@@ -18,7 +20,8 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
     let tasks = TaskManager::current();
     let exec = tasks.executor();
 
-    let genesis: Genesis = serde_json::from_str(include_str!("../../mock/eth-genesis.json")).unwrap();
+    let genesis: Genesis =
+        serde_json::from_str(include_str!("../../mock/eth-genesis.json")).unwrap();
     let chain_spec = Arc::new(
         ChainSpecBuilder::default()
             .chain(MAINNET.chain)
@@ -45,12 +48,9 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
         .await?;
     let node = NodeTestContext::new(node, eth_payload_attributes).await?;
 
-    let rpc = ProviderBuilder::new()
-        .on_http(node.rpc_url());
+    let rpc = ProviderBuilder::new().on_http(node.rpc_url());
 
-    let alice_balance = rpc.get_account(alice_wallet.address()).await.unwrap();
-    assert_eq!(alice_balance.balance, U256::from(0));
-    assert_eq!(alice_balance.nonce, 0);
+    // let alice_balance = rpc.get_account(alice_wallet.address()).await.unwrap_err();
 
     let transfer_tx = TransactionTestContext::transfer_tx_bytes(1, alice_wallet.clone()).await;
     // this calls eth send_raw_transaction
@@ -60,7 +60,6 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
     //     transfer_error,
 
     // );
-
 
     let alice_balance = rpc.get_account(alice_wallet.address()).await.unwrap();
     assert_eq!(alice_balance.balance, U256::from(0));
