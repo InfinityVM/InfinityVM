@@ -219,11 +219,8 @@ async fn web2_parallel_job_submission_coprocessor_node_mock_consumer_e2e() {
 
         // Submit jobs to coproc node
         let mut join_set = JoinSet::new();
-        for (job_id, job_request) in &jobs {
+        for (job_id, job_request) in jobs.clone() {
             let endpoint = args.coprocessor_node_endpoint.clone();
-
-            let job_id = job_id.clone();
-            let job_request = job_request.clone();
             join_set.spawn(async move {
                 let mut coprocessor_node =
                     CoprocessorNodeClient::connect(endpoint.clone()).await.unwrap();
