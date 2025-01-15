@@ -147,13 +147,13 @@ where
         let consumer_address: [u8; 20] =
             job.consumer_address.clone().try_into().expect("caller must validate address length.");
 
-        let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
-        let consumer = ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
-
         // We do an optimistic check to reduce entry lock contention.
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
             inner.clone()
         } else {
+            let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
+            let consumer =
+                ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
             // This is the next nonce; since we expect contracts to be initialized with
             // nonce 0, the first nonce should be 1.
             let nonce = consumer.getNextNonce().call().await?._0;
@@ -170,6 +170,8 @@ where
         };
 
         // Send the job to actor for processing
+        // NOTE: Once actor deletion is implemented, we need to avoid a
+        // race between sending the job & deleting the actor.
         execution_tx.send(job).await.expect("execution tx failed");
 
         // Before responding, make sure the write completes
