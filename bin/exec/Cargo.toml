@@ -29,8 +29,12 @@ reth-provider = { workspace = true }
 reth-ethereum-cli = { workspace = true }
 reth-cli-util = { workspace = true }
 
+revm = { workspace = true }
+
 alloy-rpc-types = { workspace = true }
 alloy-primitives = { workspace = true }
+alloy-eips = { workspace = true }
+alloy-consensus = { workspace = true }
 
 eyre = { workspace = true  }
 tokio = { workspace = true }
@@ -41,13 +45,7 @@ serde = { workspace = true }
 
 [dev-dependencies]
 reth-provider = { workspace = true, features = ["test-utils"] }
-revm = { workspace = true }
 k256 = { workspace = true }
-
-# Hacks to play happy with reth types
-# We normally use the alloy facade crate, but a reth type expects some types from these crate
-alloy-eips = { workspace = true }
-alloy-consensus = { workspace = true }
 alloy-signer-local = { workspace = true }
 alloy-network = { workspace = true }
 
