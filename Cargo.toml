@@ -143,7 +143,6 @@ clap = { version = "4", features = ["derive"], default-features = false }
 crossbeam = { version = "0.8" }
 
 # d
-dashmap = "6"
 dotenvy = { version = "0.15.7", default-features = false }
 
 # e
