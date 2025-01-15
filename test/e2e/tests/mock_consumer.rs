@@ -21,9 +21,11 @@ use ivm_abi::{
 use ivm_contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
 use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{
-    GetResultRequest, JobStatusType, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
+    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, JobStatusType, RelayStrategy,
+    SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
+use tokio::task::JoinSet;
 
 type MockConsumerOut = sol!((Address, U256));
 
@@ -157,6 +159,94 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let MockConsumer::getNextNonceReturn { _0: nonce } =
             get_next_nonce_call.call().await.unwrap();
         assert_eq!(nonce, 2);
+    }
+    E2E::new().mock_consumer().run(test).await;
+}
+
+/// Perform job submission in parallel with a JoinSet. Because job submission
+/// is triggered by async grpc handler functions in the coprocessor, submitting
+/// them in parallel more closely matches a real load.
+#[ignore]
+#[tokio::test(flavor = "multi_thread", worker_threads = 8)]
+async fn web2_parallel_job_submission_coprocessor_node_mock_consumer_e2e() {
+    async fn test(mut args: Args) {
+        let mock = args.mock_consumer.unwrap();
+        let anvil = args.anvil;
+        let program_id = MOCK_CONSUMER_PROGRAM_ID;
+        let mock_user_address = Address::repeat_byte(69);
+
+        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+
+        // Seed coprocessor-node with ELF
+        let submit_program_request = SubmitProgramRequest {
+            program_elf: MOCK_CONSUMER_ELF.to_vec(),
+            vm_type: VmType::Sp1.into(),
+            program_id: program_id.to_vec(),
+        };
+        let submit_program_response = args
+            .coprocessor_node
+            .submit_program(submit_program_request)
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(submit_program_response.program_id, program_id);
+
+        // Create 4 job requests
+        let mut jobs = vec![];
+        for nonce in 1..5 {
+            let job_id = get_job_id(nonce, mock.mock_consumer);
+            let offchain_input_hash = keccak256(vec![]);
+            let job_params = JobParams {
+                nonce,
+                max_cycles: MOCK_CONSUMER_MAX_CYCLES,
+                consumer_address: mock.mock_consumer.abi_encode_packed().try_into().unwrap(),
+                onchain_input: &mock_user_address.abi_encode(),
+                program_id: &program_id,
+                offchain_input_hash: offchain_input_hash.into(),
+            };
+
+            let job_request_payload = abi_encode_offchain_job_request(job_params);
+            let request_signature = random_user.sign_message(&job_request_payload).await.unwrap();
+
+            let job_request = SubmitJobRequest {
+                request: job_request_payload,
+                signature: request_signature.into(),
+                offchain_input: vec![],
+                relay_strategy: RelayStrategy::Ordered as i32,
+            };
+            jobs.push((job_id, job_request));
+        }
+
+        // Submit jobs to coproc node
+        let mut join_set = JoinSet::new();
+        for (job_id, job_request) in &jobs {
+            let endpoint = args.coprocessor_node_endpoint.clone();
+
+            let job_id = job_id.clone();
+            let job_request = job_request.clone();
+            join_set.spawn(async move {
+                let mut coprocessor_node =
+                    CoprocessorNodeClient::connect(endpoint.clone()).await.unwrap();
+                let submit_job_response =
+                    coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
+                assert_eq!(submit_job_response.job_id, job_id);
+            });
+        }
+
+        // Wait for all jobs to be submitted
+        join_set.join_all().await;
+
+        // Give the node enough time to process and relay the jobs
+        tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
+
+        // Assert that all jobs were successfully relayed.
+        for (job_id, _) in jobs {
+            let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
+            let get_result_response =
+                args.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
+            let job_result = get_result_response.job_result.unwrap();
+            assert_eq!(job_result.status.unwrap().status(), JobStatusType::Relayed);
+        }
     }
     E2E::new().mock_consumer().run(test).await;
 }
