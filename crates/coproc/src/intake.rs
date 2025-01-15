@@ -150,7 +150,7 @@ where
         let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
         let consumer = ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
 
-        // We do a read pre-check to reduce entry lock contention.
+        // We do an optimistic check to reduce entry lock contention.
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
             inner.clone()
         } else {
