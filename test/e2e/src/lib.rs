@@ -36,6 +36,8 @@ pub struct Args {
     pub anvil: AnvilJobManager,
     /// Coprocessor Node gRPC client.
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
+    /// Coprocessor Node gRPC endpoint.
+    pub coprocessor_node_endpoint: String,
     /// Handle for DB. Use with care.
     pub db: Arc<DatabaseEnv>,
 }
@@ -137,6 +139,7 @@ impl E2E {
         let mut args = Args {
             mock_consumer: None,
             coprocessor_node,
+            coprocessor_node_endpoint: cn_grpc_client_url.clone(),
             anvil,
             clob_consumer: None,
             clob_endpoint: None,
