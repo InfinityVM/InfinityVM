@@ -16,14 +16,12 @@ use alloy::{
     signers::{Signer, SignerSync},
     transports::http::reqwest::Url,
 };
+use dashmap::{DashMap, Entry};
 use ivm_db::{get_elf_sync, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
-use std::{
-    collections::{hash_map::Entry, HashMap},
-    sync::Arc,
-};
+use std::sync::Arc;
 use tokio::sync::{mpsc::Sender, oneshot};
 
 /// Errors from job processor
@@ -72,7 +70,7 @@ pub struct IntakeHandlers<S, D> {
     writer_tx: Sender<WriterMsg>,
     unsafe_skip_program_id_check: bool,
     execution_actor_spawner: ExecutionActorSpawner,
-    active_actors: Arc<tokio::sync::Mutex<HashMap<[u8; 20], Sender<Job>>>>,
+    active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
     http_eth_rpc: Url,
 }
 
@@ -149,20 +147,25 @@ where
         let consumer_address: [u8; 20] =
             job.consumer_address.clone().try_into().expect("caller must validate address length.");
 
-        let execution_tx = match self.active_actors.lock().await.entry(consumer_address) {
-            Entry::Occupied(e) => e.get().clone(),
-            Entry::Vacant(e) => {
-                // Get the latest nonce to initialize the execution actor with
-                let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
-                let consumer =
-                    ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
-                // This is the next nonce; since we expect contracts to be initialized with nonce 0,
-                // the first nonce should be 1.
-                let nonce = consumer.getNextNonce().call().await?._0;
+        let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
+        let consumer = ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
 
-                let execution_tx = self.execution_actor_spawner.spawn(nonce);
-                e.insert(execution_tx.clone());
-                execution_tx
+        // We do a read pre-check to reduce entry lock contention.
+        let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
+            inner.clone()
+        } else {
+            // This is the next nonce; since we expect contracts to be initialized with
+            // nonce 0, the first nonce should be 1.
+            let nonce = consumer.getNextNonce().call().await?._0;
+
+            match self.active_actors.entry(consumer_address) {
+                Entry::Occupied(e) => e.get().clone(),
+                Entry::Vacant(e) => {
+                    // ATTENTION: No async allowed while an entry lock is held.
+                    let execution_tx = self.execution_actor_spawner.spawn(nonce);
+                    e.insert(execution_tx.clone());
+                    execution_tx
+                }
             }
         };
 

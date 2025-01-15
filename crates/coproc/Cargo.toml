@@ -19,6 +19,7 @@ tracing = { workspace = true }
 k256 = { workspace = true }
 reth-db = { workspace = true }
 serde = { workspace = true }
+dashmap = { workspace = true }
 eyre = { workspace = true }
 prometheus = { workspace = true }
 axum = { workspace = true }
