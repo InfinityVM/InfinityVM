@@ -6,6 +6,12 @@ on:
     branches:
       - main
 
+# Cancel running checks if a new commit is pushed to the same branch (new commit will retrigger checks)
+# Docs: https://docs.github.com/en/actions/using-jobs/using-concurrency#example-only-cancel-in-progress-jobs-or-runs-for-the-current-workflow
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   PROJECT_ID: infinityvm-core-artifacts
   REGION: us
