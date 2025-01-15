@@ -234,7 +234,7 @@ async fn web2_parallel_job_submission_coprocessor_node_mock_consumer_e2e() {
         join_set.join_all().await;
 
         // Give the node enough time to process and relay the jobs
-        tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
 
         // Assert that all jobs were successfully relayed.
         for (job_id, _) in jobs {
