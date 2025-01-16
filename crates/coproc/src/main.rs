@@ -14,7 +14,13 @@ static GLOBAL_ALLOCATOR: std::alloc::System = std::alloc::System;
 // for job execution worker thread and the writer thread.
 #[tokio::main(worker_threads = 2)]
 async fn main() {
-    let _guards = ivm_tracing::init_logging().unwrap();
+    let _guards = match ivm_tracing::init_logging() {
+        Ok(guards) => guards,
+        Err(e) => {
+            println!("Error initializing logging: {}", e);
+            std::process::exit(1);
+        }
+    };
 
     if let Err(e) = Cli::run().await {
         println!("Error: {}", e);

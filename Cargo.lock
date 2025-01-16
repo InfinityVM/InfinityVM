@@ -4900,6 +4900,7 @@ name = "ivm-tracing"
 version = "0.0.1"
 dependencies = [
  "dotenvy",
+ "eyre",
  "strum 0.26.3",
  "tracing",
  "tracing-appender",

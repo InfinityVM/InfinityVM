@@ -34,7 +34,7 @@ pub type BoxedLayer<S> = Box<dyn Layer<S> + Send + Sync>;
 ///   text.
 /// - `COPROC_LOG_FORMAT_STDOUT` - logging format for stdout target. Defaults to `text`. One of
 ///   json, text.
-pub fn init_logging() -> Result<Vec<WorkerGuard>, Box<dyn std::error::Error>> {
+pub fn init_logging() -> eyre::Result<Vec<WorkerGuard>> {
     dotenv().ok();
 
     let env_log_file = env::var("COPROC_LOG_FILE").unwrap_or_default();
