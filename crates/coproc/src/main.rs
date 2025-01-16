@@ -17,13 +17,13 @@ async fn main() {
     let _guards = match ivm_tracing::init_logging() {
         Ok(guards) => guards,
         Err(e) => {
-            println!("Error initializing logging: {}", e);
+            eprintln!("Error initializing logging: {}", e);
             std::process::exit(1);
         }
     };
 
     if let Err(e) = Cli::run().await {
-        println!("Error: {}", e);
+        eprintln!("Error: {}", e);
         std::process::exit(1);
     }
 }
