@@ -17,7 +17,7 @@ runs:
       - name: Check sp1 version
         shell: bash
         run: |
-          sp1up
+          sp1up --version v3.3.0
           cargo prove --version
 
       - name: Install Foundry
