@@ -152,9 +152,10 @@ struct Opts {
     #[arg(long, default_value_t = MAX_DA_PER_JOB)]
     max_da_per_job: usize,
 
-    /// Disable the event event listener. The node will not be able to pick up jobs with the event listener.
+    /// Disable the event event listener. The node will not be able to pick up jobs with the event
+    /// listener.
     #[arg(long)]
-    disable_events: bool
+    disable_events: bool,
 }
 
 impl Opts {

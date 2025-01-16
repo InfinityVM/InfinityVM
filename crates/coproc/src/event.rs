@@ -23,10 +23,9 @@ use reth_db::Database;
 use std::sync::Arc;
 use tokio::{
     sync::mpsc::Sender,
-    task::JoinHandle,
     time::{sleep, Duration},
 };
-use tracing::{debug, error};
+use tracing::{debug, error, warn};
 
 const SUBMIT_JOB_RETRIES: usize = 4;
 const SUBMIT_JOB_BACKOFF_BASE_MS: usize = 500;
@@ -60,9 +59,10 @@ pub struct JobEventListener<S, D> {
     writer_tx: Sender<WriterMsg>,
 }
 
-// pub async fn noop_run() -> Result<JoinHandle<Result<(), Error>>, Error> {
-//     Ok(())
-// }
+/// Function with the same signature `JobEventListener::run`, but does not do anything.
+pub async fn noop_run() -> Result<(), Error> {
+    Ok(())
+}
 
 impl<S, D> JobEventListener<S, D>
 where
@@ -82,7 +82,7 @@ where
     }
 
     /// Run the job event listener
-    pub async fn run(&self) -> Result<JoinHandle<Result<(), Error>>, Error> {
+    pub async fn run(&self) -> Result<(), Error> {
         let mut last_seen_block = self.from_block.as_number().unwrap_or_default();
         let last_saved_height = self.get_last_block_height_or_0().await;
         if last_saved_height > last_seen_block {
@@ -104,7 +104,7 @@ where
                             provider_retry += 1;
                             debug!(?sleep_millis, "retrying creating ws connection to rpc");
                         } else {
-                            error!(?sleep_millis, "retrying creating ws connection to rpc");
+                            warn!(?sleep_millis, "retrying creating ws connection to rpc");
                         }
                         continue;
                     }
@@ -116,7 +116,7 @@ where
                 // get latest block
                 let latest_block = match provider.get_block_number().await {
                     Err(error) => {
-                        error!(?error, "error getting latest block number");
+                        warn!(?error, "error getting latest block number");
                         break;
                     }
                     Ok(num) => num,
