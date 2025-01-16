@@ -141,9 +141,9 @@ where
     let metrics = Arc::new(Metrics::new(&registry));
     let metric_server = MetricServer::new(registry.clone());
 
-    // Start prometheus server
-    let prometheus_server = tokio::spawn(async move {
-        info!("📊 prometheus server listening on {}", prom_addr);
+    // Start endpoint for prometheus metrics
+    let metrics_endpoint = tokio::spawn(async move {
+        info!("📊 prometheus metrics endpoint on {}", prom_addr);
         metric_server.serve(&prom_addr.to_string()).await
     });
 
@@ -260,7 +260,7 @@ where
     let result = try_join!(
         flatten(job_event_listener),
         flatten(grpc_server),
-        flatten(prometheus_server),
+        flatten(metrics_endpoint),
         flatten(http_grpc_gateway_server),
         flatten(relay_retry),
         flatten(threads)
