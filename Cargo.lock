@@ -4741,6 +4741,7 @@ dependencies = [
  "reth-db",
  "serde",
  "thiserror 1.0.69",
+ "tikv-jemallocator",
  "tokio",
  "tonic",
  "tonic-reflection",
@@ -4899,7 +4900,9 @@ name = "ivm-tracing"
 version = "0.0.1"
 dependencies = [
  "dotenvy",
+ "eyre",
  "strum 0.26.3",
+ "tracing",
  "tracing-appender",
  "tracing-subscriber",
 ]

@@ -12,7 +12,6 @@ use alloy::{
 };
 use clap::Parser;
 use k256::ecdsa::SigningKey;
-use tracing::instrument;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 const ENV_ZKVM_OPERATOR_PRIVATE_KEY: &str = "ZKVM_OPERATOR_PRIVATE_KEY";
@@ -151,6 +150,11 @@ struct Opts {
     /// block.
     #[arg(long, default_value_t = MAX_DA_PER_JOB)]
     max_da_per_job: usize,
+
+    /// Disable the event listener. The node will not be able to pick up jobs with the event
+    /// listener.
+    #[arg(long)]
+    disable_events: bool,
 }
 
 impl Opts {
@@ -182,7 +186,6 @@ pub struct Cli;
 
 impl Cli {
     /// Run the CLI
-    #[instrument]
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
@@ -213,6 +216,7 @@ impl Cli {
             job_sync_start: opts.job_sync_start,
             max_da_per_job: opts.max_da_per_job,
             unsafe_skip_program_id_check: false,
+            disable_events: opts.disable_events,
         };
 
         node::run(config).await.map_err(Into::into)
