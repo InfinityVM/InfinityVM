@@ -55,7 +55,7 @@ jobs:
             crates/coprocessor-node/**
           FILES:  |
             .github/workflows/docker-coproc.yml
-            Dockerfile.coprocessor-node
+            Dockerfile.coproc
 
       - name: Docker Metadata Pull
         id: meta
@@ -77,7 +77,7 @@ jobs:
         if: env.GIT_DIFF || github.event_name == 'workflow_dispatch'
         with:
           context: .
-          file: Dockerfile.coprocessor-node
+          file: Dockerfile.coproc
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

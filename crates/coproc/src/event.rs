@@ -26,7 +26,7 @@ use tokio::{
     task::JoinHandle,
     time::{sleep, Duration},
 };
-use tracing::error;
+use tracing::{debug, error};
 
 const SUBMIT_JOB_RETRIES: usize = 4;
 const SUBMIT_JOB_BACKOFF_BASE_MS: usize = 500;
@@ -59,6 +59,10 @@ pub struct JobEventListener<S, D> {
     db: Arc<D>,
     writer_tx: Sender<WriterMsg>,
 }
+
+// pub async fn noop_run() -> Result<JoinHandle<Result<(), Error>>, Error> {
+//     Ok(())
+// }
 
 impl<S, D> JobEventListener<S, D>
 where
@@ -98,8 +102,10 @@ where
                         sleep(Duration::from_millis(sleep_millis)).await;
                         if sleep_millis < self.ws_config.backoff_limit_ms {
                             provider_retry += 1;
+                            debug!(?sleep_millis, "retrying creating ws connection to rpc");
+                        } else {
+                            error!(?sleep_millis, "retrying creating ws connection to rpc");
                         }
-                        error!(?sleep_millis, "retrying creating ws connection");
                         continue;
                     }
                 }

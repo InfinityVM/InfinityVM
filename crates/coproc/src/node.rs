@@ -107,6 +107,8 @@ pub struct NodeConfig<D> {
     /// WARNING: this should never be set to true in production.
     /// Do not check program IDs when accepting ELFS.
     pub unsafe_skip_program_id_check: bool,
+    /// Disable the event listener. The node will not be able to pick up jobs from events.
+    pub disable_events: bool
 }
 
 /// Run the coprocessor node.
@@ -127,6 +129,7 @@ pub async fn run<D>(
         job_sync_start,
         max_da_per_job,
         unsafe_skip_program_id_check,
+        disable_events
     }: NodeConfig<D>,
 ) -> Result<(), Error>
 where
@@ -210,20 +213,24 @@ where
         http_eth_rpc.parse()?,
     );
 
-    let job_event_listener = {
-        // Configure the job listener
-        let job_event_listener = JobEventListener::new(
-            job_manager_address,
-            intake.clone(),
-            job_sync_start,
-            ws_config,
-            db.clone(),
-            writer_tx.clone(),
-        );
-
-        // Run the job listener
-        tokio::spawn(async move { job_event_listener.run().await })
-    };
+    let job_event_listener = 
+        if !disable_events {
+            // Configure the job listener
+            let job_event_listener = JobEventListener::new(
+                job_manager_address,
+                intake.clone(),
+                job_sync_start,
+                ws_config,
+                db.clone(),
+                writer_tx.clone(),
+            );
+    
+            // Run the job listener
+            tokio::spawn(async move { job_event_listener.run().await })
+        } else {
+            unimplemented!();
+            // tokio::spawn(async move { event::noop_run().await })
+        };
 
     let grpc_server = {
         let reflector = tonic_reflection::server::Builder::configure()

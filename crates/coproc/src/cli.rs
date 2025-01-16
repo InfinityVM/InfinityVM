@@ -151,6 +151,10 @@ struct Opts {
     /// block.
     #[arg(long, default_value_t = MAX_DA_PER_JOB)]
     max_da_per_job: usize,
+
+    /// Disable the event event listener. The node will not be able to pick up jobs with the event listener.
+    #[arg(long)]
+    disable_events: bool
 }
 
 impl Opts {
@@ -213,6 +217,7 @@ impl Cli {
             job_sync_start: opts.job_sync_start,
             max_da_per_job: opts.max_da_per_job,
             unsafe_skip_program_id_check: false,
+            disable_events: opts.disable_events,
         };
 
         node::run(config).await.map_err(Into::into)
