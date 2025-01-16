@@ -8,7 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["reqwest", "provider-ws", "signer-local", "rpc-types", "asm-keccak"] }
+alloy = { workspace = true, features = ["reqwest", "provider-ws", "signer-local", "rpc-types", "asm-keccak", "map-foldhash"] }
 tonic = { workspace = true }
 tonic-reflection = { workspace = true }
 tokio = { workspace = true }
@@ -42,10 +42,9 @@ ivm-test-utils = { workspace = true }
 ivm-mock-consumer = { workspace = true }
 
 [features]
-default = ["min-info-logs", "jemalloc", "asm-keccak"]
+default = ["min-info-logs", "jemalloc"]
 
 jemalloc = ["dep:tikv-jemallocator"]
-asm-keccak = ["alloy/asm-keccak"]
 
 min-error-logs = ["tracing/release_max_level_error"]
 min-warn-logs = ["tracing/release_max_level_warn"]

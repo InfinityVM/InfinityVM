@@ -187,7 +187,6 @@ pub struct Cli;
 
 impl Cli {
     /// Run the CLI
-    #[instrument]
     pub async fn run() -> Result<(), Error> {
         let opts = Opts::parse();
 
