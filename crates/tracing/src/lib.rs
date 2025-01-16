@@ -68,7 +68,7 @@ pub fn init_logging() -> eyre::Result<Vec<WorkerGuard>> {
         COPROC_LOG_FORMAT_FILE = env_log_format_file,
         COPROC_LOG_FORMAT_STDOUT = env_log_format_stdout,
         RUST_LOG = env::var("RUST_LOG").unwrap_or_default(),
-        "Logging options configured via env vars: "
+        "Found tracing env: "
     );
 
     Ok(guards)
