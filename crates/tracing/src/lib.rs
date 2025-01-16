@@ -63,11 +63,11 @@ pub fn init_logging() -> eyre::Result<Vec<WorkerGuard>> {
     tracing_subscriber::registry().with(layers).try_init()?;
 
     tracing::info!(
-        COPROC_LOG_FILE=env_log_file,
-        COPROC_LOG_DIR=env_log_dir,
-        COPROC_LOG_FORMAT_FILE=env_log_format_file,
-        COPROC_LOG_FORMAT_STDOUT=env_log_format_stdout,
-        RUST_LOG=env::var("RUST_LOG").unwrap_or_default(),
+        COPROC_LOG_FILE = env_log_file,
+        COPROC_LOG_DIR = env_log_dir,
+        COPROC_LOG_FORMAT_FILE = env_log_format_file,
+        COPROC_LOG_FORMAT_STDOUT = env_log_format_stdout,
+        RUST_LOG = env::var("RUST_LOG").unwrap_or_default(),
         "Logging options configured via env vars: "
     );
 
