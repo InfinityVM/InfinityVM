@@ -4901,6 +4901,7 @@ version = "0.0.1"
 dependencies = [
  "dotenvy",
  "strum 0.26.3",
+ "tracing",
  "tracing-appender",
  "tracing-subscriber",
 ]

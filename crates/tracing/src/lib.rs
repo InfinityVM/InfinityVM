@@ -54,13 +54,22 @@ pub fn init_logging() -> Result<Vec<WorkerGuard>, Box<dyn std::error::Error>> {
         vec![apply_layer_format(&log_format_stdout, stdout_writer)];
 
     if !env_log_file.is_empty() {
-        let appender = RollingFileAppender::new(Rotation::NEVER, env_log_dir, env_log_file);
+        let appender = RollingFileAppender::new(Rotation::NEVER, &env_log_dir, &env_log_file);
         let (file_writer, file_guard) = tracing_appender::non_blocking(appender);
         guards.push(file_guard);
         layers.push(apply_layer_format(&log_format_file, file_writer));
     }
 
     tracing_subscriber::registry().with(layers).try_init()?;
+
+    tracing::info!(
+        COPROC_LOG_FILE=env_log_file,
+        COPROC_LOG_DIR=env_log_dir,
+        COPROC_LOG_FORMAT_FILE=env_log_format_file,
+        COPROC_LOG_FORMAT_STDOUT=env_log_format_stdout,
+        RUST_LOG=env::var("RUST_LOG").unwrap_or_default(),
+        "Logging options configured via env vars: "
+    );
 
     Ok(guards)
 }

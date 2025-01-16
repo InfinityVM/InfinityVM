@@ -12,7 +12,6 @@ use alloy::{
 };
 use clap::Parser;
 use k256::ecdsa::SigningKey;
-use tracing::instrument;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 const ENV_ZKVM_OPERATOR_PRIVATE_KEY: &str = "ZKVM_OPERATOR_PRIVATE_KEY";
