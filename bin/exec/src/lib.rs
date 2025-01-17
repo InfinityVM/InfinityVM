@@ -68,8 +68,7 @@ impl IvmNode {
         Self { transaction_allow }
     }
 
-    /// Returns a [`ComponentsBuilder`](reth_node_builder::components::ComponentsBuilder)
-    /// configured for an IVM node.
+    /// Returns a [`ComponentsBuilder`] configured for an IVM node.
     pub fn components<Node>(
         &self,
     ) -> ComponentsBuilder<
