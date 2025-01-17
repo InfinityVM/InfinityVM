@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use alloy_rpc_types::Header;
+use alloy_consensus::Header;
 use reth_chainspec::ChainSpec;
 use reth_ethereum_engine_primitives::{EthBuiltPayload, EthPayloadBuilderAttributes};
 use reth_ethereum_payload_builder::{default_ethereum_payload, EthereumBuilderConfig};
@@ -15,7 +15,6 @@ use reth_node_api::{PayloadBuilderAttributes, PayloadBuilderError};
 use reth_basic_payload_builder::PayloadBuilder;
 
 use crate::evm::IvmEvmConfig;
-
 
 type BestTransactionsIter<Pool> = Box<
     dyn BestTransactions<Item = Arc<ValidPoolTransaction<<Pool as TransactionPool>::Transaction>>>,
@@ -120,5 +119,3 @@ where
         .ok_or_else(|| PayloadBuilderError::MissingPayload)
     }
 }
-
-
