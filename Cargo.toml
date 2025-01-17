@@ -136,6 +136,9 @@ alloy-provider = { version = "0.9.2" }
 alloy-primitives = { version = "0.8.15", default-features = false, features = [
     "map-foldhash",
 ] }
+alloy-sol-types = { version = "0.8.18" }
+alloy-contract = { version = "0.9.2" }
+
 
 # b
 bincode = { version = "1", default-features = false }

@@ -56,7 +56,8 @@ alloy-genesis = { workspace = true }
 alloy-rpc-types-engine = { workspace = true }
 alloy-provider = { workspace = true }
 ivm-test-utils = { workspace = true }
-
+alloy-sol-types = { workspace = true }
+alloy-contract = { workspace = true }
 
 [features]
 default = ["min-trace-logs", "asm-keccak", "jemalloc"]
