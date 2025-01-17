@@ -16,7 +16,7 @@ use alloy::{
     signers::{Signer, SignerSync},
     transports::http::reqwest::Url,
 };
-use dashmap::DashMap;
+use dashmap::{DashMap, Entry};
 use ivm_db::{get_elf_sync, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
@@ -114,7 +114,7 @@ where
             writer_tx,
             unsafe_skip_program_id_check,
             execution_actor_spawner,
-            active_actors: Arc::new(DashMap::new()),
+            active_actors: Default::default(),
             http_eth_rpc,
         }
     }
@@ -147,26 +147,31 @@ where
         let consumer_address: [u8; 20] =
             job.consumer_address.clone().try_into().expect("caller must validate address length.");
 
-        let execution_tx = if !self.active_actors.contains_key(&consumer_address) {
-            // Get the latest nonce to initialize the execution actor with
+        // We do an optimistic check to reduce entry lock contention.
+        let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
+            inner.clone()
+        } else {
             let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
             let consumer =
                 ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
-            // This is the next nonce; since we expect contracts to be initialized with nonce 0, the
-            // first nonce should be 1.
+            // This is the next nonce; since we expect contracts to be initialized with
+            // nonce 0, the first nonce should be 1.
             let nonce = consumer.getNextNonce().call().await?._0;
 
-            let execution_tx = self.execution_actor_spawner.spawn(nonce);
-            self.active_actors.insert(consumer_address, execution_tx.clone());
-            execution_tx
-        } else {
-            self.active_actors
-                .get(&consumer_address)
-                .expect("we checked above that the entry exists. qed.")
-                .clone()
+            match self.active_actors.entry(consumer_address) {
+                Entry::Occupied(e) => e.get().clone(),
+                Entry::Vacant(e) => {
+                    // ATTENTION: No async allowed while an entry lock is held.
+                    let execution_tx = self.execution_actor_spawner.spawn(nonce);
+                    e.insert(execution_tx.clone());
+                    execution_tx
+                }
+            }
         };
 
         // Send the job to actor for processing
+        // NOTE: Once actor deletion is implemented, we need to avoid a
+        // race between sending the job & deleting the actor.
         execution_tx.send(job).await.expect("execution tx failed");
 
         // Before responding, make sure the write completes

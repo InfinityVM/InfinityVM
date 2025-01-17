@@ -107,6 +107,8 @@ pub struct NodeConfig<D> {
     /// WARNING: this should never be set to true in production.
     /// Do not check program IDs when accepting ELFS.
     pub unsafe_skip_program_id_check: bool,
+    /// Disable the event listener. The node will not be able to pick up jobs from events.
+    pub disable_events: bool,
 }
 
 /// Run the coprocessor node.
@@ -127,6 +129,7 @@ pub async fn run<D>(
         job_sync_start,
         max_da_per_job,
         unsafe_skip_program_id_check,
+        disable_events,
     }: NodeConfig<D>,
 ) -> Result<(), Error>
 where
@@ -141,9 +144,9 @@ where
     let metrics = Arc::new(Metrics::new(&registry));
     let metric_server = MetricServer::new(registry.clone());
 
-    // Start prometheus server
-    let prometheus_server = tokio::spawn(async move {
-        info!("📊 prometheus server listening on {}", prom_addr);
+    // Start endpoint for prometheus metrics
+    let metrics_endpoint = tokio::spawn(async move {
+        info!("📊 prometheus metrics endpoint on {}", prom_addr);
         metric_server.serve(&prom_addr.to_string()).await
     });
 
@@ -210,7 +213,7 @@ where
         http_eth_rpc.parse()?,
     );
 
-    let job_event_listener = {
+    let job_event_listener = if !disable_events {
         // Configure the job listener
         let job_event_listener = JobEventListener::new(
             job_manager_address,
@@ -223,6 +226,8 @@ where
 
         // Run the job listener
         tokio::spawn(async move { job_event_listener.run().await })
+    } else {
+        tokio::spawn(async move { event::noop_run().await })
     };
 
     let grpc_server = {
@@ -251,7 +256,7 @@ where
     let threads = tokio::spawn(async {
         loop {
             if writer_handle.is_finished() {
-                return writer_handle.join().map_err(Error::StdJoin)
+                return writer_handle.join().map_err(Error::StdJoin);
             }
             tokio::time::sleep(Duration::from_secs(10)).await;
         }
@@ -260,7 +265,7 @@ where
     let result = try_join!(
         flatten(job_event_listener),
         flatten(grpc_server),
-        flatten(prometheus_server),
+        flatten(metrics_endpoint),
         flatten(http_grpc_gateway_server),
         flatten(relay_retry),
         flatten(threads)

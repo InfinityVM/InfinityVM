@@ -35,6 +35,19 @@ ivm-zkvm-executor = { workspace = true }
 ivm-tracing = { workspace = true }
 ivm-eip4844 = { workspace = true }
 
+tikv-jemallocator = { version = "0.6", optional = true }
+
 [dev-dependencies]
 ivm-test-utils = { workspace = true }
 ivm-mock-consumer = { workspace = true }
+
+[features]
+default = ["min-info-logs", "jemalloc"]
+
+jemalloc = ["dep:tikv-jemallocator"]
+
+min-error-logs = ["tracing/release_max_level_error"]
+min-warn-logs = ["tracing/release_max_level_warn"]
+min-info-logs = ["tracing/release_max_level_info"]
+min-debug-logs = ["tracing/release_max_level_debug"]
+min-trace-logs = ["tracing/release_max_level_trace"]

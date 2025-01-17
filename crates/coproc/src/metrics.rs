@@ -1,7 +1,7 @@
 //! Prometheus metrics registry wrapper and server.
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Router};
-use prometheus::{self, CounterVec, Encoder, Opts, Registry, TextEncoder};
+use prometheus::{self, Counter, CounterVec, Encoder, Opts, Registry, TextEncoder};
 use std::{fmt::Debug, sync::Arc};
 
 /// Custom prometheus metrics
@@ -9,6 +9,7 @@ use std::{fmt::Debug, sync::Arc};
 pub struct Metrics {
     job_errors: CounterVec,
     relay_errors: CounterVec,
+    relayed_total: Counter,
 }
 
 /// Metrics Server
@@ -24,10 +25,13 @@ impl Metrics {
         let relay_errors_opts = Opts::new("relay_errors_total", "Total relay errors");
         let job_errors = CounterVec::new(job_errors_opts, &["error_type"]).unwrap();
         let relay_errors = CounterVec::new(relay_errors_opts, &["error_type"]).unwrap();
+        let relayed_total = Counter::new("relayed_total", "Total number of jobs relayed").unwrap();
+
         registry.register(Box::new(job_errors.clone())).unwrap();
         registry.register(Box::new(relay_errors.clone())).unwrap();
+        registry.register(Box::new(relayed_total.clone())).unwrap();
 
-        Self { job_errors, relay_errors }
+        Self { job_errors, relay_errors, relayed_total }
     }
 
     /// Increment job errors counter
@@ -37,6 +41,10 @@ impl Metrics {
     /// Increment relayer errors counter
     pub fn incr_relay_err(&self, label: &str) {
         self.relay_errors.with_label_values(&[label]).inc();
+    }
+    /// Increment counter for total number of jobs relayed
+    pub fn incr_relayed_total(&self) {
+        self.relayed_total.inc();
     }
 }
 
