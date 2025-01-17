@@ -9,13 +9,39 @@ use reth_node_builder::{components::PoolBuilder, BuilderContext, FullNodeTypes};
 use reth_primitives::EthPrimitives;
 use reth_provider::CanonStateSubscriptions;
 use reth_transaction_pool::{
-    blobstore::DiskFileBlobStore, CoinbaseTipOrdering, EthPooledTransaction,
-    TransactionValidationTaskExecutor,
+    blobstore::DiskFileBlobStore, CoinbaseTipOrdering, EthPooledTransaction, PoolTransaction,
+    Priority, TransactionOrdering, TransactionValidationTaskExecutor,
 };
 use tracing::{debug, info};
 use validator::IvmTransactionValidatorBuilder;
 
 pub mod validator;
+
+/// Gassless ordering prioritizes any senders that are explicitly allowed. All explicitly allowed
+/// senders are prioritized equally. And all others are prioritized equally.
+#[derive(Debug)]
+pub struct GaslessOrdering {
+    allow_config: IvmTransactionAllowConfig,
+}
+
+impl TransactionOrdering for GaslessOrdering {
+    type PriorityValue = u32;
+    type Transaction = EthPooledTransaction;
+
+    /// Higher is better.
+    fn priority(
+        &self,
+        transaction: &Self::Transaction,
+        _base_fee: u64,
+    ) -> Priority<Self::PriorityValue> {
+        let sender = transaction.sender();
+        if self.allow_config.is_allowed_sender(&sender) {
+            Priority::Value(1)
+        } else {
+            Priority::Value(0)
+        }
+    }
+}
 
 /// Type describing the IVM transaction pool.
 pub type IvmTransactionPool<Client, S> = reth_transaction_pool::Pool<
@@ -61,12 +87,12 @@ where
                 ctx.provider().clone(),
                 ctx.task_executor().clone(),
                 blob_store.clone(),
-                allow_config,
+                allow_config.clone(),
             );
 
         let transaction_pool = reth_transaction_pool::Pool::new(
             txn_validator,
-            CoinbaseTipOrdering::default(),
+            GasslessOrdering { allow_config },
             blob_store,
             pool_config,
         );
