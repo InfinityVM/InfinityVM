@@ -3,6 +3,7 @@
 use crate::utils::eth_payload_attributes;
 use alloy_consensus::constants::MAINNET_GENESIS_HASH;
 use alloy_genesis::Genesis;
+use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types_engine::PayloadStatusEnum;
 use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmNode};
 use reth_chainspec::{ChainSpecBuilder, MAINNET};
@@ -26,8 +27,6 @@ use std::{collections::HashSet, sync::Arc};
 // - eth_sendRawTransaction with `node.api.envelope_by_hash`
 #[tokio::test]
 async fn can_handle_blobs() -> eyre::Result<()> {
-    // ivm_test_utils::test_tracing();
-
     let tasks = TaskManager::current();
     let exec = tasks.executor();
 
@@ -45,7 +44,6 @@ async fn can_handle_blobs() -> eyre::Result<()> {
         .with_unused_ports()
         .with_rpc(RpcServerArgs::default().with_unused_ports().with_http());
 
-    // TODO: use non-funded addresses
     let wallets = Wallet::new(2).gen();
     let blob_wallet = wallets.first().unwrap();
     let second_wallet = wallets.last().unwrap();
@@ -61,6 +59,25 @@ async fn can_handle_blobs() -> eyre::Result<()> {
         .launch()
         .await?;
     let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
+
+
+    // Show that neither account has balance
+    {
+        let rpc = ProviderBuilder::new()
+            .on_http(node.rpc_url());
+            // The account never gets created
+        let get_account_err = rpc.get_account(blob_wallet.address()).await.unwrap_err().to_string();
+        assert_eq!(
+            &get_account_err,
+            "deserialization error: invalid type: null, expected struct TrieAccount at line 1 column 4"
+        );
+        let get_account_err = rpc.get_account(second_wallet.address()).await.unwrap_err().to_string();
+        assert_eq!(
+            &get_account_err,
+            "deserialization error: invalid type: null, expected struct TrieAccount at line 1 column 4"
+        );
+    }
+
 
     // // inject normal tx
     let raw_tx = TransactionTestContext::transfer_tx_bytes(1, second_wallet.clone()).await;

@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::utils::{assert_unsupported_tx, eth_payload_attributes};
 use alloy_genesis::Genesis;
 use alloy_network::EthereumWallet;
-use alloy_primitives::{address, hex, U256};
+use alloy_primitives::{address, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmNode};
 use reth::args::RpcServerArgs;
@@ -30,8 +30,6 @@ alloy_sol_types::sol! {
 
 #[tokio::test]
 async fn denies_non_allowed_senders() -> eyre::Result<()> {
-    // ivm_test_utils::test_tracing();
-
     let tasks = TaskManager::current();
     let exec = tasks.executor();
 
