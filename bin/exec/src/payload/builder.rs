@@ -22,21 +22,21 @@ type BestTransactionsIter<Pool> = Box<
 
 /// Ethereum payload builder
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EthereumPayloadBuilder<EvmConfig = IvmEvmConfig> {
+pub struct IvmPayloadBuilder<EvmConfig = IvmEvmConfig> {
     /// The type responsible for creating the evm.
     evm_config: EvmConfig,
     /// Payload builder configuration.
     builder_config: EthereumBuilderConfig,
 }
 
-impl<EvmConfig> EthereumPayloadBuilder<EvmConfig> {
-    /// `EthereumPayloadBuilder` constructor.
+impl<EvmConfig> IvmPayloadBuilder<EvmConfig> {
+    /// `IvmPayloadBuilder` constructor.
     pub const fn new(evm_config: EvmConfig, builder_config: EthereumBuilderConfig) -> Self {
         Self { evm_config, builder_config }
     }
 }
 
-impl<EvmConfig> EthereumPayloadBuilder<EvmConfig>
+impl<EvmConfig> IvmPayloadBuilder<EvmConfig>
 where
     EvmConfig: ConfigureEvm<Header = Header>,
 {
@@ -58,7 +58,7 @@ where
 }
 
 // Default implementation of [PayloadBuilder] for unit type
-impl<EvmConfig, Pool, Client> PayloadBuilder<Pool, Client> for EthereumPayloadBuilder<EvmConfig>
+impl<EvmConfig, Pool, Client> PayloadBuilder<Pool, Client> for IvmPayloadBuilder<EvmConfig>
 where
     EvmConfig: ConfigureEvm<Header = Header, Transaction = TransactionSigned>,
     Client: StateProviderFactory + ChainSpecProvider<ChainSpec = ChainSpec>,

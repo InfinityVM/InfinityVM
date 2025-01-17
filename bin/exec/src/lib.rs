@@ -2,7 +2,7 @@
 
 use crate::engine::IvmEngineValidatorBuilder;
 use evm::IvmExecutorBuilder;
-use payload::IvmPayloadBuilder;
+use payload::IvmPayloadServiceBuilder;
 use pool::{validator::IvmTransactionAllowConfig, IvmPoolBuilder};
 use reth_chainspec::ChainSpec;
 use reth_ethereum_engine_primitives::{
@@ -74,7 +74,7 @@ impl IvmNode {
     ) -> ComponentsBuilder<
         Node,
         IvmPoolBuilder,
-        IvmPayloadBuilder,
+        IvmPayloadServiceBuilder,
         EthereumNetworkBuilder,
         IvmExecutorBuilder,
         EthereumConsensusBuilder,
@@ -92,7 +92,7 @@ impl IvmNode {
         EthereumNode::components()
             .pool(pool_builder)
             .executor(IvmExecutorBuilder)
-            .payload(IvmPayloadBuilder::default())
+            .payload(IvmPayloadServiceBuilder::default())
     }
 }
 
@@ -114,7 +114,7 @@ where
     type ComponentsBuilder = ComponentsBuilder<
         N,
         IvmPoolBuilder,
-        IvmPayloadBuilder,
+        IvmPayloadServiceBuilder,
         EthereumNetworkBuilder,
         IvmExecutorBuilder,
         EthereumConsensusBuilder,
