@@ -8,8 +8,6 @@ use reth_node_builder::{components::PayloadServiceBuilder, BuilderContext};
 use reth_node_ethereum::node::EthereumPayloadBuilder;
 use reth_primitives::{EthPrimitives, TransactionSigned};
 use reth_transaction_pool::{PoolTransaction, TransactionPool};
-
-
 use crate::evm::IvmEvmConfig;
 
 pub mod builder;

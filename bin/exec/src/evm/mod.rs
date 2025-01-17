@@ -33,7 +33,7 @@ impl IvmEvmConfig {
 }
 
 impl ConfigureEvmEnv for IvmEvmConfig {
-    type Header = Header;
+    type Header = alloy_consensus::Header;
     type Transaction = TransactionSigned;
 
     type Error = Infallible;

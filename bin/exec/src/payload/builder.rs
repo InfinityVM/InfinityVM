@@ -3,12 +3,16 @@
 use std::sync::Arc;
 
 use alloy_rpc_types::Header;
-use reth_ethereum_engine_primitives::EthPayloadBuilderAttributes;
-use reth_ethereum_payload_builder::EthereumBuilderConfig;
+use reth_chainspec::ChainSpec;
+use reth_ethereum_engine_primitives::{EthBuiltPayload, EthPayloadBuilderAttributes};
+use reth_ethereum_payload_builder::{default_ethereum_payload, EthereumBuilderConfig};
 use reth_evm::{env::EvmEnv, ConfigureEvm, NextBlockEnvAttributes};
-use reth_transaction_pool::{BestTransactions, TransactionPool, ValidPoolTransaction};
-use reth_basic_payload_builder::PayloadConfig;
-use reth_node_api::PayloadBuilderAttributes;
+use reth_primitives::TransactionSigned;
+use reth_provider::{ChainSpecProvider, StateProviderFactory};
+use reth_transaction_pool::{noop::NoopTransactionPool, BestTransactions, PoolTransaction, TransactionPool, ValidPoolTransaction};
+use reth_basic_payload_builder::{BuildArguments, BuildOutcome, PayloadConfig};
+use reth_node_api::{PayloadBuilderAttributes, PayloadBuilderError};
+use reth_basic_payload_builder::PayloadBuilder;
 
 use crate::evm::IvmEvmConfig;
 
@@ -53,4 +57,68 @@ where
         self.evm_config.next_cfg_and_block_env(parent, next_attributes)
     }
 }
+
+// Default implementation of [PayloadBuilder] for unit type
+impl<EvmConfig, Pool, Client> PayloadBuilder<Pool, Client> for EthereumPayloadBuilder<EvmConfig>
+where
+    EvmConfig: ConfigureEvm<Header = Header, Transaction = TransactionSigned>,
+    Client: StateProviderFactory + ChainSpecProvider<ChainSpec = ChainSpec>,
+    Pool: TransactionPool<Transaction: PoolTransaction<Consensus = TransactionSigned>>,
+{
+    type Attributes = EthPayloadBuilderAttributes;
+    type BuiltPayload = EthBuiltPayload;
+
+    fn try_build(
+        &self,
+        args: BuildArguments<Pool, Client, EthPayloadBuilderAttributes, EthBuiltPayload>,
+    ) -> Result<BuildOutcome<EthBuiltPayload>, PayloadBuilderError> {
+        let EvmEnv { cfg_env_with_handler_cfg, block_env } = self
+            .cfg_and_block_env(&args.config, &args.config.parent_header)
+            .map_err(PayloadBuilderError::other)?;
+
+        let pool = args.pool.clone();
+        default_ethereum_payload(
+            self.evm_config.clone(),
+            self.builder_config.clone(),
+            args,
+            cfg_env_with_handler_cfg,
+            block_env,
+            |attributes| pool.best_transactions_with_attributes(attributes),
+        )
+    }
+
+    fn build_empty_payload(
+        &self,
+        client: &Client,
+        config: PayloadConfig<Self::Attributes>,
+    ) -> Result<EthBuiltPayload, PayloadBuilderError> {
+        let args = BuildArguments::new(
+            client,
+            // we use defaults here because for the empty payload we don't need to execute anything
+            NoopTransactionPool::default(),
+            Default::default(),
+            config,
+            Default::default(),
+            None,
+        );
+
+        let EvmEnv { cfg_env_with_handler_cfg, block_env } = self
+            .cfg_and_block_env(&args.config, &args.config.parent_header)
+            .map_err(PayloadBuilderError::other)?;
+
+        let pool = args.pool.clone();
+
+        default_ethereum_payload(
+            self.evm_config.clone(),
+            self.builder_config.clone(),
+            args,
+            cfg_env_with_handler_cfg,
+            block_env,
+            |attributes| pool.best_transactions_with_attributes(attributes),
+        )?
+        .into_payload()
+        .ok_or_else(|| PayloadBuilderError::MissingPayload)
+    }
+}
+
 
