@@ -60,24 +60,22 @@ async fn can_handle_blobs() -> eyre::Result<()> {
         .await?;
     let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
 
-
     // Show that neither account has balance
     {
-        let rpc = ProviderBuilder::new()
-            .on_http(node.rpc_url());
-            // The account never gets created
+        let rpc = ProviderBuilder::new().on_http(node.rpc_url());
+        // The account never gets created
         let get_account_err = rpc.get_account(blob_wallet.address()).await.unwrap_err().to_string();
         assert_eq!(
             &get_account_err,
             "deserialization error: invalid type: null, expected struct TrieAccount at line 1 column 4"
         );
-        let get_account_err = rpc.get_account(second_wallet.address()).await.unwrap_err().to_string();
+        let get_account_err =
+            rpc.get_account(second_wallet.address()).await.unwrap_err().to_string();
         assert_eq!(
             &get_account_err,
             "deserialization error: invalid type: null, expected struct TrieAccount at line 1 column 4"
         );
     }
-
 
     // // inject normal tx
     let raw_tx = TransactionTestContext::transfer_tx_bytes(1, second_wallet.clone()).await;
