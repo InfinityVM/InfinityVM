@@ -16,15 +16,12 @@ use reth_tasks::TaskManager;
 use reth_transaction_pool::TransactionPool;
 use std::{collections::HashSet, sync::Arc};
 
-// TODO
-// - check that only 6 blobs allowed
-
 // This test shows that we can construct payloads that reference blobs, the payload can be added
 // to the fork, and then the payload can be removed and the blob tx will be valid in the mempool
 //
 // RPCs implicitly tested:
 // - debug_getRawTransaction with `node.api.envelope_by_hash`
-// - eth_sendRawTransaction with `node.api.envelope_by_hash`
+// - eth_sendRawTransaction with `node.api.inject_tx`
 #[tokio::test]
 async fn can_handle_blobs() -> eyre::Result<()> {
     let tasks = TaskManager::current();
