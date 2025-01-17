@@ -17,7 +17,7 @@ use validator::IvmTransactionValidatorBuilder;
 
 pub mod validator;
 
-/// Gassless ordering prioritizes any senders that are explicitly allowed. All explicitly allowed
+/// Gasless ordering prioritizes any senders that are explicitly allowed. All explicitly allowed
 /// senders are prioritized equally. And all others are prioritized equally.
 #[derive(Debug)]
 pub struct GaslessOrdering {
