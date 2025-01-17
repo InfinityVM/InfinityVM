@@ -31,7 +31,6 @@ fn main() {
             let ivm_node = IvmNode::new(transaction_allow);
 
             let handle = builder
-                // TODO: check this works with add ons and components
                 .node(ivm_node)
                 .launch_with_fn(|launch_builder| {
                     let launcher = EngineNodeLauncher::new(
