@@ -25,14 +25,16 @@ pub mod validator;
 /// Based on the reth pool docs we expect that if any two transactions have the same priority score,
 /// then the transaction in the pool longer takes precedence.
 ///
-/// The caveat is that, based on a close reading though of the reth code and our logic, transactions
+/// Based on a close reading of reth logic, a major caveat is that transactions
 /// with a base fee lower then the current base fee will not be considered. See
 /// [`best_with_basefee_and_blobfee`](https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L112`).
 ///
 /// Below are some details on the reth code that interacts with prioritizing:
 ///
 /// The way priority works in the reth pool is that all pending transactions are stored with their
-/// "ordering": ```
+/// "ordering":
+///
+/// ```
 /// /// A transaction that is ready to be included in a block.
 /// #[derive(Debug)]
 /// pub(crate) struct PendingTransaction<T: TransactionOrdering> {
@@ -44,10 +46,10 @@ pub mod validator;
 ///     pub(crate) priority: Priority<T::PriorityValue>,
 /// }
 /// ```
-/// 
-/// When we go to get the "best" transactions, we collect all the transactions that can be included right now (are
-/// not dependent on other transactions) into a BTreeSet. Their ordering in the BTreeSet is dictated by
-/// their priority (`TransactionOrdering`):
+///
+/// When we go to get the "best" transactions, we collect all the transactions that can be included
+/// right now (are not dependent on other transactions) into a BTreeSet. Their ordering in the
+/// BTreeSet is dictated by their priority (`TransactionOrdering`):
 /// ```
 /// // As defined on PendingPool<T>
 /// pub(crate) fn best(&self) -> BestTransactions<T> {
@@ -61,9 +63,25 @@ pub mod validator;
 ///     }
 /// }
 /// ```
-/// Importantly, the docs for `best` note that: "If two transactions have the same priority score, then the
-/// transactions which spent more time in pool (were added earlier) are returned first."
+/// Importantly, the docs for `best` note that: "If two transactions have the same priority score,
+/// then the transactions which spent more time in pool (were added earlier) are returned first."
 /// See: https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L93
+///
+/// We can see this is due to the `Ord` impl on `PendingTransaction`
+///
+/// ```
+/// impl<T: TransactionOrdering> Ord for PendingTransaction<T> {
+///    fn cmp(&self, other: &Self) -> Ordering {
+///        // This compares by `priority` and only if two tx have the exact same priority this compares
+///        // the unique `submission_id`. This ensures that transactions with same priority are not
+///        // equal, so they're not replaced in the set
+///       self.priority
+///           .cmp(&other.priority)
+///            .then_with(|| other.submission_id.cmp(&self.submission_id))
+///    }
+/// }
+/// ```
+/// See https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L592-L601
 #[derive(Debug)]
 pub struct GaslessOrdering {
     allow_config: IvmTransactionAllowConfig,
