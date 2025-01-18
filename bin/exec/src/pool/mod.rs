@@ -3,14 +3,15 @@
 
 use crate::pool::validator::{IvmTransactionAllowConfig, IvmTransactionValidator};
 
+use alloy_primitives::U256;
 use reth_chainspec::ChainSpec;
 use reth_node_api::NodeTypes;
 use reth_node_builder::{components::PoolBuilder, BuilderContext, FullNodeTypes};
 use reth_primitives::EthPrimitives;
 use reth_provider::CanonStateSubscriptions;
 use reth_transaction_pool::{
-    blobstore::DiskFileBlobStore, EthPooledTransaction, PoolTransaction,
-    Priority, TransactionOrdering, TransactionValidationTaskExecutor,
+    blobstore::DiskFileBlobStore, EthPooledTransaction, PoolTransaction, Priority,
+    TransactionOrdering, TransactionValidationTaskExecutor,
 };
 use tracing::{debug, info};
 use validator::IvmTransactionValidatorBuilder;
@@ -19,9 +20,59 @@ pub mod validator;
 
 /// Gasless ordering prioritizes any senders that are explicitly allowed. All explicitly allowed
 /// senders are prioritized equally. And all others are prioritized equally.
+///
+/// The way this works in practice rests heavily on the implementation of the reth pool components.
+/// Based on the reth pool docs we expect that if any two transactions have the same priority score,
+/// then the transaction in the pool longer takes precedence.
+///
+/// The caveat is that, based on a close reading though of the reth code and our logic, transactions
+/// with a base fee lower then the current base fee will not be considered. See
+/// [`best_with_basefee_and_blobfee`](https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L112`).
+///
+/// Below are some details on the reth code that interacts with prioritizing:
+///
+/// The way priority works in the reth pool is that all pending transactions are stored with their
+/// "ordering": ```
+/// /// A transaction that is ready to be included in a block.
+/// #[derive(Debug)]
+/// pub(crate) struct PendingTransaction<T: TransactionOrdering> {
+///     /// Identifier that tags when transaction was submitted in the pool.
+///     pub(crate) submission_id: u64,
+///     /// Actual transaction.
+///     pub(crate) transaction: Arc<ValidPoolTransaction<T::Transaction>>,
+///     /// The priority value assigned by the used `Ordering` function.
+///     pub(crate) priority: Priority<T::PriorityValue>,
+/// }
+/// ```
+/// 
+/// When we go to get the "best" transactions, we collect all the transactions that can be included right now (are
+/// not dependent on other transactions) into a BTreeSet. Their ordering in the BTreeSet is dictated by
+/// their priority (`TransactionOrdering`):
+/// ```
+/// // As defined on PendingPool<T>
+/// pub(crate) fn best(&self) -> BestTransactions<T> {
+///     BestTransactions {
+///         all: self.by_id.clone(),
+///         // Collect into BTreeSet
+///         independent: self.independent_transactions.values().cloned().collect(),
+///         invalid: Default::default(),
+///         new_transaction_receiver: Some(self.new_transaction_notifier.subscribe()),
+///         skip_blobs: false,
+///     }
+/// }
+/// ```
+/// Importantly, the docs for `best` note that: "If two transactions have the same priority score, then the
+/// transactions which spent more time in pool (were added earlier) are returned first."
+/// See: https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L93
 #[derive(Debug)]
 pub struct GaslessOrdering {
     allow_config: IvmTransactionAllowConfig,
+}
+
+impl GaslessOrdering {
+    fn new(allow_config: IvmTransactionAllowConfig) -> Self {
+        Self { allow_config }
+    }
 }
 
 impl TransactionOrdering for GaslessOrdering {
@@ -92,7 +143,7 @@ where
 
         let transaction_pool = reth_transaction_pool::Pool::new(
             txn_validator,
-            GaslessOrdering { allow_config },
+            GaslessOrdering::new(allow_config),
             blob_store,
             pool_config,
         );
