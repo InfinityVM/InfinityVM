@@ -8,12 +8,23 @@ use reth_node_builder::{engine_tree_config::TreeConfig, EngineNodeLauncher};
 
 const IVM_CONFIG_FILE: &str = "ivm_config.toml";
 
+const GIT_SHA: &str = env!("VERGEN_GIT_SHA", "vergen build time git sha missing.");
+const GIT_BRANCH: &str = env!("VERGEN_GIT_BRANCH", "vergen build time git branch missing.");
+const GIT_DESCRIBE: &str = env!("VERGEN_GIT_DESCRIBE", "vergen build time git describe missing.");
+
 #[global_allocator]
 static ALLOC: reth_cli_util::allocator::Allocator = reth_cli_util::allocator::new_allocator();
 
 fn main() {
     if let Err(err) =
         Cli::<EthereumChainSpecParser, IvmCliExt>::parse().run(|builder, args| async move {
+            tracing::info!(
+                "ivm-exec git build info: sha={} describe={} branch={}",
+                GIT_SHA,
+                GIT_DESCRIBE,
+                GIT_BRANCH
+            );
+
             let transaction_allow = if args.allow_all {
                 tracing::warn!("IVM Configuration overridden, all transactions will be allowed");
                 IvmTransactionAllowConfig::with_all()

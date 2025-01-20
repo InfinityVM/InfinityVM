@@ -59,6 +59,9 @@ ivm-test-utils = { workspace = true }
 alloy-sol-types = { workspace = true }
 alloy-contract = { workspace = true }
 
+[build-dependencies]
+vergen-git2 = { workspace = true }
+
 [features]
 default = ["min-trace-logs", "asm-keccak", "jemalloc"]
 
