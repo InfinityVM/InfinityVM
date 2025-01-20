@@ -4778,6 +4778,7 @@ dependencies = [
  "tonic-reflection",
  "tracing",
  "url",
+ "vergen-git2",
 ]
 
 [[package]]
