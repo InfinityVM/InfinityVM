@@ -18,8 +18,7 @@ const ENV_ZKVM_OPERATOR_PRIVATE_KEY: &str = "ZKVM_OPERATOR_PRIVATE_KEY";
 
 const GIT_SHA: &str = env!("VERGEN_GIT_SHA", "vergen build time git sha missing.");
 const GIT_BRANCH: &str = env!("VERGEN_GIT_BRANCH", "vergen build time git branch missing.");
-const GIT_DESCRIBE: &str =
-    env!("VERGEN_GIT_DESCRIBE", "vergen build time git describe missing.");
+const GIT_DESCRIBE: &str = env!("VERGEN_GIT_DESCRIBE", "vergen build time git describe missing.");
 
 /// Errors from the gRPC Server CLI
 #[derive(thiserror::Error, Debug)]
