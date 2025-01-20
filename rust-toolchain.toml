@@ -1,3 +1,4 @@
 [toolchain]
-channel = "1.83.0"
+# Make sure to keep this in sync with the CI in .github/actions/setup/actions.yml
+channel = "nightly-2025-01-11"
 components = ["rustc", "rust-src", "rust-docs", "rustfmt", "rust-analyzer", "cargo", "clippy" ]
