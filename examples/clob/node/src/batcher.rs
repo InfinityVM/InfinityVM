@@ -43,7 +43,6 @@ where
         } else {
             debug!("waiting for the first request to be processed before starting batcher");
             sleep(Duration::from_millis(1_0000)).await;
-            continue;
         }
     }
 
