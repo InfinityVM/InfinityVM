@@ -124,7 +124,6 @@ where
         NodeAdapter<N, <Self::ComponentsBuilder as NodeComponentsBuilder<N>>::Components>,
     >;
 
-    /// Denies all transactions by default
     fn components_builder(&self) -> Self::ComponentsBuilder {
         self.components()
     }

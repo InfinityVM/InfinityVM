@@ -16,6 +16,10 @@ use k256::ecdsa::SigningKey;
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 const ENV_ZKVM_OPERATOR_PRIVATE_KEY: &str = "ZKVM_OPERATOR_PRIVATE_KEY";
 
+const GIT_SHA: &str = env!("VERGEN_GIT_SHA", "vergen build time git sha missing.");
+const GIT_BRANCH: &str = env!("VERGEN_GIT_BRANCH", "vergen build time git branch missing.");
+const GIT_DESCRIBE: &str = env!("VERGEN_GIT_DESCRIBE", "vergen build time git describe missing.");
+
 /// Errors from the gRPC Server CLI
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -171,7 +175,7 @@ impl Opts {
     }
 
     fn signer_from_hex(secret: &String) -> Result<K256LocalSigner, Error> {
-        if secret.as_bytes().len() < 64 {
+        if secret.len() < 64 {
             return Err(Error::ShortPrivateKeyHex);
         }
 
@@ -187,6 +191,12 @@ pub struct Cli;
 impl Cli {
     /// Run the CLI
     pub async fn run() -> Result<(), Error> {
+        tracing::info!(
+            "git build info: sha={} describe={} branch={}",
+            GIT_SHA,
+            GIT_DESCRIBE,
+            GIT_BRANCH
+        );
         let opts = Opts::parse();
 
         let db = ivm_db::init_db(&opts.db_dir)?;

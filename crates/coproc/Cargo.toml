@@ -41,6 +41,9 @@ tikv-jemallocator = { version = "0.6", optional = true }
 ivm-test-utils = { workspace = true }
 ivm-mock-consumer = { workspace = true }
 
+[build-dependencies]
+vergen-git2 = { workspace = true }
+
 [features]
 default = ["min-info-logs", "jemalloc"]
 

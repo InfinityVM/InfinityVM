@@ -54,7 +54,6 @@ where
                     provider_retry += 1;
                 }
                 debug!(?sleep_millis, "retrying creating ws connection");
-                continue;
             }
         }
     };

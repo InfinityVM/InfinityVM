@@ -47,7 +47,6 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
         .with_unused_ports()
         .with_rpc(RpcServerArgs::default().with_unused_ports().with_http());
 
-    // TODO: use non-funded addresses
     let wallets = Wallet::new(2).gen();
     let alice_wallet = wallets.last().unwrap();
 
