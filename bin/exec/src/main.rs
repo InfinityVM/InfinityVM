@@ -14,6 +14,7 @@ use reth_node_builder::{engine_tree_config::TreeConfig, EngineNodeLauncher};
 use reth_node_ethereum::EthereumNode;
 
 const IVM_CONFIG_FILE: &str = "ivm_config.toml";
+
 const GIT_SHA: &'static str = env!("VERGEN_GIT_SHA", "vergen build time git sha missing.");
 const GIT_BRANCH: &'static str = env!("VERGEN_GIT_BRANCH", "vergen build time git branch missing.");
 const GIT_DESCRIBE: &'static str =
