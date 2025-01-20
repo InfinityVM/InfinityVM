@@ -1412,6 +1412,8 @@ dependencies = [
  "http 1.2.0",
  "http-body 1.0.1",
  "http-body-util",
+ "hyper 1.5.2",
+ "hyper-util",
  "itoa",
  "matchit 0.7.3",
  "memchr",
@@ -1420,7 +1422,10 @@ dependencies = [
  "pin-project-lite",
  "rustversion",
  "serde",
+ "serde_json",
+ "serde_path_to_error",
  "sync_wrapper 1.0.2",
+ "tokio",
  "tower 0.5.2",
  "tower-layer",
  "tower-service",
@@ -2178,7 +2183,7 @@ dependencies = [
 
 [[package]]
 name = "clob-contracts"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
 ]
@@ -3047,7 +3052,7 @@ checksum = "0d6ef0072f8a535281e4876be788938b528e9a1d43900b82c2569af7da799125"
 
 [[package]]
 name = "e2e"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "bincode",
@@ -4269,6 +4274,19 @@ dependencies = [
 
 [[package]]
 name = "hyper-tls"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6183ddfa99b85da61a140bea0efc93fdf56ceaa041b37d553518030827f9905"
+dependencies = [
+ "bytes",
+ "hyper 0.14.32",
+ "native-tls",
+ "tokio",
+ "tokio-native-tls",
+]
+
+[[package]]
+name = "hyper-tls"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "70206fc6890eaca9fde8a0bf71caa2ddfc9fe045ac9e5c70df101a7dbde866e0"
@@ -4731,14 +4749,14 @@ checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 
 [[package]]
 name = "ivm-abi"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
 ]
 
 [[package]]
 name = "ivm-contracts"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "eyre",
@@ -4748,10 +4766,10 @@ dependencies = [
 
 [[package]]
 name = "ivm-coproc"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
- "axum 0.8.1",
+ "axum 0.7.9",
  "clap",
  "dashmap",
  "eyre",
@@ -4783,7 +4801,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-db"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "bincode",
@@ -4802,7 +4820,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-eip4844"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "c-kzg",
@@ -4810,7 +4828,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-exec"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy-consensus 0.9.2",
  "alloy-eips 0.9.2",
@@ -4850,7 +4868,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-mock-consumer"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "ivm-abi",
@@ -4862,7 +4880,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-proto"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "borsh",
  "prost",
@@ -4873,7 +4891,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-scripts"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "bincode",
@@ -4894,7 +4912,7 @@ dependencies = [
  "matching-game-programs",
  "matching-game-server",
  "mock-consumer-programs",
- "reqwest 0.12.12",
+ "reqwest 0.11.27",
  "serde_json",
  "tempfile",
  "tokio",
@@ -4915,7 +4933,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-test-utils"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "alloy-signer 0.3.6",
@@ -4930,7 +4948,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-tracing"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "dotenvy",
  "eyre",
@@ -4942,7 +4960,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-zkvm"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "anyhow",
@@ -4954,7 +4972,7 @@ dependencies = [
 
 [[package]]
 name = "ivm-zkvm-executor"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "ivm-abi",
@@ -5463,7 +5481,7 @@ checksum = "4ee93343901ab17bd981295f2cf0026d4ad018c7c31ba84549a4ddbb47a45104"
 
 [[package]]
 name = "load-test"
-version = "0.0.1"
+version = "0.1.1"
 dependencies = [
  "alloy",
  "borsh",
@@ -5478,7 +5496,7 @@ dependencies = [
  "ivm-test-utils",
  "mock-consumer-programs",
  "once_cell",
- "reqwest 0.12.12",
+ "reqwest 0.11.27",
  "tokio",
  "tracing",
  "url",
@@ -7490,19 +7508,23 @@ dependencies = [
  "http 0.2.12",
  "http-body 0.4.6",
  "hyper 0.14.32",
+ "hyper-tls 0.5.0",
  "ipnet",
  "js-sys",
  "log",
  "mime",
+ "native-tls",
  "once_cell",
  "percent-encoding",
  "pin-project-lite",
+ "rustls-pemfile 1.0.4",
  "serde",
  "serde_json",
  "serde_urlencoded",
  "sync_wrapper 0.1.2",
  "system-configuration 0.5.1",
  "tokio",
+ "tokio-native-tls",
  "tokio-util",
  "tower-service",
  "url",
@@ -7529,7 +7551,7 @@ dependencies = [
  "http-body-util",
  "hyper 1.5.2",
  "hyper-rustls",
- "hyper-tls",
+ "hyper-tls 0.6.0",
  "hyper-util",
  "ipnet",
  "js-sys",
@@ -7541,7 +7563,7 @@ dependencies = [
  "pin-project-lite",
  "quinn",
  "rustls",
- "rustls-pemfile",
+ "rustls-pemfile 2.2.0",
  "rustls-pki-types",
  "serde",
  "serde_json",
@@ -10311,10 +10333,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5bfb394eeed242e909609f56089eecfe5fda225042e8b171791b9c95f5931e5"
 dependencies = [
  "openssl-probe",
- "rustls-pemfile",
+ "rustls-pemfile 2.2.0",
  "rustls-pki-types",
  "schannel",
  "security-framework",
+]
+
+[[package]]
+name = "rustls-pemfile"
+version = "1.0.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c74cae0a4cf6ccbbf5f359f08efdf8ee7e1dc532573bf0db71968cb56b1448c"
+dependencies = [
+ "base64 0.21.7",
 ]
 
 [[package]]
