@@ -3,7 +3,6 @@
 
 use crate::pool::validator::{IvmTransactionAllowConfig, IvmTransactionValidator};
 
-use alloy_primitives::U256;
 use reth_chainspec::ChainSpec;
 use reth_node_api::NodeTypes;
 use reth_node_builder::{components::PoolBuilder, BuilderContext, FullNodeTypes};
@@ -48,8 +47,8 @@ pub mod validator;
 /// ```
 ///
 /// When we go to get the "best" transactions, we collect all the transactions that can be included
-/// right now (are not dependent on other transactions) into a BTreeSet. Their ordering in the
-/// BTreeSet is dictated by their priority (`TransactionOrdering`):
+/// right now (are not dependent on other transactions) into a `BTreeSet`. Their ordering in the
+/// `BTreeSet` is dictated by their priority (`TransactionOrdering`):
 /// ```
 /// // As defined on PendingPool<T>
 /// pub(crate) fn best(&self) -> BestTransactions<T> {
@@ -65,7 +64,7 @@ pub mod validator;
 /// ```
 /// Importantly, the docs for `best` note that: "If two transactions have the same priority score,
 /// then the transactions which spent more time in pool (were added earlier) are returned first."
-/// See: https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L93
+/// See: <https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L93>
 ///
 /// We can see this is due to the `Ord` impl on `PendingTransaction`
 ///
@@ -81,14 +80,14 @@ pub mod validator;
 ///    }
 /// }
 /// ```
-/// See https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L592-L601
+/// See <https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L592-L601>
 #[derive(Debug)]
 pub struct GaslessOrdering {
     allow_config: IvmTransactionAllowConfig,
 }
 
 impl GaslessOrdering {
-    fn new(allow_config: IvmTransactionAllowConfig) -> Self {
+    const fn new(allow_config: IvmTransactionAllowConfig) -> Self {
         Self { allow_config }
     }
 }
