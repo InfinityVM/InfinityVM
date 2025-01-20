@@ -1,17 +1,10 @@
 //! IVM execution client.
 
 use clap::Parser;
-use ivm_exec::{
-    config::IvmConfig,
-    evm::IvmExecutorBuilder,
-    payload::IvmPayloadBuilder,
-    pool::{validator::IvmTransactionAllowConfig, IvmPoolBuilder},
-    IvmAddOns, IvmCliExt,
-};
+use ivm_exec::{config::IvmConfig, pool::validator::IvmTransactionAllowConfig, IvmCliExt, IvmNode};
 use reth::cli::Cli;
 use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
 use reth_node_builder::{engine_tree_config::TreeConfig, EngineNodeLauncher};
-use reth_node_ethereum::EthereumNode;
 
 const IVM_CONFIG_FILE: &str = "ivm_config.toml";
 
@@ -45,17 +38,11 @@ fn main() {
                 let ivm_config = IvmConfig::from_path(&ivm_config_path)?;
                 ivm_config.transaction_allow
             };
-            let pool_builder = IvmPoolBuilder::new(transaction_allow);
+
+            let ivm_node = IvmNode::new(transaction_allow);
 
             let handle = builder
-                .with_types::<EthereumNode>()
-                .with_components(
-                    EthereumNode::components()
-                        .pool(pool_builder)
-                        .executor(IvmExecutorBuilder)
-                        .payload(IvmPayloadBuilder::default()),
-                )
-                .with_add_ons(IvmAddOns::default())
+                .node(ivm_node)
                 .launch_with_fn(|launch_builder| {
                     let launcher = EngineNodeLauncher::new(
                         launch_builder.task_executor().clone(),
