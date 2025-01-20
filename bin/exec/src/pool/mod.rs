@@ -33,7 +33,7 @@ pub mod validator;
 /// The way priority works in the reth pool is that all pending transactions are stored with their
 /// "Priority":
 ///
-/// ```no_run
+/// ```ignore
 /// /// A transaction that is ready to be included in a block.
 /// #[derive(Debug)]
 /// pub(crate) struct PendingTransaction<T: TransactionOrdering> {
@@ -49,7 +49,7 @@ pub mod validator;
 /// When we go to get the "best" transactions, we collect all the transactions that can be included
 /// right now (are not dependent on other transactions) into a `BTreeSet`. Their ordering in the
 /// `BTreeSet` is dictated by their priority (`TransactionOrdering`):
-/// ```no_run
+/// ```ignore
 /// // As defined on PendingPool<T>
 /// pub(crate) fn best(&self) -> BestTransactions<T> {
 ///     BestTransactions {
@@ -68,7 +68,7 @@ pub mod validator;
 ///
 /// We can see this is due to the `Ord` impl on `PendingTransaction`
 ///
-/// ```no_run
+/// ```ignore
 /// impl<T: TransactionOrdering> Ord for PendingTransaction<T> {
 ///    fn cmp(&self, other: &Self) -> Ordering {
 ///        // This compares by `priority` and only if two tx have the exact same priority this compares
