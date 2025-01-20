@@ -106,7 +106,6 @@ where
                         } else {
                             warn!(?sleep_millis, "retrying creating ws connection to rpc");
                         }
-                        continue;
                     }
                 }
             };

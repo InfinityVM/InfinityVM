@@ -3,11 +3,12 @@ description: common setup for rust builds
 runs:
   using: "composite"
   steps:
-      - uses: dtolnay/rust-toolchain@1.83
+      - name: Install rust nightly toolchain with fmt
+        # Make sure to keep this in sync with the version in rust-toolchain.toml
+        uses: dtolnay/rust-toolchain@master
         with:
-          components: clippy
-
-      - uses: taiki-e/install-action@cargo-binstall
+          toolchain: nightly-2025-01-11
+          components: rustc rustfmt cargo clippy
 
       - name: Install sp1 tooling
         shell: bash

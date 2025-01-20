@@ -99,7 +99,6 @@ impl ExecutionActor {
                         },
                         None => {
                             warn!("execute actor channel closed");
-                            continue
                         },
                     }
                 }
@@ -143,7 +142,6 @@ impl ExecutionActor {
                             break;
                         } else {
                             // The channel is still open, so we continue to wait for new messages
-                            continue;
                         },
                     }
                 }

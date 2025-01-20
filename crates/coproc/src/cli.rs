@@ -176,7 +176,7 @@ impl Opts {
     }
 
     fn signer_from_hex(secret: &String) -> Result<K256LocalSigner, Error> {
-        if secret.as_bytes().len() < 64 {
+        if secret.len() < 64 {
             return Err(Error::ShortPrivateKeyHex);
         }
 
