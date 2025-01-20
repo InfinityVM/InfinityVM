@@ -102,6 +102,11 @@ impl IvmTransactionAllowConfig {
     pub const fn all(&self) -> bool {
         self.all
     }
+
+    /// Return true if the sender is explicitly allowed.
+    pub fn is_allowed_sender(&self, address: &Address) -> bool {
+        self.sender.contains(address)
+    }
 }
 
 /// N.B. This is almost a direct copy of `EthTransactionValidatorBuilder` in reth. Just modified to
