@@ -1,8 +1,7 @@
 //! IVM transaction pool. The primary difference from the default transaction pool is
 //! additional validation logic.
 
-use crate::pool::validator::{IvmTransactionAllowConfig, IvmTransactionValidator};
-
+use crate::{config::IvmConfig, pool::validator::IvmTransactionValidator};
 use reth_chainspec::ChainSpec;
 use reth_node_api::NodeTypes;
 use reth_node_builder::{components::PoolBuilder, BuilderContext, FullNodeTypes};
@@ -81,14 +80,14 @@ pub mod validator;
 /// }
 /// ```
 /// See <https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/pool/pending.rs#L592-L601>
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct GaslessOrdering {
-    allow_config: IvmTransactionAllowConfig,
+    ivm_config: IvmConfig,
 }
 
 impl GaslessOrdering {
-    const fn new(allow_config: IvmTransactionAllowConfig) -> Self {
-        Self { allow_config }
+    const fn new(ivm_config: IvmConfig) -> Self {
+        Self { ivm_config }
     }
 }
 
@@ -103,7 +102,7 @@ impl TransactionOrdering for GaslessOrdering {
         _base_fee: u64,
     ) -> Priority<Self::PriorityValue> {
         let sender = transaction.sender();
-        if self.allow_config.is_allowed_sender(&sender) {
+        if self.ivm_config.is_priority_sender(&sender) {
             Priority::Value(1)
         } else {
             Priority::Value(0)
@@ -121,13 +120,13 @@ pub type IvmTransactionPool<Client, S> = reth_transaction_pool::Pool<
 /// IVM transaction pool builder
 #[derive(Debug, Clone, Default)]
 pub struct IvmPoolBuilder {
-    allow_config: IvmTransactionAllowConfig,
+    ivm_config: IvmConfig,
 }
 
 impl IvmPoolBuilder {
     /// Create a new [`IvmPoolBuilder`].
-    pub const fn new(allow_config: IvmTransactionAllowConfig) -> Self {
-        Self { allow_config }
+    pub const fn new(ivm_config: IvmConfig) -> Self {
+        Self { ivm_config }
     }
 }
 
@@ -143,7 +142,7 @@ where
     async fn build_pool(self, ctx: &BuilderContext<Node>) -> eyre::Result<Self::Pool> {
         let data_dir = ctx.config().datadir();
         let pool_config = ctx.pool_config();
-        let allow_config = self.allow_config;
+        let ivm_config: IvmConfig = self.ivm_config;
         let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
         let txn_validator = IvmTransactionValidatorBuilder::new(ctx.chain_spec())
@@ -155,12 +154,12 @@ where
                 ctx.provider().clone(),
                 ctx.task_executor().clone(),
                 blob_store.clone(),
-                allow_config.clone(),
+                ivm_config.clone(),
             );
 
         let transaction_pool = reth_transaction_pool::Pool::new(
             txn_validator,
-            GaslessOrdering::new(allow_config),
+            GaslessOrdering::new(ivm_config),
             blob_store,
             pool_config,
         );
@@ -207,6 +206,8 @@ where
 
 #[cfg(test)]
 mod test {
+    use crate::config::transaction::IvmTransactionAllowConfig;
+
     use super::*;
     use alloy_eips::eip2718::Decodable2718;
     use alloy_primitives::{hex, U256};
@@ -224,7 +225,6 @@ mod test {
         CoinbaseTipOrdering, EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin,
         TransactionPool, TransactionValidationOutcome,
     };
-    use std::collections::HashSet;
 
     fn get_create_transaction() -> EthPooledTransaction {
         // This is taken from the reth transaction pool tests
@@ -264,7 +264,7 @@ mod test {
         let blob_store = InMemoryBlobStore::default();
         let transaction = get_swap_transaction();
         // Deny everything
-        let allow_config = IvmTransactionAllowConfig::deny_all();
+        let config = IvmConfig::deny_all();
         // Make sure the sender has enough gas
         provider.add_account(
             transaction.sender(),
@@ -275,7 +275,7 @@ mod test {
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
-                allow_config,
+                config,
             );
 
         let pool = Pool::new(
@@ -286,6 +286,7 @@ mod test {
         );
 
         let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
+        dbg!(&outcome);
         // The outcome is invalid
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
@@ -309,8 +310,10 @@ mod test {
 
         // Set the allowed `sender`s
         let mut allow_config = IvmTransactionAllowConfig::deny_all();
-        let allowed_senders = HashSet::from([transaction.sender()]);
-        allow_config.set_sender(allowed_senders);
+        allow_config.add_sender(transaction.sender());
+        let mut config = IvmConfig::deny_all();
+        config.set_fork(0, allow_config);
+
         // Make sure the sender has enough gas
         provider.add_account(
             transaction.sender(),
@@ -325,12 +328,12 @@ mod test {
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
-                allow_config,
+                config,
             );
 
         let pool = Pool::new(
             validator.clone(),
-            CoinbaseTipOrdering::default(),
+            GaslessOrdering::default(),
             blob_store,
             Default::default(),
         );
@@ -370,8 +373,10 @@ mod test {
         let mut allow_config = IvmTransactionAllowConfig::deny_all();
 
         // Set the allowed `to` addresses
-        let allowed_to = HashSet::from([transaction.to().unwrap()]);
-        allow_config.set_to(allowed_to);
+        allow_config.add_to(transaction.to().unwrap());
+        let mut config = IvmConfig::deny_all();
+        config.set_fork(0, allow_config);
+
         // Make sure the sender has enough gas
         provider.add_account(
             transaction.sender(),
@@ -386,12 +391,12 @@ mod test {
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
-                allow_config,
+                config,
             );
 
         let pool = Pool::new(
             validator.clone(),
-            CoinbaseTipOrdering::default(),
+            GaslessOrdering::default(),
             blob_store,
             Default::default(),
         );
@@ -432,6 +437,9 @@ mod test {
 
         // Set to allow all addresses
         allow_config.set_all(true);
+        let mut config = IvmConfig::deny_all();
+        config.set_fork(0, allow_config);
+
         // Make sure the sender has enough gas
         provider.add_account(
             transaction.sender(),
@@ -446,7 +454,7 @@ mod test {
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
-                allow_config,
+                config,
             );
 
         let pool = Pool::new(
@@ -480,8 +488,9 @@ mod test {
         let mut allow_config = IvmTransactionAllowConfig::deny_all();
 
         // Set the allowed `to` addresses
-        let allowed_to = HashSet::from([transaction.to().unwrap()]);
-        allow_config.set_to(allowed_to);
+        allow_config.add_to(transaction.to().unwrap());
+        let mut config = IvmConfig::deny_all();
+        config.set_fork(0, allow_config);
 
         // Check that the account balances are non-existent
         assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
@@ -491,7 +500,7 @@ mod test {
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
-                allow_config,
+                config,
             );
 
         let pool = Pool::new(
@@ -536,8 +545,10 @@ mod test {
 
         // Set the allowed `sender`s
         let mut allow_config = IvmTransactionAllowConfig::deny_all();
-        let allowed_senders = HashSet::from([transaction.sender()]);
-        allow_config.set_sender(allowed_senders);
+        allow_config.add_sender(transaction.sender());
+        let mut config = IvmConfig::deny_all();
+        config.set_fork(0, allow_config);
+
         // Make sure the sender has enough gas
         assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
@@ -546,7 +557,7 @@ mod test {
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
-                allow_config,
+                config,
             );
 
         let pool = Pool::new(
@@ -591,8 +602,10 @@ mod test {
 
         // Set the allowed `sender`s
         let mut allow_config = IvmTransactionAllowConfig::deny_all();
-        let allowed_senders = HashSet::from([transaction.sender()]);
-        allow_config.set_sender(allowed_senders);
+        allow_config.add_sender(transaction.sender());
+        let mut config = IvmConfig::deny_all();
+        config.set_fork(0, allow_config);
+
         // Make sure the sender has some gas, but not enough for the transaction
         provider.add_account(
             transaction.sender(),
@@ -607,7 +620,7 @@ mod test {
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
-                allow_config,
+                config,
             );
 
         let pool = Pool::new(

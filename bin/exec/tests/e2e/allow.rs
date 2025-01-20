@@ -5,7 +5,7 @@ use alloy_genesis::Genesis;
 use alloy_network::EthereumWallet;
 use alloy_primitives::{address, U256};
 use alloy_provider::{Provider, ProviderBuilder};
-use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmNode};
+use ivm_exec::{config::IvmConfig, IvmNode};
 use reth::args::RpcServerArgs;
 use reth_chainspec::{ChainSpecBuilder, MAINNET};
 use reth_e2e_test_utils::{
@@ -51,7 +51,7 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
     let alice_wallet = wallets.last().unwrap();
 
     // Everyone is denied
-    let ivm_node_types = IvmNode::new(IvmTransactionAllowConfig::deny_all());
+    let ivm_node_types = IvmNode::new(IvmConfig::deny_all());
 
     let NodeHandle { node, node_exit_future: _ } = NodeBuilder::new(node_config.clone())
         .testing_node(exec.clone())

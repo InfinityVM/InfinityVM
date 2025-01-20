@@ -12,7 +12,7 @@ use alloy_eips::{
     eip1559::ETHEREUM_BLOCK_GAS_LIMIT,
     eip4844::{env_settings::EnvKzgSettings, MAX_BLOBS_PER_BLOCK},
 };
-use alloy_primitives::{Address, U256};
+use alloy_primitives::U256;
 use reth_chainspec::{ChainSpec, EthereumHardforks};
 use reth_primitives::{InvalidTransactionError, SealedBlock};
 use reth_provider::{StateProvider, StateProviderFactory};
@@ -30,7 +30,6 @@ use reth_transaction_pool::{
     TransactionValidator,
 };
 use std::{
-    collections::HashSet,
     marker::PhantomData,
     sync::{
         atomic::{AtomicBool, AtomicU64},
@@ -39,75 +38,7 @@ use std::{
 };
 use tokio::sync::Mutex;
 
-/// Configuration for allow list based on sender and recipient.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
-pub struct IvmTransactionAllowConfig {
-    all: bool,
-    to: HashSet<Address>,
-    sender: HashSet<Address>,
-}
-
-impl IvmTransactionAllowConfig {
-    /// If the transaction passes allow list checks.
-    pub fn is_allowed(&self, sender: &Address, to: Option<Address>) -> bool {
-        if self.all {
-            return true;
-        }
-
-        if let Some(to) = to {
-            if self.to.contains(&to) {
-                return true;
-            }
-        }
-
-        self.sender.contains(sender)
-    }
-
-    /// Create a config that allows all transactions.
-    pub fn with_all() -> Self {
-        Self { all: true, ..Default::default() }
-    }
-
-    /// Create `IvmTransactionAllowConfig` that denys all transactions.
-    pub fn deny_all() -> Self {
-        Self { to: HashSet::new(), sender: HashSet::new(), all: false }
-    }
-
-    /// Set allowed `to` addresses.
-    pub fn set_to(&mut self, to: HashSet<Address>) {
-        self.to = to;
-    }
-
-    /// Get `to` addresses.
-    pub fn to(&self) -> HashSet<Address> {
-        self.to.clone()
-    }
-
-    /// Set allowed `sender` addresses.
-    pub fn set_sender(&mut self, sender: HashSet<Address>) {
-        self.sender = sender;
-    }
-
-    /// Get allowed sender addresses.
-    pub fn sender(&self) -> HashSet<Address> {
-        self.sender.clone()
-    }
-
-    /// Allow all transactions
-    pub fn set_all(&mut self, allow_all: bool) {
-        self.all = allow_all;
-    }
-
-    /// Get if all transactions are allowed.
-    pub const fn all(&self) -> bool {
-        self.all
-    }
-
-    /// Return true if the sender is explicitly allowed.
-    pub fn is_allowed_sender(&self, address: &Address) -> bool {
-        self.sender.contains(address)
-    }
-}
+use crate::config::IvmConfig;
 
 /// N.B. This is almost a direct copy of `EthTransactionValidatorBuilder` in reth. Just modified to
 /// return our type that does not include balance validation logic. <https://github.com/InfinityVM/reth/blob/28d52312acd46be2bfc46661a7b392feaa2bd4c5/crates/transaction-pool/src/validate/eth.rs#L535>.
@@ -305,7 +236,7 @@ impl IvmTransactionValidatorBuilder {
         self,
         client: Client,
         blob_store: S,
-        allow_config: IvmTransactionAllowConfig,
+        ivm_config: IvmConfig,
     ) -> IvmTransactionValidator<Client, Tx>
     where
         S: BlobStore,
@@ -350,7 +281,9 @@ impl IvmTransactionValidatorBuilder {
             _marker: Default::default(),
         };
 
-        IvmTransactionValidator { eth: Arc::new(inner), allow_config }
+        let ivm_only_inner =
+            IvmOnlyTransactionValidatorInner { ivm_config, latest_timestamp: AtomicU64::default() };
+        IvmTransactionValidator { eth: Arc::new(inner), ivm: Arc::new(ivm_only_inner) }
     }
 
     /// Builds a [`IvmTransactionValidator`] and spawns validation tasks via the
@@ -364,14 +297,14 @@ impl IvmTransactionValidatorBuilder {
         client: Client,
         tasks: T,
         blob_store: S,
-        allow_config: IvmTransactionAllowConfig,
+        ivm_config: IvmConfig,
     ) -> TransactionValidationTaskExecutor<IvmTransactionValidator<Client, Tx>>
     where
         T: TaskSpawner,
         S: BlobStore,
     {
         let additional_tasks = self.additional_tasks;
-        let validator = self.build(client, blob_store, allow_config);
+        let validator = self.build(client, blob_store, ivm_config);
 
         let (tx, task) = ValidationTask::new();
 
@@ -802,11 +735,17 @@ where
     }
 }
 
+#[derive(Debug)]
+struct IvmOnlyTransactionValidatorInner {
+    ivm_config: IvmConfig,
+    latest_timestamp: AtomicU64,
+}
+
 /// IVM transaction pool validator.
 #[derive(Debug, Clone)]
 pub struct IvmTransactionValidator<Client, Tx> {
     eth: Arc<IvmTransactionValidatorInner<Client, Tx>>,
-    allow_config: IvmTransactionAllowConfig,
+    ivm: Arc<IvmOnlyTransactionValidatorInner>,
 }
 
 impl<Client, Tx> IvmTransactionValidator<Client, Tx>
@@ -824,7 +763,9 @@ where
     ) -> TransactionValidationOutcome<Tx> {
         // First check that the transaction obeys allow lists. We check this first
         // to reduce heavy checks for eip 4844 transactions
-        if !self.allow_config.is_allowed(tx.sender_ref(), tx.to()) {
+        let timestamp =
+            self.ivm.latest_timestamp.fetch_add(0, std::sync::atomic::Ordering::Relaxed);
+        if !self.ivm.ivm_config.is_allowed(tx.sender_ref(), tx.to(), timestamp) {
             return TransactionValidationOutcome::Invalid(
                 tx,
                 InvalidTransactionError::TxTypeNotSupported.into(),
@@ -845,6 +786,19 @@ where
         transactions: Vec<(TransactionOrigin, Tx)>,
     ) -> Vec<TransactionValidationOutcome<Tx>> {
         transactions.into_iter().map(|(origin, tx)| self.validate_one(origin, tx)).collect()
+    }
+
+    #[inline]
+    fn on_new_head_block<H, B>(&self, new_tip_block: &SealedBlock<H, B>)
+    where
+        H: reth_primitives_traits::BlockHeader,
+        B: reth_primitives_traits::BlockBody,
+    {
+        self.eth.on_new_head_block(new_tip_block.header());
+        // Store the latest timestamp
+        self.ivm
+            .latest_timestamp
+            .store(new_tip_block.timestamp(), std::sync::atomic::Ordering::Relaxed);
     }
 }
 
@@ -875,6 +829,6 @@ where
         H: reth_primitives_traits::BlockHeader,
         B: reth_primitives_traits::BlockBody,
     {
-        self.eth.on_new_head_block(new_tip_block.header())
+        self.on_new_head_block(new_tip_block)
     }
 }

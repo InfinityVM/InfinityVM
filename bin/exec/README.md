@@ -1,5 +1,7 @@
 # Infinity Execution Client
 
+TODO(zeke): update
+
 `ivm-exec` is the Infinity execution client. It is built using reth and closely follows ethereum specs except in three edge cases:
 
 1) It ignores timestamp checks in the Engine API. Timestamps are denominated in seconds and the Engine API dictates that the timestamp for an execution payload being requested must be greater than the previous execution payload. Ignoring checks allows us to request multiple execution payloads in the same second and thus achieve sub second block times. See [step 7](https://github.com/ethereum/execution-apis/blob/main/src/engine/paris.md#specification-1) of `engine_forkchoiceUpdatedV1` specifications for context.
