@@ -238,6 +238,8 @@ toml = { version = "0.8" }
 url = { version = "2.4.0", default-features = false }
 
 # v
+vergen-git2 = { version = "1" }
+
 # w
 # x
 # y
