@@ -222,7 +222,7 @@ mod test {
     use reth_transaction_pool::{
         blobstore::InMemoryBlobStore,
         error::{InvalidPoolTransactionError, PoolErrorKind},
-        CoinbaseTipOrdering, EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin,
+        EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin,
         TransactionPool, TransactionValidationOutcome,
     };
 
@@ -280,7 +280,7 @@ mod test {
 
         let pool = Pool::new(
             validator.clone(),
-            CoinbaseTipOrdering::default(),
+            GaslessOrdering::default(),
             blob_store,
             Default::default(),
         );
@@ -459,7 +459,7 @@ mod test {
 
         let pool = Pool::new(
             validator.clone(),
-            CoinbaseTipOrdering::default(),
+            GaslessOrdering::default(),
             blob_store,
             Default::default(),
         );
@@ -505,7 +505,7 @@ mod test {
 
         let pool = Pool::new(
             validator.clone(),
-            CoinbaseTipOrdering::default(),
+            GaslessOrdering::default(),
             blob_store,
             Default::default(),
         );
@@ -562,7 +562,7 @@ mod test {
 
         let pool = Pool::new(
             validator.clone(),
-            CoinbaseTipOrdering::default(),
+            GaslessOrdering::default(),
             blob_store,
             Default::default(),
         );
@@ -625,7 +625,7 @@ mod test {
 
         let pool = Pool::new(
             validator.clone(),
-            CoinbaseTipOrdering::default(),
+            GaslessOrdering::default(),
             blob_store,
             Default::default(),
         );

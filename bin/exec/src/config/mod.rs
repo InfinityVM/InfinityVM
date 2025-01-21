@@ -56,6 +56,7 @@ impl IvmConfig {
     /// Return true if any of the allow configs contain the `sender`. This is only meant to
     /// be used for non-safety critical situations such as determining transaction priority
     /// while payload building. We use this because some contexts we don't know the block height.
+    #[inline(always)]
     pub fn is_priority_sender(&self, sender: &Address) -> bool {
         self.priority_senders.contains(sender)
     }
@@ -74,6 +75,7 @@ impl IvmConfig {
     }
 
     /// Set a new fork at the given timestamp.
+    #[cfg(any(feature = "test-utils", test))]
     pub fn set_fork(&mut self, timestamp: u64, allow_config: IvmTransactionAllowConfig) {
         self.forks.insert(timestamp, allow_config);
     }
