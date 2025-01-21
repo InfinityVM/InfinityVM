@@ -40,42 +40,38 @@ impl IvmTransactionAllowConfig {
         Self { to: HashSet::new(), sender: HashSet::new(), all: false }
     }
 
-    /// Set allowed `to` addresses.
-    pub fn set_to(&mut self, to: HashSet<Address>) {
-        self.to = to;
-    }
-
     /// Add a `to` address.
+    #[cfg(any(feature = "test-utils", test))]
     pub fn add_to(&mut self, to: Address) {
         self.to.insert(to);
     }
 
     /// Get `to` addresses.
+    #[cfg(any(feature = "test-utils", test))]
     pub fn to(&self) -> HashSet<Address> {
         self.to.clone()
     }
 
-    /// Set allowed `sender` addresses.
-    pub fn set_sender(&mut self, sender: HashSet<Address>) {
-        self.sender = sender;
-    }
-
     /// Add a `sender` address.
+    #[cfg(any(feature = "test-utils", test))]
     pub fn add_sender(&mut self, sender: Address) {
         self.sender.insert(sender);
     }
 
     /// Get allowed sender addresses.
+    #[cfg(any(feature = "test-utils", test))]
     pub fn sender(&self) -> HashSet<Address> {
         self.sender.clone()
     }
 
     /// Allow all transactions
+    #[cfg(any(feature = "test-utils", test))]
     pub fn set_all(&mut self, allow_all: bool) {
         self.all = allow_all;
     }
 
     /// Get if all transactions are allowed.
+    #[cfg(any(feature = "test-utils", test))]
     pub const fn all(&self) -> bool {
         self.all
     }
@@ -121,9 +117,7 @@ mod tests {
     fn allowed_sender() {
         let mut config = IvmTransactionAllowConfig::deny_all();
         let allowed_sender = Address::with_last_byte(1);
-        let mut senders = HashSet::new();
-        senders.insert(allowed_sender);
-        config.set_sender(senders);
+        config.add_sender(allowed_sender);
 
         // Test is_allowed with allowed sender
         assert!(config.is_allowed(&allowed_sender, Some(Address::with_last_byte(2))));
@@ -137,9 +131,7 @@ mod tests {
     fn allowed_recipient() {
         let mut config = IvmTransactionAllowConfig::deny_all();
         let allowed_recipient = Address::with_last_byte(1);
-        let mut recipients = HashSet::new();
-        recipients.insert(allowed_recipient);
-        config.set_to(recipients);
+        config.add_to(allowed_recipient);
 
         // Test with allowed recipient
         assert!(config.is_allowed(&Address::with_last_byte(2), Some(allowed_recipient)));
@@ -152,30 +144,6 @@ mod tests {
     }
 
     #[test]
-    fn getters_and_setters() {
-        let mut config = IvmTransactionAllowConfig::deny_all();
-
-        // Test all flag
-        assert!(!config.all());
-        config.set_all(true);
-        assert!(config.all());
-
-        // Test sender set/get
-        let sender = Address::with_last_byte(1);
-        let mut senders = HashSet::new();
-        senders.insert(sender);
-        config.set_sender(senders.clone());
-        assert_eq!(config.sender(), senders);
-
-        // Test to set/get
-        let recipient = Address::with_last_byte(2);
-        let mut recipients = HashSet::new();
-        recipients.insert(recipient);
-        config.set_to(recipients.clone());
-        assert_eq!(config.to(), recipients);
-    }
-
-    #[test]
     fn multiple_allowed_addresses() {
         let mut config = IvmTransactionAllowConfig::deny_all();
 
@@ -185,15 +153,11 @@ mod tests {
         let recipient1 = Address::with_last_byte(3);
         let recipient2 = Address::with_last_byte(4);
 
-        let mut senders = HashSet::new();
-        senders.insert(sender1);
-        senders.insert(sender2);
-        config.set_sender(senders);
+        config.add_sender(sender1);
+        config.add_sender(sender2);
 
-        let mut recipients = HashSet::new();
-        recipients.insert(recipient1);
-        recipients.insert(recipient2);
-        config.set_to(recipients);
+        config.add_to(recipient1);
+        config.add_to(recipient2);
 
         // Test various combinations
         assert!(config.is_allowed(&sender1, Some(recipient1)));

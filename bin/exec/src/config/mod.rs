@@ -7,33 +7,6 @@ use transaction::IvmTransactionAllowConfig;
 
 pub mod transaction;
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-struct IvmConfigForkToml {
-    activation_timestamp: u64,
-    allow_config: IvmTransactionAllowConfig,
-}
-
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-struct IvmConfigToml {
-    forks: Vec<IvmConfigForkToml>,
-    priority_senders: HashSet<Address>,
-}
-
-impl From<IvmConfig> for IvmConfigToml {
-    fn from(ivm_config: IvmConfig) -> Self {
-        let forks: Vec<_> = ivm_config
-            .forks
-            .into_iter()
-            .map(|(activation_timestamp, allow_config)| IvmConfigForkToml {
-                activation_timestamp,
-                allow_config,
-            })
-            .collect();
-
-        Self { forks, priority_senders: ivm_config.priority_senders }
-    }
-}
-
 /// IVM specific configuration for the execution client. This is the in memory representation
 ///
 /// The default will allow all transactions.
@@ -137,6 +110,35 @@ impl IvmConfig {
     }
 }
 
+/// TOML representation of a single fork configuration.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct IvmConfigForkToml {
+    activation_timestamp: u64,
+    allow_config: IvmTransactionAllowConfig,
+}
+
+/// TOML representation of the complete IVM configuration.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct IvmConfigToml {
+    forks: Vec<IvmConfigForkToml>,
+    priority_senders: HashSet<Address>,
+}
+
+impl From<IvmConfig> for IvmConfigToml {
+    fn from(ivm_config: IvmConfig) -> Self {
+        let forks: Vec<_> = ivm_config
+            .forks
+            .into_iter()
+            .map(|(activation_timestamp, allow_config)| IvmConfigForkToml {
+                activation_timestamp,
+                allow_config,
+            })
+            .collect();
+
+        Self { forks, priority_senders: ivm_config.priority_senders }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -145,18 +147,10 @@ mod tests {
     fn setup_test_config() -> IvmConfig {
         // Setup three forks at different timestamps
         let mut fork1 = IvmTransactionAllowConfig::deny_all();
-        fork1.set_sender({
-            let mut set = HashSet::new();
-            set.insert(Address::with_last_byte(1));
-            set
-        });
+        fork1.add_sender(Address::with_last_byte(1));
 
         let mut fork2 = IvmTransactionAllowConfig::deny_all();
-        fork2.set_to({
-            let mut set = HashSet::new();
-            set.insert(Address::with_last_byte(2));
-            set
-        });
+        fork2.add_to(Address::with_last_byte(2));
 
         let fork3 = IvmTransactionAllowConfig::allow_all();
 

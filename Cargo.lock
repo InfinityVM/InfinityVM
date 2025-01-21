@@ -4845,6 +4845,7 @@ dependencies = [
  "alloy-sol-types",
  "clap",
  "eyre",
+ "ivm-exec",
  "ivm-test-utils",
  "k256",
  "reth",
