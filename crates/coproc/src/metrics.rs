@@ -34,8 +34,8 @@ impl Metrics {
             HistogramOpts::new("job_exec_time", "Total time for a single job to execute").buckets(
                 // From 562.5ms to 16s, polynomial
                 vec![
-                    0.5625, 1., 1.5625, 2.25, 3.0625, 4., 5.0625, 6.25, 7.5625, 9.,
-                    10.5625, 12.25, 14.0625, 16.,
+                    0.5625, 1., 1.5625, 2.25, 3.0625, 4., 5.0625, 6.25, 7.5625, 9., 10.5625, 12.25,
+                    14.0625, 16.,
                 ],
             ),
         )
