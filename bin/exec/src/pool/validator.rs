@@ -830,6 +830,7 @@ where
         H: reth_primitives_traits::BlockHeader,
         B: reth_primitives_traits::BlockBody,
     {
+        tracing::debug!(timestamp=?new_tip_block.timestamp(), number=?new_tip_block.number(), "New head block hook called");
         self.on_new_head_block(new_tip_block)
     }
 }

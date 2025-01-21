@@ -1,16 +1,13 @@
 //! Utilities to help with e2e tests.
 
-use alloy_primitives::{Address, B256};
+use alloy_network::eip2718::Encodable2718;
+use alloy_primitives::{Address, Bytes, TxKind, B256, U256};
 use alloy_rpc_types_engine::PayloadAttributes;
-use reth::rpc::server_types::eth::{error::RpcPoolError, EthApiError, RpcInvalidTransactionError};
-use reth_ethereum_engine_primitives::EthPayloadBuilderAttributes;
 use alloy_rpc_types_eth::{Authorization, TransactionInput, TransactionRequest};
 use alloy_signer_local::PrivateKeySigner;
-use alloy_primitives::Bytes;
-use alloy_primitives::U256;
-use alloy_primitives::TxKind;
+use reth::rpc::server_types::eth::{error::RpcPoolError, EthApiError, RpcInvalidTransactionError};
 use reth_e2e_test_utils::transaction::TransactionTestContext;
-use alloy_network::eip2718::Encodable2718;
+use reth_ethereum_engine_primitives::EthPayloadBuilderAttributes;
 
 pub(crate) fn eth_payload_attributes(timestamp: u64) -> EthPayloadBuilderAttributes {
     let attributes = PayloadAttributes {
@@ -32,8 +29,7 @@ pub(crate) fn assert_unsupported_tx(error: EthApiError) {
     };
 }
 
-
-/// Creates a type 2 transaction
+/// Creates a type 2718 transaction
 fn tx(
     chain_id: u64,
     gas: u64,
@@ -52,24 +48,13 @@ fn tx(
         chain_id: Some(chain_id),
         input: TransactionInput { input: None, data },
         authorization_list: None,
-        
+
         ..Default::default()
     }
 }
 
-pub(crate) async fn tx_with_wallet_as_bytes(
-    chain_id: u64,
-    gas: u64,
-    nonce: u64,
-    to: Option<Address>,
-    wallet: PrivateKeySigner,
-) -> Bytes {
-    let tx = tx(chain_id, gas, nonce, to, None);
-    let signed = TransactionTestContext::sign_tx(wallet, tx).await;
-
-    signed.encoded_2718().into()
-}
-
+/// Creates a type 2718 transaction. Generates random address for to
+/// if none is specified
 pub(crate) async fn transfer_bytes(
     nonce: u64,
     to: Option<Address>,

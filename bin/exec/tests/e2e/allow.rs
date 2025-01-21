@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::utils::{assert_unsupported_tx, eth_payload_attributes};
+use crate::utils::{assert_unsupported_tx, eth_payload_attributes, transfer_bytes};
 use alloy_genesis::Genesis;
 use alloy_network::EthereumWallet;
 use alloy_primitives::{address, U256};
@@ -17,8 +17,6 @@ use reth_e2e_test_utils::{
 use reth_node_builder::{NodeBuilder, NodeConfig, NodeHandle};
 use reth_tasks::TaskManager;
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::utils::transfer_bytes;
-
 
 alloy_sol_types::sol! {
     #[sol(rpc, bytecode = "6080604052348015600f57600080fd5b5060405160db38038060db833981016040819052602a91607a565b60005b818110156074576040805143602082015290810182905260009060600160408051601f19818403018152919052805160209091012080555080606d816092565b915050602d565b505060b8565b600060208284031215608b57600080fd5b5051919050565b60006001820160b157634e487b7160e01b600052601160045260246000fd5b5060010190565b60168060c56000396000f3fe6080604052600080fdfea164736f6c6343000810000a")]
@@ -103,6 +101,8 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
 
 #[tokio::test]
 async fn allow_config_is_fork_aware() -> eyre::Result<()> {
+    ivm_test_utils::test_tracing();
+
     let tasks = TaskManager::current();
     let exec = tasks.executor();
 
@@ -138,8 +138,8 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     fork2.add_to(wallet_1.address());
 
     // Allow all transcations
-    let fork3 = IvmTransactionAllowConfig::deny_all();
-    fork2.set_all(true);
+    let mut fork3 = IvmTransactionAllowConfig::deny_all();
+    fork3.set_all(true);
 
     let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
 
@@ -161,7 +161,7 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
 
     // The very first timestamp will be zero, which triggers a special case of allowing any tx
-    let transfer_tx_from_random = TransactionTestContext::transfer_tx_bytes(1, wallet_5.clone()).await;
+    let transfer_tx_from_random = transfer_bytes(0, None, wallet_5.clone()).await;
     node.rpc.inject_tx(transfer_tx_from_random).await?;
 
     // Every call to new payload will increment the timestamp
@@ -172,11 +172,39 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     let transfer_tx_fork1_sender = transfer_bytes(0, None, wallet_0.clone()).await;
     node.rpc.inject_tx(transfer_tx_fork1_sender).await?;
 
+    // TODO: add calls to get canon header to assert timestamp and height
+
     // This tx will be valid in fork 2, but not fork 1
-    let transfer_tx_from_fork2_to = transfer_bytes(0, Some(wallet_1.address()), wallet_5.clone()).await;
+    let transfer_tx_from_fork2_to =
+        transfer_bytes(1, Some(wallet_1.address()), wallet_5.clone()).await;
     let transfer_error1 = node.rpc.inject_tx(transfer_tx_from_fork2_to.clone()).await.unwrap_err();
     assert_unsupported_tx(transfer_error1);
 
+    // Continue through fork 1
+    node.advance_block().await?;
+    let transfer_tx_fork1_sender = transfer_bytes(1, None, wallet_0.clone()).await;
+    node.rpc.inject_tx(transfer_tx_fork1_sender).await?;
+
+    // Start fork 2
+    node.advance_block().await?;
+
+    tokio::time::sleep(tokio::time::Duration
+        
+        ::from_secs(1)).await;
+
+    // This transfer now works
+    node.rpc.inject_tx(transfer_tx_from_fork2_to).await?;
+
+    // A transfer from the fork 1 sender does not work though
+    let transfer_tx_fork1_sender = transfer_bytes(2, Some(wallet_5.address()), wallet_0.clone()).await;
+    node.rpc.inject_tx(transfer_tx_fork1_sender).await.unwrap_err();
+    // node.rpc.inject_tx(transfer_tx_fork1_sender).await?;
+
+    // dbg!(transfer_error1);
+    // assert_unsupported_tx(transfer_error1);
+
+    // We should now be in fork 2, so timestamp
+    // node.rpc.inject_tx(transfer_tx_from_fork2_to.clone()).await?;
 
     // let blob_tx = TransactionTestContext::tx_with_blobs_bytes(1, alice_wallet.clone()).await?;
     // let blob_error = node.rpc.inject_tx(blob_tx).await.unwrap_err();
