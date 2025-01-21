@@ -54,7 +54,11 @@ impl IvmConfig {
         self.forks
             .range(..=timestamp)
             .next_back()
-            .map(|(_, c)| c.is_allowed(sender, to))
+            .map(|(_, c)| {
+                tracing::debug!(allow_config=?c, ?timestamp, "Selected transaction allow config");
+                dbg!(c, timestamp);
+                c.is_allowed(sender, to)
+            })
             // Default to false if nothing is found
             .unwrap_or(false)
     }

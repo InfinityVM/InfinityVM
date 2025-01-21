@@ -655,4 +655,6 @@ mod test {
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
     }
+
+    // TODO: add tests that do transaction validation with different forks
 }
