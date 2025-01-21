@@ -145,6 +145,7 @@ where
         let ivm_config: IvmConfig = self.ivm_config;
         let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
+        dbg!("building pool");
         let txn_validator = IvmTransactionValidatorBuilder::new(ctx.chain_spec())
             .with_head_timestamp(ctx.head().timestamp)
             .kzg_settings(ctx.kzg_settings()?)
@@ -222,8 +223,8 @@ mod test {
     use reth_transaction_pool::{
         blobstore::InMemoryBlobStore,
         error::{InvalidPoolTransactionError, PoolErrorKind},
-        EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin,
-        TransactionPool, TransactionValidationOutcome,
+        EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin, TransactionPool,
+        TransactionValidationOutcome,
     };
 
     fn get_create_transaction() -> EthPooledTransaction {
@@ -286,7 +287,6 @@ mod test {
         );
 
         let outcome = validator.validate_one(TransactionOrigin::External, transaction.clone());
-        dbg!(&outcome);
         // The outcome is invalid
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction

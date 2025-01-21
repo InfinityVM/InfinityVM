@@ -42,9 +42,15 @@ impl IvmConfig {
     /// If the transaction passes allow list checks at the fork associated with the
     /// given timestamp.
     ///
-    /// Returns false if their are no forks.
+    /// Special case:
+    /// - For a zero timestamp we always return true. We do this because this indicate no consensus
+    ///   updates have been processed by the node.
+    /// - If there are no forks and the timestamp is non-zero, we return false.
     #[inline(always)]
     pub fn is_allowed(&self, sender: &Address, to: Option<Address>, timestamp: u64) -> bool {
+        if timestamp == 0 {
+            return true
+        };
         self.forks
             .range(..=timestamp)
             .next_back()

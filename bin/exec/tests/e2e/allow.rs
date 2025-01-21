@@ -5,7 +5,10 @@ use alloy_genesis::Genesis;
 use alloy_network::EthereumWallet;
 use alloy_primitives::{address, U256};
 use alloy_provider::{Provider, ProviderBuilder};
-use ivm_exec::{config::IvmConfig, IvmNode};
+use ivm_exec::{
+    config::{transaction::IvmTransactionAllowConfig, IvmConfig},
+    IvmNode,
+};
 use reth::args::RpcServerArgs;
 use reth_chainspec::{ChainSpecBuilder, MAINNET};
 use reth_e2e_test_utils::{
@@ -13,10 +16,7 @@ use reth_e2e_test_utils::{
 };
 use reth_node_builder::{NodeBuilder, NodeConfig, NodeHandle};
 use reth_tasks::TaskManager;
-use ivm_exec::config::transaction::IvmTransactionAllowConfig;
-use std::time::UNIX_EPOCH;
-use std::time::SystemTime;
-
+use std::time::{SystemTime, UNIX_EPOCH};
 
 alloy_sol_types::sol! {
     #[sol(rpc, bytecode = "6080604052348015600f57600080fd5b5060405160db38038060db833981016040819052602a91607a565b60005b818110156074576040805143602082015290810182905260009060600160408051601f19818403018152919052805160209091012080555080606d816092565b915050602d565b505060b8565b600060208284031215608b57600080fd5b5051919050565b60006001820160b157634e487b7160e01b600052601160045260246000fd5b5060010190565b60168060c56000396000f3fe6080604052600080fdfea164736f6c6343000810000a")]
@@ -125,25 +125,26 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     let wallet_5 = wallets[5].clone();
 
     let mut config = IvmConfig::deny_all();
-    
+
     let mut fork1 = IvmTransactionAllowConfig::deny_all();
     fork1.add_sender(wallet_0.address());
-    
+
     let mut fork2 = IvmTransactionAllowConfig::deny_all();
     fork2.add_to(wallet_5.address());
-    
+
     let mut fork3 = IvmTransactionAllowConfig::deny_all();
     fork2.set_all(true);
-    
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
 
+    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+
+    // From https://github.com/InfinityVM/reth/blob/main/crates/e2e-test-utils/src/payload.rs#L13
+    let test_context_start_timestamp = 1710338135;
+
+    dbg!(timestamp);
     // Setup the forks with 3 second offsets
-    config.set_fork(timestamp, fork1);
-    config.set_fork(timestamp + 3, fork2);
-    config.set_fork(timestamp + 2 * 3, fork3);
+    config.set_fork(test_context_start_timestamp, fork1);
+    config.set_fork(test_context_start_timestamp + 3, fork2);
+    config.set_fork(test_context_start_timestamp + 2 * 3, fork3);
 
     let ivm_node_types = IvmNode::new(config);
     let NodeHandle { node, node_exit_future: _ } = NodeBuilder::new(node_config.clone())
@@ -151,15 +152,15 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
         .node(ivm_node_types)
         .launch()
         .await?;
-    let node = NodeTestContext::new(node, eth_payload_attributes).await?;
+    let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
 
-    // let rpc = ProviderBuilder::new()
-    //     .with_recommended_fillers()
-    //     .wallet(EthereumWallet::new(alice_wallet.clone()))
-    //     .on_http(node.rpc_url());
+    let transfer_tx = TransactionTestContext::transfer_tx_bytes(1, wallet_0.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await?;
 
-    // let transfer_tx = TransactionTestContext::transfer_tx_bytes(1, alice_wallet.clone()).await;
-    // let transfer_error = node.rpc.inject_tx(transfer_tx).await.unwrap_err();
+    // Every call to new payload will increment the timestamp
+    // https://github.com/InfinityVM/reth/blob/main/crates/e2e-test-utils/src/payload.rs#L37
+    node.advance_block().await?;
+
     // assert_unsupported_tx(transfer_error);
 
     // let blob_tx = TransactionTestContext::tx_with_blobs_bytes(1, alice_wallet.clone()).await?;
@@ -175,8 +176,8 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     // let get_account_err = rpc.get_account(alice_wallet.address()).await.unwrap_err().to_string();
     // assert_eq!(
     //     &get_account_err,
-    //     "deserialization error: invalid type: null, expected struct TrieAccount at line 1 column 4"
-    // );
+    //     "deserialization error: invalid type: null, expected struct TrieAccount at line 1 column
+    // 4" );
 
     // // And sanity check that pre-alloc'ed accounts can be queried
     // let alloc_account = address!("0x7e480b98e3710753ffb23f67bd35391d5a6b1e9e");

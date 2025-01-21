@@ -765,6 +765,7 @@ where
         // to reduce heavy checks for eip 4844 transactions
         let timestamp =
             self.ivm.latest_timestamp.fetch_add(0, std::sync::atomic::Ordering::Relaxed);
+        dbg!(timestamp);
         if !self.ivm.ivm_config.is_allowed(tx.sender_ref(), tx.to(), timestamp) {
             return TransactionValidationOutcome::Invalid(
                 tx,
