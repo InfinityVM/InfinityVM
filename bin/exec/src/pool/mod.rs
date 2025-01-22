@@ -254,7 +254,7 @@ mod test {
                 _,
                 InvalidPoolTransactionError::Consensus(InvalidTransactionError::TxTypeNotSupported),
             ) => {}
-            _ => panic!(),
+            _ => panic!("expected TxTypeNotSupported"),
         }
     }
 
@@ -271,12 +271,14 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 config,
             );
+        // Set timestamp to 1 to avoid genesis edge case
+        validator.set_timestamp(1);
 
         let pool = Pool::new(
             validator.clone(),
@@ -323,12 +325,14 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 config,
             );
+        // Set timestamp to 1 to avoid genesis edge case
+        validator.set_timestamp(1);
 
         let pool = Pool::new(
             validator.clone(),
@@ -386,12 +390,14 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 config,
             );
+        // Set timestamp to 1 to avoid genesis edge case
+        validator.set_timestamp(1);
 
         let pool = Pool::new(
             validator.clone(),
@@ -449,12 +455,14 @@ mod test {
             ExtendedAccount::new(other_transaction.nonce(), U256::MAX),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 config,
             );
+        // Set timestamp to 1 to avoid genesis edge case
+        validator.set_timestamp(1);
 
         let pool = Pool::new(
             validator.clone(),
@@ -480,6 +488,8 @@ mod test {
 
     #[tokio::test]
     async fn allows_valid_to_with_no_balance() {
+        ivm_test_utils::test_tracing();
+
         let provider = MockEthProvider::default();
         let blob_store = InMemoryBlobStore::default();
         let transaction = get_swap_transaction();
@@ -495,12 +505,14 @@ mod test {
         assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 config,
             );
+        // Set timestamp to 1 to avoid genesis edge case
+        validator.set_timestamp(1);
 
         let pool = Pool::new(
             validator.clone(),
@@ -552,12 +564,14 @@ mod test {
         assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 config,
             );
+        // Set timestamp to 1 to avoid genesis edge case
+        validator.set_timestamp(1);
 
         let pool = Pool::new(
             validator.clone(),
@@ -594,6 +608,7 @@ mod test {
 
     #[tokio::test]
     async fn allows_valid_senders_with_low_balance() {
+
         let provider = MockEthProvider::default();
         let blob_store = InMemoryBlobStore::default();
         let transaction = get_swap_transaction();
@@ -615,12 +630,14 @@ mod test {
             ExtendedAccount::new(other_transaction.nonce(), U256::from(10)),
         );
 
-        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
                 config,
             );
+        // Set timestamp to 1 to avoid genesis edge case
+        validator.set_timestamp(1);
 
         let pool = Pool::new(
             validator.clone(),

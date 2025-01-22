@@ -801,6 +801,14 @@ where
             .latest_timestamp
             .store(new_tip_block.timestamp(), std::sync::atomic::Ordering::Relaxed);
     }
+
+    #[cfg(test)]
+    pub(super) fn set_timestamp(&mut self, timestamp: u64) {
+        self
+            .ivm
+            .latest_timestamp
+            .store(timestamp, std::sync::atomic::Ordering::Relaxed);
+    }
 }
 
 impl<Client, Tx> TransactionValidator for IvmTransactionValidator<Client, Tx>
