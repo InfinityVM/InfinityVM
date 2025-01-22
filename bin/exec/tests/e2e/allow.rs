@@ -124,6 +124,8 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     let wallet_0 = wallets[0].clone();
     let wallet_1 = wallets[1].clone();
     let wallet_2 = wallets[2].clone();
+    let wallet_3 = wallets[3].clone();
+    let wallet_4 = wallets[4].clone();
     let wallet_5 = wallets[5].clone();
 
     // Deny all expect for the first block, which has timestamp 0.
@@ -177,8 +179,8 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     // This tx will be valid in fork 2, but not fork 1
     let transfer_tx_from_fork2_to =
         transfer_bytes(1, Some(wallet_1.address()), wallet_5.clone()).await;
-    let transfer_error1 = node.rpc.inject_tx(transfer_tx_from_fork2_to.clone()).await.unwrap_err();
-    assert_unsupported_tx(transfer_error1);
+    let transfer_error = node.rpc.inject_tx(transfer_tx_from_fork2_to.clone()).await.unwrap_err();
+    assert_unsupported_tx(transfer_error);
 
     // Continue through fork 1
     node.advance_block().await?;
@@ -187,47 +189,46 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
 
     // Start fork 2
     node.advance_block().await?;
-
-    tokio::time::sleep(tokio::time::Duration
-        
-        ::from_secs(1)).await;
-
     // This transfer now works
     node.rpc.inject_tx(transfer_tx_from_fork2_to).await?;
-
     // A transfer from the fork 1 sender does not work though
-    let transfer_tx_fork1_sender = transfer_bytes(2, Some(wallet_5.address()), wallet_0.clone()).await;
+    let transfer_tx_fork1_sender =
+        transfer_bytes(2, Some(wallet_5.address()), wallet_0.clone()).await;
     node.rpc.inject_tx(transfer_tx_fork1_sender).await.unwrap_err();
-    // node.rpc.inject_tx(transfer_tx_fork1_sender).await?;
+    node.advance_block().await?;
 
-    // dbg!(transfer_error1);
-    // assert_unsupported_tx(transfer_error1);
+    // Continue through fork 2
+    let transfer_tx_fork2_to = transfer_bytes(0, Some(wallet_1.address()), wallet_3.clone()).await;
+    node.rpc.inject_tx(transfer_tx_fork2_to).await?;
+    node.advance_block().await?;
 
-    // We should now be in fork 2, so timestamp
-    // node.rpc.inject_tx(transfer_tx_from_fork2_to.clone()).await?;
+    // Still works on the last block
+    let transfer_tx_fork2_to = transfer_bytes(1, Some(wallet_1.address()), wallet_2.clone()).await;
+    node.rpc.inject_tx(transfer_tx_fork2_to).await?;
+    // A transfer to a random address does not work
+    let transfer_tx = transfer_bytes(2, None, wallet_2.clone()).await;
+    let transfer_error = node.rpc.inject_tx(transfer_tx).await.unwrap_err();
+    assert_unsupported_tx(transfer_error);
+    node.advance_block().await?;
 
-    // let blob_tx = TransactionTestContext::tx_with_blobs_bytes(1, alice_wallet.clone()).await?;
-    // let blob_error = node.rpc.inject_tx(blob_tx).await.unwrap_err();
-    // assert_unsupported_tx(blob_error);
+    // Start fork 3, everything is allowed.
+    // We show that everyone can send to a random address
+    let transfer_tx = transfer_bytes(2, None, wallet_5.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await?;
+    let transfer_tx = transfer_bytes(0, None, wallet_4.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await?;
+    let transfer_tx = transfer_bytes(1, None, wallet_3.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await?;
+    let transfer_tx = transfer_bytes(3, None, wallet_2.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await?;
+    node.advance_block().await?;
 
-    // let deploy_error =
-    //     GasWaster::deploy_builder(&rpc, U256::from(500)).send().await.unwrap_err().to_string();
-    // assert!(&deploy_error.contains("-32003"));
-    // assert!(&deploy_error.contains("transaction type not supported"));
-
-    // // The account never gets created
-    // let get_account_err = rpc.get_account(alice_wallet.address()).await.unwrap_err().to_string();
-    // assert_eq!(
-    //     &get_account_err,
-    //     "deserialization error: invalid type: null, expected struct TrieAccount at line 1 column
-    // 4" );
-
-    // // And sanity check that pre-alloc'ed accounts can be queried
-    // let alloc_account = address!("0x7e480b98e3710753ffb23f67bd35391d5a6b1e9e");
-    // assert!(genesis.alloc.contains_key(&alloc_account));
-    // let account = rpc.get_account(alloc_account).await?;
-    // assert_eq!(account.nonce, 0);
-    // assert_eq!(account.balance, U256::from(0x12345));
+    // And it keeps working into fork 3
+    let transfer_tx = transfer_bytes(0, None, wallet_1.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await?;
+    let transfer_tx = transfer_bytes(0, None, wallet_0.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await?;
+    node.advance_block().await?;
 
     Ok(())
 }
