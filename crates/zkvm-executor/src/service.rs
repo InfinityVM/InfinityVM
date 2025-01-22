@@ -137,8 +137,9 @@ where
             .map_err(Error::ZkvmExecuteFailed)?;
 
         let sidecar = if !offchain_input.is_empty() {
+            let compressed_offchain_input = lz4_flex::block::compress_prepend_size(&offchain_input);
             let sidecar_builder: SidecarBuilder<SimpleCoder> =
-                std::iter::once(offchain_input).collect();
+                std::iter::once(compressed_offchain_input).collect();
             Some(sidecar_builder.build()?)
         } else {
             None
