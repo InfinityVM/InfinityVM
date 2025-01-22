@@ -7,9 +7,12 @@ use transaction::IvmTransactionAllowConfig;
 
 pub mod transaction;
 
-/// IVM specific configuration for the execution client. This is the in memory representation
+/// IVM specific configuration for the execution client. This is the in memory representation.
 ///
-/// The default will allow all transactions.
+/// N.B. The default will allow all transactions.
+///
+/// We store this as a file with [IvmConfigToml] because map keys in toml must be strings, but we
+/// use u64 keys.
 #[derive(Debug, Clone)]
 pub struct IvmConfig {
     /// Map from block timestamp to `IvmTransactionAllowConfig`
@@ -43,32 +46,28 @@ impl IvmConfig {
     /// given timestamp.
     ///
     /// Special case:
-    /// - For a zero timestamp we always return true. We do this because this indicate no consensus
-    ///   updates have been processed by the node.
+    /// - For a zero timestamp we always return true. We do this because at this timestamp no
+    ///   consensus events have been processed by the engine
     /// - If there are no forks and the timestamp is non-zero, we return false.
-    #[inline(always)]
     pub fn is_allowed(&self, sender: &Address, to: Option<Address>, timestamp: u64) -> bool {
         if timestamp == 0 {
             return true
         };
+
         self.forks
             .range(..=timestamp)
             .next_back()
             .map(|(_, c)| {
-                tracing::debug!(
-                    allow_config=?c, ?timestamp, ?sender, ?to, "Selected transaction allow config"
+                tracing::trace!(
+                    allow_config=?c, ?timestamp, ?sender, ?to, "Selected allow config"
                 );
-                dbg!(c, timestamp, sender,);
-                dbg!(c.is_allowed(sender, to))
+                c.is_allowed(sender, to)
             })
             // Default to false if nothing is found
             .unwrap_or(false)
     }
 
-    /// Return true if any of the allow configs contain the `sender`. This is only meant to
-    /// be used for non-safety critical situations such as determining transaction priority
-    /// while payload building. We use this because some contexts we don't know the block height.
-    #[inline(always)]
+    /// Return true if this sender is specified in the config as a priority sender.
     pub fn is_priority_sender(&self, sender: &Address) -> bool {
         self.priority_senders.contains(sender)
     }
@@ -112,8 +111,10 @@ impl IvmConfig {
                     fs::create_dir_all(parent)
                         .map_err(|e| eyre!("failed to create directory: {e}"))?;
                 }
+
                 let cfg = Self::default();
                 let toml: IvmConfigToml = cfg.clone().into();
+
                 let s = toml::to_string_pretty(&toml)
                     .map_err(|e| eyre!("failed to serialize to TOML: {e}"))?;
                 fs::write(path, s).map_err(|e| eyre!("failed to write configuration file: {e}"))?;

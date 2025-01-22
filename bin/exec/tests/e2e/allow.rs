@@ -100,7 +100,7 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
 }
 
 #[tokio::test]
-async fn allow_config_is_fork_aware() -> eyre::Result<()> {
+async fn allow_config_is_fork_aware() {
     ivm_test_utils::test_tracing();
 
     let tasks = TaskManager::current();
@@ -143,12 +143,9 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     let mut fork3 = IvmTransactionAllowConfig::deny_all();
     fork3.set_all(true);
 
-    let timestamp = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-
     // From https://github.com/InfinityVM/reth/blob/main/crates/e2e-test-utils/src/payload.rs#L13
     let test_context_start_timestamp = 1710338135;
 
-    dbg!(timestamp);
     // Setup the forks with 3 second offsets
     config.set_fork(test_context_start_timestamp, fork1);
     config.set_fork(test_context_start_timestamp + 3, fork2);
@@ -159,20 +156,21 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
         .testing_node(exec.clone())
         .node(ivm_node_types)
         .launch()
-        .await?;
-    let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
+        .await
+        .unwrap();
+    let mut node = NodeTestContext::new(node, eth_payload_attributes).await.unwrap();
 
     // The very first timestamp will be zero, which triggers a special case of allowing any tx
     let transfer_tx_from_random = transfer_bytes(0, None, wallet_5.clone()).await;
-    node.rpc.inject_tx(transfer_tx_from_random).await?;
+    node.rpc.inject_tx(transfer_tx_from_random).await.unwrap();
 
     // Every call to new payload will increment the timestamp
     // https://github.com/InfinityVM/reth/blob/main/crates/e2e-test-utils/src/payload.rs#L37
-    node.advance_block().await?;
+    node.advance_block().await.unwrap();
 
     // We now are in fork 1, where only wallet 0 is allowed
     let transfer_tx_fork1_sender = transfer_bytes(0, None, wallet_0.clone()).await;
-    node.rpc.inject_tx(transfer_tx_fork1_sender).await?;
+    node.rpc.inject_tx(transfer_tx_fork1_sender).await.unwrap();
 
     // TODO: add calls to get canon header to assert timestamp and height
 
@@ -183,52 +181,50 @@ async fn allow_config_is_fork_aware() -> eyre::Result<()> {
     assert_unsupported_tx(transfer_error);
 
     // Continue through fork 1
-    node.advance_block().await?;
+    node.advance_block().await.unwrap();
     let transfer_tx_fork1_sender = transfer_bytes(1, None, wallet_0.clone()).await;
-    node.rpc.inject_tx(transfer_tx_fork1_sender).await?;
+    node.rpc.inject_tx(transfer_tx_fork1_sender).await.unwrap();
 
     // Start fork 2
-    node.advance_block().await?;
+    node.advance_block().await.unwrap();
     // This transfer now works
-    node.rpc.inject_tx(transfer_tx_from_fork2_to).await?;
+    node.rpc.inject_tx(transfer_tx_from_fork2_to).await.unwrap();
     // A transfer from the fork 1 sender does not work though
     let transfer_tx_fork1_sender =
         transfer_bytes(2, Some(wallet_5.address()), wallet_0.clone()).await;
     node.rpc.inject_tx(transfer_tx_fork1_sender).await.unwrap_err();
-    node.advance_block().await?;
+    node.advance_block().await.unwrap();
 
     // Continue through fork 2
     let transfer_tx_fork2_to = transfer_bytes(0, Some(wallet_1.address()), wallet_3.clone()).await;
-    node.rpc.inject_tx(transfer_tx_fork2_to).await?;
-    node.advance_block().await?;
+    node.rpc.inject_tx(transfer_tx_fork2_to).await.unwrap();
+    node.advance_block().await.unwrap();
 
     // Still works on the last block
-    let transfer_tx_fork2_to = transfer_bytes(1, Some(wallet_1.address()), wallet_2.clone()).await;
-    node.rpc.inject_tx(transfer_tx_fork2_to).await?;
+    let transfer_tx_fork2_to = transfer_bytes(0, Some(wallet_1.address()), wallet_2.clone()).await;
+    node.rpc.inject_tx(transfer_tx_fork2_to).await.unwrap();
     // A transfer to a random address does not work
-    let transfer_tx = transfer_bytes(2, None, wallet_2.clone()).await;
+    let transfer_tx = transfer_bytes(1, None, wallet_2.clone()).await;
     let transfer_error = node.rpc.inject_tx(transfer_tx).await.unwrap_err();
     assert_unsupported_tx(transfer_error);
-    node.advance_block().await?;
+    node.advance_block().await.unwrap();
 
     // Start fork 3, everything is allowed.
     // We show that everyone can send to a random address
-    let transfer_tx = transfer_bytes(2, None, wallet_5.clone()).await;
-    node.rpc.inject_tx(transfer_tx).await?;
+    let transfer_tx = transfer_bytes(3, None, wallet_5.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await.unwrap();
     let transfer_tx = transfer_bytes(0, None, wallet_4.clone()).await;
-    node.rpc.inject_tx(transfer_tx).await?;
+    node.rpc.inject_tx(transfer_tx).await.unwrap();
     let transfer_tx = transfer_bytes(1, None, wallet_3.clone()).await;
-    node.rpc.inject_tx(transfer_tx).await?;
-    let transfer_tx = transfer_bytes(3, None, wallet_2.clone()).await;
-    node.rpc.inject_tx(transfer_tx).await?;
-    node.advance_block().await?;
+    node.rpc.inject_tx(transfer_tx).await.unwrap();
+    let transfer_tx = transfer_bytes(1, None, wallet_2.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await.unwrap();
+    node.advance_block().await.unwrap();
 
     // And it keeps working into fork 3
     let transfer_tx = transfer_bytes(0, None, wallet_1.clone()).await;
-    node.rpc.inject_tx(transfer_tx).await?;
-    let transfer_tx = transfer_bytes(0, None, wallet_0.clone()).await;
-    node.rpc.inject_tx(transfer_tx).await?;
-    node.advance_block().await?;
-
-    Ok(())
+    node.rpc.inject_tx(transfer_tx).await.unwrap();
+    let transfer_tx = transfer_bytes(3, None, wallet_0.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await.unwrap();
+    node.advance_block().await.unwrap();
 }

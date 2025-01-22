@@ -145,7 +145,6 @@ where
         let ivm_config: IvmConfig = self.ivm_config;
         let blob_store = DiskFileBlobStore::open(data_dir.blobstore(), Default::default())?;
 
-        dbg!("building pool");
         let txn_validator = IvmTransactionValidatorBuilder::new(ctx.chain_spec())
             .with_head_timestamp(ctx.head().timestamp)
             .kzg_settings(ctx.kzg_settings()?)
