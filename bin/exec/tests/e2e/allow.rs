@@ -173,8 +173,6 @@ async fn allow_config_is_fork_aware() {
     let transfer_tx_fork1_sender = transfer_bytes(0, None, wallet_0.clone()).await;
     node.rpc.inject_tx(transfer_tx_fork1_sender).await.unwrap();
 
-    // TODO: add calls to get canon header to assert timestamp and height
-
     // This tx will be valid in fork 2, but not fork 1
     let transfer_tx_from_fork2_to =
         transfer_bytes(1, Some(wallet_1.address()), wallet_5.clone()).await;
