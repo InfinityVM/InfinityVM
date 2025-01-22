@@ -4991,6 +4991,7 @@ dependencies = [
  "ivm-eip4844",
  "ivm-proto",
  "ivm-zkvm",
+ "lz4_flex",
  "thiserror 1.0.69",
  "tracing",
 ]

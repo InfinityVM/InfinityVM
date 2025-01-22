@@ -11,6 +11,7 @@ workspace = true
 tracing = { workspace = true }
 alloy = { workspace = true, features = ["signers"] }
 thiserror = { workspace = true }
+lz4_flex = { workspace = true }
 
 ivm-proto = { workspace = true }
 ivm-zkvm = { workspace = true }
