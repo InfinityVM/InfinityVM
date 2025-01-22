@@ -193,10 +193,13 @@ mod tests {
 
             // Verify fork timestamps
             let fork_timestamps: Vec<_> = config.forks.keys().collect();
-            assert_eq!(fork_timestamps, vec![&1672531200, &1688169600, &1704067200]);
+            let fork1_timestamp = 1672531200;
+            let fork2_timestamp = 1688169600;
+            let fork3_timestamp = 1704067200;
+            assert_eq!(fork_timestamps, vec![&fork1_timestamp, &fork2_timestamp, &fork3_timestamp]);
 
             // First fork
-            let fork1 = config.forks.get(&1672531200).unwrap();
+            let fork1 = config.forks.get(&fork1_timestamp).unwrap();
             assert!(!fork1.all());
             assert_eq!(fork1.to().len(), 2);
             assert!(fork1.to().contains(&address!("0x1234567890123456789012345678901234567890")));
@@ -204,11 +207,15 @@ mod tests {
 
             assert_eq!(fork1.sender().len(), 2);
             // Verify senders
-            address!("0x2222222222222222222222222222222222222222");
-            address!("0x3333333333333333333333333333333333333333");
+            assert!(fork1
+                .sender()
+                .contains(&address!("0x2222222222222222222222222222222222222222")));
+            assert!(fork1
+                .sender()
+                .contains(&address!("0x3333333333333333333333333333333333333333")));
 
             // Second fork
-            let fork2 = config.forks.get(&1688169600).unwrap();
+            let fork2 = config.forks.get(&fork2_timestamp).unwrap();
             assert_eq!(fork2.to().len(), 2);
             assert!(fork2.to().contains(&address!("0x4444444444444444444444444444444444444444")));
             assert!(fork2.to().contains(&address!("0x5555555555555555555555555555555555555555")));
@@ -222,7 +229,7 @@ mod tests {
                 .contains(&address!("0x7777777777777777777777777777777777777777")));
 
             // Third fork
-            let fork3 = config.forks.get(&1704067200).unwrap();
+            let fork3 = config.forks.get(&fork3_timestamp).unwrap();
             assert!(fork3.all());
             assert!(fork3.to().is_empty());
             assert!(fork3.sender().is_empty());
@@ -244,31 +251,31 @@ mod tests {
             assert!(config.is_allowed(
                 &Address::with_last_byte(10),
                 Some(address!("0x1234567890123456789012345678901234567890")),
-                1672531200
+                fork1_timestamp
             ));
-            assert!(!config.is_allowed(
+            assert!(config.is_allowed(
                 &address!("0x3333333333333333333333333333333333333333"),
                 Some(Address::with_last_byte(10)),
-                1672531200
+                fork1_timestamp
             ));
 
             // Second fork period
             assert!(config.is_allowed(
                 &Address::with_last_byte(10),
                 Some(address!("0x4444444444444444444444444444444444444444")),
-                1688169600
+                fork2_timestamp
             ));
             assert!(config.is_allowed(
                 &address!("0x7777777777777777777777777777777777777777"),
                 Some(Address::with_last_byte(10)),
-                1688169600
+                fork2_timestamp
             ));
 
             // Third fork period - should allow all
             assert!(config.is_allowed(
                 &Address::with_last_byte(10),
                 Some(Address::with_last_byte(10)),
-                1704067200
+                fork3_timestamp
             ));
 
             // Verify non-allowed combinations
@@ -276,14 +283,14 @@ mod tests {
             assert!(!config.is_allowed(
                 &address!("0x1234567890123456789012345678901234567890"),
                 Some(Address::with_last_byte(10)),
-                1672531200
+                fork1_timestamp
             ));
 
             // Second fork period
             assert!(!config.is_allowed(
                 &Address::with_last_byte(10),
                 Some(address!("0x6666666666666666666666666666666666666666")),
-                1688169600
+                fork2_timestamp
             ));
 
             // Verify priority sender functionality
