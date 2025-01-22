@@ -125,9 +125,14 @@ where
     /// bytes. For the gRPC service, we do this in the `submit_job` endpoint implementation before
     /// call this method.
     pub async fn submit_job(&self, mut job: Job) -> Result<(), Error> {
-        if job.offchain_input.len() > self.max_da_per_job {
-            return Err(Error::OffchainInputOverMaxDAPerJob);
-        };
+        {
+            // We compress blob data before submitting it, so we want to make sure we are validating
+            // compressed size
+            let compressed = lz4_flex::block::compress_prepend_size(&job.offchain_input);
+            if compressed.len() > self.max_da_per_job {
+                return Err(Error::OffchainInputOverMaxDAPerJob);
+            };
+        }
 
         // TODO: add new table for just job ID so we can avoid writing full job here and reading.
         // We can just pass the job itself along the channel
