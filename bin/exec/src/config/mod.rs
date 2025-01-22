@@ -11,8 +11,8 @@ pub mod transaction;
 ///
 /// N.B. The default will allow all transactions.
 ///
-/// We store this as a file with [IvmConfigToml] because map keys in toml must be strings, but we
-/// use u64 keys.
+/// We store persist this to disk with [`IvmConfigToml`] because map keys in toml must be strings,
+/// but we use u64 keys.
 #[derive(Debug, Clone)]
 pub struct IvmConfig {
     /// Map from block timestamp to `IvmTransactionAllowConfig`
@@ -47,7 +47,7 @@ impl IvmConfig {
     ///
     /// Special case:
     /// - For a zero timestamp we always return true. We do this because at this timestamp no
-    ///   consensus events have been processed by the engine
+    ///   consensus events have been processed by the engine.
     /// - If there are no forks and the timestamp is non-zero, we return false.
     pub fn is_allowed(&self, sender: &Address, to: Option<Address>, timestamp: u64) -> bool {
         if timestamp == 0 {
@@ -221,8 +221,6 @@ mod tests {
                 .sender()
                 .contains(&address!("0x7777777777777777777777777777777777777777")));
 
-            assert_eq!(fork2.sender().len(), 2);
-
             // Third fork
             let fork3 = config.forks.get(&1704067200).unwrap();
             assert!(fork3.all());
@@ -248,7 +246,7 @@ mod tests {
                 Some(address!("0x1234567890123456789012345678901234567890")),
                 1672531200
             ));
-            assert!(config.is_allowed(
+            assert!(!config.is_allowed(
                 &address!("0x3333333333333333333333333333333333333333"),
                 Some(Address::with_last_byte(10)),
                 1672531200

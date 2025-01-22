@@ -3,7 +3,7 @@
 use alloy_network::eip2718::Encodable2718;
 use alloy_primitives::{Address, Bytes, TxKind, B256, U256};
 use alloy_rpc_types_engine::PayloadAttributes;
-use alloy_rpc_types_eth::{Authorization, TransactionInput, TransactionRequest};
+use alloy_rpc_types_eth::{TransactionInput, TransactionRequest};
 use alloy_signer_local::PrivateKeySigner;
 use reth::rpc::server_types::eth::{error::RpcPoolError, EthApiError, RpcInvalidTransactionError};
 use reth_e2e_test_utils::transaction::TransactionTestContext;
@@ -37,7 +37,7 @@ fn tx(
     to: Option<Address>,
     data: Option<Bytes>,
 ) -> TransactionRequest {
-    let to = to.unwrap_or(Address::random());
+    let to = to.unwrap_or_else(Address::random);
     TransactionRequest {
         nonce: Some(nonce),
         value: Some(U256::from(100)),
