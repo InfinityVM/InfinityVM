@@ -136,6 +136,7 @@ where
                 Err(_) => continue,
             };
 
+            let now = std::time::Instant::now();
             let executed_job = match Self::execute_job(
                 job,
                 &zk_executor,
@@ -146,6 +147,7 @@ where
                 Ok(executed_job) => executed_job,
                 Err(_) => continue,
             };
+            metrics.observe_job_exec_time(now.elapsed());
 
             reply_tx.send(executed_job).expect("executor reply one shot channel is broken");
         }
