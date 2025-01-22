@@ -488,8 +488,6 @@ mod test {
 
     #[tokio::test]
     async fn allows_valid_to_with_no_balance() {
-        ivm_test_utils::test_tracing();
-
         let provider = MockEthProvider::default();
         let blob_store = InMemoryBlobStore::default();
         let transaction = get_swap_transaction();
@@ -608,7 +606,6 @@ mod test {
 
     #[tokio::test]
     async fn allows_valid_senders_with_low_balance() {
-
         let provider = MockEthProvider::default();
         let blob_store = InMemoryBlobStore::default();
         let transaction = get_swap_transaction();

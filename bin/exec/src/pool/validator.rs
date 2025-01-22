@@ -804,10 +804,7 @@ where
 
     #[cfg(test)]
     pub(super) fn set_timestamp(&mut self, timestamp: u64) {
-        self
-            .ivm
-            .latest_timestamp
-            .store(timestamp, std::sync::atomic::Ordering::Relaxed);
+        self.ivm.latest_timestamp.store(timestamp, std::sync::atomic::Ordering::Relaxed);
     }
 }
 
