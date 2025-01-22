@@ -139,7 +139,7 @@ async fn allow_config_is_fork_aware() {
     let mut fork2 = IvmTransactionAllowConfig::deny_all();
     fork2.add_to(wallet_1.address());
 
-    // Allow all transcations
+    // Allow all transactions
     let mut fork3 = IvmTransactionAllowConfig::deny_all();
     fork3.set_all(true);
 
