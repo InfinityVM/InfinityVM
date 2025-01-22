@@ -173,6 +173,8 @@ k256 = { version = "0.13", default-features = false }
 kairos-trie = { git = "https://github.com/cspr-rad/kairos-trie.git", features = ["serde"] }
 
 # l
+lz4_flex = { version = "0.11", default-features = false }
+
 # m
 # n
 num_cpus = { version = "1" }

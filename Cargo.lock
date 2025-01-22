@@ -4787,6 +4787,7 @@ dependencies = [
  "ivm-tracing",
  "ivm-zkvm-executor",
  "k256",
+ "lz4_flex",
  "num_cpus",
  "prometheus",
  "reth-db",
@@ -4993,6 +4994,7 @@ dependencies = [
  "ivm-eip4844",
  "ivm-proto",
  "ivm-zkvm",
+ "lz4_flex",
  "thiserror 1.0.69",
  "tracing",
 ]
