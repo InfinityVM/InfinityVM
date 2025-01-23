@@ -20,16 +20,6 @@ use tracing::{debug, error, warn};
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
 
-/// A message to the execution actor.
-#[derive(Debug)]
-pub enum ExecMsg {
-    /// Send a job to execute and relay.
-    Exec(Job),
-    /// Request the current pending jobs. The given job nonce is the highest
-    /// job onchain.
-    Pending(JobNonce, oneshot::Sender<Vec<JobNonce>>),
-}
-
 /// The configuration for spawning job execution actors. A job execution actor will execute jobs as
 /// they come in. As jobs finish executing, it will wait until the job with the next nonce finishes
 /// and then send it to the relay actor.
@@ -65,6 +55,17 @@ impl ExecutionActorSpawner {
 
         tx
     }
+}
+
+/// A message to the execution actor.
+#[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
+pub enum ExecMsg {
+    /// Send a job to execute and relay.
+    Exec(Job),
+    /// Request the current pending jobs. The given job nonce is the highest
+    /// job onchain.
+    Pending(JobNonce, oneshot::Sender<Vec<JobNonce>>),
 }
 
 struct ExecutionActor {
@@ -115,7 +116,7 @@ impl ExecutionActor {
                         },
                         Some(ExecMsg::Pending(next_nonce, reply_tx)) => {
                             // Filter out the jobs that are already onchain
-                            pending_jobs = pending_jobs.into_iter().filter(|n| *n < next_nonce).collect();
+                            pending_jobs.retain(|n| next_nonce <= *n);
                             reply_tx.send(pending_jobs.clone()).expect("one shot sender failed");
                         }
                         None => {
