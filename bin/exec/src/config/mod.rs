@@ -11,7 +11,7 @@ pub mod transaction;
 ///
 /// N.B. The default will allow all transactions.
 ///
-/// We store persist this to disk with [`IvmConfigToml`] because map keys in toml must be strings,
+/// We store persist this to disk with `IvmConfigToml` because map keys in toml must be strings,
 /// but we use u64 keys.
 #[derive(Debug, Clone)]
 pub struct IvmConfig {
