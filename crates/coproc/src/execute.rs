@@ -102,10 +102,12 @@ impl ExecutionActor {
                 new_job = rx.recv() => {
                     match new_job {
                         Some(ExecMsg::Exec(job)) => {
+                            dbg!("a", job.nonce);
                             let executor_tx2 = executor_tx.clone();
                             if job.is_ordered() {
                                 pending_jobs.push(job.nonce)
                             }
+                            dbg!("b", job.nonce);
                             join_set.spawn(async move {
                                 // Send the job to be executed
                                 let (tx, executor_complete_rx) = oneshot::channel();
@@ -117,8 +119,11 @@ impl ExecutionActor {
                         },
                         Some(ExecMsg::Pending(next_nonce, reply_tx)) => {
                             // Filter out the jobs that are already onchain
+                            dbg!("c", next_nonce, &pending_jobs);
                             pending_jobs.retain(|n| next_nonce <= *n);
+                            dbg!("d", next_nonce, &pending_jobs);
                             reply_tx.send(pending_jobs.clone()).expect("one shot sender failed");
+                            dbg!("e", next_nonce);
                         }
                         None => {
                             warn!("execute actor channel closed");
