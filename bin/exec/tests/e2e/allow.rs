@@ -1,7 +1,5 @@
 #![allow(clippy::large_stack_frames)]
 
-use std::sync::Arc;
-
 use crate::utils::{assert_unsupported_tx, eth_payload_attributes, transfer_bytes};
 use alloy_genesis::Genesis;
 use alloy_network::EthereumWallet;
@@ -18,6 +16,7 @@ use reth_e2e_test_utils::{
 };
 use reth_node_builder::{NodeBuilder, NodeConfig, NodeHandle};
 use reth_tasks::TaskManager;
+use std::sync::Arc;
 
 alloy_sol_types::sol! {
     #[sol(rpc, bytecode = "6080604052348015600f57600080fd5b5060405160db38038060db833981016040819052602a91607a565b60005b818110156074576040805143602082015290810182905260009060600160408051601f19818403018152919052805160209091012080555080606d816092565b915050602d565b505060b8565b600060208284031215608b57600080fd5b5051919050565b60006001820160b157634e487b7160e01b600052601160045260246000fd5b5060010190565b60168060c56000396000f3fe6080604052600080fdfea164736f6c6343000810000a")]
@@ -52,8 +51,9 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
         .with_unused_ports()
         .with_rpc(RpcServerArgs::default().with_unused_ports().with_http());
 
-    let wallets = Wallet::new(2).gen();
-    let alice_wallet = wallets.last().unwrap();
+    let wallets = Wallet::new(3).gen();
+    let wallet_0 = wallets[0].clone();
+    let wallet_1 = wallets[1].clone();
 
     // Everyone is denied
     let ivm_node_types = IvmNode::new(IvmConfig::deny_all());
@@ -63,18 +63,23 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
         .node(ivm_node_types)
         .launch()
         .await?;
-    let node = NodeTestContext::new(node, eth_payload_attributes).await?;
+    let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
 
     let rpc = ProviderBuilder::new()
         .with_recommended_fillers()
-        .wallet(EthereumWallet::new(alice_wallet.clone()))
+        .wallet(EthereumWallet::new(wallet_1.clone()))
         .on_http(node.rpc_url());
 
-    let transfer_tx = TransactionTestContext::transfer_tx_bytes(1, alice_wallet.clone()).await;
-    let transfer_error = node.rpc.inject_tx(transfer_tx).await.unwrap_err();
+    // Special block 0 edge case where all transactions are accepted
+    let transfer_tx = transfer_bytes(0, None, wallet_0.clone()).await;
+    node.rpc.inject_tx(transfer_tx).await?;
+    node.advance_block().await?;
+
+    let transfer_tx2 = transfer_bytes(1, None, wallet_0.clone()).await;
+    let transfer_error = node.rpc.inject_tx(transfer_tx2).await.unwrap_err();
     assert_unsupported_tx(transfer_error);
 
-    let blob_tx = TransactionTestContext::tx_with_blobs_bytes(1, alice_wallet.clone()).await?;
+    let blob_tx = TransactionTestContext::tx_with_blobs_bytes(1, wallet_1.clone()).await?;
     let blob_error = node.rpc.inject_tx(blob_tx).await.unwrap_err();
     assert_unsupported_tx(blob_error);
 
@@ -84,7 +89,7 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
     assert!(&deploy_error.contains("transaction type not supported"));
 
     // The account never gets created
-    let get_account_err = rpc.get_account(alice_wallet.address()).await.unwrap_err().to_string();
+    let get_account_err = rpc.get_account(wallet_1.address()).await.unwrap_err().to_string();
     assert_eq!(
         &get_account_err,
         "deserialization error: invalid type: null, expected struct TrieAccount at line 1 column 4"
