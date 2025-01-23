@@ -234,31 +234,20 @@ where
     /// yet on chain.
     ///
     /// Important, this only works for ordered jobs. Unordered job requests are not tracked.
-    pub async fn get_pending_nonces(
-        &self,
-        consumer_address: [u8; 20],
-    ) -> Result<(u64, Vec<u64>), Error> {
+    pub async fn get_pending_nonces(&self, consumer_address: [u8; 20]) -> Result<Vec<u64>, Error> {
         // First see if we even have an execution actor associated with this consumer
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
             inner.clone()
         } else {
-            return Ok((0, Vec::new()))
+            return Ok(Vec::new())
         };
 
-        let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
-        let consumer = ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
-        // Get the _next_ nonce the chain is expecting. We expect the execution actor
-        // to not consider any nonces below this when telling us pending nonces. We do
-        // this query here instead of in the execution actor, because its relatively slow and
-        // we don't want to slow down the execution actors ability to start executing jobs.
-        let nonce = consumer.getNextNonce().call().await?._0;
-
         let (tx, rx) = oneshot::channel();
-        execution_tx.send(ExecMsg::Pending(nonce, tx)).await.expect("execution tx failed");
+        execution_tx.send(ExecMsg::Pending(tx)).await.expect("execution tx failed");
 
         let mut pending_jobs = rx.await.expect("one shot sender receiver failed");
         pending_jobs.sort();
 
-        Ok((nonce, pending_jobs))
+        Ok(pending_jobs)
     }
 }

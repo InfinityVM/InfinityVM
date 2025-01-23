@@ -202,12 +202,12 @@ where
             .try_into()
             .map_err(|_| Status::invalid_argument("contract address must be 20 bytes in length"))?;
 
-        let (next_nonce, pending_jobs) = self
+        let pending_jobs = self
             .intake_service
             .get_pending_nonces(consumer_address)
             .await
             .map_err(|e| Status::internal(format!("Error: {}", e)))?;
 
-        Ok(Response::new(GetPendingJobsResponse { next_nonce, pending_jobs }))
+        Ok(Response::new(GetPendingJobsResponse { next_nonce: 0, pending_jobs }))
     }
 }

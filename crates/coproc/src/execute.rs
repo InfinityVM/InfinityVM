@@ -5,7 +5,7 @@ use crate::{
     relayer::{RelayActorSpawner, RelayMsg},
 };
 use ivm_db::tables::Job;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use tokio::{
     sync::{
         mpsc,
@@ -64,7 +64,9 @@ pub enum ExecMsg {
     Exec(Job),
     /// Request the current pending jobs. The given job nonce is expected
     /// to be the next nonce on chain.
-    Pending(JobNonce, oneshot::Sender<Vec<JobNonce>>),
+    Pending(oneshot::Sender<Vec<JobNonce>>),
+    /// Indicate that a job has been relayed
+    Relayed(JobNonce),
 }
 
 struct ExecutionActor {
@@ -92,7 +94,7 @@ impl ExecutionActor {
 
         // We track executing jobs and relayed jobs so we can respond to status
         // update requests
-        let mut pending_jobs = Vec::<JobNonce>::new();
+        let mut pending_jobs = BTreeSet::new();
 
         let Self { mut rx, relay_tx, executor_tx } = self;
 
@@ -103,10 +105,8 @@ impl ExecutionActor {
                     match new_job {
                         Some(ExecMsg::Exec(job)) => {
                             dbg!("a", job.nonce);
+                            pending_jobs.insert(job.nonce);
                             let executor_tx2 = executor_tx.clone();
-                            if job.is_ordered() {
-                                pending_jobs.push(job.nonce)
-                            }
                             dbg!("b", job.nonce);
                             join_set.spawn(async move {
                                 // Send the job to be executed
@@ -117,13 +117,16 @@ impl ExecutionActor {
                                 executor_complete_rx.await
                             });
                         },
-                        Some(ExecMsg::Pending(next_nonce, reply_tx)) => {
+                        Some(ExecMsg::Pending(reply_tx)) => {
                             // Filter out the jobs that are already onchain
-                            dbg!("c", next_nonce, &pending_jobs);
-                            pending_jobs.retain(|n| next_nonce <= *n);
-                            dbg!("d", next_nonce, &pending_jobs);
-                            reply_tx.send(pending_jobs.clone()).expect("one shot sender failed");
-                            dbg!("e", next_nonce);
+                            let pending: Vec<_> = pending_jobs.iter().copied().collect();
+
+                            dbg!("c", &pending_jobs);
+                            reply_tx.send(pending).expect("one shot sender failed");
+                            dbg!("e");
+                        }
+                        Some(ExecMsg::Relayed(nonce)) => {
+                            pending_jobs.remove(&nonce);
                         }
                         None => {
                             warn!("execute actor channel closed");
