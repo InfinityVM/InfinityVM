@@ -87,7 +87,6 @@ async fn pending_jobs_works() {
             .unwrap()
             .into_inner();
         assert_eq!(pending.pending_jobs, vec![1, 2, 3]);
-        dbg!(pending.pending_jobs);
 
         // We should delete all pending jobs as they complete
         for _ in 0..(15 * 100) {
