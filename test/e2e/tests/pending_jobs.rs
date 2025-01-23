@@ -92,7 +92,7 @@ async fn pending_jobs_works() {
         dbg!(pending.pending_jobs);
 
         // We should delete all pending jobs as they complete
-        for i in 0..60 {
+        for i in 0..15 {
             let pending = args
                 .coprocessor_node
                 .get_pending_jobs(pending_jobs_request.clone())
@@ -187,8 +187,7 @@ async fn pending_jobs_shows_stuck_jobs() {
             .into_inner();
         assert_eq!(pending.pending_jobs, vec![1, 2, 3, 5, 6]);
 
-        // We should delete all pending jobs as they complete
-        for i in 0..60 {
+        for i in 0..15 {
             let pending = args
                 .coprocessor_node
                 .get_pending_jobs(pending_jobs_request.clone())
@@ -196,11 +195,21 @@ async fn pending_jobs_shows_stuck_jobs() {
                 .unwrap()
                 .into_inner();
             if pending.pending_jobs == vec![5, 6] {
-                return
+                break
             }
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
-        panic!("waiting for over 60 seconds and still have pending jobs")
+
+        // After some time, the two jobs are still pending
+        tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+        let pending = args
+                .coprocessor_node
+                .get_pending_jobs(pending_jobs_request.clone())
+                .await
+                .unwrap()
+                .into_inner();
+        assert_eq!(pending.pending_jobs, vec![5, 6]);
+
     }
 
     E2E::new().mock_consumer().run(test).await;
