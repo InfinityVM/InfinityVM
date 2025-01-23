@@ -1,6 +1,7 @@
 //! This module contains all components for broadcasting job results onchain.
 
 use crate::{
+    execute::ExecMsg,
     job_executor::FailureReason,
     metrics::Metrics,
     writer::{Write, WriterMsg},
@@ -260,13 +261,14 @@ impl RelayActorSpawner {
     /// Spawn a new relay actor.
     ///
     /// It is expected that the caller will spawn exactly one relay actor per execution actor.
-    pub fn spawn(&self) -> Sender<RelayMsg> {
+    pub fn spawn(&self, exec_tx: Sender<ExecMsg>) -> Sender<RelayMsg> {
         let (relay_tx, relay_rx) = mpsc::channel(self.channel_bound);
         let actor = RelayActor::new(
             self.writer_tx.clone(),
             relay_rx,
             self.job_relayer.clone(),
             self.initial_relay_max_retries,
+            exec_tx,
         );
 
         tokio::spawn(async move { actor.start().await });
@@ -282,6 +284,7 @@ struct RelayActor {
     relay_rx: Receiver<RelayMsg>,
     job_relayer: Arc<JobRelayer>,
     initial_relay_max_retries: u32,
+    exec_tx: Sender<ExecMsg>,
 }
 
 impl RelayActor {
@@ -291,8 +294,9 @@ impl RelayActor {
         relay_rx: Receiver<RelayMsg>,
         job_relayer: Arc<JobRelayer>,
         initial_relay_max_retries: u32,
+        exec_tx: Sender<ExecMsg>,
     ) -> Self {
-        Self { writer_tx, relay_rx, job_relayer, initial_relay_max_retries }
+        Self { writer_tx, relay_rx, job_relayer, initial_relay_max_retries, exec_tx }
     }
 
     /// Start the relay actor
@@ -337,6 +341,7 @@ impl RelayActor {
                         self.job_relayer.clone(),
                         self.writer_tx.clone(),
                         self.initial_relay_max_retries,
+                        self.exec_tx.clone(),
                     )
                     .await;
                 }
@@ -348,6 +353,7 @@ impl RelayActor {
                         self.job_relayer.clone(),
                         self.writer_tx.clone(),
                         self.initial_relay_max_retries,
+                        self.exec_tx.clone(),
                     );
                     tokio::spawn(future);
                 }
@@ -362,6 +368,7 @@ impl RelayActor {
         job_relayer: Arc<JobRelayer>,
         writer_tx: Sender<WriterMsg>,
         initial_relay_max_retries: u32,
+        exec_tx: Sender<ExecMsg>,
     ) -> Result<(), FailureReason> {
         let id = job.id;
 
@@ -403,6 +410,8 @@ impl RelayActor {
                 return Err(FailureReason::RelayErr);
             }
         };
+
+        exec_tx.send(ExecMsg::Relayed(job.nonce)).await.expect("execution actor sender failed");
 
         // Save the relay tx hash and status to DB
         job.relay_tx_hash = relay_tx_hash.to_vec();

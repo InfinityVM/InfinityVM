@@ -46,8 +46,8 @@ impl ExecutionActorSpawner {
     /// Caution: we assume that the caller spawns exactly one job actor per consumer.
     pub fn spawn(&self, nonce: u64) -> Sender<ExecMsg> {
         // Spawn a relay actor
-        let relay_tx = self.relay_actor_spawner.spawn();
         let (tx, rx) = mpsc::channel(self.channel_bound);
+        let relay_tx = self.relay_actor_spawner.spawn(tx.clone());
         let actor = ExecutionActor::new(self.executor_tx.clone(), rx, relay_tx);
 
         tokio::spawn(async move { actor.start(nonce).await });

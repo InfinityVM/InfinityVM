@@ -243,9 +243,14 @@ where
         };
 
         let (tx, rx) = oneshot::channel();
+
+        dbg!("getting pending job");
         execution_tx.send(ExecMsg::Pending(tx)).await.expect("execution tx failed");
 
+        dbg!("waiting for pending job");
         let mut pending_jobs = rx.await.expect("one shot sender receiver failed");
+
+        dbg!("got pending jobs", &pending_jobs);
         pending_jobs.sort();
 
         Ok(pending_jobs)
