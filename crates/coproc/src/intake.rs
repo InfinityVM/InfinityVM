@@ -237,8 +237,7 @@ where
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
             inner.clone()
         } else {
-            return Ok((0, Vec::new())
-        )
+            return Ok((0, Vec::new()))
         };
 
         let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
