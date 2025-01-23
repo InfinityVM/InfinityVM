@@ -232,6 +232,8 @@ where
 
     /// Returns the nonces of jobs that are in the execution and relay pipeline, but are not
     /// yet on chain.
+    ///
+    /// Important, this only works for ordered jobs. Unordered job requests are not tracked.
     pub async fn get_pending_nonces(
         &self,
         consumer_address: [u8; 20],

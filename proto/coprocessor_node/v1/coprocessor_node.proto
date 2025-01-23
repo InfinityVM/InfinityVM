@@ -17,7 +17,8 @@ service CoprocessorNode {
   rpc SubmitProgram(SubmitProgramRequest) returns (SubmitProgramResponse) {}
 
   // GetPendingJobs defines the gRPC method for getting the jobs the coprocessor 
-  // is currently operating on.
+  // is currently operating on. This only returns the Ordered jobs for the consumer.
+  // The behavior for unordered jobs is undefined and may change in the future.
   rpc GetPendingJobs(GetPendingJobsRequest) returns (GetPendingJobsResponse) {}
 }
 
@@ -91,12 +92,13 @@ message SubmitProgramResponse {
   bytes program_id = 1;
 }
 
-// GetPendingJobsRequest
+// GetPendingJobsRequest defines the request structure to request the current pending job nonces.
 message GetPendingJobsRequest {
   // Address of consumer contract to receive this result. The address is 20 bytes (no zero padding).
   bytes consumer_address = 1;
 }
 
+// GetPendingJobsRequest defines the response structure to getting the current pending job nonces.
 message GetPendingJobsResponse {
   // Nonces of the pending jobs.
   repeated uint64 pending_jobs = 1;

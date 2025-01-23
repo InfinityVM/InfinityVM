@@ -5,7 +5,6 @@ use crate::{
     relayer::{RelayActorSpawner, RelayMsg},
 };
 use ivm_db::tables::Job;
-use ivm_proto::RelayStrategy;
 use std::collections::BTreeMap;
 use tokio::{
     sync::{
@@ -104,7 +103,9 @@ impl ExecutionActor {
                     match new_job {
                         Some(ExecMsg::Exec(job)) => {
                             let executor_tx2 = executor_tx.clone();
-                            pending_jobs.push(job.nonce);
+                            if job.is_ordered() {
+                                pending_jobs.push(job.nonce)
+                            }
                             join_set.spawn(async move {
                                 // Send the job to be executed
                                 let (tx, executor_complete_rx) = oneshot::channel();
@@ -130,7 +131,7 @@ impl ExecutionActor {
                         Some(Ok(Ok(job))) => {
                             // Short circuit ordering logic and relay immediately if this job is
                             // not ordered relay.
-                            if job.relay_strategy == RelayStrategy::Unordered {
+                            if !job.is_ordered() {
                                 relay_tx.send(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
                                 continue;
                             }
