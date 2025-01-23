@@ -8,7 +8,7 @@ use alloy::{
     },
     providers::{Provider, ProviderBuilder},
     rpc::types::Filter,
-    signers::{local::PrivateKeySigner, Signer},
+    signers::{local::PrivateKeySigner, Signer, SignerSync},
     sol,
     sol_types::{SolEvent, SolValue},
 };
@@ -26,9 +26,6 @@ use ivm_proto::{
 };
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 use tokio::task::JoinSet;
-use alloy::signers::SignerSync;
-
-
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
@@ -60,9 +57,8 @@ async fn pending_jobs_works() {
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
-        let job_requests: Vec<_> = (1..=3)
-            .map(
-              |nonce| {
+        let futures: Vec<_> = (1..=3)
+            .map(|nonce| {
                 let job_id = get_job_id(nonce, mock.mock_consumer);
                 let offchain_input_hash = keccak256(vec![]);
                 let job_params = JobParams {
@@ -86,18 +82,12 @@ async fn pending_jobs_works() {
                     relay_strategy: RelayStrategy::Unordered as i32,
                 }
             })
+            .map(|r| (r, args.coprocessor_node.clone()))
+            .map(async move |(r, mut c)| c.submit_job(r).await)
             .collect();
 
-
-            let futures: Vec<_> = job_requests
-              .into_iter()
-              .map(|r| (r, args.coprocessor_node.clone()))
-              .map(async move|(r, mut c)| { 
-                c.submit_job(r).await
-              }).collect();
+        // Wait for the jobs to hit the coproc
         futures::future::join_all(futures).await;
-
-
     }
 
     E2E::new().mock_consumer().run(test).await;
