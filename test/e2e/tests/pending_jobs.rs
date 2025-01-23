@@ -2,13 +2,11 @@
 
 use alloy::{
     primitives::{keccak256, Address},
-    providers::ProviderBuilder,
     signers::{local::PrivateKeySigner, SignerSync},
     sol_types::SolValue,
 };
 use e2e::{Args, E2E};
-use ivm_abi::{abi_encode_offchain_job_request, get_job_id, JobParams};
-use ivm_contracts::mock_consumer::MockConsumer;
+use ivm_abi::{abi_encode_offchain_job_request, JobParams};
 use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{
     GetPendingJobsRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
@@ -92,7 +90,7 @@ async fn pending_jobs_works() {
         dbg!(pending.pending_jobs);
 
         // We should delete all pending jobs as they complete
-        for i in 0..(15 * 100) {
+        for _ in 0..(15 * 100) {
             let pending = args
                 .coprocessor_node
                 .get_pending_jobs(pending_jobs_request.clone())
@@ -104,7 +102,7 @@ async fn pending_jobs_works() {
                 3 => {
                     assert_eq!(pending.pending_jobs, vec![1, 2, 3]);
                     assert_eq!(pending.next_nonce, 1);
-                },
+                }
                 2 => {
                     assert_eq!(pending.pending_jobs, vec![2, 3]);
                     assert_eq!(pending.next_nonce, 2);
@@ -112,15 +110,14 @@ async fn pending_jobs_works() {
                 1 => {
                     assert_eq!(pending.pending_jobs, vec![3]);
                     assert_eq!(pending.next_nonce, 3);
-                },
+                }
                 0 => {
                     assert_eq!(pending.next_nonce, 0);
                     return;
                 }
-                _ => panic!("unexpected number of pending jobs")
+                _ => panic!("unexpected number of pending jobs"),
             }
-            tokio::time::sleep(tokio::time::Duration::from_millis(10
-            )).await;
+            tokio::time::sleep(tokio::time::Duration::from_millis(10)).await;
         }
         panic!("waiting too long for pending jobs to clear")
     }
@@ -205,7 +202,7 @@ async fn pending_jobs_shows_stuck_jobs() {
             .into_inner();
         assert_eq!(pending.pending_jobs, vec![1, 2, 3, 5, 6]);
 
-        for i in 0..15 {
+        for _ in 0..15 {
             let pending = args
                 .coprocessor_node
                 .get_pending_jobs(pending_jobs_request.clone())
@@ -222,11 +219,11 @@ async fn pending_jobs_shows_stuck_jobs() {
         // After some time, the two jobs are still pending
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
         let pending = args
-                .coprocessor_node
-                .get_pending_jobs(pending_jobs_request.clone())
-                .await
-                .unwrap()
-                .into_inner();
+            .coprocessor_node
+            .get_pending_jobs(pending_jobs_request.clone())
+            .await
+            .unwrap()
+            .into_inner();
         assert_eq!(pending.pending_jobs, vec![5, 6]);
         assert_eq!(pending.next_nonce, 4);
     }
