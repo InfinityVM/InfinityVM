@@ -271,7 +271,7 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
@@ -325,7 +325,7 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
@@ -390,7 +390,7 @@ mod test {
             ExtendedAccount::new(transaction.nonce(), U256::MAX),
         );
 
-        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
@@ -455,7 +455,7 @@ mod test {
             ExtendedAccount::new(other_transaction.nonce(), U256::MAX),
         );
 
-        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
@@ -503,7 +503,7 @@ mod test {
         assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
 
-        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
@@ -562,7 +562,7 @@ mod test {
         assert!(provider.account_balance(&transaction.sender()).unwrap().is_none());
         assert!(provider.account_balance(&other_transaction.sender()).unwrap().is_none());
 
-        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
@@ -627,7 +627,7 @@ mod test {
             ExtendedAccount::new(other_transaction.nonce(), U256::from(10)),
         );
 
-        let mut validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
+        let validator: IvmTransactionValidator<MockEthProvider, EthPooledTransaction> =
             IvmTransactionValidatorBuilder::new(MAINNET.clone()).build(
                 provider,
                 blob_store.clone(),
