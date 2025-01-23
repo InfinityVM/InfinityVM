@@ -1,31 +1,19 @@
 //! Test for the pending jobs endpoint.
 
 use alloy::{
-    network::EthereumWallet,
-    primitives::{
-        aliases::U256, keccak256, utils::eip191_hash_message, Address, Bytes, FixedBytes,
-        PrimitiveSignature,
-    },
-    providers::{Provider, ProviderBuilder},
-    rpc::types::Filter,
-    signers::{local::PrivateKeySigner, Signer, SignerSync},
-    sol,
-    sol_types::{SolEvent, SolValue},
+    primitives::{keccak256, Address},
+    providers::ProviderBuilder,
+    signers::{local::PrivateKeySigner, SignerSync},
+    sol_types::{SolValue},
 };
 use e2e::{Args, E2E};
-use ivm_abi::{
-    abi_encode_offchain_job_request, abi_encode_offchain_result_with_metadata,
-    abi_encode_result_with_metadata, get_job_id, JobParams, OffchainResultWithMetadata,
-    ResultWithMetadata,
-};
-use ivm_contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
+use ivm_abi::{abi_encode_offchain_job_request, get_job_id, JobParams};
+use ivm_contracts::mock_consumer::MockConsumer;
 use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{
-    coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, JobStatusType, RelayStrategy,
-    SubmitJobRequest, SubmitProgramRequest, VmType,
+    GetPendingJobsRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
-use tokio::task::JoinSet;
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
@@ -52,10 +40,15 @@ async fn pending_jobs_works() {
             .into_inner();
         assert_eq!(submit_program_response.program_id, program_id);
 
-        let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
-        let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
+        let pending_jobs_request =
+            GetPendingJobsRequest { consumer_address: mock.mock_consumer.to_vec() };
+        let pending = args
+            .coprocessor_node
+            .get_pending_jobs(pending_jobs_request.clone())
+            .await
+            .unwrap()
+            .into_inner();
+        assert!(pending.pending_jobs.is_empty());
 
         let futures: Vec<_> = (1..=3)
             .map(|nonce| {
@@ -79,7 +72,8 @@ async fn pending_jobs_works() {
                     request: job_request_payload,
                     signature: request_signature.into(),
                     offchain_input: vec![],
-                    relay_strategy: RelayStrategy::Unordered as i32,
+                    // We want ordered to ensure this works
+                    relay_strategy: RelayStrategy::Ordered as i32,
                 }
             })
             .map(|r| (r, args.coprocessor_node.clone()))
@@ -88,6 +82,31 @@ async fn pending_jobs_works() {
 
         // Wait for the jobs to hit the coproc
         futures::future::join_all(futures).await;
+
+        let pending = args
+            .coprocessor_node
+            .get_pending_jobs(pending_jobs_request.clone())
+            .await
+            .unwrap()
+            .into_inner();
+        assert_eq!(pending.pending_jobs, vec![1, 2, 3]);
+        dbg!(pending.pending_jobs);
+
+        // We should delete all pending jobs as they complete
+        for i in 0..60 {
+            let pending = args
+                .coprocessor_node
+                .get_pending_jobs(pending_jobs_request.clone())
+                .await
+                .unwrap()
+                .into_inner();
+            dbg!(&pending.pending_jobs, i);
+            if pending.pending_jobs.is_empty() {
+                return
+            }
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        }
+        panic!("waiting for over 60 seconds and still have pending jobs")
     }
 
     E2E::new().mock_consumer().run(test).await;
