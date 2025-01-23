@@ -63,8 +63,8 @@ impl ExecutionActorSpawner {
 pub enum ExecMsg {
     /// Send a job to execute and relay.
     Exec(Job),
-    /// Request the current pending jobs. The given job nonce is the highest
-    /// job onchain.
+    /// Request the current pending jobs. The given job nonce is expected
+    /// to be the next nonce on chain.
     Pending(JobNonce, oneshot::Sender<Vec<JobNonce>>),
 }
 
