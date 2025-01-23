@@ -203,8 +203,9 @@ where
         let pending_jobs = self
             .intake_service
             .get_pending_nonces(consumer_address)
+            .await
             .map_err(|e| Status::internal(format!("Error: {}", e)))?;
 
-        Ok(GetPendingJobsResponse { pending_jobs })
+        Ok(Response::new(GetPendingJobsResponse { pending_jobs }))
     }
 }

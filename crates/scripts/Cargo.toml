@@ -17,10 +17,6 @@ name = "node-test"
 path = "src/node_test.rs"
 
 [[bin]]
-name = "proto-build"
-path = "src/proto_build.rs"
-
-[[bin]]
 name = "send-tx"
 path = "src/send_tx.rs"
 
@@ -44,7 +40,6 @@ tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }
 url = { workspace = true }
 reqwest = { workspace = true }
-
 kairos-trie = { workspace = true }
 bincode = { workspace = true }
 
