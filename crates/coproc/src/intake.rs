@@ -5,6 +5,8 @@
 //! For new jobs we check that the job does not exist, persist it and send it to the execution actor
 //! associated with the consumer.
 
+use crate::execute::ExecMsg;
+
 use crate::{
     execute::ExecutionActorSpawner,
     writer::{Write, WriterMsg},
@@ -70,7 +72,7 @@ pub struct IntakeHandlers<S, D> {
     writer_tx: Sender<WriterMsg>,
     unsafe_skip_program_id_check: bool,
     execution_actor_spawner: ExecutionActorSpawner,
-    active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
+    active_actors: Arc<DashMap<[u8; 20], Sender<ExecMsg>>>,
     http_eth_rpc: Url,
 }
 
@@ -177,7 +179,7 @@ where
         // Send the job to actor for processing
         // NOTE: Once actor deletion is implemented, we need to avoid a
         // race between sending the job & deleting the actor.
-        execution_tx.send(job).await.expect("execution tx failed");
+        execution_tx.send(ExecMsg::Exec(job)).await.expect("execution tx failed");
 
         // Before responding, make sure the write completes
         let _ = db_write_complete_rx.await;
@@ -226,5 +228,31 @@ where
     pub async fn get_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
         let job = get_job(self.db.clone(), job_id).await?;
         Ok(job)
+    }
+
+    /// Returns the nonces of jobs that are in the execution and relay pipeline, but are not
+    /// yet on chain.
+    pub async fn get_pending_nonces(&self, consumer_address: [u8; 20]) -> Result<Vec<u8>, Error> {
+        // First see if we even have an execution actor associated with this consumer
+        let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
+            inner.clone()
+        } else {
+            return Ok(Vec::new())
+        };
+
+        let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
+        let consumer = ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
+        // Get the _next_ nonce the chain is expecting. We expect the execution actor
+        // to not consider any nonces below this when telling us pending nonces. We do
+        // this query here instead of in the execution actor, because its relatively slow and
+        // we don't want to slow down the execution actors ability to start executing jobs.
+        let nonce = consumer.getNextNonce().call().await?._0;
+
+        let (tx, rx) = oneshot::channel();
+        execution_tx.send(ExecMsg::Pending(nonce, tx)).await.expect("execution tx failed");
+
+        let status = rx.await;
+
+        unimplemented!();
     }
 }
