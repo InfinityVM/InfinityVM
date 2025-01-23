@@ -232,12 +232,13 @@ where
 
     /// Returns the nonces of jobs that are in the execution and relay pipeline, but are not
     /// yet on chain.
-    pub async fn get_pending_nonces(&self, consumer_address: [u8; 20]) -> Result<Vec<u64>, Error> {
+    pub async fn get_pending_nonces(&self, consumer_address: [u8; 20]) -> Result<(u64, Vec<u64>), Error> {
         // First see if we even have an execution actor associated with this consumer
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
             inner.clone()
         } else {
-            return Ok(Vec::new())
+            return Ok((0, Vec::new())
+        )
         };
 
         let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
@@ -258,6 +259,6 @@ where
         pending_jobs.sort();
 
         dbg!("sending back pending jobs");
-        Ok(pending_jobs)
+        Ok((nonce, pending_jobs))
     }
 }

@@ -215,6 +215,9 @@ pub struct GetPendingJobsResponse {
     /// Nonces of the pending jobs.
     #[prost(uint64, repeated, tag = "1")]
     pub pending_jobs: ::prost::alloc::vec::Vec<u64>,
+    /// The next nonce the consumer contract is expecting.
+    #[prost(uint64, tag = "2")]
+    pub next_nonce: u64,
 }
 /// Type of ZKVM to execute
 #[serde_as]

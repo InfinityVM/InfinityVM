@@ -6,14 +6,6 @@ This repo is a rust workspace. The workspace configuration is defined by `Cargo.
 
 ### Install tools
 
-Rust
-
-```sh
-# set rust version
-rustup default 1.80.1
-rustup toolchain install nightly
-```
-
 Proto
 
 - MacOS
@@ -36,7 +28,7 @@ SP1
 
 ```sh
 curl -L https://sp1.succinct.xyz | bash
-sp1up
+sp1up --version v3.3.0
 cargo prove --version
 ```
 
@@ -62,7 +54,7 @@ Build
 cargo build
 
 # to build a specific crate run
-cargo build -p ivm-coprocessor-node # or whatever your crates name is
+cargo build -p ivm-coproc # or whatever your crates name is
 ```
 
 Lint
@@ -90,7 +82,7 @@ make test-all
 Re-geneerate proto based types
 
 ```sh
-cargo run --bin proto-build
+make proto-gen
 ```
 
 ### VSCode
