@@ -6,7 +6,7 @@ use crate::{
 };
 use ivm_db::tables::Job;
 use ivm_proto::RelayStrategy;
-use std::collections::{BTreeMap};
+use std::collections::BTreeMap;
 use tokio::{
     sync::{
         mpsc,

@@ -10,9 +10,10 @@ use alloy::{
 use ivm_abi::{get_job_id, OffchainJobRequest};
 use ivm_db::tables::{Job, RequestType};
 use ivm_proto::{
-    coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
-    GetResultResponse, JobResult, JobStatus, JobStatusType, SubmitJobRequest, SubmitJobResponse,
-    SubmitProgramRequest, SubmitProgramResponse, GetPendingJobsRequest, GetPendingJobsResponse
+    coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetPendingJobsRequest,
+    GetPendingJobsResponse, GetResultRequest, GetResultResponse, JobResult, JobStatus,
+    JobStatusType, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
+    SubmitProgramResponse,
 };
 use reth_db::Database;
 use tonic::{Request, Response, Status};
@@ -191,7 +192,8 @@ where
     }
 
     async fn get_pending_jobs(
-        &self, request: Request<GetPendingJobsRequest>
+        &self,
+        request: Request<GetPendingJobsRequest>,
     ) -> Result<Response<GetPendingJobsResponse>, Status> {
         let req = request.into_inner();
 
