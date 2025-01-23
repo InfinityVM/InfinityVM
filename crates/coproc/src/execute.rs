@@ -115,7 +115,7 @@ impl ExecutionActor {
                         },
                         Some(ExecMsg::Pending(next_nonce, reply_tx)) => {
                             // Filter out the jobs that are already onchain
-                            pending_jobs = pending_jobs.iter().copied().filter(|n| *n < next_nonce).collect();
+                            pending_jobs = pending_jobs.into_iter().filter(|n| *n < next_nonce).collect();
                             reply_tx.send(pending_jobs.clone()).expect("one shot sender failed");
                         }
                         None => {

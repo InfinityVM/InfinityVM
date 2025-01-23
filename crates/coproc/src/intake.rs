@@ -232,7 +232,7 @@ where
 
     /// Returns the nonces of jobs that are in the execution and relay pipeline, but are not
     /// yet on chain.
-    pub async fn get_pending_nonces(&self, consumer_address: [u8; 20]) -> Result<Vec<u8>, Error> {
+    pub async fn get_pending_nonces(&self, consumer_address: [u8; 20]) -> Result<Vec<u64>, Error> {
         // First see if we even have an execution actor associated with this consumer
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
             inner.clone()
@@ -251,8 +251,9 @@ where
         let (tx, rx) = oneshot::channel();
         execution_tx.send(ExecMsg::Pending(nonce, tx)).await.expect("execution tx failed");
 
-        let status = rx.await;
+        let mut pending_jobs = rx.await.expect("one shot sender receiver failed");
+        pending_jobs.sort();
 
-        unimplemented!();
+        Ok(pending_jobs)
     }
 }
