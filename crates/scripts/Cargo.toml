@@ -44,7 +44,7 @@ tracing-subscriber = { workspace = true }
 serde_json = { workspace = true }
 url = { workspace = true }
 reqwest = { workspace = true }
-tonic-build = { workspace = true }
+
 kairos-trie = { workspace = true }
 bincode = { workspace = true }
 
