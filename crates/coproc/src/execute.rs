@@ -168,11 +168,14 @@ impl ExecutionActor {
                         }
                         // The join set is empty so we check if the channel is still open
                         None => if rx.is_closed() && rx.is_empty() {
-                            debug!("exiting execution actor");
+                            tracing::info!("exiting execution actor");
                             let _ = relay_tx.send(RelayMsg::Exit).await;
                             break;
                         } else {
                             // The channel is still open, so we continue to wait for new messages
+                            // NOTE: this sleep fixes a bug where this select statements starved
+                            // other tasks and halted the runtime.
+                            tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
                         },
                     }
                 }
