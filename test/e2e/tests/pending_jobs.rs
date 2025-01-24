@@ -69,7 +69,6 @@ async fn pending_jobs_works() {
                     request: job_request_payload,
                     signature: request_signature.into(),
                     offchain_input: vec![],
-                    // We want ordered to ensure this works
                     relay_strategy: RelayStrategy::Ordered as i32,
                 }
             })
@@ -179,7 +178,6 @@ async fn pending_jobs_shows_stuck_jobs() {
                     request: job_request_payload,
                     signature: request_signature.into(),
                     offchain_input: vec![],
-                    // We want ordered to ensure this works
                     relay_strategy: RelayStrategy::Ordered as i32,
                 }
             })
