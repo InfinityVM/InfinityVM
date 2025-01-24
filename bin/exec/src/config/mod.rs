@@ -9,7 +9,7 @@ pub mod transaction;
 
 /// IVM specific configuration for the execution client. This is the in memory representation.
 ///
-/// N.B. The default will allow all transactions.
+/// N.B. The default will allow deny all transactions.
 ///
 /// We store persist this to disk with `IvmConfigToml` because map keys in toml must be strings,
 /// but we use u64 keys.
@@ -37,7 +37,7 @@ impl From<IvmConfigToml> for IvmConfig {
 
 impl Default for IvmConfig {
     fn default() -> Self {
-        Self::allow_all()
+        Self::deny_all()
     }
 }
 

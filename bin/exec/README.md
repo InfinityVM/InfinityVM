@@ -17,7 +17,7 @@ The node has a standard reth CLI and uses the reth toml config.
 
 #### Allow lists
 
-The allow lists can be configured in an IVM config toml. If no config is found at start up, a permissive default will get created in the data dir at `<DATADIR>/ivm_config.toml`. To specify a config at a different path you can run `cargo run --bin ivm-exec -- node --ivm-config <PATH>`. In the future we will likely add defaults to the binary for major networks.
+The allow lists can be configured in an IVM config toml. If no config is found at start up, a restrictive default will get created in the data dir at `<DATADIR>/ivm_config.toml`. To specify a config at a different path you can run `cargo run --bin ivm-exec -- node --ivm-config <PATH>`. In the future we will likely add defaults to the binary for major networks.
 
 The toml config file should look like 
 
