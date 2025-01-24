@@ -3453,12 +3453,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fixedbitset"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ce7134b9999ecaf8bcd65542e436736ef32ddca1b3e06094cb6ec5755203b80"
-
-[[package]]
 name = "flate2"
 version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4931,7 +4925,6 @@ dependencies = [
  "serde_json",
  "tempfile",
  "tokio",
- "tonic-build",
  "tracing",
  "tracing-subscriber",
  "url",
@@ -5929,12 +5922,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "multimap"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "defc4c55412d89136f966bbb339008b474350e5e6e78d2714439c386b3137a03"
-
-[[package]]
 name = "nanorand"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6807,16 +6794,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "petgraph"
-version = "0.6.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4c5cc86750666a3ed20bdaf5ca2a0344f9c67674cae0515bec2da16fbaa47db"
-dependencies = [
- "fixedbitset",
- "indexmap 2.7.0",
-]
-
-[[package]]
 name = "pharos"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7197,28 +7174,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "prost-build"
-version = "0.13.4"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0f3e5beed80eb580c68e2c600937ac2c4eedabdfd5ef1e5b7ea4f3fba84497b"
-dependencies = [
- "heck 0.4.1",
- "itertools 0.11.0",
- "log",
- "multimap",
- "once_cell",
- "petgraph",
- "prettyplease",
- "prost",
- "prost-types",
- "pulldown-cmark",
- "pulldown-cmark-to-cmark",
- "regex",
- "syn 2.0.96",
- "tempfile",
-]
-
-[[package]]
 name = "prost-derive"
 version = "0.13.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -7260,26 +7215,6 @@ checksum = "6f42ea446cab60335f76979ec15e12619a2165b5ae2c12166bef27d283a9fadf"
 dependencies = [
  "idna 1.0.3",
  "psl-types",
-]
-
-[[package]]
-name = "pulldown-cmark"
-version = "0.12.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f86ba2052aebccc42cbbb3ed234b8b13ce76f75c3551a303cb2bcffcff12bb14"
-dependencies = [
- "bitflags 2.7.0",
- "memchr",
- "unicase",
-]
-
-[[package]]
-name = "pulldown-cmark-to-cmark"
-version = "19.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e84a87de49d1b6c63f0998da7ade299905387ae1feae350efc98e0632637f589"
-dependencies = [
- "pulldown-cmark",
 ]
 
 [[package]]
@@ -12220,20 +12155,6 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
-]
-
-[[package]]
-name = "tonic-build"
-version = "0.12.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9557ce109ea773b399c9b9e5dca39294110b74f1f342cb347a80d1fce8c26a11"
-dependencies = [
- "prettyplease",
- "proc-macro2",
- "prost-build",
- "prost-types",
- "quote",
- "syn 2.0.96",
 ]
 
 [[package]]

@@ -1,0 +1,12 @@
+[package]
+name = "proto-gen"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.78"
+
+# we don't want this part of the workspace because generating protos
+# can break existing code and thus cause the workspace to stop compiling
+[workspace]
+
+[dependencies]
+tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }

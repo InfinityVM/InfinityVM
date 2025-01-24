@@ -40,6 +40,11 @@ test-all-ci: contracts
 	@# however it tends to be slower locally.
 	cargo test --all --release -- --include-ignored --nocapture
 
+# Regenerate rust types based on proto definitions.
+.PHONY: proto-gen
+proto-gen:
+	cargo run --manifest-path crates/scripts/proto-gen/Cargo.toml
+
 .PHONY: build
 build: contracts
 	cargo build
