@@ -23,7 +23,6 @@ dashmap = { workspace = true }
 eyre = { workspace = true }
 prometheus = { workspace = true }
 axum = { workspace = true }
-flume = { workspace = true }
 num_cpus = { workspace = true }
 url = { workspace = true }
 lz4_flex = { workspace = true }

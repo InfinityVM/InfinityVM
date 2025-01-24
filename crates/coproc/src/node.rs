@@ -151,7 +151,7 @@ where
     });
 
     // Initialize the async channels
-    let (exec_queue_sender, exec_queue_receiver) = flume::bounded(exec_queue_bound);
+    let (exec_queue_sender, exec_queue_receiver) = std::sync::mpmc::channel();
     // Initialize the writer channel
     let (writer_tx, writer_rx) = tokio::sync::mpsc::channel(exec_queue_bound * 4);
 

@@ -4769,7 +4769,6 @@ dependencies = [
  "clap",
  "dashmap",
  "eyre",
- "flume",
  "home",
  "ivm-abi",
  "ivm-contracts",

@@ -1,5 +1,7 @@
 //! Coprocessor Node components.
 
+#![feature(mpmc_channel)]
+
 pub mod cli;
 pub mod event;
 pub mod execute;

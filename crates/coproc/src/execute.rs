@@ -25,14 +25,14 @@ type ExecutedJobs = BTreeMap<JobNonce, Job>;
 #[derive(Debug, Clone)]
 pub struct ExecutionActorSpawner {
     relay_actor_spawner: RelayActorSpawner,
-    executor_tx: flume::Sender<ExecutorMsg>,
+    executor_tx: std::sync::mpmc::Sender<ExecutorMsg>,
     channel_bound: usize,
 }
 
 impl ExecutionActorSpawner {
     /// Create a new instance of [Self].
     pub const fn new(
-        executor_tx: flume::Sender<ExecutorMsg>,
+        executor_tx: std::sync::mpmc::Sender<ExecutorMsg>,
         relay_actor_spawner: RelayActorSpawner,
         channel_bound: usize,
     ) -> Self {
@@ -70,14 +70,14 @@ pub enum ExecMsg {
 }
 
 struct ExecutionActor {
-    executor_tx: flume::Sender<ExecutorMsg>,
+    executor_tx: std::sync::mpmc::Sender<ExecutorMsg>,
     rx: Receiver<ExecMsg>,
     relay_tx: Sender<RelayMsg>,
 }
 
 impl ExecutionActor {
     const fn new(
-        executor_tx: flume::Sender<ExecutorMsg>,
+        executor_tx: std::sync::mpmc::Sender<ExecutorMsg>,
         rx: Receiver<ExecMsg>,
         relay_tx: Sender<RelayMsg>,
     ) -> Self {
@@ -111,7 +111,7 @@ impl ExecutionActor {
                             join_set.spawn(async move {
                                 // Send the job to be executed
                                 let (tx, executor_complete_rx) = oneshot::channel();
-                                executor_tx2.send_async((job, tx)).await.expect("executor pool send failed");
+                                executor_tx2.send((job, tx)).expect("executor pool send failed");
 
                                 // Return the executed job
                                 executor_complete_rx.await

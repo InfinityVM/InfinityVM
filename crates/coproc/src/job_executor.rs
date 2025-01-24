@@ -9,7 +9,7 @@ use alloy::{
     primitives::PrimitiveSignature,
     signers::{Signer, SignerSync},
 };
-use flume::Receiver;
+use std::sync::mpmc::Receiver;
 use ivm_db::tables::{ElfWithMeta, Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
