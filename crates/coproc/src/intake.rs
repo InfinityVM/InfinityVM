@@ -5,8 +5,6 @@
 //! For new jobs we check that the job does not exist, persist it and send it to the execution actor
 //! associated with the consumer.
 
-use crate::execute::ExecMsg;
-
 use crate::{
     execute::ExecutionActorSpawner,
     writer::{Write, WriterMsg},
@@ -72,7 +70,7 @@ pub struct IntakeHandlers<S, D> {
     writer_tx: Sender<WriterMsg>,
     unsafe_skip_program_id_check: bool,
     execution_actor_spawner: ExecutionActorSpawner,
-    active_actors: Arc<DashMap<[u8; 20], Sender<ExecMsg>>>,
+    active_actors: Arc<DashMap<[u8; 20], Sender<Job>>>,
     http_eth_rpc: Url,
 }
 
@@ -179,7 +177,7 @@ where
         // Send the job to actor for processing
         // NOTE: Once actor deletion is implemented, we need to avoid a
         // race between sending the job & deleting the actor.
-        execution_tx.send(ExecMsg::Exec(job)).await.expect("execution tx failed");
+        execution_tx.send(job).await.expect("execution tx failed");
 
         // Before responding, make sure the write completes
         let _ = db_write_complete_rx.await;
@@ -228,43 +226,5 @@ where
     pub async fn get_job(&self, job_id: [u8; 32]) -> Result<Option<Job>, Error> {
         let job = get_job(self.db.clone(), job_id).await?;
         Ok(job)
-    }
-
-    /// Returns the nonces of jobs that are in the execution and relay pipeline, but are not
-    /// yet on chain.
-    pub async fn get_pending_nonces(&self, consumer_address: [u8; 20]) -> Result<Vec<u64>, Error> {
-        // First see if we even have an execution actor associated with this consumer
-        let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
-            inner.clone()
-        } else {
-            return Ok(Vec::new())
-        };
-
-        let (tx, mut rx) = oneshot::channel();
-
-        dbg!("getting pending job");
-        execution_tx.send(ExecMsg::Pending(tx)).await.expect("execution tx failed");
-
-        dbg!("waiting for pending job");
-
-        let mut pending_jobs = rx.await.expect("one shot sender receiver failed");
-
-        // This is just to try and debug
-        // let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1_000));
-        // let pending_jobs = loop {
-        //     tokio::select! {
-        //         // This never prints when we stall
-        //         _ = interval.tick() => println!("Another 1_000ms"),
-        //         msg = &mut rx => {
-        //             let pending_jobs = msg.unwrap();
-        //             println!("Got message: {:?}", pending_jobs);
-        //             break pending_jobs;
-        //         }
-        //     }
-        // };
-
-        dbg!("got pending jobs", &pending_jobs);
-
-        Ok(pending_jobs)
     }
 }

@@ -10,10 +10,9 @@ use alloy::{
 use ivm_abi::{get_job_id, OffchainJobRequest};
 use ivm_db::tables::{Job, RequestType};
 use ivm_proto::{
-    coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetPendingJobsRequest,
-    GetPendingJobsResponse, GetResultRequest, GetResultResponse, JobResult, JobStatus,
-    JobStatusType, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
-    SubmitProgramResponse,
+    coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetResultRequest,
+    GetResultResponse, JobResult, JobStatus, JobStatusType, SubmitJobRequest, SubmitJobResponse,
+    SubmitProgramRequest, SubmitProgramResponse,
 };
 use reth_db::Database;
 use tonic::{Request, Response, Status};
@@ -189,25 +188,5 @@ where
         info!(program_id = hex::encode(program_id.clone()), "new elf program");
 
         Ok(Response::new(SubmitProgramResponse { program_id }))
-    }
-
-    async fn get_pending_jobs(
-        &self,
-        request: Request<GetPendingJobsRequest>,
-    ) -> Result<Response<GetPendingJobsResponse>, Status> {
-        let req = request.into_inner();
-
-        let consumer_address: [u8; 20] = req
-            .consumer_address
-            .try_into()
-            .map_err(|_| Status::invalid_argument("contract address must be 20 bytes in length"))?;
-
-        let pending_jobs = self
-            .intake_service
-            .get_pending_nonces(consumer_address)
-            .await
-            .map_err(|e| Status::internal(format!("Error: {}", e)))?;
-
-        Ok(Response::new(GetPendingJobsResponse { next_nonce: 0, pending_jobs }))
     }
 }

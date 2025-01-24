@@ -5,7 +5,8 @@ use crate::{
     relayer::{RelayActorSpawner, RelayMsg},
 };
 use ivm_db::tables::Job;
-use std::collections::{BTreeMap, BTreeSet};
+use ivm_proto::RelayStrategy;
+use std::collections::BTreeMap;
 use tokio::{
     sync::{
         mpsc,
@@ -44,10 +45,10 @@ impl ExecutionActorSpawner {
     /// Note that this will also spawn a corresponding relay actor.
     ///
     /// Caution: we assume that the caller spawns exactly one job actor per consumer.
-    pub fn spawn(&self, nonce: u64) -> Sender<ExecMsg> {
+    pub fn spawn(&self, nonce: u64) -> Sender<Job> {
         // Spawn a relay actor
+        let relay_tx = self.relay_actor_spawner.spawn();
         let (tx, rx) = mpsc::channel(self.channel_bound);
-        let relay_tx = self.relay_actor_spawner.spawn(tx.clone());
         let actor = ExecutionActor::new(self.executor_tx.clone(), rx, relay_tx);
 
         tokio::spawn(async move { actor.start(nonce).await });
@@ -56,29 +57,16 @@ impl ExecutionActorSpawner {
     }
 }
 
-/// A message to the execution actor.
-#[derive(Debug)]
-#[allow(clippy::large_enum_variant)]
-pub enum ExecMsg {
-    /// Send a job to execute and relay.
-    Exec(Job),
-    /// Request the current pending jobs. The given job nonce is expected
-    /// to be the next nonce on chain.
-    Pending(oneshot::Sender<Vec<JobNonce>>),
-    /// Indicate that a job has been relayed
-    Relayed(JobNonce),
-}
-
 struct ExecutionActor {
     executor_tx: flume::Sender<ExecutorMsg>,
-    rx: Receiver<ExecMsg>,
+    rx: Receiver<Job>,
     relay_tx: Sender<RelayMsg>,
 }
 
 impl ExecutionActor {
     const fn new(
         executor_tx: flume::Sender<ExecutorMsg>,
-        rx: Receiver<ExecMsg>,
+        rx: Receiver<Job>,
         relay_tx: Sender<RelayMsg>,
     ) -> Self {
         Self { executor_tx, rx, relay_tx }
@@ -91,11 +79,6 @@ impl ExecutionActor {
         let mut next_job_to_submit = nonce;
         let mut join_set = JoinSet::new();
         let mut completed_tasks = ExecutedJobs::new();
-
-        // We track executing jobs and relayed jobs so we can respond to status
-        // update requests
-        let mut pending_jobs = BTreeSet::new();
-
         let Self { mut rx, relay_tx, executor_tx } = self;
 
         loop {
@@ -103,40 +86,17 @@ impl ExecutionActor {
                 // Handle a new job request by starting execution
                 new_job = rx.recv() => {
                     match new_job {
-                        Some(ExecMsg::Exec(job)) => {
-                            dbg!("a", job.nonce);
-                            pending_jobs.insert(job.nonce);
+                        Some(job) => {
                             let executor_tx2 = executor_tx.clone();
-                            dbg!("b", job.nonce);
                             join_set.spawn(async move {
                                 // Send the job to be executed
-                                loop {
-                                    let (tx, executor_complete_rx) = oneshot::channel();
-                                    match executor_tx2.try_send((job.clone(), tx)) {
-                                        Ok(_) => (),
-                                        Err(_) => {
-                                            dbg!("try send");
-                                            continue;
-                                        }
-                                    };
+                                let (tx, executor_complete_rx) = oneshot::channel();
+                                executor_tx2.send_async((job, tx)).await.expect("executor pool send failed");
 
-                                    let job = executor_complete_rx.await;
-                                    // Return the executed job
-                                    return job;
-                                }
+                                // Return the executed job
+                                executor_complete_rx.await
                             });
                         },
-                        Some(ExecMsg::Pending(reply_tx)) => {
-                            // Filter out the jobs that are already onchain
-                            let pending: Vec<_> = pending_jobs.iter().copied().collect();
-
-                            dbg!("c", &pending_jobs);
-                            reply_tx.send(pending).expect("one shot sender failed");
-                            dbg!("e");
-                        }
-                        Some(ExecMsg::Relayed(nonce)) => {
-                            pending_jobs.remove(&nonce);
-                        }
                         None => {
                             warn!("execute actor channel closed");
                         },
@@ -148,7 +108,7 @@ impl ExecutionActor {
                         Some(Ok(Ok(job))) => {
                             // Short circuit ordering logic and relay immediately if this job is
                             // not ordered relay.
-                            if !job.is_ordered() {
+                            if job.relay_strategy == RelayStrategy::Unordered {
                                 relay_tx.send(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
                                 continue;
                             }
