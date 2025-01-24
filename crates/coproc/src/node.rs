@@ -5,8 +5,8 @@ use crate::{
     execute::ExecutionActorSpawner,
     gateway::{self, HttpGrpcGateway},
     intake::IntakeHandlers,
-    job_executor::JobExecutor,
     metrics::{MetricServer, Metrics},
+    pool::Pool,
     relayer::{self, JobRelayerBuilder, RelayActorSpawner, RelayConfig, RelayRetry},
     server::CoprocessorNodeServerInner,
     writer::{self, Write, Writer},
@@ -151,7 +151,7 @@ where
     });
 
     // Initialize the async channels
-    let (exec_queue_sender, exec_queue_receiver) = flume::bounded(exec_queue_bound);
+    let (pool_tx, pool_rx) = flume::bounded(exec_queue_bound);
     // Initialize the writer channel
     let (writer_tx, writer_rx) = tokio::sync::mpsc::channel(exec_queue_bound * 4);
 
@@ -181,17 +181,17 @@ where
         tokio::spawn(async move { relay_retry.start().await })
     };
 
-    // Configure the job processor
-    let job_executor = JobExecutor::new(
+    // Configure the job pool
+    let pool = Pool::new(
         Arc::clone(&db),
-        exec_queue_receiver,
+        pool_rx,
         executor.clone(),
         metrics,
         worker_count,
         writer_tx.clone(),
     );
-    // Start the job processor workers
-    job_executor.start().await;
+    // Start the job pool workers
+    pool.start().await;
 
     let execute_actor_spawner = {
         let relay_actor_spawner = RelayActorSpawner::new(
@@ -200,7 +200,7 @@ where
             relay_config.initial_relay_max_retries,
             exec_queue_bound,
         );
-        ExecutionActorSpawner::new(exec_queue_sender, relay_actor_spawner, exec_queue_bound)
+        ExecutionActorSpawner::new(pool_tx, relay_actor_spawner, exec_queue_bound)
     };
 
     let intake = IntakeHandlers::new(
