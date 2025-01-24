@@ -56,8 +56,7 @@ pub enum Network {
 pub struct IvmCliExt {
     /// Path to an IVM config toml file. Defaults to using a config in `<RETH
     /// DATADIR>/ivm_config.toml`. If no file is found one is generated.
-    #[arg(long)]
-    #[arg(conflicts_with = "ivm_network")]
+    #[arg(long, conflicts_with = "ivm_network")]
     pub ivm_config: Option<PathBuf>,
 
     /// Do not enforce the transaction allow config; allow transactions from all senders.
@@ -66,8 +65,7 @@ pub struct IvmCliExt {
     pub allow_all: bool,
 
     /// Configure the ivm config by selecting a network.
-    #[arg(long)]
-    #[arg(conflicts_with = "ivm_config")]
+    #[arg(long, conflicts_with = "ivm_config")]
     pub ivm_network: Option<Network>,
 }
 
