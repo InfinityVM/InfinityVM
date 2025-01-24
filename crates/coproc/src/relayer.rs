@@ -401,7 +401,7 @@ impl RelayActor {
             i += 1;
         };
 
-         dbg!("hello", &job.nonce);
+        dbg!("hello", &job.nonce);
         let relay_tx_hash = match relay_receipt {
             Ok(receipt) => receipt.transaction_hash,
             Err(e) => {

@@ -136,7 +136,7 @@ impl E2E {
         //     Runtime::new()
         //         .unwrap()
         //         .block_on(async move {
-        //             ivm_coproc::node::run(config).await 
+        //             ivm_coproc::node::run(config).await
         //         }).unwrap();
         // });
         tokio::spawn(async move { ivm_coproc::node::run(config).await });

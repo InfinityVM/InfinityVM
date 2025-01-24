@@ -247,25 +247,23 @@ where
 
         dbg!("waiting for pending job");
 
-        // let mut pending_jobs = rx.await.expect("one shot sender receiver failed");
+        let mut pending_jobs = rx.await.expect("one shot sender receiver failed");
 
         // This is just to try and debug
-        let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1_000));
-        let pending_jobs = loop {
-            tokio::select! {
-                // This never prints when we stall
-                _ = interval.tick() => println!("Another 1_000ms"),
-                msg = &mut rx => {
-                    let pending_jobs = msg.unwrap();
-                    println!("Got message: {:?}", pending_jobs);
-                    break pending_jobs;
-                }
-            }
-        };
-
+        // let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1_000));
+        // let pending_jobs = loop {
+        //     tokio::select! {
+        //         // This never prints when we stall
+        //         _ = interval.tick() => println!("Another 1_000ms"),
+        //         msg = &mut rx => {
+        //             let pending_jobs = msg.unwrap();
+        //             println!("Got message: {:?}", pending_jobs);
+        //             break pending_jobs;
+        //         }
+        //     }
+        // };
 
         dbg!("got pending jobs", &pending_jobs);
-
 
         Ok(pending_jobs)
     }
