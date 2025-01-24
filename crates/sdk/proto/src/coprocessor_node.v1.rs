@@ -196,7 +196,7 @@ pub struct SubmitProgramResponse {
     #[serde_as(as = "Hex")]
     pub program_id: ::prost::alloc::vec::Vec<u8>,
 }
-/// GetPendingJobsRequest
+/// GetPendingJobsRequest defines the request structure to request the current pending job nonces.
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -207,6 +207,7 @@ pub struct GetPendingJobsRequest {
     #[serde_as(as = "Hex")]
     pub consumer_address: ::prost::alloc::vec::Vec<u8>,
 }
+/// GetPendingJobsRequest defines the response structure to getting the current pending job nonces.
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -215,9 +216,6 @@ pub struct GetPendingJobsResponse {
     /// Nonces of the pending jobs.
     #[prost(uint64, repeated, tag = "1")]
     pub pending_jobs: ::prost::alloc::vec::Vec<u64>,
-    /// The next nonce the consumer contract is expecting.
-    #[prost(uint64, tag = "2")]
-    pub next_nonce: u64,
 }
 /// Type of ZKVM to execute
 #[serde_as]

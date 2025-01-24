@@ -227,7 +227,6 @@ async fn pending_jobs_shows_stuck_jobs() {
         dbg!("4");
 
         assert_eq!(pending.pending_jobs, vec![5, 6]);
-        assert_eq!(pending.next_nonce, 4);
     }
 
     E2E::new().mock_consumer().run(test).await;

@@ -401,7 +401,6 @@ impl RelayActor {
             i += 1;
         };
 
-        dbg!("hello", &job.nonce);
         let relay_tx_hash = match relay_receipt {
             Ok(receipt) => receipt.transaction_hash,
             Err(e) => {
@@ -413,14 +412,11 @@ impl RelayActor {
         };
 
         exec_tx.send(ExecMsg::Relayed(job.nonce)).await.expect("execution actor sender failed");
-        dbg!(&job.nonce);
 
         // Save the relay tx hash and status to DB
         job.relay_tx_hash = relay_tx_hash.to_vec();
         job.status.status = JobStatusType::Relayed as i32;
         writer_tx.send((Write::JobTable(job), None)).await.expect("db writer broken");
-
-        dbg!("write sent");
 
         Ok(())
     }

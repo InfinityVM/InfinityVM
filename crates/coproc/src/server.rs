@@ -208,6 +208,6 @@ where
             .await
             .map_err(|e| Status::internal(format!("Error: {}", e)))?;
 
-        Ok(Response::new(GetPendingJobsResponse { next_nonce: 0, pending_jobs }))
+        Ok(Response::new(GetPendingJobsResponse { pending_jobs }))
     }
 }
