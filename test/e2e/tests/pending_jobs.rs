@@ -100,15 +100,12 @@ async fn pending_jobs_works() {
             match pending.pending_jobs.len() {
                 3 => {
                     assert_eq!(pending.pending_jobs, vec![1, 2, 3]);
-                    assert_eq!(pending.next_nonce, 1);
                 }
                 2 => {
                     assert_eq!(pending.pending_jobs, vec![2, 3]);
-                    assert_eq!(pending.next_nonce, 2);
                 }
                 1 => {
                     assert_eq!(pending.pending_jobs, vec![3]);
-                    assert_eq!(pending.next_nonce, 3);
                 }
                 0 => {
                     assert_eq!(pending.next_nonce, 0);

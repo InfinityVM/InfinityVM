@@ -110,11 +110,20 @@ impl ExecutionActor {
                             dbg!("b", job.nonce);
                             join_set.spawn(async move {
                                 // Send the job to be executed
-                                let (tx, executor_complete_rx) = oneshot::channel();
-                                executor_tx2.send_async((job, tx)).await.expect("executor pool send failed");
+                                loop {
+                                    let (tx, executor_complete_rx) = oneshot::channel();
+                                    match executor_tx2.try_send((job.clone(), tx)) {
+                                        Ok(_) => (),
+                                        Err(_) => {
+                                            dbg!("try send");
+                                            continue;
+                                        }
+                                    };
 
-                                // Return the executed job
-                                executor_complete_rx.await
+                                    let job = executor_complete_rx.await;
+                                    // Return the executed job
+                                    return job;
+                                }
                             });
                         },
                         Some(ExecMsg::Pending(reply_tx)) => {
