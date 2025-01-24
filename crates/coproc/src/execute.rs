@@ -136,7 +136,7 @@ impl ExecutionActor {
                             break;
                         }
                         // The join set is empty so we check if the channel is still open
-                        None => if rx.is_empty() && rx.is_closed() {
+                        None => if rx.is_closed() && rx.is_empty() {
                             debug!("exiting execution actor");
                             let _ = relay_tx.send(RelayMsg::Exit).await;
                             break;
