@@ -411,6 +411,7 @@ impl RelayActor {
             }
         };
 
+        // Indicate to the execution actor that this job has been relayed.
         exec_tx.send(ExecMsg::Relayed(job.nonce)).await.expect("execution actor sender failed");
 
         // Save the relay tx hash and status to DB

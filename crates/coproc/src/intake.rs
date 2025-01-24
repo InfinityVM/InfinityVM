@@ -241,10 +241,9 @@ where
         };
 
         let (tx, rx) = oneshot::channel();
-
         execution_tx.send(ExecMsg::Pending(tx)).await.expect("execution tx failed");
-        let pending_jobs = rx.await.expect("one shot sender receiver failed");
 
+        let pending_jobs = rx.await.expect("one shot sender receiver failed");
         Ok(pending_jobs)
     }
 }
