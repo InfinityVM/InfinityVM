@@ -1,7 +1,7 @@
 //! IVM execution client.
 
 use clap::Parser;
-use ivm_exec::{config::IvmConfig, pool::validator::IvmTransactionAllowConfig, IvmCliExt, IvmNode};
+use ivm_exec::{config::IvmConfig, IvmCliExt, IvmNode};
 use reth::cli::Cli;
 use reth_ethereum_cli::chainspec::EthereumChainSpecParser;
 use reth_node_builder::{engine_tree_config::TreeConfig, EngineNodeLauncher};
@@ -25,9 +25,9 @@ fn main() {
                 GIT_BRANCH
             );
 
-            let transaction_allow = if args.allow_all {
+            let ivm_config = if args.allow_all {
                 tracing::warn!("IVM Configuration overridden, all transactions will be allowed");
-                IvmTransactionAllowConfig::with_all()
+                IvmConfig::allow_all()
             } else {
                 let ivm_config_path = if let Some(ivm_config) = args.ivm_config {
                     ivm_config
@@ -35,11 +35,13 @@ fn main() {
                     builder.config().datadir().data_dir().join(IVM_CONFIG_FILE)
                 };
                 tracing::info!(path=?ivm_config_path, "IVM Configuration loading");
-                let ivm_config = IvmConfig::from_path(&ivm_config_path)?;
-                ivm_config.transaction_allow
+
+                IvmConfig::from_path(&ivm_config_path)?
             };
 
-            let ivm_node = IvmNode::new(transaction_allow);
+            tracing::info!("Loaded with IVM config: {:?}", ivm_config);
+
+            let ivm_node = IvmNode::new(ivm_config);
 
             let handle = builder
                 .node(ivm_node)
