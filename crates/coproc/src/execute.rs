@@ -64,7 +64,7 @@ pub enum ExecMsg {
     Exec(Job),
     /// Request the current pending jobs. The given job nonce is expected
     /// to be the next nonce on chain.
-    Pending(oneshot::Sender<Vec<JobNonce>>),
+    Pending(Sender<Vec<JobNonce>>),
     /// Indicate that a job has been relayed
     Relayed(JobNonce),
 }
@@ -122,7 +122,7 @@ impl ExecutionActor {
                             let pending: Vec<_> = pending_jobs.iter().copied().collect();
 
                             dbg!("c", &pending_jobs);
-                            reply_tx.send(pending).expect("one shot sender failed");
+                            reply_tx.send(pending).await.expect("one shot sender failed");
                             dbg!("e");
                         }
                         Some(ExecMsg::Relayed(nonce)) => {

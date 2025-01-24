@@ -240,14 +240,14 @@ where
             return Ok(Vec::new())
         };
 
-        let (tx, mut rx) = oneshot::channel();
+        let (tx, mut rx) = tokio::sync::mpsc::channel(3);
 
         dbg!("getting pending job");
         execution_tx.send(ExecMsg::Pending(tx)).await.expect("execution tx failed");
 
         dbg!("waiting for pending job");
 
-        let mut pending_jobs = rx.await.expect("one shot sender receiver failed");
+        let mut pending_jobs = rx.recv().await.expect("one shot sender receiver failed");
 
         // This is just to try and debug
         // let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1_000));
