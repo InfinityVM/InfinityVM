@@ -41,7 +41,6 @@ impl IvmTransactionAllowConfig {
     }
 
     /// Add a `to` address.
-    #[cfg(any(feature = "test-utils", test))]
     pub fn add_to(&mut self, to: Address) {
         self.to.insert(to);
     }
@@ -53,7 +52,6 @@ impl IvmTransactionAllowConfig {
     }
 
     /// Add a `sender` address.
-    #[cfg(any(feature = "test-utils", test))]
     pub fn add_sender(&mut self, sender: Address) {
         self.sender.insert(sender);
     }
