@@ -15,10 +15,6 @@ service CoprocessorNode {
   // SubmitProgram defines the gRPC method for submitting a new program to
   // generate a unique program ID (verification key).
   rpc SubmitProgram(SubmitProgramRequest) returns (SubmitProgramResponse) {}
-
-  // GetPendingJobs defines the gRPC method for getting the jobs the coprocessor 
-  // is currently operating on.
-  rpc GetPendingJobs(GetPendingJobsRequest) returns (GetPendingJobsResponse) {}
 }
 
 // Type of ZKVM to execute
@@ -89,16 +85,4 @@ message SubmitProgramRequest {
 message SubmitProgramResponse {
   // The ZK program verification key.
   bytes program_id = 1;
-}
-
-// GetPendingJobsRequest defines the request structure to request the current pending job nonces.
-message GetPendingJobsRequest {
-  // Address of consumer contract to receive this result. The address is 20 bytes (no zero padding).
-  bytes consumer_address = 1;
-}
-
-// GetPendingJobsRequest defines the response structure to getting the current pending job nonces.
-message GetPendingJobsResponse {
-  // Nonces of the pending jobs.
-  repeated uint64 pending_jobs = 1;
 }
