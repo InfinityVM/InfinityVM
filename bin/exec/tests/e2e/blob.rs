@@ -5,7 +5,10 @@ use alloy_consensus::constants::MAINNET_GENESIS_HASH;
 use alloy_genesis::Genesis;
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types_engine::PayloadStatusEnum;
-use ivm_exec::{pool::validator::IvmTransactionAllowConfig, IvmNode};
+use ivm_exec::{
+    config::{transaction::IvmTransactionAllowConfig, IvmConfig},
+    IvmNode,
+};
 use reth_chainspec::{ChainSpecBuilder, MAINNET};
 use reth_e2e_test_utils::{
     node::NodeTestContext, transaction::TransactionTestContext, wallet::Wallet,
@@ -14,7 +17,7 @@ use reth_node_builder::{NodeBuilder, NodeHandle};
 use reth_node_core::{args::RpcServerArgs, node_config::NodeConfig};
 use reth_tasks::TaskManager;
 use reth_transaction_pool::TransactionPool;
-use std::{collections::HashSet, sync::Arc};
+use std::sync::Arc;
 
 // This largely follows the blob test in reth introduced in https://github.com/paradigmxyz/reth/pull/7823.
 //
@@ -57,10 +60,13 @@ async fn can_handle_blobs() -> eyre::Result<()> {
     let blob_wallet = wallets.first().unwrap();
     let second_wallet = wallets.last().unwrap();
 
-    let mut txn_allow = IvmTransactionAllowConfig::deny_all();
-    txn_allow.set_sender(HashSet::from([blob_wallet.address(), second_wallet.address()]));
+    let mut config = IvmConfig::deny_all();
+    let mut allow_config = IvmTransactionAllowConfig::deny_all();
+    allow_config.add_sender(blob_wallet.address());
+    allow_config.add_sender(second_wallet.address());
+    config.set_fork(0, allow_config);
 
-    let ivm_node_types = IvmNode::new(txn_allow);
+    let ivm_node_types = IvmNode::new(config);
 
     let NodeHandle { node, node_exit_future: _ } = NodeBuilder::new(node_config.clone())
         .testing_node(exec.clone())

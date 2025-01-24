@@ -1,5 +1,5 @@
-//! [`JobExecutor`] handles the execution of jobs. It does this by maintaining a pool of worker
-//! threads that pull [`ExecutorMsg`]s off of the execution queue.
+//! [`Pool`] handles the execution of jobs. It does this by maintaining a pool of worker
+//! threads that pull [`PoolMsg`]s off of the execution queue.
 
 use crate::{
     metrics::Metrics,
@@ -19,7 +19,7 @@ use tokio::sync::oneshot;
 use tracing::{error, instrument};
 
 /// A message to the executor
-pub type ExecutorMsg = (Job, oneshot::Sender<Job>);
+pub type PoolMsg = (Job, oneshot::Sender<Job>);
 
 /// Errors for this module.
 #[derive(thiserror::Error, Debug)]
@@ -78,16 +78,16 @@ pub enum FailureReason {
 
 /// Job executor service. This is essentially a thread pool for job execution.
 #[derive(Debug)]
-pub struct JobExecutor<S, D> {
+pub struct Pool<S, D> {
     db: Arc<D>,
-    executor_rx: Receiver<ExecutorMsg>,
+    pool_rx: Receiver<PoolMsg>,
     zk_executor: ZkvmExecutorService<S>,
     metrics: Arc<Metrics>,
     num_workers: usize,
     writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
 }
 
-impl<S, D> JobExecutor<S, D>
+impl<S, D> Pool<S, D>
 where
     S: Signer<PrimitiveSignature> + SignerSync<PrimitiveSignature> + Send + Sync + Clone + 'static,
     D: Database + 'static,
@@ -95,34 +95,34 @@ where
     /// Create a new instance of [Self].
     pub const fn new(
         db: Arc<D>,
-        executor_rx: Receiver<ExecutorMsg>,
+        pool_rx: Receiver<PoolMsg>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
         num_workers: usize,
         writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Self {
-        Self { db, executor_rx, zk_executor, metrics, num_workers, writer_tx }
+        Self { db, pool_rx, zk_executor, metrics, num_workers, writer_tx }
     }
 
     /// Spawns `num_workers` worker tasks.
     pub async fn start(&self) {
         let mut threads = vec![];
         for _ in 0..self.num_workers {
-            let executor_rx = self.executor_rx.clone();
+            let pool_rx = self.pool_rx.clone();
             let db = Arc::clone(&self.db);
             let zk_executor = self.zk_executor.clone();
             let metrics = Arc::clone(&self.metrics);
             let writer_tx = self.writer_tx.clone();
 
             threads.push(std::thread::spawn(|| {
-                Self::start_executor_worker(executor_rx, db, zk_executor, metrics, writer_tx)
+                Self::start_executor_worker(pool_rx, db, zk_executor, metrics, writer_tx)
             }));
         }
     }
 
     /// Start a worker.
     fn start_executor_worker(
-        executor_rx: Receiver<ExecutorMsg>,
+        pool_rx: Receiver<PoolMsg>,
         db: Arc<D>,
         zk_executor: ZkvmExecutorService<S>,
         metrics: Arc<Metrics>,
@@ -130,7 +130,7 @@ where
     ) -> Result<(), Error> {
         let writer_tx2 = writer_tx;
 
-        while let Ok((mut job, reply_tx)) = executor_rx.recv() {
+        while let Ok((mut job, reply_tx)) = pool_rx.recv() {
             let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone()) {
                 Ok(elf) => elf,
                 Err(_) => continue,

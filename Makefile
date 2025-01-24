@@ -4,7 +4,7 @@ clippy-ci: contracts
 
 .PHONY: clippy
 clippy:
-	SP1_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace
+	SP1_SKIP_BUILD=true cargo clippy --fix --allow-dirty --workspace --tests --all-features
 
 .PHONY: fmt-ci
 fmt-ci: 

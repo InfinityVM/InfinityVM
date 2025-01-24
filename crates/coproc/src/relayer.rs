@@ -2,8 +2,8 @@
 
 use crate::{
     execute::ExecMsg,
-    job_executor::FailureReason,
     metrics::Metrics,
+    pool::FailureReason,
     writer::{Write, WriterMsg},
 };
 use alloy::{

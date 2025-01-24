@@ -1,9 +1,11 @@
 //! IVM execution client types for plugging into reth node builder.
 
 use crate::engine::IvmEngineValidatorBuilder;
+use clap::ValueEnum;
+use config::IvmConfig;
 use evm::IvmExecutorBuilder;
 use payload::IvmPayloadBuilder;
-use pool::{validator::IvmTransactionAllowConfig, IvmPoolBuilder};
+use pool::IvmPoolBuilder;
 use reth_chainspec::ChainSpec;
 use reth_ethereum_engine_primitives::{
     EthBuiltPayload, EthPayloadAttributes, EthPayloadBuilderAttributes,
@@ -42,30 +44,41 @@ pub type IvmAddOns<N> = RpcAddOns<
     IvmEngineValidatorBuilder,
 >;
 
+/// Networks we include the baked in ivm config for.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum)]
+pub enum Network {
+    /// Select the Suzuka network.
+    Suzuka,
+}
+
 /// Add IVM specific arguments to the default reth cli.
 #[derive(Debug, Clone, clap::Args)]
 pub struct IvmCliExt {
     /// Path to an IVM config toml file. Defaults to using a config in `<RETH
     /// DATADIR>/ivm_config.toml`. If no file is found one is generated.
-    #[arg(long)]
+    #[arg(long, conflicts_with = "ivm_network")]
     pub ivm_config: Option<PathBuf>,
 
     /// Do not enforce the transaction allow config; allow transactions from all senders.
     /// This will override values in the IVM config.
     #[arg(long = "tx-allow.all")]
     pub allow_all: bool,
+
+    /// Configure the ivm config by selecting a network.
+    #[arg(long, conflicts_with = "ivm_config")]
+    pub ivm_network: Option<Network>,
 }
 
 /// Type configuration for an IVM node.
 #[derive(Debug, Clone)]
 pub struct IvmNode {
-    transaction_allow: IvmTransactionAllowConfig,
+    ivm_config: IvmConfig,
 }
 
 impl IvmNode {
     /// Create an IVM node with the given allow list.
-    pub const fn new(transaction_allow: IvmTransactionAllowConfig) -> Self {
-        Self { transaction_allow }
+    pub const fn new(ivm_config: IvmConfig) -> Self {
+        Self { ivm_config }
     }
 
     /// Returns a [`ComponentsBuilder`] configured for an IVM node.
@@ -87,7 +100,7 @@ impl IvmNode {
             PayloadBuilderAttributes = EthPayloadBuilderAttributes,
         >,
     {
-        let pool_builder = IvmPoolBuilder::new(self.transaction_allow.clone());
+        let pool_builder = IvmPoolBuilder::new(self.ivm_config.clone());
 
         EthereumNode::components()
             .pool(pool_builder)

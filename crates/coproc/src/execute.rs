@@ -1,7 +1,7 @@
 //! Actor for executing jobs on a per consumer basis.
 
 use crate::{
-    job_executor::ExecutorMsg,
+    pool::PoolMsg,
     relayer::{RelayActorSpawner, RelayMsg},
 };
 use ivm_db::tables::Job;
@@ -25,18 +25,18 @@ type ExecutedJobs = BTreeMap<JobNonce, Job>;
 #[derive(Debug, Clone)]
 pub struct ExecutionActorSpawner {
     relay_actor_spawner: RelayActorSpawner,
-    executor_tx: flume::Sender<ExecutorMsg>,
+    pool_tx: flume::Sender<PoolMsg>,
     channel_bound: usize,
 }
 
 impl ExecutionActorSpawner {
     /// Create a new instance of [Self].
     pub const fn new(
-        executor_tx: flume::Sender<ExecutorMsg>,
+        pool_tx: flume::Sender<PoolMsg>,
         relay_actor_spawner: RelayActorSpawner,
         channel_bound: usize,
     ) -> Self {
-        Self { executor_tx, relay_actor_spawner, channel_bound }
+        Self { pool_tx, relay_actor_spawner, channel_bound }
     }
 
     /// Spawn a new job actor.
@@ -48,7 +48,7 @@ impl ExecutionActorSpawner {
         // Spawn a relay actor
         let (tx, rx) = mpsc::channel(self.channel_bound);
         let relay_tx = self.relay_actor_spawner.spawn(tx.clone());
-        let actor = ExecutionActor::new(self.executor_tx.clone(), rx, relay_tx);
+        let actor = ExecutionActor::new(self.pool_tx.clone(), rx, relay_tx);
 
         tokio::spawn(async move { actor.start(nonce).await });
 
@@ -70,18 +70,18 @@ pub enum ExecMsg {
 }
 
 struct ExecutionActor {
-    executor_tx: flume::Sender<ExecutorMsg>,
+    pool_tx: flume::Sender<PoolMsg>,
     rx: Receiver<ExecMsg>,
     relay_tx: Sender<RelayMsg>,
 }
 
 impl ExecutionActor {
     const fn new(
-        executor_tx: flume::Sender<ExecutorMsg>,
+        pool_tx: flume::Sender<PoolMsg>,
         rx: Receiver<ExecMsg>,
         relay_tx: Sender<RelayMsg>,
     ) -> Self {
-        Self { executor_tx, rx, relay_tx }
+        Self { pool_tx, rx, relay_tx }
     }
 
     /// The primary routine of the execution actor.
@@ -96,7 +96,7 @@ impl ExecutionActor {
         // update requests
         let mut pending_jobs = BTreeSet::new();
 
-        let Self { mut rx, relay_tx, executor_tx } = self;
+        let Self { mut rx, relay_tx, pool_tx } = self;
 
         loop {
             tokio::select! {
@@ -106,15 +106,15 @@ impl ExecutionActor {
                         Some(ExecMsg::Exec(job)) => {
                             dbg!("a", job.nonce);
                             pending_jobs.insert(job.nonce);
-                            let executor_tx2 = executor_tx.clone();
+                            let pool_tx2 = pool_tx.clone();
                             dbg!("b", job.nonce);
                             join_set.spawn(async move {
                                 // Send the job to be executed
-                                let (tx, executor_complete_rx) = oneshot::channel();
-                                executor_tx2.send_async((job, tx)).await.expect("executor pool send failed");
+                                let (tx, pool_complete_rx) = oneshot::channel();
+                                pool_tx2.send_async((job, tx)).await.expect("executor pool send failed");
 
                                 // Return the executed job
-                                executor_complete_rx.await
+                                pool_complete_rx.await
                             });
                         },
                         Some(ExecMsg::Pending(reply_tx)) => {
@@ -167,7 +167,7 @@ impl ExecutionActor {
                             break;
                         }
                         // The join set is empty so we check if the channel is still open
-                        None => if rx.is_empty() && rx.is_closed() {
+                        None => if rx.is_closed() && rx.is_empty() {
                             debug!("exiting execution actor");
                             let _ = relay_tx.send(RelayMsg::Exit).await;
                             break;
