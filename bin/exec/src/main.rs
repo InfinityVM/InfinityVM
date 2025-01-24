@@ -28,6 +28,8 @@ fn main() {
             let ivm_config = if args.allow_all {
                 tracing::warn!("IVM Configuration overridden, all transactions will be allowed");
                 IvmConfig::allow_all()
+            } else if let Some(network) = args.ivm_network {
+                IvmConfig::from_network(network)
             } else {
                 let ivm_config_path = if let Some(ivm_config) = args.ivm_config {
                     ivm_config

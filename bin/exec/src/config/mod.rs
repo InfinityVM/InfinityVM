@@ -1,6 +1,11 @@
 //! IVM specific configuration definition and IO helpers.
 
-use alloy_primitives::{map::foldhash::HashSet, Address};
+use crate::Network;
+use alloy_primitives::{
+    address,
+    map::foldhash::{HashSet, HashSetExt},
+    Address,
+};
 use eyre::eyre;
 use std::{collections::BTreeMap, fs, path::Path};
 use transaction::IvmTransactionAllowConfig;
@@ -121,6 +126,35 @@ impl IvmConfig {
                 Ok(cfg)
             }
             Err(e) => Err(eyre!("failed to load configuration: {e}")),
+        }
+    }
+
+    /// Get the config from a particular network
+    pub fn from_network(network: Network) -> Self {
+        match network {
+            Network::Suzuka => {
+                let addresses = vec![
+                    address!("0x7e480b98e3710753ffb23f67bd35391d5a6b1e9e"),
+                    address!("0x17877a771f877d66317146c2158a13454c836d66"),
+                    address!("0x088d6345341b686cbd765bfb6be49d96b1977bc4"),
+                    address!("0x181b8b8dc24f1d9f2f2401481529962378b99532"),
+                    address!("0x9fb039d6d885fa2e9a2017ab96652138d9e06217"),
+                    address!("0xf40a1616b71b58bad6c7fca0ae24b045b67fa5b7"),
+                    address!("0xba0b00804898506e24fa898120e6a3f89a48d859"),
+                    address!("0xdbd5f8ab1e0171f09e40f298b32c3b190ec4fab4"),
+                    address!("0x43f31170bac1fe94c12941049c80e2a08e33d623"),
+                ];
+
+                let mut fork0 = IvmTransactionAllowConfig::deny_all();
+                let mut priority_senders = HashSet::new();
+                for addr in addresses {
+                    fork0.add_sender(addr);
+                    fork0.add_to(addr);
+                    priority_senders.insert(addr);
+                }
+                let forks = BTreeMap::from([(0, fork0)]);
+                Self { forks, priority_senders }
+            }
         }
     }
 }
