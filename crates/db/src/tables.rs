@@ -80,7 +80,7 @@ pub struct Job {
 
 impl Job {
     /// Returns true if this job has the relay strategy `Ordered`.
-    pub fn is_ordered(&self) -> bool {
+    pub const fn is_ordered(&self) -> bool {
         matches!(self.relay_strategy, RelayStrategy::Ordered)
     }
 }

@@ -14,7 +14,7 @@ use tokio::{
     },
     task::JoinSet,
 };
-use tracing::{debug, error, warn};
+use tracing::{error, warn};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -118,7 +118,6 @@ impl ExecutionActor {
                         Some(ExecMsg::Pending(reply_tx)) => {
                             // Filter out the jobs that are already onchain
                             let pending: Vec<_> = pending_jobs.iter().copied().collect();
-
                             reply_tx.send(pending).expect("one shot sender failed");
                         }
                         Some(ExecMsg::Relayed(nonce)) => {

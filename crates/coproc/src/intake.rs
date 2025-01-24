@@ -240,11 +240,10 @@ where
             return Ok(Vec::new())
         };
 
-        let (tx, mut rx) = oneshot::channel();
+        let (tx, rx) = oneshot::channel();
 
         execution_tx.send(ExecMsg::Pending(tx)).await.expect("execution tx failed");
-        let mut pending_jobs = rx
-        .await.expect("one shot sender receiver failed");
+        let pending_jobs = rx.await.expect("one shot sender receiver failed");
 
         Ok(pending_jobs)
     }
