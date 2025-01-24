@@ -132,6 +132,13 @@ impl E2E {
             unsafe_skip_program_id_check: true,
             disable_events: false,
         };
+        // std::thread::spawn(move || {
+        //     Runtime::new()
+        //         .unwrap()
+        //         .block_on(async move {
+        //             ivm_coproc::node::run(config).await 
+        //         }).unwrap();
+        // });
         tokio::spawn(async move { ivm_coproc::node::run(config).await });
         sleep_until_bound(coprocessor_node_port).await;
         let coprocessor_node =

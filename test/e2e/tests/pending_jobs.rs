@@ -159,7 +159,7 @@ async fn pending_jobs_shows_stuck_jobs() {
             .into_inner();
         assert!(pending.pending_jobs.is_empty());
 
-        // Nonces 5, and 6 will be stuck
+        // Nonces 5 and 6 will be stuck since there is no nonce 4
         let futures: Vec<_> = vec![1, 2, 3, 5, 6]
             .into_iter()
             .map(|nonce| {
@@ -215,7 +215,7 @@ async fn pending_jobs_shows_stuck_jobs() {
             }
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
-         dbg!("2");
+        dbg!("2");
 
         // After some time, the two jobs are still pending
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
