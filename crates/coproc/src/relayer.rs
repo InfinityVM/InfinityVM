@@ -1,8 +1,8 @@
 //! This module contains all components for broadcasting job results onchain.
 
 use crate::{
-    pool::FailureReason,
     metrics::Metrics,
+    pool::FailureReason,
     writer::{Write, WriterMsg},
 };
 use alloy::{
