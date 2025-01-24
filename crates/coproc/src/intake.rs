@@ -251,7 +251,7 @@ where
 
         // This is just to try and debug
         let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1_000));
-        let mut pending_jobs = loop {
+        let pending_jobs = loop {
             tokio::select! {
                 // This never prints when we stall
                 _ = interval.tick() => println!("Another 1_000ms"),
