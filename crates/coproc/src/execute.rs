@@ -64,7 +64,7 @@ pub enum ExecMsg {
     Exec(Job),
     /// Request the current pending jobs. The given job nonce is expected
     /// to be the next nonce on chain.
-    Pending(Sender<Vec<JobNonce>>),
+    Pending(oneshot::Sender<Vec<JobNonce>>),
     /// Indicate that a job has been relayed
     Relayed(JobNonce),
 }
@@ -104,10 +104,8 @@ impl ExecutionActor {
                 new_job = rx.recv() => {
                     match new_job {
                         Some(ExecMsg::Exec(job)) => {
-                            dbg!("a", job.nonce);
                             pending_jobs.insert(job.nonce);
                             let pool_tx2 = pool_tx.clone();
-                            dbg!("b", job.nonce);
                             join_set.spawn(async move {
                                 // Send the job to be executed
                                 let (tx, pool_complete_rx) = oneshot::channel();
@@ -121,9 +119,7 @@ impl ExecutionActor {
                             // Filter out the jobs that are already onchain
                             let pending: Vec<_> = pending_jobs.iter().copied().collect();
 
-                            dbg!("c", &pending_jobs);
-                            reply_tx.send(pending).await.expect("one shot sender failed");
-                            dbg!("e");
+                            reply_tx.send(pending).expect("one shot sender failed");
                         }
                         Some(ExecMsg::Relayed(nonce)) => {
                             pending_jobs.remove(&nonce);

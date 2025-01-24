@@ -198,7 +198,6 @@ async fn pending_jobs_shows_stuck_jobs() {
             .into_inner();
         assert_eq!(pending.pending_jobs, vec![1, 2, 3, 5, 6]);
 
-        dbg!("1");
         for _ in 0..15 {
             let pending = args
                 .coprocessor_node
@@ -212,11 +211,9 @@ async fn pending_jobs_shows_stuck_jobs() {
             }
             tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
         }
-        dbg!("2");
 
         // After some time, the two jobs are still pending
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        dbg!("3");
 
         let pending = args
             .coprocessor_node
@@ -224,7 +221,6 @@ async fn pending_jobs_shows_stuck_jobs() {
             .await
             .unwrap()
             .into_inner();
-        dbg!("4");
 
         assert_eq!(pending.pending_jobs, vec![5, 6]);
     }

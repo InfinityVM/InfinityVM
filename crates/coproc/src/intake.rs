@@ -240,30 +240,11 @@ where
             return Ok(Vec::new())
         };
 
-        let (tx, mut rx) = tokio::sync::mpsc::channel(3);
+        let (tx, mut rx) = oneshot::channel();
 
-        dbg!("getting pending job");
         execution_tx.send(ExecMsg::Pending(tx)).await.expect("execution tx failed");
-
-        dbg!("waiting for pending job");
-
-        let mut pending_jobs = rx.recv().await.expect("one shot sender receiver failed");
-
-        // This is just to try and debug
-        // let mut interval = tokio::time::interval(tokio::time::Duration::from_millis(1_000));
-        // let pending_jobs = loop {
-        //     tokio::select! {
-        //         // This never prints when we stall
-        //         _ = interval.tick() => println!("Another 1_000ms"),
-        //         msg = &mut rx => {
-        //             let pending_jobs = msg.unwrap();
-        //             println!("Got message: {:?}", pending_jobs);
-        //             break pending_jobs;
-        //         }
-        //     }
-        // };
-
-        dbg!("got pending jobs", &pending_jobs);
+        let mut pending_jobs = rx
+        .await.expect("one shot sender receiver failed");
 
         Ok(pending_jobs)
     }
