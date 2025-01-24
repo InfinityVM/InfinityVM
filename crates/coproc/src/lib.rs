@@ -5,7 +5,7 @@ pub mod event;
 pub mod execute;
 pub mod gateway;
 pub mod intake;
-pub mod job_executor;
+pub mod pool;
 pub mod metrics;
 pub mod node;
 pub mod relayer;

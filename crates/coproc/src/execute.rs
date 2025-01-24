@@ -1,7 +1,7 @@
 //! Actor for executing jobs on a per consumer basis.
 
 use crate::{
-    job_executor::ExecutorMsg,
+    pool::PoolMsg,
     relayer::{RelayActorSpawner, RelayMsg},
 };
 use ivm_db::tables::Job;
@@ -26,18 +26,18 @@ type ExecutedJobs = BTreeMap<JobNonce, Job>;
 #[derive(Debug, Clone)]
 pub struct ExecutionActorSpawner {
     relay_actor_spawner: RelayActorSpawner,
-    executor_tx: flume::Sender<ExecutorMsg>,
+    pool_tx: flume::Sender<PoolMsg>,
     channel_bound: usize,
 }
 
 impl ExecutionActorSpawner {
     /// Create a new instance of [Self].
     pub const fn new(
-        executor_tx: flume::Sender<ExecutorMsg>,
+        pool_tx: flume::Sender<PoolMsg>,
         relay_actor_spawner: RelayActorSpawner,
         channel_bound: usize,
     ) -> Self {
-        Self { executor_tx, relay_actor_spawner, channel_bound }
+        Self { pool_tx, relay_actor_spawner, channel_bound }
     }
 
     /// Spawn a new job actor.
@@ -49,7 +49,7 @@ impl ExecutionActorSpawner {
         // Spawn a relay actor
         let relay_tx = self.relay_actor_spawner.spawn();
         let (tx, rx) = mpsc::channel(self.channel_bound);
-        let actor = ExecutionActor::new(self.executor_tx.clone(), rx, relay_tx);
+        let actor = ExecutionActor::new(self.pool_tx.clone(), rx, relay_tx);
 
         tokio::spawn(async move { actor.start(nonce).await });
 
@@ -58,18 +58,18 @@ impl ExecutionActorSpawner {
 }
 
 struct ExecutionActor {
-    executor_tx: flume::Sender<ExecutorMsg>,
+    pool_tx: flume::Sender<PoolMsg>,
     rx: Receiver<Job>,
     relay_tx: Sender<RelayMsg>,
 }
 
 impl ExecutionActor {
     const fn new(
-        executor_tx: flume::Sender<ExecutorMsg>,
+        pool_tx: flume::Sender<PoolMsg>,
         rx: Receiver<Job>,
         relay_tx: Sender<RelayMsg>,
     ) -> Self {
-        Self { executor_tx, rx, relay_tx }
+        Self { pool_tx, rx, relay_tx }
     }
 
     /// The primary routine of the execution actor.
@@ -79,7 +79,7 @@ impl ExecutionActor {
         let mut next_job_to_submit = nonce;
         let mut join_set = JoinSet::new();
         let mut completed_tasks = ExecutedJobs::new();
-        let Self { mut rx, relay_tx, executor_tx } = self;
+        let Self { mut rx, relay_tx, pool_tx } = self;
 
         loop {
             tokio::select! {
@@ -87,11 +87,11 @@ impl ExecutionActor {
                 new_job = rx.recv() => {
                     match new_job {
                         Some(job) => {
-                            let executor_tx2 = executor_tx.clone();
+                            let pool_tx2 = pool_tx.clone();
                             join_set.spawn(async move {
                                 // Send the job to be executed
                                 let (tx, executor_complete_rx) = oneshot::channel();
-                                executor_tx2.send_async((job, tx)).await.expect("executor pool send failed");
+                                pool_tx2.send_async((job, tx)).await.expect("executor pool send failed");
 
                                 // Return the executed job
                                 executor_complete_rx.await
