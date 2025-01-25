@@ -196,6 +196,27 @@ pub struct SubmitProgramResponse {
     #[serde_as(as = "Hex")]
     pub program_id: ::prost::alloc::vec::Vec<u8>,
 }
+/// GetPendingJobsRequest defines the request structure to request the current pending job nonces.
+#[serde_as]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetPendingJobsRequest {
+    /// Address of consumer contract to receive this result. The address is 20 bytes (no zero padding).
+    #[prost(bytes = "vec", tag = "1")]
+    #[serde_as(as = "Hex")]
+    pub consumer_address: ::prost::alloc::vec::Vec<u8>,
+}
+/// GetPendingJobsRequest defines the response structure to getting the current pending job nonces.
+#[serde_as]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetPendingJobsResponse {
+    /// Nonces of the pending jobs.
+    #[prost(uint64, repeated, tag = "1")]
+    pub pending_jobs: ::prost::alloc::vec::Vec<u64>,
+}
 /// Type of ZKVM to execute
 #[serde_as]
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -439,6 +460,37 @@ pub mod coprocessor_node_client {
                 );
             self.inner.unary(req, path, codec).await
         }
+        /// GetPendingJobs defines the gRPC method for getting the jobs the coprocessor
+        /// is currently operating on.
+        pub async fn get_pending_jobs(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetPendingJobsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetPendingJobsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/coprocessor_node.v1.CoprocessorNode/GetPendingJobs",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "coprocessor_node.v1.CoprocessorNode",
+                        "GetPendingJobs",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
     }
 }
 /// Generated server implementations.
@@ -478,6 +530,15 @@ pub mod coprocessor_node_server {
             request: tonic::Request<super::SubmitProgramRequest>,
         ) -> std::result::Result<
             tonic::Response<super::SubmitProgramResponse>,
+            tonic::Status,
+        >;
+        /// GetPendingJobs defines the gRPC method for getting the jobs the coprocessor
+        /// is currently operating on.
+        async fn get_pending_jobs(
+            &self,
+            request: tonic::Request<super::GetPendingJobsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetPendingJobsResponse>,
             tonic::Status,
         >;
     }
@@ -679,6 +740,52 @@ pub mod coprocessor_node_server {
                     let inner = self.inner.clone();
                     let fut = async move {
                         let method = SubmitProgramSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/coprocessor_node.v1.CoprocessorNode/GetPendingJobs" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetPendingJobsSvc<T: CoprocessorNode>(pub Arc<T>);
+                    impl<
+                        T: CoprocessorNode,
+                    > tonic::server::UnaryService<super::GetPendingJobsRequest>
+                    for GetPendingJobsSvc<T> {
+                        type Response = super::GetPendingJobsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetPendingJobsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as CoprocessorNode>::get_pending_jobs(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let method = GetPendingJobsSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

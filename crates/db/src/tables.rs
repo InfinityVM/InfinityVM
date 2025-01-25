@@ -78,6 +78,13 @@ pub struct Job {
     pub relay_strategy: RelayStrategy,
 }
 
+impl Job {
+    /// Returns true if this job has the relay strategy `Ordered`.
+    pub const fn is_ordered(&self) -> bool {
+        matches!(self.relay_strategy, RelayStrategy::Ordered)
+    }
+}
+
 impl<'a> TryFrom<&'a Job> for JobParams<'a> {
     type Error = Error;
 

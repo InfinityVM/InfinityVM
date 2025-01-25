@@ -5,8 +5,7 @@ use crate::{
     relayer::{RelayActorSpawner, RelayMsg},
 };
 use ivm_db::tables::Job;
-use ivm_proto::RelayStrategy;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use tokio::{
     sync::{
         mpsc,
@@ -15,7 +14,7 @@ use tokio::{
     },
     task::JoinSet,
 };
-use tracing::{debug, error, warn};
+use tracing::{error, warn};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -45,10 +44,10 @@ impl ExecutionActorSpawner {
     /// Note that this will also spawn a corresponding relay actor.
     ///
     /// Caution: we assume that the caller spawns exactly one job actor per consumer.
-    pub fn spawn(&self, nonce: u64) -> Sender<Job> {
+    pub fn spawn(&self, nonce: u64) -> Sender<ExecMsg> {
         // Spawn a relay actor
-        let relay_tx = self.relay_actor_spawner.spawn();
         let (tx, rx) = mpsc::channel(self.channel_bound);
+        let relay_tx = self.relay_actor_spawner.spawn(tx.clone());
         let actor = ExecutionActor::new(self.pool_tx.clone(), rx, relay_tx);
 
         tokio::spawn(async move { actor.start(nonce).await });
@@ -57,16 +56,28 @@ impl ExecutionActorSpawner {
     }
 }
 
+/// A message to the execution actor.
+#[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
+pub enum ExecMsg {
+    /// Send a job to execute and relay.
+    Exec(Job),
+    /// Request the current pending jobs. The response is sent with the given oneshot sender.
+    Pending(oneshot::Sender<Vec<JobNonce>>),
+    /// Indicate that a job has been relayed.
+    Relayed(JobNonce),
+}
+
 struct ExecutionActor {
     pool_tx: flume::Sender<PoolMsg>,
-    rx: Receiver<Job>,
+    rx: Receiver<ExecMsg>,
     relay_tx: Sender<RelayMsg>,
 }
 
 impl ExecutionActor {
     const fn new(
         pool_tx: flume::Sender<PoolMsg>,
-        rx: Receiver<Job>,
+        rx: Receiver<ExecMsg>,
         relay_tx: Sender<RelayMsg>,
     ) -> Self {
         Self { pool_tx, rx, relay_tx }
@@ -79,6 +90,11 @@ impl ExecutionActor {
         let mut next_job_to_submit = nonce;
         let mut join_set = JoinSet::new();
         let mut completed_tasks = ExecutedJobs::new();
+
+        // We track executing jobs and relayed jobs so we can respond to status
+        // update requests
+        let mut pending_jobs = BTreeSet::new();
+
         let Self { mut rx, relay_tx, pool_tx } = self;
 
         loop {
@@ -86,29 +102,39 @@ impl ExecutionActor {
                 // Handle a new job request by starting execution
                 new_job = rx.recv() => {
                     match new_job {
-                        Some(job) => {
+                        Some(ExecMsg::Exec(job)) => {
+                            pending_jobs.insert(job.nonce);
                             let pool_tx2 = pool_tx.clone();
                             join_set.spawn(async move {
                                 // Send the job to be executed
-                                let (tx, executor_complete_rx) = oneshot::channel();
+                                let (tx, pool_complete_rx) = oneshot::channel();
                                 pool_tx2.send_async((job, tx)).await.expect("executor pool send failed");
 
                                 // Return the executed job
-                                executor_complete_rx.await
+                                pool_complete_rx.await
                             });
                         },
+                        Some(ExecMsg::Pending(reply_tx)) => {
+                            let pending: Vec<_> = pending_jobs.iter().copied().collect();
+                            reply_tx.send(pending).expect("one shot sender failed");
+                        }
+                        Some(ExecMsg::Relayed(nonce)) => {
+                            pending_jobs.remove(&nonce);
+                        }
                         None => {
                             warn!("execute actor channel closed");
                         },
                     }
                 }
+
                 // As jobs complete, relay them as determined by their nonce
-                completed = join_set.join_next() => {
+                Some(completed) = join_set.join_next(), if !join_set.is_empty() => {
+
                     match completed {
-                        Some(Ok(Ok(job))) => {
+                        Ok(Ok(job)) => {
                             // Short circuit ordering logic and relay immediately if this job is
                             // not ordered relay.
-                            if job.relay_strategy == RelayStrategy::Unordered {
+                            if !job.is_ordered() {
                                 relay_tx.send(RelayMsg::Relay(job)).await.expect("relay actor send failed.");
                                 continue;
                             }
@@ -128,22 +154,23 @@ impl ExecutionActor {
                                 completed_tasks.insert(job.nonce, job);
                             }
                         },
-                        Some(Ok(Err(error)))  => {
+                        Ok(Err(error))  => {
                             warn!(?error, "execution error");
                         },
-                        Some(Err(error)) => {
+                        Err(error) => {
                             error!(?error, "fatal error, exiting execution actor");
                             break;
                         }
-                        // The join set is empty so we check if the channel is still open
-                        None => if rx.is_closed() && rx.is_empty() {
-                            debug!("exiting execution actor");
-                            let _ = relay_tx.send(RelayMsg::Exit).await;
-                            break;
-                        } else {
-                            // The channel is still open, so we continue to wait for new messages
-                        },
+
                     }
+                }
+
+                // The empty async block is a future that's always ready
+                // The future is only polled if the channel is closed, there are no pending jobs, and the join set is empty
+                _ = async {}, if rx.is_closed() && rx.is_empty() && join_set.is_empty() => {
+                        tracing::info!("exiting execution actor");
+                        let _ = relay_tx.send(RelayMsg::Exit).await;
+                        break;
                 }
             }
         }
