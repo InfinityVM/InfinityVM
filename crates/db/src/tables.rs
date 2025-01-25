@@ -96,6 +96,10 @@ impl Job {
     pub const fn is_done(&self) -> bool {
         self.status.status == JobStatusType::Done as i32
     }
+
+    pub const fn is_pending(&self) -> bool {
+        self.status.status == JobStatusType::Pending as i32
+    }
 }
 
 impl<'a> TryFrom<&'a Job> for JobParams<'a> {

@@ -141,14 +141,12 @@ where
                 return Err(Error::OffchainInputOverMaxDAPerJob);
             };
         }
-        
+
         let consumer_address: [u8; 20] =
             job.consumer_address.clone().try_into().expect("caller must validate address length.");
 
-
         let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
-        let consumer =
-            ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
+        let consumer = ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
         // This is the next nonce; since we expect contracts to be initialized with
         // nonce 0, the first nonce should be 1.
         let nonce = consumer.getNextNonce().call().await?._0;
@@ -161,27 +159,31 @@ where
         // TODO: add new table for just job ID so we can avoid writing full job here and reading.
         // We can just pass the job itself along the channel
         // full job https://github.com/InfinityVM/InfinityVM/issues/354
-       let job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
+        let job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
             if old_job.is_failed() {
-                // return Err(Error::JobExistsAndFailedToRelay);
+                return Err(Error::JobExistsAndFailedToRelay);
                 // TODO: we should probably allow them to over ride? Or do we exit early?
                 // Some assumptions in DLQ could break things
                 // TODO: maybe we allow deleting the job?
             } else if old_job.is_relayed() {
                 // TODO: should we return ok here?
-                return Err(Error::JobExistsAndRelayed);
-            } 
-
-            if self.get_pending_nonces(consumer_address).await?.contains(job.nonce) {
+                // return Err(Error::JobExistsAndRelayed);
                 return Ok(())
             }
 
-            // For now, we always retry the original job even tho it may be different then the new job.
-            // We should have a way to clear a job
+            if self.get_pending_nonces(consumer_address).await?.contains(&job.nonce) {
+                return Ok(())
+            }
+
+            // For now, we always retry the original job even tho it may be different then the new
+            // job. We should have a way to clear a job
             old_job
         } else {
-            job.status =
-                JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
+            job.status = JobStatus {
+                status: JobStatusType::Pending as i32,
+                failure_reason: None,
+                retries: 0,
+            };
             let (tx, db_write_complete_rx) = oneshot::channel();
             self.writer_tx
                 .send((Write::JobTable(job.clone()), Some(tx)))
@@ -191,7 +193,7 @@ where
             // Before responding, make sure the write completes
             let _ = db_write_complete_rx.await;
             job
-        }
+        };
 
         // We do an optimistic check to reduce entry lock contention.
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
