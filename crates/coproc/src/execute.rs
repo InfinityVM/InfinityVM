@@ -106,7 +106,7 @@ impl ExecutionActor {
                     match new_job {
                         Some(ExecMsg::Exec(job)) => {
                             if !job.is_pending() && !job.is_done() || (job.is_ordered() && job.nonce <  next_job_to_submit) {
-                                // Defensive check, this should never happen
+                                // Defensive check
                                 warn!(?job.nonce, consumer = hex::encode(&job.consumer_address), "job in invalid state send to execution actor",);
                                 continue;
                             }
