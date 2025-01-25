@@ -60,7 +60,8 @@ impl ExecutionActorSpawner {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum ExecMsg {
-    /// Send a job to execute and relay.
+    /// Send a job to execute and relay. If the job is already executed, this will just
+    /// try to determine if it should be relayed
     Exec(Job),
     /// Request the current pending jobs. The response is sent with the given oneshot sender.
     Pending(oneshot::Sender<Vec<JobNonce>>),
@@ -103,15 +104,25 @@ impl ExecutionActor {
                 new_job = rx.recv() => {
                     match new_job {
                         Some(ExecMsg::Exec(job)) => {
+                            if !job.is_pending() && !job.is_done() || (job.is_ordered() && job.nonce <  next_job_to_submit) {
+                                // Defensive check, this should never happen
+                                warn!("job in invalid state send to execution actor", job.nonce, consumer = hex::encode(job.consumer_address));
+                                continue;
+                            }
                             pending_jobs.insert(job.nonce);
+
                             let pool_tx2 = pool_tx.clone();
                             join_set.spawn(async move {
-                                // Send the job to be executed
-                                let (tx, pool_complete_rx) = oneshot::channel();
-                                pool_tx2.send_async((job, tx)).await.expect("executor pool send failed");
-
-                                // Return the executed job
-                                pool_complete_rx.await
+                                if job.is_pending() {
+                                    // Send the job to be executed
+                                    let (tx, pool_complete_rx) = oneshot::channel();
+                                    pool_tx2.send_async((job, tx)).await.expect("executor pool send failed");
+                                    // Return the executed job
+                                    pool_complete_rx.await
+                                } else if job{
+                                    // This is a re-trigger, job was already executed and need to get queued.
+                                    Ok(job)
+                                }
                             });
                         },
                         Some(ExecMsg::Pending(reply_tx)) => {
@@ -143,6 +154,7 @@ impl ExecutionActor {
 
                                 next_job_to_submit += 1;
                                 while let Some(next_job) = completed_tasks.remove(&next_job_to_submit) {
+                                    debug_assert!()
                                     // Relay any directly subsequent jobs that have been completed
                                     relay_tx.send(RelayMsg::Relay(next_job)).await.expect("relay actor send failed.");
                                     next_job_to_submit += 1;

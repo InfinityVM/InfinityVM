@@ -59,6 +59,12 @@ pub enum Error {
     /// failed while trying to read the nonce from the consumer contract
     #[error("could not read the nonce from the consumer contract {0}")]
     GetNonceFail(#[from] alloy::contract::Error),
+    #[error("job already exists and failed to get relayed")]
+    JobExistsAndFailedToRelay,
+    #[error("job already exists and has been relayed")]
+    JobExistsAndRelayed,
+    #[error("job nonce is lower then onchain nonce")]
+    NonceTooLow,
 }
 
 /// Job and program intake handlers.
@@ -135,36 +141,62 @@ where
                 return Err(Error::OffchainInputOverMaxDAPerJob);
             };
         }
+        
+        let consumer_address: [u8; 20] =
+            job.consumer_address.clone().try_into().expect("caller must validate address length.");
+
+
+        let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
+        let consumer =
+            ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
+        // This is the next nonce; since we expect contracts to be initialized with
+        // nonce 0, the first nonce should be 1.
+        let nonce = consumer.getNextNonce().call().await?._0;
+        if job.is_ordered() {
+            if job.nonce < nonce {
+                return Err(Error::NonceTooLow);
+            }
+        }
 
         // TODO: add new table for just job ID so we can avoid writing full job here and reading.
         // We can just pass the job itself along the channel
         // full job https://github.com/InfinityVM/InfinityVM/issues/354
-        if get_job(self.db.clone(), job.id).await?.is_some() {
-            return Err(Error::JobAlreadyExists);
+       let job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
+            if old_job.is_failed() {
+                // return Err(Error::JobExistsAndFailedToRelay);
+                // TODO: we should probably allow them to over ride? Or do we exit early?
+                // Some assumptions in DLQ could break things
+                // TODO: maybe we allow deleting the job?
+            } else if old_job.is_relayed() {
+                // TODO: should we return ok here?
+                return Err(Error::JobExistsAndRelayed);
+            } 
+
+            if self.get_pending_nonces(consumer_address).await?.contains(job.nonce) {
+                return Ok(())
+            }
+
+            // For now, we always retry the original job even tho it may be different then the new job.
+            // We should have a way to clear a job
+            old_job
+        } else {
+            job.status =
+                JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
+            let (tx, db_write_complete_rx) = oneshot::channel();
+            self.writer_tx
+                .send((Write::JobTable(job.clone()), Some(tx)))
+                .await
+                .expect("db writer broken");
+
+            // Before responding, make sure the write completes
+            let _ = db_write_complete_rx.await;
+            job
         }
-
-        job.status =
-            JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
-        let (tx, db_write_complete_rx) = oneshot::channel();
-        self.writer_tx
-            .send((Write::JobTable(job.clone()), Some(tx)))
-            .await
-            .expect("db writer broken");
-
-        let consumer_address: [u8; 20] =
-            job.consumer_address.clone().try_into().expect("caller must validate address length.");
 
         // We do an optimistic check to reduce entry lock contention.
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
             inner.clone()
         } else {
-            let provider = ProviderBuilder::new().on_http(self.http_eth_rpc.clone());
-            let consumer =
-                ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
-            // This is the next nonce; since we expect contracts to be initialized with
-            // nonce 0, the first nonce should be 1.
-            let nonce = consumer.getNextNonce().call().await?._0;
-
             match self.active_actors.entry(consumer_address) {
                 Entry::Occupied(e) => e.get().clone(),
                 Entry::Vacant(e) => {
@@ -180,9 +212,6 @@ where
         // NOTE: Once actor deletion is implemented, we need to avoid a
         // race between sending the job & deleting the actor.
         execution_tx.send(ExecMsg::Exec(job)).await.expect("execution tx failed");
-
-        // Before responding, make sure the write completes
-        let _ = db_write_complete_rx.await;
 
         Ok(())
     }
