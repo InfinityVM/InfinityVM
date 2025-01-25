@@ -126,10 +126,12 @@ impl ExecutionActor {
                         },
                     }
                 }
+
                 // As jobs complete, relay them as determined by their nonce
-                completed = join_set.join_next() => {
+                Some(completed) = join_set.join_next(), if !join_set.is_empty() => {
+
                     match completed {
-                        Some(Ok(Ok(job))) => {
+                        Ok(Ok(job)) => {
                             // Short circuit ordering logic and relay immediately if this job is
                             // not ordered relay.
                             if !job.is_ordered() {
@@ -152,25 +154,23 @@ impl ExecutionActor {
                                 completed_tasks.insert(job.nonce, job);
                             }
                         },
-                        Some(Ok(Err(error)))  => {
+                        Ok(Err(error))  => {
                             warn!(?error, "execution error");
                         },
-                        Some(Err(error)) => {
+                        Err(error) => {
                             error!(?error, "fatal error, exiting execution actor");
                             break;
                         }
-                        // The join set is empty so we check if the channel is still open
-                        None => if rx.is_closed() && rx.is_empty() {
-                            tracing::info!("exiting execution actor");
-                            let _ = relay_tx.send(RelayMsg::Exit).await;
-                            break;
-                        } else {
-                            // The channel is still open, so we continue to wait for new messages
-                            // NOTE: this sleep fixes a bug where this select statements starved
-                            // other tasks and halted the runtime.
-                            tokio::time::sleep(tokio::time::Duration::from_millis(25)).await;
-                        },
+
                     }
+                }
+
+                // The empty async block is a future that's always ready
+                // The future is only polled if the channel is closed, there are no pending jobs, and the join set is empty
+                _ = async {}, if rx.is_closed() && rx.is_empty() && join_set.is_empty() => {
+                        tracing::info!("exiting execution actor");
+                        let _ = relay_tx.send(RelayMsg::Exit).await;
+                        break;
                 }
             }
         }
