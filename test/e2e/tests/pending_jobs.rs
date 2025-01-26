@@ -7,12 +7,12 @@ use alloy::{
 };
 use e2e::{Args, E2E};
 use ivm_abi::{abi_encode_offchain_job_request, JobParams};
+use ivm_db::tables::Job;
 use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{
     GetPendingJobsRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
-use ivm_db::tables::Job;
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
@@ -49,9 +49,6 @@ async fn pending_jobs_works() {
             .into_inner();
         assert!(pending.pending_jobs.is_empty());
 
-
-
-
         let futures: Vec<_> = (1..=3)
             .map(|nonce| {
                 let offchain_input_hash = keccak256(vec![]);
@@ -75,28 +72,6 @@ async fn pending_jobs_works() {
                     offchain_input: vec![],
                     relay_strategy: RelayStrategy::Ordered as i32,
                 }
-
-
-                let job = Job {
-                    id: job_id,
-                    nonce,
-                    max_cycles: MOCK_CONSUMER_MAX_CYCLES,
-                    consumer_address: mock.mock_consumer.abi_encode_packed().try_into().unwrap(),
-                    program_id: program_id.to_vec(),
-                    onchain_input: onchain_input.to_vec(),
-                    offchain_input: vec![],
-                    request_type: RequestType::Offchain(request_signature),
-                    result_with_metadata: vec![],
-                    zkvm_operator_signature: vec![],
-                    status: JobStatus {
-                        status: JobStatusType::Pending as i32,
-                        failure_reason: None,
-                        retries: 0,
-                    },
-                    relay_tx_hash: vec![],
-                    blobs_sidecar: None,
-                    relay_strategy,
-                };
             })
             .map(|r| (r, args.coprocessor_node.clone()))
             .map(async move |(r, mut c)| c.submit_job(r).await)

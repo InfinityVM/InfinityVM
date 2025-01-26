@@ -38,33 +38,46 @@ async fn pending_jobs_can_be_retriggered_works() {
             .into_inner();
         assert_eq!(submit_program_response.program_id, program_id);
 
-        let futures: Vec<_> = (1..=3)
-            .map(|nonce| {
-                let offchain_input_hash = keccak256(vec![]);
-                let job_params = JobParams {
-                    nonce,
-                    max_cycles: MOCK_CONSUMER_MAX_CYCLES,
-                    consumer_address: mock.mock_consumer.abi_encode_packed().try_into().unwrap(),
-                    onchain_input: &mock_user_address.abi_encode(),
-                    program_id: &program_id,
-                    offchain_input_hash: offchain_input_hash.into(),
-                };
+        for nonce in (1..=3) {
+            let offchain_input_hash = keccak256(vec![]);
+            let job_params = JobParams {
+                nonce,
+                max_cycles: MOCK_CONSUMER_MAX_CYCLES,
+                consumer_address: mock.mock_consumer.abi_encode_packed().try_into().unwrap(),
+                onchain_input: &mock_user_address.abi_encode(),
+                program_id: &program_id,
+                offchain_input_hash: offchain_input_hash.into(),
+            };
 
-                // Add signature from user on job request
-                let job_request_payload = abi_encode_offchain_job_request(job_params);
-                let request_signature =
-                    random_user.sign_message_sync(&job_request_payload).unwrap();
+            // Add signature from user on job request
+            let job_request_payload = abi_encode_offchain_job_request(job_params);
+            let request_signature = random_user.sign_message_sync(&job_request_payload).unwrap();
 
-                SubmitJobRequest {
-                    request: job_request_payload,
-                    signature: request_signature.into(),
-                    offchain_input: vec![],
-                    relay_strategy: RelayStrategy::Ordered as i32,
-                }
-            })
-            .map(|r| (r, args.coprocessor_node.clone()))
-            .map(async move |(r, mut c)| c.submit_job(r).await)
-            .collect();
+            let job = Job {
+                id: get_job_id(nonce, mock.mock_consumer),
+                nonce,
+                max_cycles: MOCK_CONSUMER_MAX_CYCLES,
+                consumer_address: mock.mock_consumer.abi_encode_packed().try_into().unwrap(),
+                program_id: program_id.clone().to_vec(),
+                onchain_input: mock_user_address.abi_encode(),
+                offchain_input: vec![],
+                request_type: RequestType::Offchain(request_signature),
+                result_with_metadata: vec![],
+                zkvm_operator_signature: vec![],
+                status: JobStatus {
+                    status: JobStatusType::Pending as i32,
+                    failure_reason: None,
+                    retries: 0,
+                },
+                relay_tx_hash: vec![],
+                blobs_sidecar: None,
+                relay_strategy,
+            };
+
+            let tx = args.db.tx_mut();
+            tx.put::<JobTable>(B256Key(job.id), job);
+            tx.commit();
+        }
 
         // Wait for the jobs to hit the coproc
         futures::future::join_all(futures).await;
