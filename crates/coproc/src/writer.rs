@@ -11,6 +11,7 @@ use reth_db::{
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
 
+// These numbers are arbitrary.
 const WRITE_BUFFER_SIZE: usize = 256;
 const LAST_WRITE_BUFFER_SIZE: usize = 10_240;
 
