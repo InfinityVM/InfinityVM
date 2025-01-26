@@ -11,6 +11,9 @@ use reth_db::{
 use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
 
+const WRITE_BUFFER_SIZE: usize = 256;
+const LAST_WRITE_BUFFER_SIZE: usize = 10_240;
+
 /// A write request to the [`Writer`]. If a sender is included, the writer
 /// will respond once the write has been completed.
 pub type WriterMsg = (Write, Option<oneshot::Sender<()>>);
@@ -74,9 +77,30 @@ where
 
     /// Start the job writer.
     pub fn start_blocking(self) -> Result<(), Error> {
-        let mut rx = self.rx;
-        while let Some((target, resp)) = rx.blocking_recv() {
-            let tx = self.db.tx_mut()?;
+        let Self { mut rx, db } = self;
+        let mut buffer = Vec::with_capacity(LAST_WRITE_BUFFER_SIZE);
+
+        while rx.blocking_recv_many(&mut buffer, WRITE_BUFFER_SIZE) > 0 {
+            let kill_seen = Self::write_batch(&db, &mut buffer)?;
+            if kill_seen {
+                break
+            }
+        }
+
+        rx.blocking_recv_many(&mut buffer, LAST_WRITE_BUFFER_SIZE);
+        Self::write_batch(&db, &mut buffer)?;
+
+        Ok(())
+    }
+
+    /// Returns true if the batch contained a kill message.
+    /// NOTE: drains `batch`.
+    #[inline]
+    fn write_batch(db: &Arc<D>, batch: &mut Vec<WriterMsg>) -> Result<bool, Error> {
+        let mut kill_seen = false;
+        let tx = db.tx_mut()?;
+
+        for (target, resp) in batch.drain(..) {
             match target {
                 Write::JobTable(job) => tx.put::<JobTable>(B256Key(job.id), job)?,
                 Write::FailureJobs(job) => tx.put::<RelayFailureJobs>(B256Key(job.id), job)?,
@@ -91,16 +115,15 @@ where
                     let key = Sha256Key::new(&program_id);
                     tx.put::<ElfTable>(key, elf_with_meta)?;
                 }
-                // TODO: flush receiver before exiting
-                Write::Kill => return Ok(()),
+                Write::Kill => kill_seen = true,
             };
-            tx.commit()?;
 
             if let Some(resp) = resp {
                 let _ = resp.send(());
             }
         }
+        tx.commit()?;
 
-        Err(Error::JobWriteReceiver)
+        Ok(kill_seen)
     }
 }
