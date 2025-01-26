@@ -3074,6 +3074,8 @@ dependencies = [
  "ivm-proto",
  "ivm-test-utils",
  "ivm-zkvm",
+ "ivm-zkvm-executor",
+ "k256",
  "kairos-trie",
  "matching-game-core",
  "matching-game-programs",

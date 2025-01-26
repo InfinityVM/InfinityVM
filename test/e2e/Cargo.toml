@@ -43,3 +43,5 @@ tracing = { workspace = true }
 ivm-zkvm = { workspace = true }
 mock-consumer-programs = { workspace = true }
 reth-db-api = { workspace = true }
+k256 = { workspace = true }
+ivm-zkvm-executor = { workspace = true }

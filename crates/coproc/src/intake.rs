@@ -59,8 +59,8 @@ pub enum Error {
     /// failed while trying to read the nonce from the consumer contract
     #[error("could not read the nonce from the consumer contract {0}")]
     GetNonceFail(#[from] alloy::contract::Error),
-    ///
-    #[error("job already exists and failed to get relayed")]
+    /// job is marked as failed and it might be in the DLQ.
+    #[error("job already exists and failed to get relayed - may be in DLQ")]
     JobExistsAndFailedToRelay,
     /// job is ordered and it's nonce is lower then the onchain nonce.
     #[error("job nonce is lower then onchain nonce")]
