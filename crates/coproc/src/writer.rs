@@ -12,8 +12,8 @@ use std::sync::Arc;
 use tokio::sync::{mpsc::Receiver, oneshot};
 
 // These numbers are arbitrary.
-const WRITE_BUFFER_SIZE: usize = 256;
-const LAST_WRITE_BUFFER_SIZE: usize = 10_240;
+const BATCH_SIZE: usize = 64;
+const KILL_BATCH_SIZE: usize = 4 * BATCH_SIZE;
 
 /// A write request to the [`Writer`]. If a sender is included, the writer
 /// will respond once the write has been completed.
@@ -79,17 +79,18 @@ where
     /// Start the job writer.
     pub fn start_blocking(self) -> Result<(), Error> {
         let Self { mut rx, db } = self;
-        let mut buffer = Vec::with_capacity(LAST_WRITE_BUFFER_SIZE);
+        let mut buffer = Vec::with_capacity(KILL_BATCH_SIZE);
 
-        while rx.blocking_recv_many(&mut buffer, WRITE_BUFFER_SIZE) > 0 {
+        while rx.blocking_recv_many(&mut buffer, BATCH_SIZE) > 0 {
             let kill_seen = Self::write_batch(&db, &mut buffer)?;
             if kill_seen {
                 break
             }
         }
 
-        rx.blocking_recv_many(&mut buffer, LAST_WRITE_BUFFER_SIZE);
-        Self::write_batch(&db, &mut buffer)?;
+        if rx.blocking_recv_many(&mut buffer, KILL_BATCH_SIZE) > 0 {
+            Self::write_batch(&db, &mut buffer)?;
+        }
 
         Ok(())
     }
