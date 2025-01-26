@@ -10,16 +10,18 @@ use ivm_abi::{abi_encode_offchain_job_request, get_job_id, JobParams};
 use ivm_db::tables::{B256Key, Job, JobTable, RequestType};
 use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{
-    GetPendingJobsRequest, JobStatus, JobStatusType, RelayStrategy, SubmitJobRequest,
-    SubmitProgramRequest, VmType,
+    GetPendingJobsRequest, GetResultRequest, JobStatus, JobStatusType, RelayStrategy,
+    SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
-use reth_db_api::{database::Database, transaction::DbTxMut};
-use reth_db_api::transaction::DbTx;
+use reth_db_api::{
+    database::Database,
+    transaction::{DbTx, DbTxMut},
+};
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
-async fn pending_jobs_can_be_retriggered_works() {
+async fn retriggered_works() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
         let anvil = args.anvil;
@@ -94,6 +96,8 @@ async fn pending_jobs_can_be_retriggered_works() {
             })
             .collect();
 
+        // No jobs are being processed
+
         let pending_jobs_request =
             GetPendingJobsRequest { consumer_address: mock.mock_consumer.to_vec() };
         let pending = args
@@ -104,7 +108,7 @@ async fn pending_jobs_can_be_retriggered_works() {
             .into_inner();
         assert!(pending.pending_jobs.is_empty());
 
-        // Retrigger the job
+        // Retrigger the jobs
         let futures: Vec<_> = requests
             .into_iter()
             .map(|r| (r, args.coprocessor_node.clone()))
@@ -114,13 +118,34 @@ async fn pending_jobs_can_be_retriggered_works() {
         // Wait for the jobs to hit the coproc
         futures::future::join_all(futures).await;
 
+        // The jobs are now being processed
         let pending = args
             .coprocessor_node
-            .get_pending_jobs(pending_jobs_request)
+            .get_pending_jobs(pending_jobs_request.clone())
             .await
             .unwrap()
             .into_inner();
         assert_eq!(pending.pending_jobs, vec![1, 2, 3]);
+
+        let job_id = get_job_id(3, mock.mock_consumer);
+        let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
+        for _ in 0..15 {
+            let job_result = args
+                .coprocessor_node
+                .get_result(get_result_request.clone())
+                .await
+                .unwrap()
+                .into_inner()
+                .job_result
+                .unwrap();
+            if job_result.status.unwrap().status() == JobStatusType::Relayed {
+                assert!(!job_result.relay_tx_hash.is_empty());
+                return
+            }
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+        }
+
+        panic!("last job not relayed");
     }
 
     E2E::new().mock_consumer().run(test).await;

@@ -7,7 +7,6 @@ use alloy::{
 };
 use e2e::{Args, E2E};
 use ivm_abi::{abi_encode_offchain_job_request, JobParams};
-use ivm_db::tables::Job;
 use ivm_mock_consumer::MOCK_CONSUMER_MAX_CYCLES;
 use ivm_proto::{
     GetPendingJobsRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
