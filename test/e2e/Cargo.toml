@@ -42,3 +42,4 @@ tracing-subscriber = { workspace = true }
 tracing = { workspace = true }
 ivm-zkvm = { workspace = true }
 mock-consumer-programs = { workspace = true }
+reth-db-api = { workspace = true }

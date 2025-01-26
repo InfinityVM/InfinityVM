@@ -3081,6 +3081,7 @@ dependencies = [
  "mock-consumer-programs",
  "rand",
  "reth-db",
+ "reth-db-api",
  "serde_json",
  "tokio",
  "tonic",
