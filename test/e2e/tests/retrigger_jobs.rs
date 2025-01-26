@@ -1,4 +1,4 @@
-//! Test for the pending jobs endpoint.
+//! Tests for retriggering jobs through submit jobs endpoint
 
 use alloy::{
     primitives::{keccak256, Address},

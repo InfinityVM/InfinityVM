@@ -62,9 +62,9 @@ pub enum Error {
     /// job is marked as failed and it might be in the DLQ.
     #[error("job already exists and failed to get relayed - may be in DLQ")]
     JobExistsAndFailedToRelay,
-    /// job is ordered and it's nonce is lower then the onchain nonce.
-    #[error("job nonce is lower then onchain nonce")]
-    NonceTooLow,
+    /// job has already been executed and relayed.
+    #[error("job has already been executed and relayed")]
+    JobRelayed,
 }
 
 /// Job and program intake handlers.
@@ -150,15 +150,10 @@ where
         // full job https://github.com/InfinityVM/InfinityVM/issues/354
         let job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
             if old_job.is_failed() {
-                // TODO: maybe we allow deleting the job?
-                // TODO: we should probably allow them to over ride? Or do we exit early?
-                // Some assumptions in DLQ could break things
                 return Err(Error::JobExistsAndFailedToRelay);
             }
             if old_job.is_relayed() {
-                // TODO: should we return ok here?
-                // return Err(Error::JobExistsAndRelayed);
-                return Ok(())
+                return Err(Error::JobRelayed);
             }
             if self.get_pending_nonces(consumer_address).await?.contains(&job.nonce) {
                 return Ok(())

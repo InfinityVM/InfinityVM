@@ -61,8 +61,7 @@ impl ExecutionActorSpawner {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum ExecMsg {
-    /// Send a job to execute and relay. If the job is already executed, this will just
-    /// try to determine if it should be relayed
+    /// Send a job to execute and relay. If the job is already executed, this will relay it.
     Exec(Job),
     /// Request the current pending jobs. The response is sent with the given oneshot sender.
     Pending(oneshot::Sender<Vec<JobNonce>>),
@@ -107,7 +106,7 @@ impl ExecutionActor {
                         Some(ExecMsg::Exec(job)) => {
                             if !job.is_pending() && !job.is_done() || (job.is_ordered() && job.nonce <  next_job_to_submit) {
                                 // Defensive check
-                                warn!(?job.nonce, consumer = hex::encode(&job.consumer_address), "job in invalid state send to execution actor",);
+                                warn!(?job.nonce, consumer = hex::encode(&job.consumer_address), "job in invalid state sent to execution actor",);
                                 continue;
                             }
                             pending_jobs.insert(job.nonce);
@@ -122,7 +121,8 @@ impl ExecutionActor {
                                     pool_complete_rx.await
                                 } else {
                                     debug_assert!(job.is_done());
-                                    // This is a re-trigger, job was already executed and need to get queued.
+                                    // This is a retriggered job that was already executed and need
+                                    // and needs to get queued for relaying.
                                     Ok(job)
                                 }
                             });
