@@ -67,6 +67,8 @@ pub enum ExecMsg {
     Pending(oneshot::Sender<Vec<JobNonce>>),
     /// Indicate that a job has been relayed.
     Relayed(JobNonce),
+    /// Get the next nonce the actor will relay
+    NextNonce(oneshot::Sender<JobNonce>),
 }
 
 struct ExecutionActor {
@@ -133,6 +135,9 @@ impl ExecutionActor {
                         }
                         Some(ExecMsg::Relayed(nonce)) => {
                             pending_jobs.remove(&nonce);
+                        }
+                        Some(ExecMsg::NextNonce(reply_tx)) => {
+                            reply_tx.send(next_job_to_submit).expect("one shot sender failed");
                         }
                         None => {
                             warn!("execute actor channel closed");

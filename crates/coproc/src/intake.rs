@@ -59,12 +59,15 @@ pub enum Error {
     /// failed while trying to read the nonce from the consumer contract
     #[error("could not read the nonce from the consumer contract {0}")]
     GetNonceFail(#[from] alloy::contract::Error),
-    /// job is marked as failed and it might be in the DLQ.
+    /// job is marked as failed and it might be in the DLQ
     #[error("job already exists and failed to get relayed - may be in DLQ")]
     JobExistsAndFailedToRelay,
-    /// job has already been executed and relayed.
+    /// job has already been executed and relayed
     #[error("job has already been executed and relayed")]
     JobRelayed,
+    /// nonce is too low for an ordered job
+    #[error("nonce is too low for an ordered job")]
+    LowNonce,
 }
 
 /// Job and program intake handlers.
@@ -148,7 +151,10 @@ where
         // TODO: add new table for just job ID so we can avoid writing full job here and reading.
         // We can just pass the job itself along the channel
         // full job https://github.com/InfinityVM/InfinityVM/issues/354
-        let job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
+        // NOTE: there is a race condition here where multiple jobs with the same nonce
+        // get submitted before the DB write completes. In that case the last submission
+        // will take precedence.
+        let mut job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
             if old_job.is_failed() {
                 return Err(Error::JobExistsAndFailedToRelay);
             }
@@ -201,6 +207,26 @@ where
                 }
             }
         };
+
+        if job.is_ordered() {
+            let (tx, next_nonce_rx) = oneshot::channel();
+            execution_tx.send(ExecMsg::NextNonce(tx)).await.expect("execution tx failed");
+            let next_nonce = next_nonce_rx.await.expect("next nonce rx failed");
+            if job.nonce < next_nonce {
+                job.status = JobStatus {
+                    status: JobStatusType::Failed as i32,
+                    failure_reason: Some("low nonce".to_string()),
+                    retries: 0,
+                };
+
+                self.writer_tx
+                    .send((Write::JobTable(job.clone()), None))
+                    .await
+                    .expect("db writer broken");
+
+                return Err(Error::LowNonce)
+            }
+        }
 
         // Send the job to actor for processing
         // NOTE: Once actor deletion is implemented, we need to avoid a
