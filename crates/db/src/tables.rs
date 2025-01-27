@@ -4,7 +4,7 @@ use crate::Error;
 use alloy::{primitives::utils::keccak256, rlp::bytes};
 use ivm_abi::JobParams;
 use ivm_eip4844::BlobTransactionSidecar;
-use ivm_proto::{JobStatus, RelayStrategy};
+use ivm_proto::{JobStatus, JobStatusType, RelayStrategy};
 use reth_db::{
     table::{Decode, Encode, TableInfo},
     tables, DatabaseError, TableSet, TableType, TableViewer,
@@ -82,6 +82,26 @@ impl Job {
     /// Returns true if this job has the relay strategy `Ordered`.
     pub const fn is_ordered(&self) -> bool {
         matches!(self.relay_strategy, RelayStrategy::Ordered)
+    }
+
+    /// Returns true if the job has been relayed.
+    pub const fn is_relayed(&self) -> bool {
+        self.status.status == JobStatusType::Relayed as i32
+    }
+
+    /// Returns true if a job is `JobStatusType::Failed`.
+    pub const fn is_failed(&self) -> bool {
+        self.status.status == JobStatusType::Failed as i32
+    }
+
+    /// Returns true if a job is done being executed by has not been relayed.
+    pub const fn is_done(&self) -> bool {
+        self.status.status == JobStatusType::Done as i32
+    }
+
+    /// Returns true if a job has not yet been executed.
+    pub const fn is_pending(&self) -> bool {
+        self.status.status == JobStatusType::Pending as i32
     }
 }
 
