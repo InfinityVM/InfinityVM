@@ -53,7 +53,7 @@ pub enum Write {
         /// ELF.
         elf: Vec<u8>,
     },
-    /// Write an program to the program table.
+    /// Write a program to the program table.
     Program {
         /// Type of VM the program targets.
         vm_type: VmType,
