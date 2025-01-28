@@ -121,7 +121,7 @@ mod test {
     }
 
     // This derives the program id, which is very slow
-    #[ignored]
+    #[ignore]
     #[test]
     fn sp1_is_correct_program_id() {
         let program_id_bytes = mock_consumer_programs::MOCK_CONSUMER_PROGRAM_ID.to_vec();
