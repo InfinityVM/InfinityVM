@@ -2,6 +2,7 @@
 
 use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Stdin};
 use thiserror::Error;
+use sp1_core_executor::{Executor, SP1Context};
 
 /// The error
 #[derive(Error, Debug)]
@@ -65,18 +66,20 @@ impl Zkvm for Sp1 {
         offchain_input: &[u8],
         max_cycles: u64,
     ) -> Result<Vec<u8>, Error> {
+        // For now we mostly copy the logic from the prover execute method
+        // https://github.com/succinctlabs/sp1/blob/d3f451919f5a00c21e44ece80f576860a09a1da9/crates/prover/src/lib.rs#L292
         let mut stdin = SP1Stdin::new();
         stdin.write_slice(onchain_input);
         stdin.write_slice(offchain_input);
 
-        let client = ProverClient::builder().cpu().build();
-        let (output, _) = client
-            .execute(program_elf, &stdin)
-            .cycle_limit(max_cycles)
-            .run()
-            .map_err(|e| Error::Sp1 { source: e })?;
+        let core_opts = Default::default();
+        // We can change this once we impl https://github.com/InfinityVM/InfinityVM/issues/338
+        let mut runtime = Executor::with_context_and_elf(core_opts, SP1Context::default(), program_elf);
+        runtime.max_cycles = Some(max_cycles);
+        runtime.write_vecs(&stdin.buffer);
+        runtime.run_fast().expect("todo");
 
-        Ok(output.to_vec())
+        Ok(runtime.state.public_values_stream)
     }
 }
 
