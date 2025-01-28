@@ -186,8 +186,18 @@ pub struct ElfWithMeta {
     pub elf: Vec<u8>,
 }
 
+/// Storage format for programs
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+pub struct ProgramWithMeta {
+    /// The type of vm
+    pub vm_type: u8,
+    /// Program serialized with bincode.
+    pub program_bytes: Vec<u8>,
+}
+
 impl_compress_decompress! { Job }
 impl_compress_decompress! { ElfWithMeta }
+impl_compress_decompress! { ProgramWithMeta }
 
 /// Key representing an address
 #[derive(
@@ -233,5 +243,11 @@ reth_db::tables! {
     table LastBlockHeight {
         type Key = u32;
         type Value = u64;
+    }
+
+    /// Store programs
+    table ProgramTable {
+        type Key = Sha256Key;
+        type Value = ProgramWithMeta;
     }
 }

@@ -4998,6 +4998,8 @@ version = "0.1.1"
 dependencies = [
  "alloy",
  "anyhow",
+ "bincode",
+ "eyre",
  "ivm-mock-consumer",
  "mock-consumer-programs",
  "sp1-core-executor",
