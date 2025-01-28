@@ -230,9 +230,9 @@ serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "15be73d3acae3718a0acc529ed566f6a448b1c0e", features = ["libm", "lib"], default-features = false }
-sp1-sdk = { git = "https://github.com/succinctlabs/sp1.git", rev = "15be73d3acae3718a0acc529ed566f6a448b1c0e", default-features = false }
-sp1-build = "3.1.0"
+sp1-zkvm = { version = "4", features = ["libm", "lib", "embedded"], default-features = false }
+sp1-sdk = { version = "4", default-features = false }
+sp1-build = "4"
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }

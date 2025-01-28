@@ -1,6 +1,6 @@
 //! ZKVM trait and implementations. The trait should abstract over any complexities to specific VMs.
 
-use sp1_sdk::{HashableKey, ProverClient, SP1Stdin};
+use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Stdin};
 use thiserror::Error;
 
 /// The error
@@ -52,7 +52,7 @@ pub struct Sp1;
 
 impl Zkvm for Sp1 {
     fn derive_program_id(&self, program_elf: &[u8]) -> Result<Vec<u8>, Error> {
-        let (_, program_id) = ProverClient::new().setup(program_elf);
+        let (_, program_id) = ProverClient::builder().cpu().build().setup(program_elf);
 
         let program_id_hash = program_id.hash_bytes().to_vec();
         Ok(program_id_hash)
@@ -69,10 +69,10 @@ impl Zkvm for Sp1 {
         stdin.write_slice(onchain_input);
         stdin.write_slice(offchain_input);
 
-        let client = ProverClient::new();
+        let client = ProverClient::builder().cpu().build();
         let (output, _) = client
-            .execute(program_elf, stdin)
-            .max_cycles(max_cycles)
+            .execute(program_elf, &stdin)
+            .cycle_limit(max_cycles)
             .run()
             .map_err(|e| Error::Sp1 { source: e })?;
 

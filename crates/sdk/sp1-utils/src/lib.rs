@@ -17,8 +17,8 @@ pub fn build_sp1_program(elf_name: &str, program_dir: &str, output_dir: &str) {
     let program_id_path_abs = elf_path_abs.with_extension("vkey");
 
     let args = BuildArgs {
-        elf_name: elf_name.to_string(),
-        output_directory: output_dir_abs.to_string_lossy().to_string(),
+        elf_name: Some(elf_name.to_string()),
+        output_directory: Some(output_dir_abs.to_string_lossy().to_string()),
         ..Default::default()
     };
     build_program_with_args(program_dir, args);
