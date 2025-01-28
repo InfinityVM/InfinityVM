@@ -9,7 +9,6 @@ workspace = true
 
 [dependencies]
 alloy = { workspace = true }
-anyhow = { workspace = true }
 thiserror = { workspace = true }
 sp1-sdk = { workspace = true }
 sp1-core-executor = { workspace = true }
