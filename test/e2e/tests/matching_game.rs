@@ -239,7 +239,7 @@ async fn matching_game_server_e2e() {
             }
         );
 
-        sleep(Duration::from_secs(20)).await;
+        sleep(Duration::from_secs(5)).await;
 
         // Check that partners have been updated on chain from the batch.
         let partner = consumer_contract.getPartner(alice.into()).call().await.unwrap()._0;

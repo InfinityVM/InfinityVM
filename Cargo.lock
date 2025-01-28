@@ -5000,6 +5000,7 @@ dependencies = [
  "anyhow",
  "ivm-mock-consumer",
  "mock-consumer-programs",
+ "sp1-core-executor",
  "sp1-sdk",
  "thiserror 1.0.69",
 ]
