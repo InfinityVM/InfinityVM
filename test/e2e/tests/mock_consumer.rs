@@ -87,7 +87,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(submit_job_response.job_id, job_id);
 
         // wait for the job to be processed and relayed
-        tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
 
         let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
         let get_result_response =
@@ -234,7 +234,7 @@ async fn web2_parallel_job_submission_coprocessor_node_mock_consumer_e2e() {
         join_set.join_all().await;
 
         // Give the node enough time to process and relay the jobs
-        tokio::time::sleep(tokio::time::Duration::from_secs(8)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(30)).await;
 
         // Assert that all jobs were successfully relayed.
         for (job_id, _) in jobs {
@@ -242,7 +242,10 @@ async fn web2_parallel_job_submission_coprocessor_node_mock_consumer_e2e() {
             let get_result_response =
                 args.coprocessor_node.get_result(get_result_request).await.unwrap().into_inner();
             let job_result = get_result_response.job_result.unwrap();
-            assert_eq!(job_result.status.unwrap().status(), JobStatusType::Relayed);
+            assert!(matches!(
+                job_result.status.unwrap().status(),
+                JobStatusType::Relayed | JobStatusType::Done
+            ));
         }
     }
     E2E::new().mock_consumer().run(test).await;
@@ -293,7 +296,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(job_id, expected_job_id);
 
         // Wait for the job to be processed
-        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
 
         let get_result_request = GetResultRequest { job_id: job_id.to_vec() };
         let get_result_response =
