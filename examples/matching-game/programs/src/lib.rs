@@ -52,6 +52,7 @@ mod tests {
         pre_txn_merkle_root: TrieRoot<NodeHash>,
     ) -> (TrieRoot<NodeHash>, StatefulAppResult) {
         let requests_bytes = bincode::serialize(&requests).unwrap();
+        let program = ivm_zkvm::Sp1.derive_program(super::MATCHING_GAME_ELF).unwrap();
 
         let (post_txn_merkle_root, snapshot, _) =
             next_state(trie_db.clone(), pre_txn_merkle_root, &requests);
@@ -69,7 +70,7 @@ mod tests {
 
         let out_bytes = ivm_zkvm::Sp1
             .execute(
-                super::MATCHING_GAME_ELF,
+                &program,
                 <StatefulAppOnchainInput as SolType>::abi_encode(&onchain_input).as_slice(),
                 &combined_offchain_input,
                 32 * 1000 * 1000,
