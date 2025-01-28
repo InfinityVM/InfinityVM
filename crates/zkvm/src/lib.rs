@@ -36,6 +36,9 @@ pub trait Zkvm {
     /// Execute the program and return the raw output.
     ///
     /// The `program` should be the return value of [`Self::derive_program`].
+    /// CAUTION: The program must be correctly derived from the elf, otherwise
+    /// the zkvm operator risks slashing. Thus, the derivation persistence of 
+    /// the program is a highly sensitive process.
     ///
     /// This does _not_ check that the program ID is correct.
     fn execute(
