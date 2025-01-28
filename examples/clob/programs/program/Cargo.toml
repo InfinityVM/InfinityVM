@@ -6,7 +6,7 @@ edition = "2021"
 [workspace]
 
 [dependencies]
-sp1-zkvm = { git = "https://github.com/succinctlabs/sp1.git", rev = "15be73d3acae3718a0acc529ed566f6a448b1c0e", features = ["libm", "lib"], default-features = false }
+sp1-zkvm = { version = "4", features = ["libm", "lib", "embedded"], default-features = false }
 alloy = { version = "0.8", features = ["sol-types"], default-features = false }
 borsh = { version = "1", default-features = false }
 clob-core = { path = "../../core" }

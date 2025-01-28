@@ -28,7 +28,7 @@ SP1
 
 ```sh
 curl -L https://sp1.succinct.xyz | bash
-sp1up --version v3.3.0
+sp1up --version v4.0.1
 cargo prove --version
 ```
 
