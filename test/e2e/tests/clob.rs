@@ -100,7 +100,7 @@ async fn state_job_submission_clob_consumer() {
 
         // Wait for CLOB node and coprocessor to process deposits and send batch to contracts.
         // This is necessary because the CLOB node will automatically pick up the deposit events.
-        sleep(Duration::from_secs(10)).await;
+        sleep(Duration::from_secs(20)).await;
 
         let requests1 = vec![
             Request::Deposit(DepositRequest { address: alice, base_free: 200, quote_free: 0 }),
@@ -184,7 +184,7 @@ async fn state_job_submission_clob_consumer() {
                 args.coprocessor_node.submit_job(job_request).await.unwrap().into_inner();
 
             // Wait for the job to be processed
-            sleep(Duration::from_secs(2)).await;
+            sleep(Duration::from_secs(30)).await;
 
             let job_id = submit_job_response.job_id;
             let offchain_result_with_metadata = args
@@ -402,7 +402,7 @@ async fn clob_node_e2e() {
         );
 
         // Give the batcher some time to process and hit the chain
-        sleep(Duration::from_secs(6)).await;
+        sleep(Duration::from_secs(20)).await;
 
         // Check that balances have been updated on chain from the batch.
         let bob_free_base = consumer_contract.freeBalanceBase(bob.into()).call().await.unwrap()._0;
@@ -435,7 +435,7 @@ async fn clob_node_e2e() {
         assert!(state.base_balances().is_empty());
 
         // Wait for batches to hit the chain
-        sleep(Duration::from_secs(5)).await;
+        sleep(Duration::from_secs(20)).await;
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(600));
