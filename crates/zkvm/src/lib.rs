@@ -1,8 +1,8 @@
 //! ZKVM trait and implementations. The trait should abstract over any complexities to specific VMs.
 
+use sp1_core_executor::{Executor, SP1Context};
 use sp1_sdk::{HashableKey, Prover, ProverClient, SP1Stdin};
 use thiserror::Error;
-use sp1_core_executor::{Executor, SP1Context};
 
 /// The error
 #[derive(Error, Debug)]
@@ -74,7 +74,8 @@ impl Zkvm for Sp1 {
 
         let core_opts = Default::default();
         // We can change this once we impl https://github.com/InfinityVM/InfinityVM/issues/338
-        let mut runtime = Executor::with_context_and_elf(core_opts, SP1Context::default(), program_elf);
+        let mut runtime =
+            Executor::with_context_and_elf(core_opts, SP1Context::default(), program_elf);
         runtime.max_cycles = Some(max_cycles);
         runtime.write_vecs(&stdin.buffer);
         runtime.run_fast().expect("todo");
