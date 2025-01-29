@@ -13,6 +13,7 @@ use ivm_proto::{
     GetPendingJobsRequest, GetResultRequest, JobStatus, JobStatusType, RelayStrategy,
     SubmitJobRequest, SubmitProgramRequest, VmType,
 };
+use ivm_zkvm::{Sp1, Zkvm};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 use reth_db_api::{
@@ -160,6 +161,7 @@ async fn retriggered_executed_jobs_works() {
         let anvil = args.anvil;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
+        let program = Sp1.derive_program(MOCK_CONSUMER_ELF).unwrap();
 
         let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
 
@@ -226,7 +228,7 @@ async fn retriggered_executed_jobs_works() {
                         job.program_id.clone(),
                         job.onchain_input.clone(),
                         job.offchain_input.clone(),
-                        MOCK_CONSUMER_ELF.to_vec(),
+                        program.clone(),
                         VmType::Sp1,
                     )
                     .unwrap();

@@ -10,7 +10,7 @@ use alloy::{
     signers::{Signer, SignerSync},
 };
 use flume::Receiver;
-use ivm_db::tables::{ElfWithMeta, Job, RequestType};
+use ivm_db::tables::{Job, ProgramWithMeta, RequestType};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
@@ -19,7 +19,7 @@ use tokio::sync::oneshot;
 use tracing::{error, instrument};
 
 /// A message to the executor
-pub type PoolMsg = (Job, oneshot::Sender<Job>);
+pub type PoolMsg = (Job, oneshot::Sender<Option<Job>>);
 
 /// Errors for this module.
 #[derive(thiserror::Error, Debug)]
@@ -45,11 +45,11 @@ pub enum Error {
 #[derive(thiserror::Error, Debug)]
 pub enum FailureReason {
     /// Job submitted with unknown or missing ELF
-    #[error("missing_elf")]
-    MissingElf,
+    #[error("missing_program")]
+    MissingProgram,
     /// No ELF found in DB
     #[error("db_error_missing_elf")]
-    DbErrMissingElf,
+    DbErrMissingProgram,
     /// Error retrieving elf because of low-level DB error
     #[error("db_error_get_elf")]
     DbErrGetElf,
@@ -131,53 +131,62 @@ where
         let writer_tx2 = writer_tx;
 
         while let Ok((mut job, reply_tx)) = pool_rx.recv() {
-            let elf_with_meta = match Self::get_elf(&db, &mut job, &metrics, writer_tx2.clone()) {
-                Ok(elf) => elf,
-                Err(_) => continue,
-            };
+            // get_program will update the job status in case of failure
+            let program_with_meta =
+                match Self::get_program(&db, &mut job, &metrics, writer_tx2.clone()) {
+                    Ok(elf) => elf,
+                    Err(_) => {
+                        reply_tx.send(None).expect("executor reply one shot channel is broken");
+                        continue
+                    }
+                };
 
             let now = std::time::Instant::now();
+            // execute_job will update the job status in case of failure
             let executed_job = match Self::execute_job(
                 job,
                 &zk_executor,
-                elf_with_meta,
+                program_with_meta,
                 &metrics,
                 writer_tx2.clone(),
             ) {
                 Ok(executed_job) => executed_job,
-                Err(_) => continue,
+                Err(_) => {
+                    reply_tx.send(None).expect("executor reply one shot channel is broken");
+                    continue
+                }
             };
             metrics.observe_job_exec_time(now.elapsed());
 
-            reply_tx.send(executed_job).expect("executor reply one shot channel is broken");
+            reply_tx.send(Some(executed_job)).expect("executor reply one shot channel is broken");
         }
 
         Err(Error::ExecQueueChannelClosed)
     }
 
-    fn get_elf(
+    fn get_program(
         db: &Arc<D>,
         job: &mut Job,
         metrics: &Arc<Metrics>,
         writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
-    ) -> Result<ElfWithMeta, FailureReason> {
-        match ivm_db::get_elf_sync(db.clone(), &job.program_id).expect("DB reads cannot fail") {
+    ) -> Result<ProgramWithMeta, FailureReason> {
+        match ivm_db::get_program_sync(db.clone(), &job.program_id).expect("DB reads cannot fail") {
             Some(elf) => Ok(elf),
             None => {
                 // TODO: include job ID in metrics
                 // https://github.com/InfinityVM/InfinityVM/issues/362
-                metrics.incr_job_err(&FailureReason::MissingElf.to_string());
+                metrics.incr_job_err(&FailureReason::MissingProgram.to_string());
                 // Update the job status
                 job.status = JobStatus {
                     status: JobStatusType::Failed as i32,
-                    failure_reason: Some(FailureReason::MissingElf.to_string()),
+                    failure_reason: Some(FailureReason::MissingProgram.to_string()),
                     retries: 0,
                 };
                 writer_tx
                     .blocking_send((Write::JobTable(job.clone()), None))
                     .expect("db writer broken");
 
-                Err(FailureReason::DbErrMissingElf)
+                Err(FailureReason::DbErrMissingProgram)
             }
         }
     }
@@ -189,7 +198,7 @@ where
     fn execute_job(
         mut job: Job,
         zk_executor: &ZkvmExecutorService<S>,
-        elf_with_meta: ElfWithMeta,
+        program_with_meta: ProgramWithMeta,
         metrics: &Arc<Metrics>,
         writer_tx: tokio::sync::mpsc::Sender<WriterMsg>,
     ) -> Result<Job, FailureReason> {
@@ -201,7 +210,7 @@ where
                     job.max_cycles,
                     job.program_id.clone(),
                     job.onchain_input.clone(),
-                    elf_with_meta.elf,
+                    program_with_meta.program_bytes,
                     VmType::Sp1,
                 )
                 .map(|(result_with_metadata, signature)| (result_with_metadata, signature, None)),
@@ -211,7 +220,7 @@ where
                 job.program_id.clone(),
                 job.onchain_input.clone(),
                 job.offchain_input.clone(),
-                elf_with_meta.elf,
+                program_with_meta.program_bytes,
                 VmType::Sp1,
             ),
         };

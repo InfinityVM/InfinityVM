@@ -263,11 +263,25 @@ where
         }
 
         // Write the elf and make sure it completes before responding to the user.
-        let (tx, rx) = oneshot::channel();
         self.writer_tx
-            .blocking_send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
+            .blocking_send((
+                Write::Elf { vm_type, program_id: program_id.clone(), elf: elf.clone() },
+                None,
+            ))
             .expect("writer channel broken");
-        let _ = rx.blocking_recv();
+
+        let program_bytes = self.zk_executor.create_program(&elf, vm_type)?;
+        let (tx, program_rx) = oneshot::channel();
+        self.writer_tx
+            .blocking_send((
+                Write::Program { vm_type, program_id: program_id.clone(), program_bytes },
+                Some(tx),
+            ))
+            .expect("writer channel broken");
+
+        // Program write will complete after the elf, so we wait on that before
+        // returning to the user.
+        program_rx.blocking_recv().expect("writer responder is broken");
 
         Ok(program_id)
     }
