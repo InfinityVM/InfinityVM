@@ -123,6 +123,7 @@ mod tests {
     fn execute(txns: Vec<Request>, init_state: ClobState) -> StatefulAppResult {
         let requests_borsh = borsh::to_vec(&txns).expect("borsh works. qed.");
         let state_borsh = borsh::to_vec(&init_state).expect("borsh works. qed.");
+        let program = ivm_zkvm::Sp1.derive_program(super::CLOB_ELF).unwrap();
 
         let mut combined_offchain_input = Vec::new();
         combined_offchain_input.extend_from_slice(&(requests_borsh.len() as u32).to_le_bytes());
@@ -135,7 +136,7 @@ mod tests {
 
         let out_bytes = ivm_zkvm::Sp1
             .execute(
-                super::CLOB_ELF,
+                &program,
                 StatefulAppOnchainInput::abi_encode(&onchain_input).as_slice(),
                 &combined_offchain_input,
                 32 * 1000 * 1000,

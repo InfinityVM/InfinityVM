@@ -1,7 +1,8 @@
 //! Synchronous database writer. All writes DB writes should go through this.
 
 use ivm_db::tables::{
-    B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, RelayFailureJobs, Sha256Key,
+    B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, ProgramTable, ProgramWithMeta,
+    RelayFailureJobs, Sha256Key,
 };
 use ivm_proto::VmType;
 use reth_db::{
@@ -55,6 +56,15 @@ pub enum Write {
         program_id: Vec<u8>,
         /// ELF.
         elf: Vec<u8>,
+    },
+    /// Write a program to the program table.
+    Program {
+        /// Type of VM the program targets.
+        vm_type: VmType,
+        /// Verifying key associated with the program.
+        program_id: Vec<u8>,
+        /// Bincode serialized program.
+        program_bytes: Vec<u8>,
     },
     /// Kill this thread
     Kill,
@@ -116,6 +126,12 @@ where
                     let elf_with_meta = ElfWithMeta { vm_type: vm_type as u8, elf };
                     let key = Sha256Key::new(&program_id);
                     tx.put::<ElfTable>(key, elf_with_meta)?;
+                }
+                Write::Program { vm_type, program_id, program_bytes } => {
+                    let program_with_meta =
+                    ProgramWithMeta { vm_type: vm_type as u8, program_bytes };
+                    let key = Sha256Key::new(&program_id);
+                    tx.put::<ProgramTable>(key, program_with_meta)?;
                 }
                 Write::Kill => kill_seen = true,
             };

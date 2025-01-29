@@ -10,7 +10,8 @@ use reth_db::{
 use reth_db_api::cursor::DbCursorRO;
 use std::{ops::Deref, path::Path, sync::Arc};
 use tables::{
-    B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, RelayFailureJobs, Sha256Key,
+    B256Key, ElfTable, ElfWithMeta, Job, JobTable, LastBlockHeight, ProgramTable, ProgramWithMeta,
+    RelayFailureJobs, Sha256Key,
 };
 
 pub mod tables;
@@ -45,6 +46,15 @@ pub fn get_elf_sync<D: Database>(
     program_id: &[u8],
 ) -> Result<Option<ElfWithMeta>, Error> {
     db.view(|tx| tx.get::<ElfTable>(Sha256Key::new(program_id)))?.map_err(Into::into)
+}
+
+/// Read in an Program file from the database. [None] if it does not exist
+#[inline(always)]
+pub fn get_program_sync<D: Database>(
+    db: Arc<D>,
+    program_id: &[u8],
+) -> Result<Option<ProgramWithMeta>, Error> {
+    db.view(|tx| tx.get::<ProgramTable>(Sha256Key::new(program_id)))?.map_err(Into::into)
 }
 
 /// Read in an Job from the database. [None] if it does not exist

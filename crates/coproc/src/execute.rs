@@ -4,6 +4,7 @@ use crate::{
     pool::PoolMsg,
     relayer::{RelayActorSpawner, RelayMsg},
 };
+use alloy::hex;
 use ivm_db::tables::Job;
 use std::collections::{BTreeMap, BTreeSet};
 use tokio::{
@@ -14,7 +15,7 @@ use tokio::{
     },
     task::JoinSet,
 };
-use tracing::{error, warn};
+use tracing::{error, trace, warn};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -60,12 +61,14 @@ impl ExecutionActorSpawner {
 #[derive(Debug)]
 #[allow(clippy::large_enum_variant)]
 pub enum ExecMsg {
-    /// Send a job to execute and relay.
+    /// Send a job to execute and relay. If the job is already executed, this will relay it.
     Exec(Job),
     /// Request the current pending jobs. The response is sent with the given oneshot sender.
     Pending(oneshot::Sender<Vec<JobNonce>>),
     /// Indicate that a job has been relayed.
     Relayed(JobNonce),
+    /// Get the next nonce the actor will relay
+    NextNonce(oneshot::Sender<JobNonce>),
 }
 
 struct ExecutionActor {
@@ -103,15 +106,27 @@ impl ExecutionActor {
                 new_job = rx.recv() => {
                     match new_job {
                         Some(ExecMsg::Exec(job)) => {
+                            if !job.is_pending() && !job.is_done() || (job.is_ordered() && job.nonce <  next_job_to_submit) {
+                                // Defensive check
+                                warn!(?job.nonce, consumer = hex::encode(&job.consumer_address), "job in invalid state sent to execution actor",);
+                                continue;
+                            }
                             pending_jobs.insert(job.nonce);
+
                             let pool_tx2 = pool_tx.clone();
                             join_set.spawn(async move {
-                                // Send the job to be executed
-                                let (tx, pool_complete_rx) = oneshot::channel();
-                                pool_tx2.send_async((job, tx)).await.expect("executor pool send failed");
-
-                                // Return the executed job
-                                pool_complete_rx.await
+                                if job.is_pending() {
+                                    // Send the job to be executed
+                                    let (tx, pool_complete_rx) = oneshot::channel();
+                                    pool_tx2.send_async((job, tx)).await.expect("executor pool send failed");
+                                    // Return the executed job
+                                    pool_complete_rx.await
+                                } else {
+                                    debug_assert!(job.is_done());
+                                    // This is a retriggered job that was already executed and need
+                                    // and needs to get queued for relaying.
+                                    Ok(Some(job))
+                                }
                             });
                         },
                         Some(ExecMsg::Pending(reply_tx)) => {
@@ -120,6 +135,9 @@ impl ExecutionActor {
                         }
                         Some(ExecMsg::Relayed(nonce)) => {
                             pending_jobs.remove(&nonce);
+                        }
+                        Some(ExecMsg::NextNonce(reply_tx)) => {
+                            reply_tx.send(next_job_to_submit).expect("one shot sender failed");
                         }
                         None => {
                             warn!("execute actor channel closed");
@@ -131,7 +149,7 @@ impl ExecutionActor {
                 Some(completed) = join_set.join_next(), if !join_set.is_empty() => {
 
                     match completed {
-                        Ok(Ok(job)) => {
+                        Ok(Ok(Some(job))) => {
                             // Short circuit ordering logic and relay immediately if this job is
                             // not ordered relay.
                             if !job.is_ordered() {
@@ -161,7 +179,10 @@ impl ExecutionActor {
                             error!(?error, "fatal error, exiting execution actor");
                             break;
                         }
-
+                        Ok(Ok(None)) => {
+                            // Logs in pool worker logic should indicate actual error
+                            trace!("a job was dropped due to execution error");
+                        }
                     }
                 }
 

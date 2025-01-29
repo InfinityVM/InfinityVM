@@ -59,6 +59,15 @@ pub enum Error {
     /// failed while trying to read the nonce from the consumer contract
     #[error("could not read the nonce from the consumer contract {0}")]
     GetNonceFail(#[from] alloy::contract::Error),
+    /// job is marked as failed and it might be in the DLQ
+    #[error("job already exists and failed to get relayed - may be in DLQ")]
+    JobExistsAndFailedToRelay,
+    /// job has already been executed and relayed
+    #[error("job has already been executed and relayed")]
+    JobRelayed,
+    /// nonce is too low for an ordered job
+    #[error("nonce is too low for an ordered job")]
+    LowNonce,
 }
 
 /// Job and program intake handlers.
@@ -136,23 +145,46 @@ where
             };
         }
 
+        let consumer_address: [u8; 20] =
+            job.consumer_address.clone().try_into().expect("caller must validate address length.");
+
         // TODO: add new table for just job ID so we can avoid writing full job here and reading.
         // We can just pass the job itself along the channel
         // full job https://github.com/InfinityVM/InfinityVM/issues/354
-        if get_job(self.db.clone(), job.id).await?.is_some() {
-            return Err(Error::JobAlreadyExists);
-        }
+        // NOTE: there is a race condition here where multiple jobs with the same nonce
+        // get submitted before the DB write completes. In that case the last submission
+        // will take precedence.
+        let mut job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
+            if old_job.is_failed() {
+                return Err(Error::JobExistsAndFailedToRelay);
+            }
+            if old_job.is_relayed() {
+                return Err(Error::JobRelayed);
+            }
+            if self.get_pending_nonces(consumer_address).await?.contains(&job.nonce) {
+                return Ok(())
+            }
 
-        job.status =
-            JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
-        let (tx, db_write_complete_rx) = oneshot::channel();
-        self.writer_tx
-            .send((Write::JobTable(job.clone()), Some(tx)))
-            .await
-            .expect("db writer broken");
+            // For now, we always retry the original job even tho it may be different then
+            // the new job. In the future we may want to have a way to override an existing
+            // job.
+            old_job
+        } else {
+            job.status = JobStatus {
+                status: JobStatusType::Pending as i32,
+                failure_reason: None,
+                retries: 0,
+            };
+            let (tx, db_write_complete_rx) = oneshot::channel();
+            self.writer_tx
+                .send((Write::JobTable(job.clone()), Some(tx)))
+                .await
+                .expect("db writer broken");
 
-        let consumer_address: [u8; 20] =
-            job.consumer_address.clone().try_into().expect("caller must validate address length.");
+            // Before responding, make sure the write completes
+            let _ = db_write_complete_rx.await;
+            job
+        };
 
         // We do an optimistic check to reduce entry lock contention.
         let execution_tx = if let Some(inner) = self.active_actors.get(&consumer_address) {
@@ -176,13 +208,30 @@ where
             }
         };
 
+        if job.is_ordered() {
+            let (tx, next_nonce_rx) = oneshot::channel();
+            execution_tx.send(ExecMsg::NextNonce(tx)).await.expect("execution tx failed");
+            let next_nonce = next_nonce_rx.await.expect("next nonce rx failed");
+            if job.nonce < next_nonce {
+                job.status = JobStatus {
+                    status: JobStatusType::Failed as i32,
+                    failure_reason: Some("low nonce".to_string()),
+                    retries: 0,
+                };
+
+                self.writer_tx
+                    .send((Write::JobTable(job.clone()), None))
+                    .await
+                    .expect("db writer broken");
+
+                return Err(Error::LowNonce)
+            }
+        }
+
         // Send the job to actor for processing
         // NOTE: Once actor deletion is implemented, we need to avoid a
         // race between sending the job & deleting the actor.
         execution_tx.send(ExecMsg::Exec(job)).await.expect("execution tx failed");
-
-        // Before responding, make sure the write completes
-        let _ = db_write_complete_rx.await;
 
         Ok(())
     }
@@ -214,11 +263,25 @@ where
         }
 
         // Write the elf and make sure it completes before responding to the user.
-        let (tx, rx) = oneshot::channel();
         self.writer_tx
-            .blocking_send((Write::Elf { vm_type, program_id: program_id.clone(), elf }, Some(tx)))
+            .blocking_send((
+                Write::Elf { vm_type, program_id: program_id.clone(), elf: elf.clone() },
+                None,
+            ))
             .expect("writer channel broken");
-        let _ = rx.blocking_recv();
+
+        let program_bytes = self.zk_executor.create_program(&elf, vm_type)?;
+        let (tx, program_rx) = oneshot::channel();
+        self.writer_tx
+            .blocking_send((
+                Write::Program { vm_type, program_id: program_id.clone(), program_bytes },
+                Some(tx),
+            ))
+            .expect("writer channel broken");
+
+        // Program write will complete after the elf, so we wait on that before
+        // returning to the user.
+        program_rx.blocking_recv().expect("writer responder is broken");
 
         Ok(program_id)
     }

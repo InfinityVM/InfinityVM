@@ -31,6 +31,9 @@ pub enum Error {
     /// Could not derive program ID
     #[error("failed to derive program ID {0}")]
     ProgramIdDerivationFailed(String),
+    /// Could not derive program
+    #[error("failed to derive program {0}")]
+    ProgramDerivationFailed(String),
     /// Error with zkvm execution
     #[error("zkvm execute error: {0}")]
     ZkvmExecuteFailed(#[from] ivm_zkvm::Error),
@@ -176,5 +179,15 @@ where
         );
 
         Ok(program_id)
+    }
+
+    /// Derive the program from the ELF.
+    pub fn create_program(&self, elf: &[u8], vm_type: VmType) -> Result<Vec<u8>, Error> {
+        let vm = self.vm(vm_type)?;
+
+        let program =
+            vm.derive_program(elf).map_err(|e| Error::ProgramDerivationFailed(e.to_string()))?;
+
+        Ok(program)
     }
 }
