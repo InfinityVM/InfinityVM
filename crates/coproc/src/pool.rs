@@ -19,7 +19,7 @@ use tokio::sync::oneshot;
 use tracing::{error, instrument};
 
 /// A message to the executor
-pub type PoolMsg = (Job, oneshot::Sender<Job>);
+pub type PoolMsg = (Job, oneshot::Sender<Option<Job>>);
 
 /// Errors for this module.
 #[derive(thiserror::Error, Debug)]
@@ -131,13 +131,18 @@ where
         let writer_tx2 = writer_tx;
 
         while let Ok((mut job, reply_tx)) = pool_rx.recv() {
+            // get_program will update the job status in case of failure
             let program_with_meta =
                 match Self::get_program(&db, &mut job, &metrics, writer_tx2.clone()) {
                     Ok(elf) => elf,
-                    Err(_) => continue,
+                    Err(_) => {
+                        reply_tx.send(None).expect("executor reply one shot channel is broken");
+                        continue
+                    }
                 };
 
             let now = std::time::Instant::now();
+            // execute_job will update the job status in case of failure
             let executed_job = match Self::execute_job(
                 job,
                 &zk_executor,
@@ -146,11 +151,14 @@ where
                 writer_tx2.clone(),
             ) {
                 Ok(executed_job) => executed_job,
-                Err(_) => continue,
+                Err(_) => {
+                    reply_tx.send(None).expect("executor reply one shot channel is broken");
+                    continue
+                }
             };
             metrics.observe_job_exec_time(now.elapsed());
 
-            reply_tx.send(executed_job).expect("executor reply one shot channel is broken");
+            reply_tx.send(Some(executed_job)).expect("executor reply one shot channel is broken");
         }
 
         Err(Error::ExecQueueChannelClosed)

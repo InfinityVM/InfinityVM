@@ -15,7 +15,7 @@ use tokio::{
     },
     task::JoinSet,
 };
-use tracing::{error, warn};
+use tracing::{error, trace, warn};
 
 type JobNonce = u64;
 type ExecutedJobs = BTreeMap<JobNonce, Job>;
@@ -125,7 +125,7 @@ impl ExecutionActor {
                                     debug_assert!(job.is_done());
                                     // This is a retriggered job that was already executed and need
                                     // and needs to get queued for relaying.
-                                    Ok(job)
+                                    Ok(Some(job))
                                 }
                             });
                         },
@@ -149,7 +149,7 @@ impl ExecutionActor {
                 Some(completed) = join_set.join_next(), if !join_set.is_empty() => {
 
                     match completed {
-                        Ok(Ok(job)) => {
+                        Ok(Ok(Some(job))) => {
                             // Short circuit ordering logic and relay immediately if this job is
                             // not ordered relay.
                             if !job.is_ordered() {
@@ -178,6 +178,10 @@ impl ExecutionActor {
                         Err(error) => {
                             error!(?error, "fatal error, exiting execution actor");
                             break;
+                        }
+                        Ok(Ok(None)) => {
+                            // Logs in pool worker logic should indicate actual error
+                            trace!("a job was dropped due to execution error");
                         }
                     }
                 }

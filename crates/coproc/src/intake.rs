@@ -281,7 +281,7 @@ where
 
         // Program write will complete after the elf, so we wait on that before
         // returning to the user.
-        let _ = program_rx.blocking_recv();
+        program_rx.blocking_recv().expect("writer responder is broken");
 
         Ok(program_id)
     }
