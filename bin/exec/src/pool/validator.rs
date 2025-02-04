@@ -748,6 +748,26 @@ pub struct IvmTransactionValidator<Client, Tx> {
     ivm: Arc<IvmOnlyTransactionValidatorInner>,
 }
 
+/// Transaction validation error indicating that the sender is and recipient is not part of
+/// the ivm config allow list. At least one of the two must be part of the allow list.
+pub struct NonAllowedSenderAndRecipient;
+
+impl fmt::Display for NonAllowedSenderAndRecipient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "non-allowed transaction sender and recipient")
+    }
+}
+
+impl core::error::Error for NonAllowedSenderAndRecipient {}
+
+impl PoolTransactionError for NonAllowedSenderAndRecipient {
+    fn is_bad_transaction(&self) -> bool {
+        // The transaction is bad in the context of the transaction pool and
+        // warrants peer penalization.
+        true
+    }
+}
+
 impl<Client, Tx> IvmTransactionValidator<Client, Tx>
 where
     Client: StateProviderFactory,
@@ -769,7 +789,7 @@ where
             // TODO: https://github.com/InfinityVM/InfinityVM/issues/471
             return TransactionValidationOutcome::Invalid(
                 tx,
-                InvalidTransactionError::TxTypeNotSupported.into(),
+                InvalidTransactionError::Other(Box::new(NonAllowedSenderAndRecipient)),
             );
         }
 
