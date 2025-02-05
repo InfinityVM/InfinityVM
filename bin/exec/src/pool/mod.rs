@@ -212,18 +212,14 @@ mod test {
     use alloy_eips::eip2718::Decodable2718;
     use alloy_primitives::{hex, U256};
     use reth_chainspec::MAINNET;
-    use reth_primitives::{
-        transaction::SignedTransactionIntoRecoveredExt, InvalidTransactionError, PooledTransaction,
-    };
+    use reth_primitives::{transaction::SignedTransactionIntoRecoveredExt, PooledTransaction};
     use reth_provider::{
         test_utils::{ExtendedAccount, MockEthProvider},
         StateProvider,
     };
     use reth_transaction_pool::{
-        blobstore::InMemoryBlobStore,
-        error::{InvalidPoolTransactionError, PoolErrorKind},
-        EthPooledTransaction, Pool, PoolTransaction, TransactionOrigin, TransactionPool,
-        TransactionValidationOutcome,
+        blobstore::InMemoryBlobStore, error::InvalidPoolTransactionError, EthPooledTransaction,
+        Pool, PoolTransaction, TransactionOrigin, TransactionPool, TransactionValidationOutcome,
     };
 
     fn get_create_transaction() -> EthPooledTransaction {
@@ -249,13 +245,15 @@ mod test {
     fn assert_outcome_tx_type_not_supported(
         outcome: TransactionValidationOutcome<EthPooledTransaction>,
     ) {
-        match outcome {
-            TransactionValidationOutcome::Invalid(
-                _,
-                InvalidPoolTransactionError::Consensus(InvalidTransactionError::TxTypeNotSupported),
-            ) => {}
-            _ => panic!("expected TxTypeNotSupported"),
+        if let TransactionValidationOutcome::Invalid(_, InvalidPoolTransactionError::Other(x)) =
+            outcome
+        {
+            if x.to_string() == *"non-allowed transaction sender and recipient" {
+                return;
+            }
         }
+
+        panic!("expected NonAllowedSenderAndRecipient")
     }
 
     #[tokio::test]
@@ -292,18 +290,13 @@ mod test {
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
         let pool_err = pool.add_external_transaction(transaction.clone()).await.unwrap_err();
-        matches!(
-            pool_err.kind,
-            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
-                InvalidTransactionError::TxTypeNotSupported
-            ))
-        );
+        assert!(pool_err.to_string().contains("non-allowed transaction sender and recipient"));
         // Pool does not persist the transaction
         assert!(pool.get(transaction.hash()).is_none());
     }
 
     #[tokio::test]
-    async fn allows_valid_senders() {
+    async fn allows_valid_senders_basic() {
         let provider = MockEthProvider::default();
         let blob_store = InMemoryBlobStore::default();
         let transaction = get_swap_transaction();
@@ -357,12 +350,7 @@ mod test {
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
         let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
-        matches!(
-            pool_err.kind,
-            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
-                InvalidTransactionError::TxTypeNotSupported
-            ))
-        );
+        assert!(pool_err.to_string().contains("non-allowed transaction sender and recipient"));
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
     }
@@ -422,12 +410,7 @@ mod test {
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
         let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
-        matches!(
-            pool_err.kind,
-            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
-                InvalidTransactionError::TxTypeNotSupported
-            ))
-        );
+        assert!(pool_err.to_string().contains("non-allowed transaction sender and recipient"));
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
     }
@@ -535,12 +518,7 @@ mod test {
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
         let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
-        matches!(
-            pool_err.kind,
-            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
-                InvalidTransactionError::TxTypeNotSupported
-            ))
-        );
+        assert!(pool_err.to_string().contains("non-allowed transaction sender and recipient"));
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
     }
@@ -594,12 +572,7 @@ mod test {
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
         let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
-        matches!(
-            pool_err.kind,
-            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
-                InvalidTransactionError::TxTypeNotSupported
-            ))
-        );
+        assert!(pool_err.to_string().contains("non-allowed transaction sender and recipient"));
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
     }
@@ -659,12 +632,7 @@ mod test {
         assert_outcome_tx_type_not_supported(outcome);
         // Its an error when we try and add the transaction
         let pool_err = pool.add_external_transaction(other_transaction.clone()).await.unwrap_err();
-        matches!(
-            pool_err.kind,
-            PoolErrorKind::InvalidTransaction(InvalidPoolTransactionError::Consensus(
-                InvalidTransactionError::TxTypeNotSupported
-            ))
-        );
+        assert!(pool_err.to_string().contains("non-allowed transaction sender and recipient"));
         // Pool does not persist the transaction
         assert!(pool.get(other_transaction.hash()).is_none());
     }

@@ -5,7 +5,7 @@ use alloy_primitives::{Address, Bytes, TxKind, B256, U256};
 use alloy_rpc_types_engine::PayloadAttributes;
 use alloy_rpc_types_eth::{TransactionInput, TransactionRequest};
 use alloy_signer_local::PrivateKeySigner;
-use reth::rpc::server_types::eth::{error::RpcPoolError, EthApiError, RpcInvalidTransactionError};
+use reth::rpc::server_types::eth::EthApiError;
 use reth_e2e_test_utils::transaction::TransactionTestContext;
 use reth_ethereum_engine_primitives::EthPayloadBuilderAttributes;
 
@@ -21,12 +21,11 @@ pub(crate) fn eth_payload_attributes(timestamp: u64) -> EthPayloadBuilderAttribu
 }
 
 pub(crate) fn assert_unsupported_tx(error: EthApiError) {
-    match error {
-        EthApiError::PoolError(RpcPoolError::Invalid(
-            RpcInvalidTransactionError::TxTypeNotSupported,
-        )) => (),
-        _ => panic!(),
-    };
+    if error.to_string() == *"non-allowed transaction sender and recipient" {
+        return
+    }
+
+    panic!("expected NonAllowedSenderAndRecipient");
 }
 
 /// Creates a type 2718 transaction

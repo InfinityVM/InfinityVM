@@ -30,6 +30,7 @@ use reth_transaction_pool::{
     TransactionValidator,
 };
 use std::{
+    fmt,
     marker::PhantomData,
     sync::{
         atomic::{AtomicBool, AtomicU64},
@@ -748,6 +749,27 @@ pub struct IvmTransactionValidator<Client, Tx> {
     ivm: Arc<IvmOnlyTransactionValidatorInner>,
 }
 
+/// Transaction validation error indicating that the sender and recipient is not part of
+/// the ivm config allow list. At least one of the two must be part of the allow list.
+#[derive(Debug)]
+pub struct NonAllowedSenderAndRecipient;
+
+impl fmt::Display for NonAllowedSenderAndRecipient {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "non-allowed transaction sender and recipient")
+    }
+}
+
+impl core::error::Error for NonAllowedSenderAndRecipient {}
+
+impl reth::transaction_pool::error::PoolTransactionError for NonAllowedSenderAndRecipient {
+    fn is_bad_transaction(&self) -> bool {
+        // The transaction is bad in the context of the transaction pool and
+        // warrants peer penalization.
+        true
+    }
+}
+
 impl<Client, Tx> IvmTransactionValidator<Client, Tx>
 where
     Client: StateProviderFactory,
@@ -766,10 +788,9 @@ where
         let timestamp =
             self.ivm.latest_timestamp.fetch_add(0, std::sync::atomic::Ordering::Relaxed);
         if !self.ivm.ivm_config.is_allowed(tx.sender_ref(), tx.to(), timestamp) {
-            // TODO: https://github.com/InfinityVM/InfinityVM/issues/471
             return TransactionValidationOutcome::Invalid(
                 tx,
-                InvalidTransactionError::TxTypeNotSupported.into(),
+                InvalidPoolTransactionError::Other(Box::new(NonAllowedSenderAndRecipient {})),
             );
         }
 

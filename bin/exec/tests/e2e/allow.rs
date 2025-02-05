@@ -85,8 +85,8 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
 
     let deploy_error =
         GasWaster::deploy_builder(&rpc, U256::from(500)).send().await.unwrap_err().to_string();
-    assert!(&deploy_error.contains("-32003"));
-    assert!(&deploy_error.contains("transaction type not supported"));
+    assert!(&deploy_error.contains("-32603"));
+    assert!(&deploy_error.contains("non-allowed transaction sender and recipient"));
 
     // The account never gets created
     let get_account_err = rpc.get_account(wallet_1.address()).await.unwrap_err().to_string();
