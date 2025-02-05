@@ -134,15 +134,16 @@ impl IvmConfig {
         match network {
             Network::Suzuka => {
                 let addresses = vec![
-                    address!("0x7e480b98e3710753ffb23f67bd35391d5a6b1e9e"),
-                    address!("0x17877a771f877d66317146c2158a13454c836d66"),
-                    address!("0x088d6345341b686cbd765bfb6be49d96b1977bc4"),
-                    address!("0x181b8b8dc24f1d9f2f2401481529962378b99532"),
-                    address!("0x9fb039d6d885fa2e9a2017ab96652138d9e06217"),
-                    address!("0xf40a1616b71b58bad6c7fca0ae24b045b67fa5b7"),
-                    address!("0xba0b00804898506e24fa898120e6a3f89a48d859"),
-                    address!("0xdbd5f8ab1e0171f09e40f298b32c3b190ec4fab4"),
-                    address!("0x43f31170bac1fe94c12941049c80e2a08e33d623"),
+                    address!("0xe6c32783830667d1a40c746bc2487d609aabe2c2"), // deployer
+                    address!("0xb99f5f26be2e689b0d4e0de99b59bed3655337c1"), // faucet
+                    address!("0x57dbd91b33eed2624cbbbb0b3f06d3ac68586f02"), // fee_recipient
+                    address!("0x62cf21043ac6b0da1cf255d64894db00bf5480d5"), // fuzzer
+                    address!("0xe76e63ed207f58ad51846d9748b6832d87b4d563"), // offchain_signer
+                    address!("0xff78fd33b2df47f64346b2ad3ee93798ff1e33aa"), // validator 0
+                    address!("0xde4499102af723d2dfc31c40e41b6a02bb860008"), // validator 1
+                    address!("0x9601d991a71d975dfcbc3e09bbb27e7552cdf10c"), // validator 2
+                    address!("0x46233286b1a41f9d9fe22ca36347396f34582fb3"), // validator 3
+                    address!("0x20f33ce90a13a4b5e7697e3544c3083b8f8a51d4"), // depositor
                 ];
 
                 let mut fork0 = IvmTransactionAllowConfig::deny_all();
