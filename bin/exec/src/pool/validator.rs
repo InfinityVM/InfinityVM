@@ -749,7 +749,7 @@ pub struct IvmTransactionValidator<Client, Tx> {
     ivm: Arc<IvmOnlyTransactionValidatorInner>,
 }
 
-/// Transaction validation error indicating that the sender is and recipient is not part of
+/// Transaction validation error indicating that the sender and recipient is not part of
 /// the ivm config allow list. At least one of the two must be part of the allow list.
 #[derive(Debug)]
 pub struct NonAllowedSenderAndRecipient;
