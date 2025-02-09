@@ -30,8 +30,10 @@ contract JobManager is
     mapping(bytes32 => JobMetadata) public jobIDToMetadata;
     // Mapping from job ID --> versioned blob hashes
     mapping(bytes32 => bytes32[]) public jobIDToBlobhashes;
-    // storage gap for upgradeability
-    uint256[50] private __GAP;
+    // Storage gap for upgradeability. The size of the storage gap
+    // and the amount of storage used by the contract should add up
+    // to 50 slots.
+    uint256[46] private __GAP;
 
     constructor() {
         _disableInitializers();
