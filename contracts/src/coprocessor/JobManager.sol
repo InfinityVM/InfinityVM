@@ -5,7 +5,7 @@ import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED
 import {Consumer} from "./Consumer.sol";
 import {OffchainRequester} from "./OffchainRequester.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin-upgrades/contracts/security/ReentrancyGuardUpgradeable.sol";
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {Script, console} from "forge-std/Script.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -15,7 +15,7 @@ contract JobManager is
     IJobManager,
     Initializable,
     OwnableUpgradeable, 
-    ReentrancyGuard
+    ReentrancyGuardUpgradeable
 {
     using Strings for uint;
 
