@@ -10,6 +10,8 @@ import {console} from "forge-std/console.sol";
 // SingleOffchainSigner allows a single offchainSigner address to sign all offchain job requests
 abstract contract SingleOffchainSigner is OffchainRequester {
     address private offchainSigner;
+    // Storage gap for upgradeability.
+    uint256[49] private __GAP;
 
     function initialize(address _offchainSigner) public virtual onlyInitializing {
         offchainSigner = _offchainSigner;

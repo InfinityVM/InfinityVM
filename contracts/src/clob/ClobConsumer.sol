@@ -52,6 +52,8 @@ contract ClobConsumer is StatefulConsumer, SingleOffchainSigner {
     mapping(address => uint256) public freeBalanceQuote;
     mapping(address => uint256) public lockedBalanceBase;
     mapping(address => uint256) public lockedBalanceQuote;
+    // Storage gap for upgradeability.
+    uint256[42] private __GAP;
 
     constructor() StatefulConsumer() SingleOffchainSigner() {
         _disableInitializers();
