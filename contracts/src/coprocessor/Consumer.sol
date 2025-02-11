@@ -18,6 +18,9 @@ abstract contract Consumer is
     
     mapping(bytes32 => JobInputs) internal jobIDToInputs;
 
+    // Storage gap for upgradeability.
+    uint256[47] private __GAP;
+
     function initialize(address initialOwner, address jobManager, uint64 initialMaxNonce) public virtual onlyInitializing {
         _transferOwnership(initialOwner);
         _jobManager = JobManager(jobManager);
