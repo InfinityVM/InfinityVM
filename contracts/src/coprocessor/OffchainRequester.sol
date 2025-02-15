@@ -9,9 +9,6 @@ abstract contract OffchainRequester is Initializable, OwnableUpgradeable {
 
     bytes4 constant internal INVALID_SIGNATURE = 0xffffffff;
 
-    // Storage gap for upgradeability.
-    uint256[50] private __GAP;
-
     // EIP-1271
     function isValidSignature(bytes32 hash, bytes memory signature) public virtual view returns (bytes4);
 }

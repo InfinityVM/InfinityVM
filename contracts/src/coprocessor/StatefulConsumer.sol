@@ -19,8 +19,6 @@ abstract contract StatefulConsumer is Consumer {
     }
 
     bytes32 public latestStateRoot;
-    // Storage gap for upgradeability.
-    uint256[49] private __GAP;
 
     function initialize(
         address initialOwner,
