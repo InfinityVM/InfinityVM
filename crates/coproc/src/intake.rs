@@ -25,6 +25,7 @@ use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::sync::Arc;
 use tokio::sync::{mpsc::Sender, oneshot};
+use tracing::info;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -164,25 +165,16 @@ where
             if self.get_pending_nonces(consumer_address).await?.contains(&job.nonce) {
                 return Ok(())
             }
+            
+            // We overwrite the old job. This allows users to submit new jobs in case the original
+            // job had an issue
+            if old_job != job {
+                self.write_pending_job(&mut job).await;
+            }
 
-            // For now, we always retry the original job even tho it may be different then
-            // the new job. In the future we may want to have a way to override an existing
-            // job.
-            old_job
+            job
         } else {
-            job.status = JobStatus {
-                status: JobStatusType::Pending as i32,
-                failure_reason: None,
-                retries: 0,
-            };
-            let (tx, db_write_complete_rx) = oneshot::channel();
-            self.writer_tx
-                .send((Write::JobTable(job.clone()), Some(tx)))
-                .await
-                .expect("db writer broken");
-
-            // Before responding, make sure the write completes
-            let _ = db_write_complete_rx.await;
+            self.write_pending_job(&mut job).await;
             job
         };
 
@@ -200,6 +192,7 @@ where
             match self.active_actors.entry(consumer_address) {
                 Entry::Occupied(e) => e.get().clone(),
                 Entry::Vacant(e) => {
+                    info!(?nonce, ?consumer_address, "starting execution actor");
                     // ATTENTION: No async allowed while an entry lock is held.
                     let execution_tx = self.execution_actor_spawner.spawn(nonce);
                     e.insert(execution_tx.clone());
@@ -234,6 +227,22 @@ where
         execution_tx.send(ExecMsg::Exec(job)).await.expect("execution tx failed");
 
         Ok(())
+    }
+
+    async fn write_pending_job(&self, job: &mut Job) {
+        job.status = JobStatus {
+            status: JobStatusType::Pending as i32,
+            failure_reason: None,
+            retries: 0,
+        };
+        let (tx, db_write_complete_rx) = oneshot::channel();
+        self.writer_tx
+            .send((Write::JobTable(job.clone()), Some(tx)))
+            .await
+            .expect("db writer broken");
+
+        // Before responding, make sure the write completes
+        let _ = db_write_complete_rx.await;
     }
 
     /// Submit program ELF, save it in DB, and return program ID.
