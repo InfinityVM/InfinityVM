@@ -83,9 +83,10 @@ where
         // [ref: https://github.com/InfinityVM/InfinityVM/issues/168]
 
         info!(
-            job_id = hex::encode(job_id),
-            consumer = hex::encode(consumer),
             nonce,
+            consumer = hex::encode(consumer),
+            program_id = hex::encode(&program_id),
+            job_id = hex::encode(job_id),
             "new job request"
         );
 
