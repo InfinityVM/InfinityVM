@@ -24,10 +24,11 @@ pub type PoolMsg = (Job, oneshot::Sender<PoolReply>);
 
 /// A reply to a `PoolMsg`.
 #[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
 pub enum PoolReply {
     /// The job executed successfully.
     Ok(Job),
-    /// There was an error while attempting to execute
+    /// There was an error while attempting to execute.
     Err(u64),
 }
 
