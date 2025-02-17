@@ -156,7 +156,9 @@ where
         // get submitted before the DB write completes. In that case the last submission
         // will take precedence.
         if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
-            if old_job.is_failed() {
+            let jobs_match = old_job == job;
+
+            if old_job.is_failed() && jobs_match {
                 return Err(Error::JobExistsAndFailedToRelay);
             }
             if old_job.is_relayed() {
@@ -168,7 +170,7 @@ where
 
             // We overwrite the old job. This allows users to submit new jobs in case the original
             // job had an issue
-            if old_job != job {
+            if !jobs_match {
                 self.write_pending_job(&mut job).await;
             }
         } else {
