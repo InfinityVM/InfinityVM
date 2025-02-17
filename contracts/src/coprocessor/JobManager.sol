@@ -5,7 +5,7 @@ import {IJobManager, JOB_STATE_PENDING, JOB_STATE_CANCELLED, JOB_STATE_COMPLETED
 import {Consumer} from "./Consumer.sol";
 import {OffchainRequester} from "./OffchainRequester.sol";
 import {OwnableUpgradeable} from "@openzeppelin-upgrades/contracts/access/OwnableUpgradeable.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin-upgrades/contracts/security/ReentrancyGuardUpgradeable.sol";
 import {Initializable} from "@openzeppelin-upgrades/contracts/proxy/utils/Initializable.sol";
 import {Script, console} from "forge-std/Script.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
@@ -15,7 +15,7 @@ contract JobManager is
     IJobManager,
     Initializable,
     OwnableUpgradeable, 
-    ReentrancyGuard
+    ReentrancyGuardUpgradeable
 {
     using Strings for uint;
 
@@ -30,8 +30,10 @@ contract JobManager is
     mapping(bytes32 => JobMetadata) public jobIDToMetadata;
     // Mapping from job ID --> versioned blob hashes
     mapping(bytes32 => bytes32[]) public jobIDToBlobhashes;
-    // storage gap for upgradeability
-    uint256[50] private __GAP;
+    // Storage gap for upgradeability. The size of the storage gap
+    // and the amount of storage used by the contract should add up
+    // to 50 slots.
+    uint256[46] private __GAP;
 
     constructor() {
         _disableInitializers();

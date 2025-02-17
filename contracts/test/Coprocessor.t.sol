@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
+import {stdError} from "forge-std/StdError.sol";
 import {JobManager} from "../src/coprocessor/JobManager.sol";
 import {Consumer} from "../src/coprocessor/Consumer.sol";
 import {MockConsumer} from "./mocks/MockConsumer.sol";
@@ -27,7 +28,8 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         DEFAULT_JOB_ID = keccak256(abi.encodePacked(DEFAULT_NONCE, address(consumer)));
     }
 
-    function testFailWhen_Consumer_InitializeTwice() public {
+    function testRevertWhen_Consumer_InitializeTwice() public {
+        vm.expectRevert("Initializable: contract is already initialized");
         consumer.initialize(address(0), address(0), 0, address(0));
     }
 
@@ -137,7 +139,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         assertEq(consumer.getJobResult(DEFAULT_JOB_ID), abi.encode(address(0), 10));
     }
 
-    function testFailWhen_JobManager_SubmitResultInvalidEncodingOfResultWithMetadata() public {
+    function testRevertWhen_JobManager_SubmitResultInvalidEncodingOfResultWithMetadata() public {
         test_Consumer_RequestJob();
 
         // Generated using crates/scripts/signer.rs but with invalid ABI-encoding
@@ -145,10 +147,11 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         bytes memory signature = hex"eb78cf205da110716882784d3cc7fd0e6fb504f295591b6a8a678f385275b9fc29d0f79daef111868115f91026ec8074f2dc29d9e96d0fafb6a21b2cd079d31b1b";
 
         vm.prank(RELAYER);
+        vm.expectRevert(stdError.memOverflowError);
         jobManager.submitResult(resultWithMetadata, signature);
     }
 
-    function testFailWhen_JobManager_SubmitResultInvalidEncodingOfResult() public {
+    function testRevertWhen_JobManager_SubmitResultInvalidEncodingOfResult() public {
         test_Consumer_RequestJob();
 
         // Generated using crates/scripts/signer.rs but with invalid ABI-encoding
@@ -156,6 +159,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         bytes memory signature = hex"761ca07f09f33cbc0619281e09c15bf562f2fc5fa30a5c2f0dc4fa4f252c0ca87939dc7cedfcb46d2db74c5cd6f0746610df6984e4ec429c1f92cde75b3f0df31c";
 
         vm.prank(RELAYER);
+        vm.expectRevert();
         jobManager.submitResult(resultWithMetadata, signature);
     }
 
@@ -249,7 +253,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         assertEq(consumer.getJobResult(DEFAULT_JOB_ID), abi.encode(address(0), 10));
     }
 
-    function testFailWhen_JobManager_SubmitResultForOffchainJobInvalidEncodingOfRequest() public {
+    function testRevertWhen_JobManager_SubmitResultForOffchainJobInvalidEncodingOfRequest() public {
         // Generated using crates/scripts/signer.rs but with invalid ABI-encoding
         bytes memory jobRequest = hex"0000000000000000000000000000000000000000000000000000000000000001000000000000000000000000db8cff278adccf9e9b5da745b44e754fc4ee3c76000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000000000000000000c0000000000000000000000000000000000000000000000000000000000000000970726f6772616d4944000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000";
         bytes memory signatureOnRequest = hex"63427b34c5cbd6673dee562772d6e8129d7f6f0857fa32abbec6a787537002e73e5a52f9d79148828e47af4c855c7f870d226fdbcff0d44526d28107c02f92311b";
@@ -258,6 +262,7 @@ contract CoprocessorTest is Test, MockConsumerDeployer, CoprocessorDeployer {
         bytes memory signatureOnResult = hex"3e6bbc4fa7b727191be2e24303d901f0dea5dbbda344a99fd39b19189dd584ab5b44e2e0d42f201fed4f1bccd3ff9691373d843001443f265bbde70f4ca3d7ef1b";
 
         vm.prank(RELAYER);
+        vm.expectRevert();
         jobManager.submitResultForOffchainJob(offchainResultWithMetadata, signatureOnResult, jobRequest, signatureOnRequest);
     }
 
