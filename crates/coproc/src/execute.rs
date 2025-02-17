@@ -173,7 +173,7 @@ impl ExecutionActor {
                             }
                         },
                         Ok(Err(error))  => {
-                            warn!(?error, "execution error");
+                            warn!(?error, "execution channel receiver error");
                         },
                         Err(error) => {
                             error!(?error, "fatal error, exiting execution actor");
