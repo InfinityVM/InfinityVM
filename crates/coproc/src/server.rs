@@ -10,10 +10,10 @@ use alloy::{
 use ivm_abi::{get_job_id, OffchainJobRequest};
 use ivm_db::tables::{Job, RequestType};
 use ivm_proto::{
-    coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, GetPendingJobsRequest,
-    GetPendingJobsResponse, GetResultRequest, GetResultResponse, JobResult, JobStatus,
-    JobStatusType, SubmitJobRequest, SubmitJobResponse, SubmitProgramRequest,
-    SubmitProgramResponse,
+    coprocessor_node_server::CoprocessorNode as CoprocessorNodeTrait, ContainsProgramRequest,
+    ContainsProgramResponse, GetPendingJobsRequest, GetPendingJobsResponse, GetResultRequest,
+    GetResultResponse, JobResult, JobStatus, JobStatusType, SubmitJobRequest, SubmitJobResponse,
+    SubmitProgramRequest, SubmitProgramResponse,
 };
 use reth_db::Database;
 use tonic::{Request, Response, Status};
@@ -209,5 +209,20 @@ where
             .map_err(|e| Status::internal(format!("Error: {}", e)))?;
 
         Ok(Response::new(GetPendingJobsResponse { pending_jobs }))
+    }
+
+    async fn contains_program(
+        &self,
+        request: Request<ContainsProgramRequest>,
+    ) -> Result<Response<ContainsProgramResponse>, Status> {
+        let req = request.into_inner();
+
+        let contains = self
+            .intake_service
+            .contains_elf(req.program_id)
+            .await
+            .map_err(|e| Status::internal(format!("Error: {}", e)))?;
+
+        Ok(Response::new(ContainsProgramResponse { contains }))
     }
 }
