@@ -34,7 +34,7 @@ macro_rules! impl_compress_decompress {
     };
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 /// Request type for a job
 pub enum RequestType {
     /// Onchain job request (originating from contracts)
@@ -44,7 +44,7 @@ pub enum RequestType {
 }
 
 /// Job used internally and stored in DB
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
 pub struct Job {
     /// The job ID (hash of nonce and consumer address)
     pub id: [u8; 32],

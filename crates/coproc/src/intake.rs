@@ -25,6 +25,7 @@ use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::sync::Arc;
 use tokio::sync::{mpsc::Sender, oneshot};
+use tracing::info;
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -154,7 +155,7 @@ where
         // NOTE: there is a race condition here where multiple jobs with the same nonce
         // get submitted before the DB write completes. In that case the last submission
         // will take precedence.
-        let mut job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
+        if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
             if old_job.is_failed() {
                 return Err(Error::JobExistsAndFailedToRelay);
             }
@@ -165,25 +166,13 @@ where
                 return Ok(())
             }
 
-            // For now, we always retry the original job even tho it may be different then
-            // the new job. In the future we may want to have a way to override an existing
-            // job.
-            old_job
+            // We overwrite the old job. This allows users to submit new jobs in case the original
+            // job had an issue
+            if old_job != job {
+                self.write_pending_job(&mut job).await;
+            }
         } else {
-            job.status = JobStatus {
-                status: JobStatusType::Pending as i32,
-                failure_reason: None,
-                retries: 0,
-            };
-            let (tx, db_write_complete_rx) = oneshot::channel();
-            self.writer_tx
-                .send((Write::JobTable(job.clone()), Some(tx)))
-                .await
-                .expect("db writer broken");
-
-            // Before responding, make sure the write completes
-            let _ = db_write_complete_rx.await;
-            job
+            self.write_pending_job(&mut job).await;
         };
 
         // We do an optimistic check to reduce entry lock contention.
@@ -200,6 +189,7 @@ where
             match self.active_actors.entry(consumer_address) {
                 Entry::Occupied(e) => e.get().clone(),
                 Entry::Vacant(e) => {
+                    info!(?nonce, ?consumer_address, "starting execution actor");
                     // ATTENTION: No async allowed while an entry lock is held.
                     let execution_tx = self.execution_actor_spawner.spawn(nonce);
                     e.insert(execution_tx.clone());
@@ -236,6 +226,19 @@ where
         Ok(())
     }
 
+    async fn write_pending_job(&self, job: &mut Job) {
+        job.status =
+            JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
+        let (tx, db_write_complete_rx) = oneshot::channel();
+        self.writer_tx
+            .send((Write::JobTable(job.clone()), Some(tx)))
+            .await
+            .expect("db writer broken");
+
+        // Before responding, make sure the write completes
+        let _ = db_write_complete_rx.await;
+    }
+
     /// Submit program ELF, save it in DB, and return program ID.
     pub fn submit_elf(
         &self,
@@ -245,6 +248,14 @@ where
     ) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
 
+        if get_elf_sync(self.db.clone(), &program_id)
+            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
+            .is_some()
+        {
+            return Err(Error::ElfAlreadyExists(hex::encode(program_id.as_slice())));
+        }
+
+        // Do expensive check second
         if !self.unsafe_skip_program_id_check {
             let derived_program_id = self.zk_executor.create_elf(&elf, vm_type)?;
             if program_id != derived_program_id {
@@ -254,13 +265,6 @@ where
                 ));
             }
         };
-
-        if get_elf_sync(self.db.clone(), &program_id)
-            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
-            .is_some()
-        {
-            return Err(Error::ElfAlreadyExists(hex::encode(program_id.as_slice())));
-        }
 
         // Write the elf and make sure it completes before responding to the user.
         self.writer_tx
