@@ -25,6 +25,8 @@ use std::{
 };
 use tokio::{task::JoinHandle, try_join};
 use tracing::info;
+use tokio::signal;
+
 
 type K256LocalSigner = LocalSigner<SigningKey>;
 
@@ -272,8 +274,33 @@ where
     )
     .map(|_| ());
 
+    select! {
+        _ = signal::ctrl_c() => {
+            let _ = writer_tx.send((Write::Kill, None)).await;
+
+            Ok(())
+        },
+        e = flatten(job_event_listener) => {
+            e
+        }
+        e = flatten(grpc_server) => {
+            e
+        }
+        e = flatten(metrics_endpoint) => {
+            e
+        }
+        e = flatten(http_grpc_gateway_server) => {
+            e
+        }
+        e = flatten(relay_retry) => {
+            e
+        }
+        e = flatten(threads) => {
+            
+        }
+    }
+
     // We need to manually shutdown any standard threads
-    let _ = writer_tx.send((Write::Kill, None)).await;
 
     result
 }
