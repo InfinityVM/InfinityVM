@@ -155,7 +155,7 @@ where
         // NOTE: there is a race condition here where multiple jobs with the same nonce
         // get submitted before the DB write completes. In that case the last submission
         // will take precedence.
-        let mut job = if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
+        if let Some(old_job) = get_job(self.db.clone(), job.id).await? {
             if old_job.is_failed() {
                 return Err(Error::JobExistsAndFailedToRelay);
             }
@@ -171,11 +171,8 @@ where
             if old_job != job {
                 self.write_pending_job(&mut job).await;
             }
-
-            job
         } else {
             self.write_pending_job(&mut job).await;
-            job
         };
 
         // We do an optimistic check to reduce entry lock contention.
@@ -251,6 +248,14 @@ where
     ) -> Result<Vec<u8>, Error> {
         let vm_type = VmType::try_from(vm_type).map_err(|_| Error::InvalidVmType)?;
 
+        if get_elf_sync(self.db.clone(), &program_id)
+            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
+            .is_some()
+        {
+            return Err(Error::ElfAlreadyExists(hex::encode(program_id.as_slice())));
+        }
+
+        // Do expensive check second
         if !self.unsafe_skip_program_id_check {
             let derived_program_id = self.zk_executor.create_elf(&elf, vm_type)?;
             if program_id != derived_program_id {
@@ -260,13 +265,6 @@ where
                 ));
             }
         };
-
-        if get_elf_sync(self.db.clone(), &program_id)
-            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
-            .is_some()
-        {
-            return Err(Error::ElfAlreadyExists(hex::encode(program_id.as_slice())));
-        }
 
         // Write the elf and make sure it completes before responding to the user.
         self.writer_tx
