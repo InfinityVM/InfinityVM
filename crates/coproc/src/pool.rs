@@ -6,6 +6,7 @@ use crate::{
     writer::{Write, WriterMsg},
 };
 use alloy::{
+    hex,
     primitives::PrimitiveSignature,
     signers::{Signer, SignerSync},
 };
@@ -16,7 +17,7 @@ use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::{marker::Send, sync::Arc};
 use tokio::sync::oneshot;
-use tracing::{error, instrument};
+use tracing::{error, instrument, warn};
 
 /// A message to the executor
 pub type PoolMsg = (Job, oneshot::Sender<Option<Job>>);
@@ -173,6 +174,12 @@ where
         match ivm_db::get_program_sync(db.clone(), &job.program_id).expect("DB reads cannot fail") {
             Some(elf) => Ok(elf),
             None => {
+                warn!(
+                    nonce = job.nonce,
+                    consumer = hex::encode(&job.consumer_address),
+                    program_id = hex::encode(&job.program_id),
+                    "missing program",
+                );
                 // TODO: include job ID in metrics
                 // https://github.com/InfinityVM/InfinityVM/issues/362
                 metrics.incr_job_err(&FailureReason::MissingProgram.to_string());
@@ -242,10 +249,16 @@ where
 
                 Ok(job)
             }
-            Err(e) => {
+            Err(error) => {
                 // TODO: We need to relay failed results to make sure we can charge people
                 // [ref: https://github.com/InfinityVM/InfinityVM/issues/78]
-                error!("failed to execute job {:?}: {:?}", id, e);
+                warn!(
+                    nonce = job.nonce,
+                    consumer = hex::encode(&job.consumer_address),
+                    program_id = hex::encode(&job.program_id),
+                    ?error,
+                    "failed job execution",
+                );
                 // TODO: record job ID.
                 metrics.incr_job_err(&FailureReason::ExecErr.to_string());
 
