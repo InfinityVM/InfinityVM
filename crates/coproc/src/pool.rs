@@ -20,7 +20,17 @@ use tokio::sync::oneshot;
 use tracing::{error, instrument, warn};
 
 /// A message to the executor
-pub type PoolMsg = (Job, oneshot::Sender<Option<Job>>);
+pub type PoolMsg = (Job, oneshot::Sender<PoolReply>);
+
+/// A reply to a `PoolMsg`.
+#[derive(Debug)]
+#[allow(clippy::large_enum_variant)]
+pub enum PoolReply {
+    /// The job executed successfully.
+    Ok(Job),
+    /// There was an error while attempting to execute.
+    Err(u64),
+}
 
 /// Errors for this module.
 #[derive(thiserror::Error, Debug)]
@@ -132,12 +142,15 @@ where
         let writer_tx2 = writer_tx;
 
         while let Ok((mut job, reply_tx)) = pool_rx.recv() {
+            let job_nonce = job.nonce;
             // get_program will update the job status in case of failure
             let program_with_meta =
                 match Self::get_program(&db, &mut job, &metrics, writer_tx2.clone()) {
                     Ok(elf) => elf,
                     Err(_) => {
-                        reply_tx.send(None).expect("executor reply one shot channel is broken");
+                        reply_tx
+                            .send(PoolReply::Err(job_nonce))
+                            .expect("executor reply one shot channel is broken");
                         continue
                     }
                 };
@@ -153,13 +166,17 @@ where
             ) {
                 Ok(executed_job) => executed_job,
                 Err(_) => {
-                    reply_tx.send(None).expect("executor reply one shot channel is broken");
+                    reply_tx
+                        .send(PoolReply::Err(job_nonce))
+                        .expect("executor reply one shot channel is broken");
                     continue
                 }
             };
             metrics.observe_job_exec_time(now.elapsed());
 
-            reply_tx.send(Some(executed_job)).expect("executor reply one shot channel is broken");
+            reply_tx
+                .send(PoolReply::Ok(executed_job))
+                .expect("executor reply one shot channel is broken");
         }
 
         Err(Error::ExecQueueChannelClosed)

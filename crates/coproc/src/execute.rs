@@ -1,7 +1,7 @@
 //! Actor for executing jobs on a per consumer basis.
 
 use crate::{
-    pool::PoolMsg,
+    pool::{PoolMsg, PoolReply},
     relayer::{RelayActorSpawner, RelayMsg},
 };
 use alloy::hex;
@@ -125,7 +125,7 @@ impl ExecutionActor {
                                     debug_assert!(job.is_done());
                                     // This is a retriggered job that was already executed and need
                                     // and needs to get queued for relaying.
-                                    Ok(Some(job))
+                                    Ok(PoolReply::Ok(job))
                                 }
                             });
                         },
@@ -149,7 +149,7 @@ impl ExecutionActor {
                 Some(completed) = join_set.join_next(), if !join_set.is_empty() => {
 
                     match completed {
-                        Ok(Ok(Some(job))) => {
+                        Ok(Ok(PoolReply::Ok(job))) => {
                             // Short circuit ordering logic and relay immediately if this job is
                             // not ordered relay.
                             if !job.is_ordered() {
@@ -179,9 +179,10 @@ impl ExecutionActor {
                             error!(?error, "fatal error, exiting execution actor");
                             break;
                         }
-                        Ok(Ok(None)) => {
+                        Ok(Ok(PoolReply::Err(nonce))) => {
+                            pending_jobs.remove(&nonce);
                             // Logs in pool worker logic should indicate actual error
-                            trace!("a job was dropped due to execution error");
+                            trace!(?nonce, "a job was dropped due to execution error", );
                         }
                     }
                 }
