@@ -48,6 +48,17 @@ pub fn get_elf_sync<D: Database>(
     db.view(|tx| tx.get::<ElfTable>(Sha256Key::new(program_id)))?.map_err(Into::into)
 }
 
+/// Read in an ELF file from the database. [None] if it does not exist
+#[inline(always)]
+pub async fn get_elf<D: Database + 'static>(
+    db: Arc<D>,
+    program_id: Vec<u8>,
+) -> Result<Option<ElfWithMeta>, Error> {
+    tokio::task::spawn_blocking(move || get_elf_sync(db, &program_id))
+        .await
+        .expect("tokio spawn block should work. qed.")
+}
+
 /// Read in an Program file from the database. [None] if it does not exist
 #[inline(always)]
 pub fn get_program_sync<D: Database>(

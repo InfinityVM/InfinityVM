@@ -19,7 +19,7 @@ use alloy::{
     transports::http::reqwest::Url,
 };
 use dashmap::{DashMap, Entry};
-use ivm_db::{get_elf_sync, get_job, tables::Job};
+use ivm_db::{get_elf, get_elf_sync, get_job, tables::Job};
 use ivm_proto::{JobStatus, JobStatusType, VmType};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
@@ -308,5 +308,14 @@ where
 
         let pending_jobs = rx.await.expect("one shot sender receiver failed");
         Ok(pending_jobs)
+    }
+
+    /// Returns true if the elf for the given program ID exists
+    pub async fn contains_elf(&self, program_id: Vec<u8>) -> Result<bool, Error> {
+        let contains = get_elf(self.db.clone(), program_id)
+            .await
+            .map_err(|e| Error::ElfReadFailed(e.to_string()))?
+            .is_some();
+        Ok(contains)
     }
 }

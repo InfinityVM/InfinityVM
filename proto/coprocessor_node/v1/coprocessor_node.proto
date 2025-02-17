@@ -19,6 +19,10 @@ service CoprocessorNode {
   // GetPendingJobs defines the gRPC method for getting the jobs the coprocessor 
   // is currently operating on.
   rpc GetPendingJobs(GetPendingJobsRequest) returns (GetPendingJobsResponse) {}
+
+  // ContainsProgramRequest defines the gRPC method for checking if the coprocessor
+  // has a program with the corresponding program ID
+  rpc ContainsProgram(ContainsProgramRequest) returns (ContainsProgramResponse) {}
 }
 
 // Type of ZKVM to execute
@@ -101,4 +105,16 @@ message GetPendingJobsRequest {
 message GetPendingJobsResponse {
   // Nonces of the pending jobs.
   repeated uint64 pending_jobs = 1;
+}
+
+// ContainsProgramRequest defines the request structure to check if the Coproc has a program.
+message ContainsProgramRequest {
+  // The ID of the program to check for.
+  bytes program_id = 1;
+}
+
+// GetPendingJobsRequest defines the response structure to getting the current pending job nonces.
+message ContainsProgramResponse {
+  // True if the Coproc contains the job.
+  bool contains = 1;
 }
