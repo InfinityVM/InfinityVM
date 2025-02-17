@@ -34,7 +34,7 @@ macro_rules! impl_compress_decompress {
     };
 }
 
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 /// Request type for a job
 pub enum RequestType {
     /// Onchain job request (originating from contracts)

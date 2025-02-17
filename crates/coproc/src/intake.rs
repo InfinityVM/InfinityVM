@@ -165,7 +165,7 @@ where
             if self.get_pending_nonces(consumer_address).await?.contains(&job.nonce) {
                 return Ok(())
             }
-            
+
             // We overwrite the old job. This allows users to submit new jobs in case the original
             // job had an issue
             if old_job != job {
@@ -230,11 +230,8 @@ where
     }
 
     async fn write_pending_job(&self, job: &mut Job) {
-        job.status = JobStatus {
-            status: JobStatusType::Pending as i32,
-            failure_reason: None,
-            retries: 0,
-        };
+        job.status =
+            JobStatus { status: JobStatusType::Pending as i32, failure_reason: None, retries: 0 };
         let (tx, db_write_complete_rx) = oneshot::channel();
         self.writer_tx
             .send((Write::JobTable(job.clone()), Some(tx)))
