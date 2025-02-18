@@ -56,7 +56,6 @@ async fn state_job_submission_matching_game_consumer() {
         assert_eq!(submit_program_response.program_id, program_id);
 
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(matching_game_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
 
@@ -207,7 +206,6 @@ async fn matching_game_server_e2e() {
 
         // Get chain state setup
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(matching_game_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract =

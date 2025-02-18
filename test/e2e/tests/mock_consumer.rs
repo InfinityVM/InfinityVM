@@ -55,7 +55,6 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(submit_program_response.program_id, program_id);
 
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
@@ -275,7 +274,6 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(submit_program_response.program_id, program_id);
 
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(random_user_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);

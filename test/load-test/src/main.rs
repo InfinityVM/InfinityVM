@@ -22,7 +22,7 @@ static GLOBAL_NONCE: Lazy<OnceCell<AtomicU64>> = Lazy::new(OnceCell::new);
 async fn initialize_global_nonce() -> AtomicU64 {
     let anvil_ip = anvil_ip();
     let anvil_port = anvil_port();
-    let provider = ProviderBuilder::new().with_recommended_fillers().on_http(
+    let provider = ProviderBuilder::new().on_http(
         url::Url::parse(format!("http://{anvil_ip}:{anvil_port}").as_str()).expect("Valid URL"),
     );
 

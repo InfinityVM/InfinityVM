@@ -75,7 +75,6 @@ impl Cli {
 
                 let eth_wallet = EthereumWallet::from(local_signer.clone());
                 let provider = ProviderBuilder::new()
-                    .with_recommended_fillers()
                     .wallet(eth_wallet)
                     .on_http(a.eth_rpc.parse()?);
 

@@ -39,7 +39,6 @@ pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> An
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
     let consumer_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(consumer_owner_wallet)
         .on_http(anvil.endpoint().parse().unwrap());
 
