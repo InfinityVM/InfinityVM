@@ -177,7 +177,6 @@ pub async fn job_manager_deploy(rpc_url: String) -> JobManagerDeploy {
     let initial_owner_wallet = EthereumWallet::from(initial_owner.clone());
 
     let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(initial_owner_wallet.clone())
         .on_http(rpc_url.parse().unwrap());
 

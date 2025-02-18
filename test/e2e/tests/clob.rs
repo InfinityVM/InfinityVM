@@ -57,7 +57,6 @@ async fn state_job_submission_clob_consumer() {
         assert_eq!(submit_program_response.program_id, program_id);
 
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(clob_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let base_contract = MockErc20::new(clob.base_erc20, &consumer_provider);
@@ -69,7 +68,6 @@ async fn state_job_submission_clob_consumer() {
         let r2 = call.send().await.unwrap().get_receipt();
 
         let alice_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(alice_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let alice_base = MockErc20::new(clob.base_erc20, &alice_provider);
@@ -81,7 +79,6 @@ async fn state_job_submission_clob_consumer() {
         let r4 = call.send().await.unwrap().get_receipt();
 
         let bob_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(bob_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
@@ -263,7 +260,6 @@ async fn clob_node_e2e() {
 
         // Get chain state setup
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(clob_signer_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = ClobConsumer::new(clob.clob_consumer, &consumer_provider);
@@ -278,7 +274,6 @@ async fn clob_node_e2e() {
 
         // Alice and Bob both approve the ClobConsumer to move the ERC20 and then deposit
         let alice_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(alice_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let alice_base = MockErc20::new(clob.base_erc20, &alice_provider);
@@ -290,7 +285,6 @@ async fn clob_node_e2e() {
         let r4 = call.send().await.unwrap().get_receipt();
 
         let bob_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(bob_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
@@ -469,7 +463,6 @@ async fn cancel_works() {
         let bob_wallet = EthereumWallet::new(bob_key);
 
         let bob_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(bob_wallet)
             .on_http(anvil.anvil.endpoint().parse().unwrap());
         let bob_contract = ClobConsumer::new(clob.clob_consumer, &bob_provider);

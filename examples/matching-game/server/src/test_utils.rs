@@ -45,7 +45,6 @@ pub async fn matching_game_consumer_deploy(
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
     let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(consumer_owner_wallet)
         .on_http(rpc_url.parse().unwrap());
 

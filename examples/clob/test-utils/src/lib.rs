@@ -60,7 +60,6 @@ pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> Anv
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
     let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(consumer_owner_wallet.clone())
         .on_http(rpc_url.parse().unwrap());
 
@@ -118,7 +117,6 @@ pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String, count: us
 
     for signer in signers {
         let provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(signer.clone())
             .on_http(http_endpoint.parse().unwrap());
 

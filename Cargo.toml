@@ -123,23 +123,22 @@ anyhow = { version = "1", default-features = false }
 axum = { version = "0", features = ["http2", "tokio", "json"], default-features = false }
 # All alloy deps should be kept in sync with reth
 # only include features that we know can be compiled into zkvm program
-alloy = { version = "0.9.2", features = ["sol-types"], default-features = false }
+alloy = { version = "0.11.1", features = ["sol-types"], default-features = false }
 # for ivm-exec, we don't use the alloy facade crate
-alloy-eips = { version = "0.9.2", default-features = false }
-alloy-consensus = { version = "0.9.2" }
-alloy-genesis = { version = "0.9.2" }
-alloy-signer-local = { version = "0.9.2"}
-alloy-network = { version = "0.9.2"}
-alloy-rpc-types = { version = "0.9.2" }
-alloy-rpc-types-engine = { version = "0.9.2" }
-alloy-provider = { version = "0.9.2" }
+alloy-eips = { version = "0.11.1", default-features = false }
+alloy-consensus = { version = "0.11.1" }
+alloy-genesis = { version = "0.11.1" }
+alloy-signer-local = { version = "0.11.1"}
+alloy-network = { version = "0.11.1"}
+alloy-rpc-types = { version = "0.11.1" }
+alloy-rpc-types-engine = { version = "0.11.1" }
+alloy-provider = { version = "0.11.1" }
 alloy-primitives = { version = "0.8.15", default-features = false, features = [
     "map-foldhash",
 ] }
 alloy-sol-types = { version = "0.8.18" }
-alloy-contract = { version = "0.9.2" }
-alloy-rpc-types-eth = { version = "0.9.2" }
-
+alloy-contract = { version = "0.11.1" }
+alloy-rpc-types-eth = { version = "0.11.1" }
 
 # b
 bincode = { version = "1", default-features = false }
