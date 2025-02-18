@@ -532,7 +532,6 @@ impl JobRelayer {
         // have no offchain input, and thus no sidecar
         let call_builder = match job.blobs_sidecar {
             Some(sidecar) if !sidecar.blobs.is_empty() => {
-                let gas_price = self.job_manager.provider().get_gas_price().await?;
                 self.job_manager
                     .submitResultForOffchainJob(
                         job.result_with_metadata.into(),
@@ -541,7 +540,6 @@ impl JobRelayer {
                         request_signature.into(),
                     )
                     .sidecar(sidecar)
-                    .max_fee_per_blob_gas(gas_price)
             }
             _ => {
                 debug_assert!(job.offchain_input.is_empty());
