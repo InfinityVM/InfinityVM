@@ -54,8 +54,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .into_inner();
         assert_eq!(submit_program_response.program_id, program_id);
 
-        let consumer_provider = ProviderBuilder::new()
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+        let consumer_provider =
+            ProviderBuilder::new().on_http(anvil.anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
         // Submit job to coproc node

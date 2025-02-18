@@ -116,9 +116,8 @@ pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String, count: us
     let signers: Vec<_> = get_signers(count).into_iter().map(EthereumWallet::from).collect();
 
     for signer in signers {
-        let provider = ProviderBuilder::new()
-            .wallet(signer.clone())
-            .on_http(http_endpoint.parse().unwrap());
+        let provider =
+            ProviderBuilder::new().wallet(signer.clone()).on_http(http_endpoint.parse().unwrap());
 
         let quote_erc20 = MockErc20::new(clob.quote_erc20, &provider);
 

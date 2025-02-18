@@ -74,9 +74,8 @@ impl Cli {
                 println!("account={}", local_signer.address());
 
                 let eth_wallet = EthereumWallet::from(local_signer.clone());
-                let provider = ProviderBuilder::new()
-                    .wallet(eth_wallet)
-                    .on_http(a.eth_rpc.parse()?);
+                let provider =
+                    ProviderBuilder::new().wallet(eth_wallet).on_http(a.eth_rpc.parse()?);
 
                 let clob_consumer = ClobConsumer::new(deploy_info.clob_consumer, &provider);
                 let base_amount = U256::try_from(a.base)?;
@@ -242,7 +241,7 @@ async fn print_onchain_balances(
     eth_rpc: String,
     clob_consumer: Address,
 ) -> eyre::Result<()> {
-    let provider = ProviderBuilder::new().with_recommended_fillers().on_http(eth_rpc.parse()?);
+    let provider = ProviderBuilder::new().on_http(eth_rpc.parse()?);
 
     let clob_consumer = ClobConsumer::new(clob_consumer, &provider);
 

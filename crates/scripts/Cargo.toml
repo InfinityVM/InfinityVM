@@ -31,6 +31,9 @@ alloy = { version = "0.9", features = [
     "rpc-client",
     "rpc-types-debug",
     "rpc-types-trace",
+    "signers",
+    "signer-local",
+    "sol-types"
 ] }
 k256 = { workspace = true }
 dotenvy = { workspace = true }

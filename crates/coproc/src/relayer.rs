@@ -10,7 +10,7 @@ use alloy::{
     hex,
     network::{EthereumWallet, TxSigner},
     primitives::{Address, PrimitiveSignature},
-    providers::{Provider, ProviderBuilder},
+    providers::{DynProvider, ProviderBuilder},
     rpc::types::TransactionReceipt,
 };
 use ivm_abi::abi_encode_offchain_job_request;
@@ -33,28 +33,7 @@ const JOB_RETRY_DELAY_MS: u64 = 500;
 /// Max duration between retries in `relay_job_result`.
 const JOB_RETRY_MAX_DELAY_MS: u64 = 30 * 1_000;
 
-
-type RelayerProvider = alloy::providers::fillers::FillProvider<
-    alloy::providers::fillers::JoinFill<
-        alloy::providers::fillers::JoinFill<
-            alloy::providers::Identity,
-            alloy::providers::fillers::JoinFill<
-                alloy::providers::fillers::GasFiller,
-                alloy::providers::fillers::JoinFill<
-                    alloy::providers::fillers::BlobGasFiller,
-                    alloy::providers::fillers::JoinFill<
-                        alloy::providers::fillers::NonceFiller,
-                        alloy::providers::fillers::ChainIdFiller,
-                    >,
-                >,
-            >,
-        >,
-        alloy::providers::fillers::WalletFiller<EthereumWallet>,
-    >,
-    alloy::providers::RootProvider,
->;
-
-type JobManagerContract = IJobManager::IJobManagerInstance<(), RelayerProvider>;
+type JobManagerContract = IJobManager::IJobManagerInstance<(), DynProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
@@ -449,14 +428,15 @@ impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> JobRelayerBuilder<
         confirmations: u64,
         metrics: Arc<Metrics>,
     ) -> Result<JobRelayer, Error> {
-        let url: alloy::transports::http::reqwest::Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
+        let url: alloy::transports::http::reqwest::Url =
+            http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
         info!("🧾 relayer sending transactions to rpc url {url}");
 
         let signer = self.signer.ok_or(Error::MissingSigner)?;
         let wallet = EthereumWallet::new(signer);
 
         let provider = ProviderBuilder::new().wallet(wallet).on_http(url);
-        let job_manager = JobManagerContract::new(job_manager, provider);
+        let job_manager = JobManagerContract::new(job_manager, DynProvider::new(provider));
 
         Ok(JobRelayer { job_manager, confirmations, metrics })
     }
@@ -531,16 +511,15 @@ impl JobRelayer {
         // Only add the sidecar if there are some blobs. Some offchain jobs might
         // have no offchain input, and thus no sidecar
         let call_builder = match job.blobs_sidecar {
-            Some(sidecar) if !sidecar.blobs.is_empty() => {
-                self.job_manager
-                    .submitResultForOffchainJob(
-                        job.result_with_metadata.into(),
-                        job.zkvm_operator_signature.into(),
-                        job_request_payload.into(),
-                        request_signature.into(),
-                    )
-                    .sidecar(sidecar)
-            }
+            Some(sidecar) if !sidecar.blobs.is_empty() => self
+                .job_manager
+                .submitResultForOffchainJob(
+                    job.result_with_metadata.into(),
+                    job.zkvm_operator_signature.into(),
+                    job_request_payload.into(),
+                    request_signature.into(),
+                )
+                .sidecar(sidecar),
             _ => {
                 debug_assert!(job.offchain_input.is_empty());
                 self.job_manager.submitResultForOffchainJob(
@@ -632,9 +611,8 @@ mod test {
         let user: PrivateKeySigner = anvil.keys()[5].clone().into();
         let user_wallet = EthereumWallet::from(user);
 
-        let consumer_provider = ProviderBuilder::new()
-            .wallet(user_wallet)
-            .on_http(anvil.endpoint().parse().unwrap());
+        let consumer_provider =
+            ProviderBuilder::new().wallet(user_wallet).on_http(anvil.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock_consumer, &consumer_provider);
 
         let registry = Registry::new();

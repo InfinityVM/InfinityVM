@@ -44,9 +44,8 @@ pub async fn matching_game_consumer_deploy(
 
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
-    let provider = ProviderBuilder::new()
-        .wallet(consumer_owner_wallet)
-        .on_http(rpc_url.parse().unwrap());
+    let provider =
+        ProviderBuilder::new().wallet(consumer_owner_wallet).on_http(rpc_url.parse().unwrap());
 
     let init_state_hash: [u8; 32] = Default::default();
 
