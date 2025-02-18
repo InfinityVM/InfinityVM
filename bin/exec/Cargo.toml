@@ -29,8 +29,10 @@ reth-provider = { workspace = true }
 reth-ethereum-cli = { workspace = true }
 reth-cli-util = { workspace = true }
 reth-trie-db = { workspace = true }
+reth-ethereum-payload-builder = { workspace = true }
 
 revm = { workspace = true }
+revm-primitives = { workspace = true }
 
 alloy-rpc-types = { workspace = true }
 alloy-primitives = { workspace = true }

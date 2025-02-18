@@ -3,18 +3,22 @@
 use crate::evm::builder::IvmEvmBuilder;
 use alloy_primitives::{Address, Bytes};
 use reth_chainspec::ChainSpec;
-use reth_evm_ethereum::EthEvmConfig;
-use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
+
+use reth_evm_ethereum::{EthEvm, EthEvmConfig};
+// use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
 use reth_node_builder::{
-    components::ExecutorBuilder, BuilderContext, ConfigureEvm, FullNodeTypes, NodeTypesWithEngine,
+    components::ExecutorBuilder, BuilderContext, FullNodeTypes, NodeTypesWithEngine,
 };
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
 use reth_primitives::{EthPrimitives, Header, TransactionSigned};
-use reth_revm::{
-    primitives::{CfgEnvWithHandlerCfg, Env, TxEnv},
-    Database, Evm, GetInspector,
+
+use revm_primitives::{
+    AnalysisKind, BlobExcessGasAndPrice, BlockEnv, CfgEnv, CfgEnvWithHandlerCfg, EVMError,
+    HaltReason, HandlerCfg, ResultAndState, SpecId, TxEnv, TxKind,
 };
-use std::{convert::Infallible, sync::Arc};
+use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, Database, Evm, NextBlockEnvAttributes};
+
+use std::{convert::Infallible, error::Error, sync::Arc};
 
 pub mod builder;
 
@@ -35,52 +39,90 @@ impl IvmEvmConfig {
 impl ConfigureEvmEnv for IvmEvmConfig {
     type Header = Header;
     type Transaction = TransactionSigned;
-
     type Error = Infallible;
+    type TxEnv = TxEnv;
+    type Spec = SpecId;
 
-    fn fill_tx_env(&self, tx_env: &mut TxEnv, transaction: &TransactionSigned, sender: Address) {
-        self.eth.fill_tx_env(tx_env, transaction, sender);
+    fn tx_env(&self, transaction: &Self::Transaction, signer: Address) -> Self::TxEnv {
+        self.eth.tx_env(transaction, signer)
     }
 
-    fn fill_tx_env_system_contract_call(
-        &self,
-        env: &mut Env,
-        caller: Address,
-        contract: Address,
-        data: Bytes,
-    ) {
-        self.eth.fill_tx_env_system_contract_call(env, caller, contract, data);
+    fn evm_env(&self, header: &Self::Header) -> EvmEnv {
+        self.eth.evm_env(header)
     }
 
-    fn fill_cfg_env(&self, cfg_env: &mut CfgEnvWithHandlerCfg, header: &Self::Header) {
-        self.eth.fill_cfg_env(cfg_env, header);
-    }
-
-    fn next_cfg_and_block_env(
+    fn next_evm_env(
         &self,
         parent: &Self::Header,
         attributes: NextBlockEnvAttributes,
-    ) -> Result<reth_evm::env::EvmEnv, Infallible> {
-        self.eth.next_cfg_and_block_env(parent, attributes)
+    ) -> Result<EvmEnv, Self::Error> {
+        self.eth.next_evm_env(parent, attributes)
     }
 }
 
+use serde::ser::StdError;
+
 impl ConfigureEvm for IvmEvmConfig {
-    type DefaultExternalContext<'a> = ();
+    type Evm<'a, DB: Database + 'a, I: 'a> = EthEvm<'a, I, DB>;
+    type EvmError<DBError: core::error::Error + Send + Sync + 'static> = EVMError<DBError>;
+    type HaltReason = HaltReason;
 
-    fn default_external_context<'a>(&self) -> Self::DefaultExternalContext<'a> {}
 
-    fn evm<DB: Database>(&self, db: DB) -> Evm<'_, Self::DefaultExternalContext<'_>, DB> {
-        IvmEvmBuilder::new(db, ()).build()
+    // fn evm<DB: Database>(&self, db: DB) -> Evm<'_, Self::DefaultExternalContext<'_>, DB> {
+    //     IvmEvmBuilder::new(db, ()).build()
+    // }
+
+    fn evm_with_env<DB: Database>(&self, db: DB, evm_env: EvmEnv) -> Self::Evm<'_, DB, ()> {
+        // IvmEvmBuilder::new(db, ()).build().into()
+        let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
+            cfg_env: evm_env.cfg_env,
+            handler_cfg: HandlerCfg::new(evm_env.spec),
+        };
+        
+        EvmBuilder::default()
+            .with_db(db)
+            .with_cfg_env_with_handler_cfg(cfg_env_with_handler_cfg)
+            .with_block_env(evm_env.block_env)
+            .build().into()
     }
 
-    fn evm_with_inspector<DB, I>(&self, db: DB, inspector: I) -> Evm<'_, I, DB>
+    // fn evm_with_inspector<DB, I>(&self, db: DB, inspector: I) -> Evm<'_, I, DB>
+    // where
+    //     DB: Database,
+    //     I: GetInspector<DB>,
+    // {
+    //     IvmEvmBuilder::new(db, ()).build_with_inspector(inspector)
+    // }
+
+    fn evm_with_env_and_inspector<DB, I>(
+        &self,
+        db: DB,
+        evm_env: EvmEnv,
+        inspector: I,
+    ) -> Self::Evm<'_, DB, I>
     where
         DB: Database,
-        I: GetInspector<DB>,
+        I: revm::GetInspector<DB>,
     {
-        IvmEvmBuilder::new(db, ()).build_with_inspector(inspector)
+
+        // IvmEvmBuilder::new(db, ()).build_with_inspector(inspector).into();
+        // unimplemented!()
+
+        let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
+            cfg_env: evm_env.cfg_env,
+            handler_cfg: HandlerCfg::new(evm_env.spec),
+        };
+
+        EvmBuilder::default()
+            .with_db(db)
+            .with_external_context(inspector)
+            .with_cfg_env_with_handler_cfg(cfg_env_with_handler_cfg)
+            .with_block_env(evm_env.block_env)
+            .append_handler_register(inspector_handle_register)
+            .build()
+            .into()
     }
+    
 }
 
 /// IVM EVM and executor builder.

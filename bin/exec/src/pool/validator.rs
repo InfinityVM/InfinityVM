@@ -9,7 +9,7 @@ use alloy_consensus::{
     BlockHeader,
 };
 use alloy_eips::{
-    eip1559::ETHEREUM_BLOCK_GAS_LIMIT,
+    eip1559::ETHEREUM_BLOCK_GAS_LIMIT_30M,
     eip4844::{env_settings::EnvKzgSettings, MAX_BLOBS_PER_BLOCK},
 };
 use alloy_primitives::U256;
@@ -38,6 +38,7 @@ use std::{
     },
 };
 use tokio::sync::Mutex;
+use std::any::Any;
 
 use crate::config::IvmConfig;
 
@@ -90,7 +91,8 @@ impl IvmTransactionValidatorBuilder {
     ///  - EIP-4844
     pub fn new(chain_spec: Arc<ChainSpec>) -> Self {
         Self {
-            block_gas_limit: ETHEREUM_BLOCK_GAS_LIMIT.into(),
+            // NOTE: with reth 1.2.0, it now support 36M gas, but keeping lower for lower block times.
+            block_gas_limit: ETHEREUM_BLOCK_GAS_LIMIT_30M.into(),
             chain_spec,
             minimum_priority_fee: None,
             additional_tasks: 1,
@@ -768,6 +770,10 @@ impl reth::transaction_pool::error::PoolTransactionError for NonAllowedSenderAnd
         // warrants peer penalization.
         true
     }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }
 
 impl<Client, Tx> IvmTransactionValidator<Client, Tx>
@@ -811,10 +817,9 @@ where
     }
 
     #[inline]
-    fn on_new_head_block<H, B>(&self, new_tip_block: &SealedBlock<H, B>)
+    fn on_new_head_block<B>(&self, new_tip_block: &SealedBlock<B>)
     where
-        H: reth_primitives_traits::BlockHeader,
-        B: reth_primitives_traits::BlockBody,
+        B: reth_primitives_traits::Block,
     {
         self.eth.on_new_head_block(new_tip_block.header());
         // Store the latest timestamp
@@ -851,10 +856,9 @@ where
         self.validate_all(transactions)
     }
 
-    fn on_new_head_block<H, B>(&self, new_tip_block: &SealedBlock<H, B>)
+    fn on_new_head_block<B>(&self, new_tip_block: &SealedBlock<B>)
     where
-        H: reth_primitives_traits::BlockHeader,
-        B: reth_primitives_traits::BlockBody,
+        B: reth_primitives_traits::Block,
     {
         self.on_new_head_block(new_tip_block)
     }

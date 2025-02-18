@@ -3,7 +3,7 @@
 use alloy_rpc_types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError};
 use reth_chainspec::ChainSpec;
 use reth_ethereum_engine_primitives::EthPayloadAttributes;
-use reth_node_api::InvalidPayloadAttributesError;
+use reth_node_api::{ExecutionData, InvalidPayloadAttributesError};
 use reth_node_builder::{
     rpc::EngineValidatorBuilder, AddOnsContext, EngineApiMessageVersion,
     EngineObjectValidationError, EngineTypes, EngineValidator, FullNodeComponents,
@@ -11,7 +11,7 @@ use reth_node_builder::{
 };
 use reth_node_ethereum::{node::EthereumEngineValidator, EthEngineTypes};
 use reth_payload_validator::ExecutionPayloadValidator;
-use reth_primitives::{Block, EthPrimitives, SealedBlockFor};
+use reth_primitives::{Block, EthPrimitives, SealedBlock};
 use std::sync::Arc;
 
 /// Engine API validation logic for IVM.
@@ -36,19 +36,19 @@ impl IvmEngineValidator {
 
 impl PayloadValidator for IvmEngineValidator {
     type Block = Block;
-
+    type ExecutionData = ExecutionData;
+    
     fn ensure_well_formed_payload(
         &self,
-        payload: ExecutionPayload,
-        sidecar: ExecutionPayloadSidecar,
-    ) -> Result<SealedBlockFor<Self::Block>, PayloadError> {
-        self.payload_validator.ensure_well_formed_payload(payload, sidecar)
+        payload: Self::ExecutionData,
+    ) -> Result<SealedBlock<Self::Block>, PayloadError> {
+        self.payload_validator.ensure_well_formed_payload(payload)
     }
 }
 
 impl<Types> EngineValidator<Types> for IvmEngineValidator
 where
-    Types: EngineTypes<PayloadAttributes = EthPayloadAttributes>,
+    Types: EngineTypes<PayloadAttributes = EthPayloadAttributes, ExecutionData = ExecutionData>,
 {
     fn validate_version_specific_fields(
         &self,
