@@ -85,9 +85,6 @@ impl ConfigureEvm for IvmEvmConfig {
         DB: Database,
         I: revm::GetInspector<DB>,
     {
-        // TODO
-        // IvmEvmBuilder::new(db, ()).build_with_inspector(inspector).into();
-        // unimplemented!()
 
         let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
             cfg_env: evm_env.cfg_env,
