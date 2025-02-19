@@ -8,11 +8,7 @@ use alloy::{
     node_bindings::{Anvil, AnvilInstance},
     primitives::{keccak256, Address},
     providers::{ext::AnvilApi, ProviderBuilder},
-    signers::{
-        k256::ecdsa::SigningKey,
-        local::{LocalSigner, PrivateKeySigner},
-        Signer,
-    },
+    signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
 };
 use ivm_abi::{abi_encode_offchain_job_request, JobParams};
@@ -24,8 +20,6 @@ use tokio::time::{sleep, Duration};
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 pub mod wallet;
-
-type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// Localhost IP address
 pub const LOCALHOST: &str = "127.0.0.1";
@@ -125,17 +119,17 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
 }
 
 /// Get the first `count` of the signers based on the reth dev seed.
-pub fn get_signers(count: usize) -> Vec<K256LocalSigner> {
+pub fn get_signers(count: usize) -> Vec<PrivateKeySigner> {
     Wallet::new(count)
         .gen()
         .into_iter()
         .map(|w| w.to_bytes().0)
-        .map(|b| K256LocalSigner::from_slice(&b).unwrap())
+        .map(|b| PrivateKeySigner::from_slice(&b).unwrap())
         .collect()
 }
 
 /// Get the `num` generated dev account.
-pub fn get_account(num: usize) -> K256LocalSigner {
+pub fn get_account(num: usize) -> PrivateKeySigner {
     let all_wallets = get_signers(num + 1);
     all_wallets[num].clone()
 }
@@ -216,7 +210,7 @@ pub async fn create_and_sign_offchain_request(
     consumer_addr: Address,
     onchain_input: &[u8],
     program_id: &[u8],
-    offchain_signer: LocalSigner<SigningKey>,
+    offchain_signer: PrivateKeySigner,
     offchain_input: &[u8],
 ) -> (Vec<u8>, Vec<u8>) {
     let job_params = JobParams {

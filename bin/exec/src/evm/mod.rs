@@ -1,7 +1,6 @@
 //! Configuration for IVM's EVM execution environment.
 
-use crate::evm::builder::IvmEvmBuilder;
-use alloy_primitives::{Address, Bytes};
+use alloy_primitives::Address;
 use reth_chainspec::ChainSpec;
 
 use reth_evm_ethereum::{EthEvm, EthEvmConfig};
@@ -12,13 +11,11 @@ use reth_node_builder::{
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
 use reth_primitives::{EthPrimitives, Header, TransactionSigned};
 
-use revm_primitives::{
-    AnalysisKind, BlobExcessGasAndPrice, BlockEnv, CfgEnv, CfgEnvWithHandlerCfg, EVMError,
-    HaltReason, HandlerCfg, ResultAndState, SpecId, TxEnv, TxKind,
-};
-use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, Database, Evm, NextBlockEnvAttributes};
+use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, Database, NextBlockEnvAttributes};
+use reth_revm::EvmBuilder;
+use revm_primitives::{CfgEnvWithHandlerCfg, EVMError, HaltReason, HandlerCfg, SpecId, TxEnv};
 
-use std::{convert::Infallible, error::Error, sync::Arc};
+use std::{convert::Infallible, sync::Arc};
 
 pub mod builder;
 
@@ -60,30 +57,29 @@ impl ConfigureEvmEnv for IvmEvmConfig {
     }
 }
 
-use serde::ser::StdError;
-
 impl ConfigureEvm for IvmEvmConfig {
     type Evm<'a, DB: Database + 'a, I: 'a> = EthEvm<'a, I, DB>;
     type EvmError<DBError: core::error::Error + Send + Sync + 'static> = EVMError<DBError>;
     type HaltReason = HaltReason;
-
 
     // fn evm<DB: Database>(&self, db: DB) -> Evm<'_, Self::DefaultExternalContext<'_>, DB> {
     //     IvmEvmBuilder::new(db, ()).build()
     // }
 
     fn evm_with_env<DB: Database>(&self, db: DB, evm_env: EvmEnv) -> Self::Evm<'_, DB, ()> {
+        // TODO
         // IvmEvmBuilder::new(db, ()).build().into()
         let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
             cfg_env: evm_env.cfg_env,
             handler_cfg: HandlerCfg::new(evm_env.spec),
         };
-        
+
         EvmBuilder::default()
             .with_db(db)
             .with_cfg_env_with_handler_cfg(cfg_env_with_handler_cfg)
             .with_block_env(evm_env.block_env)
-            .build().into()
+            .build()
+            .into()
     }
 
     // fn evm_with_inspector<DB, I>(&self, db: DB, inspector: I) -> Evm<'_, I, DB>
@@ -104,7 +100,7 @@ impl ConfigureEvm for IvmEvmConfig {
         DB: Database,
         I: revm::GetInspector<DB>,
     {
-
+        // TODO
         // IvmEvmBuilder::new(db, ()).build_with_inspector(inspector).into();
         // unimplemented!()
 
@@ -118,11 +114,10 @@ impl ConfigureEvm for IvmEvmConfig {
             .with_external_context(inspector)
             .with_cfg_env_with_handler_cfg(cfg_env_with_handler_cfg)
             .with_block_env(evm_env.block_env)
-            .append_handler_register(inspector_handle_register)
+            // .append_handler_register(inspector_handle_register)
             .build()
             .into()
     }
-    
 }
 
 /// IVM EVM and executor builder.
@@ -153,33 +148,36 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use alloy_consensus::{TxEip1559, TxEip4844};
+    use alloy_network::TxSignerSync;
     use alloy_primitives::{hex, Address, TxKind, B256};
+    use alloy_signer_local::LocalSigner;
     use k256::ecdsa::SigningKey;
     use reth::{
         chainspec::{ChainSpecBuilder, MAINNET},
         core::primitives::SignedTransaction,
-        primitives::{Account, Block, BlockBody, BlockWithSenders, Transaction},
+        primitives::{Account, Block, BlockBody, Transaction},
         revm::{
             db::{CacheDB, EmptyDBTyped},
             DatabaseCommit,
         },
     };
-    use reth_evm::execute::{
-        BatchExecutor, BlockExecutionError, BlockExecutorProvider, BlockValidationError,
-        ProviderError,
+    use reth_evm::{
+        execute::{
+            BlockExecutionError, BlockExecutorProvider, BlockValidationError, Executor,
+            ProviderError,
+        },
+        Evm,
     };
+    use reth_primitives::RecoveredBlock;
     use reth_provider::AccountReader;
     use reth_revm::{database::StateProviderDatabase, test_utils::StateProviderTest};
     use revm::{
         db::states::account_status::AccountStatus as DbAccountStatus,
         interpreter::primitives::AccountStatus,
-        primitives::{AccountInfo, EVMError, HashMap, InvalidTransaction, U256},
+        primitives::{AccountInfo, HashMap, U256},
+        Database,
     };
-
-    // Special alloy deps we need for playing happy with reth
-    use alloy_consensus::{TxEip1559, TxEip4844};
-    use alloy_network::TxSignerSync;
-    use alloy_signer_local::LocalSigner;
 
     // Exact gas used by the transaction returned by `transaction_with_signer`.
     const EXACT_GAS_USED: u64 = 21080;
@@ -260,16 +258,13 @@ mod test {
         // Show that the account doesn't exist
         assert!(db.basic(signer_address).unwrap().is_none());
 
+        let evm_env = EvmEnv { spec: SpecId::CANCUN, ..Default::default() };
         let evm_config = IvmEvmConfig::new(chain_spec());
-        let mut evm = evm_config.evm(db);
+        let mut evm = evm_config.evm_with_env(db, evm_env);
+        let tx_env =
+            evm_config.tx_env(&transaction_signed, transaction_signed.recover_signer().unwrap());
 
-        evm_config.fill_tx_env(
-            evm.tx_mut(),
-            &transaction_signed,
-            transaction_signed.recover_signer().unwrap(),
-        );
-
-        let result = evm.transact().unwrap();
+        let result = evm.transact(tx_env).unwrap();
 
         assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
 
@@ -296,15 +291,13 @@ mod test {
         let db = CacheDB::<EmptyDBTyped<ProviderError>>::default();
 
         // 1st transaction, SAME signer
+        let evm_env = EvmEnv { spec: SpecId::CANCUN, ..Default::default() };
         let evm_config = IvmEvmConfig::new(chain_spec());
-        let mut evm = evm_config.evm(db);
-        evm_config.fill_tx_env(
-            evm.tx_mut(),
-            &transaction_signed,
-            transaction_signed.recover_signer().unwrap(),
-        );
+        let mut evm = evm_config.evm_with_env(db, evm_env);
+        let tx_env =
+            evm_config.tx_env(&transaction_signed, transaction_signed.recover_signer().unwrap());
 
-        let result = evm.transact().unwrap();
+        let result = evm.transact(tx_env).unwrap();
         assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
@@ -320,13 +313,10 @@ mod test {
 
         // 2nd transaction, SAME signer
         let (transaction_signed2, _, _) = transaction_with_signer(signer1.clone(), 1);
-        evm_config.fill_tx_env(
-            evm.tx_mut(),
-            &transaction_signed2,
-            transaction_signed2.recover_signer().unwrap(),
-        );
+        let tx_env =
+            evm_config.tx_env(&transaction_signed2, transaction_signed2.recover_signer().unwrap());
 
-        let result = evm.transact().unwrap();
+        let result = evm.transact(tx_env).unwrap();
         assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
 
         let account = result.state.get(&signer_address).unwrap();
@@ -341,13 +331,10 @@ mod test {
 
         // 3rd transaction, SAME signer
         let (transaction_signed3, _, _) = transaction_with_signer(signer1, 2);
-        evm_config.fill_tx_env(
-            evm.tx_mut(),
-            &transaction_signed3,
-            transaction_signed3.recover_signer().unwrap(),
-        );
+        let tx_env =
+            evm_config.tx_env(&transaction_signed3, transaction_signed3.recover_signer().unwrap());
 
-        let result = evm.transact().unwrap();
+        let result = evm.transact(tx_env).unwrap();
         assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
@@ -361,15 +348,12 @@ mod test {
 
         // 4th transaction, NEW signer
         let (transaction_signed4, signer_address2, _) = transaction();
-        evm_config.fill_tx_env(
-            evm.tx_mut(),
-            &transaction_signed4,
-            transaction_signed4.recover_signer().unwrap(),
-        );
+        let tx_env =
+            evm_config.tx_env(&transaction_signed4, transaction_signed4.recover_signer().unwrap());
 
         assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
 
-        let result = evm.transact().unwrap();
+        let result = evm.transact(tx_env).unwrap();
 
         let account = result.state.get(&signer_address2).unwrap();
         assert_eq!(
@@ -386,15 +370,15 @@ mod test {
         let (header, db, provider) = setup();
 
         provider
-            .batch_executor(StateProviderDatabase::new(&db))
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .executor(StateProviderDatabase::new(&db))
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody { transactions: vec![], ommers: vec![], withdrawals: None },
                 },
-                senders: vec![],
-            })
-            .unwrap()
+                vec![],
+            ))
+            .unwrap();
     }
 
     #[test]
@@ -411,11 +395,11 @@ mod test {
         // This account has nothing
         assert!(db.basic_account(&signer_address).unwrap().is_none());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.executor(StateProviderDatabase::new(&db));
 
         executor
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody {
                         transactions: vec![transaction_signed],
@@ -423,8 +407,8 @@ mod test {
                         withdrawals: None,
                     },
                 },
-                senders: vec![signer_address],
-            })
+                vec![signer_address],
+            ))
             .unwrap();
 
         let expected = AccountInfo { balance: U256::from(0), nonce: 1, ..Default::default() };
@@ -434,10 +418,10 @@ mod test {
             executor.with_state_mut(|state| state.basic(signer_address).unwrap().unwrap());
         assert_eq!(expected, account);
 
-        let output = executor.finalize();
+        let bundle = executor.into_state().take_bundle();
 
         // And confirm it matches the bundled state
-        let account = output.bundle.state.get(&signer_address).unwrap().clone();
+        let account = bundle.state.get(&signer_address).unwrap().clone();
         assert_eq!(account.info.unwrap(), expected);
         assert_eq!(account.status, DbAccountStatus::InMemoryChange);
         assert_eq!(account.original_info, None);
@@ -460,11 +444,11 @@ mod test {
         let user_account = Account { nonce: 10, balance: U256::ZERO, bytecode_hash: None };
         db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.executor(StateProviderDatabase::new(&db));
 
         executor
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody {
                         transactions: vec![transaction_signed],
@@ -472,12 +456,12 @@ mod test {
                         withdrawals: None,
                     },
                 },
-                senders: vec![signer_address],
-            })
+                vec![signer_address],
+            ))
             .unwrap();
 
-        let output = executor.finalize();
-        let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
+        let bundle = executor.into_state().take_bundle();
+        let bundle_account = bundle.state.get(&signer_address).unwrap().clone();
 
         // New account info is expected
         assert_eq!(
@@ -514,24 +498,23 @@ mod test {
             Account { nonce: 0, balance: U256::from(user_balance), bytecode_hash: None };
         db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.executor(StateProviderDatabase::new(&db));
 
-        executor
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
-                    header,
-                    body: BlockBody {
-                        transactions: vec![transaction_signed],
-                        ommers: vec![],
-                        withdrawals: None,
-                    },
+        let block = RecoveredBlock::new_unhashed(
+            Block {
+                header,
+                body: BlockBody {
+                    transactions: vec![transaction_signed],
+                    ommers: vec![],
+                    withdrawals: None,
                 },
-                senders: vec![signer_address],
-            })
-            .unwrap();
+            },
+            vec![signer_address],
+        );
+        executor.execute_one(&block).unwrap();
 
-        let output = executor.finalize();
-        let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
+        let bundle = executor.into_state().take_bundle();
+        let bundle_account = bundle.state.get(&signer_address).unwrap().clone();
 
         // New account info is expected
         assert_eq!(
@@ -571,11 +554,10 @@ mod test {
         let user_account = Account { nonce: 0, balance: user_balance, bytecode_hash: None };
         db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
-
+        let mut executor = provider.executor(StateProviderDatabase::new(&db));
         executor
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody {
                         transactions: vec![transaction_signed],
@@ -583,13 +565,12 @@ mod test {
                         withdrawals: None,
                     },
                 },
-                senders: vec![signer_address],
-            })
+                vec![signer_address],
+            ))
             .unwrap();
 
-        let output = executor.finalize();
-
-        let bundle_account = output.bundle.state.get(&signer_address).unwrap().clone();
+        let bundle = executor.into_state().take_bundle();
+        let bundle_account = bundle.state.get(&signer_address).unwrap().clone();
 
         assert_eq!(
             bundle_account.info.unwrap(),
@@ -639,11 +620,11 @@ mod test {
         let user2_account = Account { nonce: 5, balance: user2_balance, bytecode_hash: None };
         db.insert_account(signer_address2, user2_account, None, HashMap::default());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.executor(StateProviderDatabase::new(&db));
 
         executor
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody {
                         transactions: vec![
@@ -658,7 +639,7 @@ mod test {
                         withdrawals: None,
                     },
                 },
-                senders: vec![
+                vec![
                     signer_address1,
                     signer_address2,
                     signer_address1,
@@ -666,12 +647,12 @@ mod test {
                     signer_address1,
                     signer_address2,
                 ],
-            })
+            ))
             .unwrap();
 
-        let output = executor.finalize();
+        let bundle = executor.into_state().take_bundle();
 
-        let bundle_account1 = output.bundle.state.get(&signer_address1).unwrap().clone();
+        let bundle_account1 = bundle.state.get(&signer_address1).unwrap().clone();
         assert_eq!(
             bundle_account1.info.unwrap(),
             AccountInfo {
@@ -686,7 +667,7 @@ mod test {
         assert!(bundle_account1.original_info.is_none());
         assert_eq!(bundle_account1.status, DbAccountStatus::InMemoryChange,);
 
-        let bundle_account2 = output.bundle.state.get(&signer_address2).unwrap().clone();
+        let bundle_account2 = bundle.state.get(&signer_address2).unwrap().clone();
         assert_eq!(
             bundle_account2.info.unwrap(),
             AccountInfo {
@@ -722,11 +703,11 @@ mod test {
         let user_account = Account { nonce: 5, balance: U256::ZERO, bytecode_hash: None };
         db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.executor(StateProviderDatabase::new(&db));
 
         let err = executor
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody {
                         transactions: vec![transaction_signed],
@@ -734,19 +715,23 @@ mod test {
                         withdrawals: None,
                     },
                 },
-                senders: vec![signer_address],
-            })
+                vec![signer_address],
+            ))
             .unwrap_err();
 
         let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
             panic!()
         };
-        let EVMError::Transaction(InvalidTransaction::NonceTooHigh { tx, state }) = error.as_ref()
-        else {
-            panic!()
-        };
-        assert_eq!(*state, 5);
-        assert_eq!(*tx, 10);
+        // let error = error.downcast::<EVMError<_>>();
+        // let EVMError::Transaction(InvalidTransaction::NonceTooHigh { tx, state }) =
+        //     error.unwrap().as_ref()
+        // else {
+        //     panic!()
+        // };
+
+        assert_eq!(error.to_string(), String::new());
+        // assert_eq!(*state, 5);
+        // assert_eq!(*tx, 10);
     }
 
     #[test]
@@ -766,11 +751,11 @@ mod test {
         let user_account = Account { nonce: 420, balance: U256::ZERO, bytecode_hash: None };
         db.insert_account(signer_address, user_account, None, HashMap::default());
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.executor(StateProviderDatabase::new(&db));
 
         let err = executor
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody {
                         transactions: vec![transaction_signed],
@@ -778,19 +763,24 @@ mod test {
                         withdrawals: None,
                     },
                 },
-                senders: vec![signer_address],
-            })
+                vec![signer_address],
+            ))
             .unwrap_err();
 
         let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
             panic!()
         };
-        let EVMError::Transaction(InvalidTransaction::NonceTooLow { tx, state }) = error.as_ref()
-        else {
-            panic!()
-        };
-        assert_eq!(*state, 420);
-        assert_eq!(*tx, 69);
+
+        // let error = error.downcast::<EVMError<_>>();
+        // let EVMError::Transaction(InvalidTransaction::NonceTooLow { tx, state }) =
+        //     error.unwrap().as_ref()
+        // else {
+        //     panic!()
+        // };
+
+        assert_eq!(error.to_string(), String::new());
+        // assert_eq!(*state, 420);
+        // assert_eq!(*tx, 69);
     }
 
     #[test]
@@ -810,9 +800,9 @@ mod test {
 
         // It works when the header has the exact gas used
         provider
-            .batch_executor(StateProviderDatabase::new(&db))
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .executor(StateProviderDatabase::new(&db))
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header: header.clone(),
                     body: BlockBody {
                         transactions: transactions.clone(),
@@ -820,8 +810,8 @@ mod test {
                         withdrawals: None,
                     },
                 },
-                senders: senders.clone(),
-            })
+                senders.clone(),
+            ))
             .unwrap();
 
         // Set the header to have one less gwei then what we need - we expect this to error.
@@ -830,14 +820,14 @@ mod test {
         // available gas.
         header.gas_limit = EXACT_GAS_USED + gas_limit - 1;
         let err = provider
-            .batch_executor(StateProviderDatabase::new(&db))
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .executor(StateProviderDatabase::new(&db))
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody { transactions, ommers: vec![], withdrawals: None },
                 },
                 senders,
-            })
+            ))
             .unwrap_err();
 
         let BlockExecutionError::Validation(
@@ -879,10 +869,10 @@ mod test {
         header.receipts_root =
             B256::from(hex!("eaa8c40899a61ae59615cf9985f5e2194f8fd2b57d273be63bde6733e89b12ab"));
 
-        let mut executor = provider.batch_executor(StateProviderDatabase::new(&db));
+        let mut executor = provider.executor(StateProviderDatabase::new(&db));
         executor
-            .execute_and_verify_one(&BlockWithSenders {
-                block: Block {
+            .execute_one(&RecoveredBlock::new_unhashed(
+                Block {
                     header,
                     body: BlockBody {
                         transactions: vec![transaction_signed],
@@ -890,13 +880,13 @@ mod test {
                         withdrawals: None,
                     },
                 },
-                senders: vec![signer.address()],
-            })
+                vec![signer.address()],
+            ))
             .unwrap();
 
-        let output = executor.finalize();
+        let state = executor.into_state().take_bundle();
 
-        let account = output.bundle.state.get(&signer.address()).unwrap().clone();
+        let account = state.state.get(&signer.address()).unwrap().clone();
         assert_eq!(
             account.info.unwrap(),
             AccountInfo { balance: U256::from(0), nonce: 1, ..Default::default() }

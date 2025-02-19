@@ -1,10 +1,7 @@
 //! The CLOB node.
 
 use crate::event::start_deposit_event_listener;
-use alloy::{
-    eips::BlockNumberOrTag,
-    signers::{k256::ecdsa::SigningKey, local::LocalSigner},
-};
+use alloy::{eips::BlockNumberOrTag, signers::local::PrivateKeySigner};
 use std::{path::Path, sync::Arc};
 use tokio::task::JoinHandle;
 
@@ -31,16 +28,13 @@ pub const CLOB_OPERATOR_KEY: &str = "CLOB_OPERATOR_KEY";
 /// Block to start syncing from.
 pub const CLOB_JOB_SYNC_START: &str = "CLOB_JOB_SYNC_START";
 
-/// Operator signer type.
-pub type K256LocalSigner = LocalSigner<SigningKey>;
-
 /// Run the CLOB node.
 #[allow(clippy::too_many_arguments)]
 pub async fn run<P: AsRef<Path>>(
     db_dir: P,
     listen_addr: String,
     batcher_duration_ms: u64,
-    operator_signer: K256LocalSigner,
+    operator_signer: PrivateKeySigner,
     cn_grpc_url: String,
     eth_ws_url: String,
     clob_consumer_addr: [u8; 20],

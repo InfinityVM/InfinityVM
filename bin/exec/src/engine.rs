@@ -1,6 +1,6 @@
 //! IVM Engine API validator.
 
-use alloy_rpc_types::engine::{ExecutionPayload, ExecutionPayloadSidecar, PayloadError};
+use alloy_rpc_types::engine::PayloadError;
 use reth_chainspec::ChainSpec;
 use reth_ethereum_engine_primitives::EthPayloadAttributes;
 use reth_node_api::{ExecutionData, InvalidPayloadAttributesError};
@@ -37,7 +37,7 @@ impl IvmEngineValidator {
 impl PayloadValidator for IvmEngineValidator {
     type Block = Block;
     type ExecutionData = ExecutionData;
-    
+
     fn ensure_well_formed_payload(
         &self,
         payload: Self::ExecutionData,

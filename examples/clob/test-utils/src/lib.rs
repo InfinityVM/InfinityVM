@@ -5,10 +5,7 @@ use alloy::{
     network::EthereumWallet,
     primitives::{Address, U256},
     providers::{ProviderBuilder, WalletProvider},
-    signers::{
-        k256::ecdsa::SigningKey,
-        local::{LocalSigner, PrivateKeySigner},
-    },
+    signers::local::PrivateKeySigner,
 };
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::{api::Request, tick, BorshKeccak256, ClobState};
@@ -16,9 +13,6 @@ use ivm_contracts::{
     proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
 use ivm_test_utils::{get_signers, AnvilJobManager};
-
-/// Local Signer
-pub type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// `E2EMockERC20.sol` bindings
 pub mod mock_erc20 {

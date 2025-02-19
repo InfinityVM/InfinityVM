@@ -2,20 +2,13 @@
 
 use crate::contracts::matching_game_consumer::MatchingGameConsumer;
 use alloy::{
-    network::EthereumWallet,
-    primitives::Address,
-    providers::ProviderBuilder,
-    signers::{
-        k256::ecdsa::SigningKey,
-        local::{LocalSigner, PrivateKeySigner},
-    },
+    network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
+    signers::local::PrivateKeySigner,
 };
 use ivm_contracts::{
     proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
 use ivm_test_utils::{get_signers, AnvilJobManager};
-/// Local Signer
-pub type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// Output form [`anvil_with_matching_game_consumer`]
 #[derive(Debug)]

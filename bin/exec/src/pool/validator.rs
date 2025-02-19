@@ -9,8 +9,8 @@ use alloy_consensus::{
     BlockHeader,
 };
 use alloy_eips::{
-    eip1559::ETHEREUM_BLOCK_GAS_LIMIT_30M,
-    eip4844::{env_settings::EnvKzgSettings, MAX_BLOBS_PER_BLOCK},
+    eip1559::ETHEREUM_BLOCK_GAS_LIMIT_30M, eip4844::env_settings::EnvKzgSettings,
+    eip7840::BlobParams,
 };
 use alloy_primitives::U256;
 use reth_chainspec::{ChainSpec, EthereumHardforks};
@@ -30,6 +30,7 @@ use reth_transaction_pool::{
     TransactionValidator,
 };
 use std::{
+    any::Any,
     fmt,
     marker::PhantomData,
     sync::{
@@ -38,7 +39,6 @@ use std::{
     },
 };
 use tokio::sync::Mutex;
-use std::any::Any;
 
 use crate::config::IvmConfig;
 
@@ -91,7 +91,8 @@ impl IvmTransactionValidatorBuilder {
     ///  - EIP-4844
     pub fn new(chain_spec: Arc<ChainSpec>) -> Self {
         Self {
-            // NOTE: with reth 1.2.0, it now support 36M gas, but keeping lower for lower block times.
+            // NOTE: with reth 1.2.0, it now support 36M gas, but keeping lower for lower block
+            // times.
             block_gas_limit: ETHEREUM_BLOCK_GAS_LIMIT_30M.into(),
             chain_spec,
             minimum_priority_fee: None,
@@ -261,10 +262,17 @@ impl IvmTransactionValidatorBuilder {
             ..
         } = self;
 
+        let max_blob_count = if prague {
+            BlobParams::prague().max_blob_count
+        } else {
+            BlobParams::cancun().max_blob_count
+        };
+
         let fork_tracker = ForkTracker {
             shanghai: AtomicBool::new(shanghai),
             cancun: AtomicBool::new(cancun),
             prague: AtomicBool::new(prague),
+            max_blob_count: AtomicU64::new(max_blob_count),
         };
 
         let inner = IvmTransactionValidatorInner {
@@ -405,6 +413,9 @@ where
     /// Validates a single transaction using an optional cached state provider.
     /// If no provider is passed, a new one will be created. This allows reusing
     /// the same provider across multiple txs.
+    /// Validates a single transaction using an optional cached state provider.
+    /// If no provider is passed, a new one will be created. This allows reusing
+    /// the same provider across multiple txs.
     fn validate_one_with_provider(
         &self,
         origin: TransactionOrigin,
@@ -412,7 +423,7 @@ where
         maybe_state: &mut Option<Box<dyn StateProvider>>,
     ) -> TransactionValidationOutcome<Tx> {
         // Checks for tx_type
-        match transaction.tx_type() {
+        match transaction.ty() {
             LEGACY_TX_TYPE_ID => {
                 // Accept legacy transactions
             }
@@ -422,7 +433,7 @@ where
                     return TransactionValidationOutcome::Invalid(
                         transaction,
                         InvalidTransactionError::Eip2930Disabled.into(),
-                    );
+                    )
                 }
             }
             EIP1559_TX_TYPE_ID => {
@@ -431,7 +442,7 @@ where
                     return TransactionValidationOutcome::Invalid(
                         transaction,
                         InvalidTransactionError::Eip1559Disabled.into(),
-                    );
+                    )
                 }
             }
             EIP4844_TX_TYPE_ID => {
@@ -440,7 +451,7 @@ where
                     return TransactionValidationOutcome::Invalid(
                         transaction,
                         InvalidTransactionError::Eip4844Disabled.into(),
-                    );
+                    )
                 }
             }
             EIP7702_TX_TYPE_ID => {
@@ -449,7 +460,7 @@ where
                     return TransactionValidationOutcome::Invalid(
                         transaction,
                         InvalidTransactionError::Eip7702Disabled.into(),
-                    );
+                    )
                 }
             }
 
@@ -467,13 +478,13 @@ where
             return TransactionValidationOutcome::Invalid(
                 transaction,
                 InvalidPoolTransactionError::OversizedData(tx_input_len, self.max_tx_input_bytes),
-            );
+            )
         }
 
         // Check whether the init code size has been exceeded.
         if self.fork_tracker.is_shanghai_activated() {
             if let Err(err) = transaction.ensure_max_init_code_size(MAX_INIT_CODE_BYTE_SIZE) {
-                return TransactionValidationOutcome::Invalid(transaction, err);
+                return TransactionValidationOutcome::Invalid(transaction, err)
             }
         }
 
@@ -487,7 +498,7 @@ where
                     transaction_gas_limit,
                     block_gas_limit,
                 ),
-            );
+            )
         }
 
         // Ensure max_priority_fee_per_gas (if EIP1559) is less than max_fee_per_gas if any.
@@ -495,7 +506,7 @@ where
             return TransactionValidationOutcome::Invalid(
                 transaction,
                 InvalidTransactionError::TipAboveFeeCap.into(),
-            );
+            )
         }
 
         // Drop non-local transactions with a fee lower than the configured fee for acceptance into
@@ -507,7 +518,7 @@ where
             return TransactionValidationOutcome::Invalid(
                 transaction,
                 InvalidPoolTransactionError::Underpriced,
-            );
+            )
         }
 
         // Checks for chainid
@@ -516,7 +527,7 @@ where
                 return TransactionValidationOutcome::Invalid(
                     transaction,
                     InvalidTransactionError::ChainIdMismatch.into(),
-                );
+                )
             }
         }
 
@@ -526,19 +537,20 @@ where
                 return TransactionValidationOutcome::Invalid(
                     transaction,
                     InvalidTransactionError::TxTypeNotSupported.into(),
-                );
+                )
             }
 
-            if transaction.authorization_count() == 0 {
+            #[allow(clippy::incompatible_msrv)]
+            if transaction.authorization_list().is_none_or(|l| l.is_empty()) {
                 return TransactionValidationOutcome::Invalid(
                     transaction,
                     Eip7702PoolTransactionError::MissingEip7702AuthorizationList.into(),
-                );
+                )
             }
         }
 
         if let Err(err) = ensure_intrinsic_gas(&transaction, &self.fork_tracker) {
-            return TransactionValidationOutcome::Invalid(transaction, err);
+            return TransactionValidationOutcome::Invalid(transaction, err)
         }
 
         // light blob tx pre-checks
@@ -548,10 +560,11 @@ where
                 return TransactionValidationOutcome::Invalid(
                     transaction,
                     InvalidTransactionError::TxTypeNotSupported.into(),
-                );
+                )
             }
 
-            let blob_count = transaction.blob_count();
+            let blob_count =
+                transaction.blob_versioned_hashes().map(|b| b.len() as u64).unwrap_or(0);
             if blob_count == 0 {
                 // no blobs
                 return TransactionValidationOutcome::Invalid(
@@ -559,20 +572,20 @@ where
                     InvalidPoolTransactionError::Eip4844(
                         Eip4844PoolTransactionError::NoEip4844Blobs,
                     ),
-                );
+                )
             }
 
-            if blob_count > MAX_BLOBS_PER_BLOCK {
-                // too many blobs
+            let max_blob_count = self.fork_tracker.max_blob_count();
+            if blob_count > max_blob_count {
                 return TransactionValidationOutcome::Invalid(
                     transaction,
                     InvalidPoolTransactionError::Eip4844(
                         Eip4844PoolTransactionError::TooManyEip4844Blobs {
                             have: blob_count,
-                            permitted: MAX_BLOBS_PER_BLOCK,
+                            permitted: max_blob_count,
                         },
                     ),
-                );
+                )
             }
         }
 
@@ -623,7 +636,7 @@ where
                 return TransactionValidationOutcome::Invalid(
                     transaction,
                     InvalidTransactionError::SignerAccountHasBytecode.into(),
-                );
+                )
             }
         }
 
@@ -635,7 +648,7 @@ where
                 transaction,
                 InvalidTransactionError::NonceNotConsistent { tx: tx_nonce, state: account.nonce }
                     .into(),
-            );
+            )
         }
 
         // This is where balance is normally checked
@@ -652,7 +665,7 @@ where
                     return TransactionValidationOutcome::Invalid(
                         transaction,
                         InvalidTransactionError::TxTypeNotSupported.into(),
-                    );
+                    )
                 }
                 EthBlobTransactionSidecar::Missing => {
                     // This can happen for re-injected blob transactions (on re-org), since the blob
@@ -667,7 +680,7 @@ where
                             InvalidPoolTransactionError::Eip4844(
                                 Eip4844PoolTransactionError::MissingEip4844BlobSidecar,
                             ),
-                        );
+                        )
                     }
                 }
                 EthBlobTransactionSidecar::Present(blob) => {
@@ -678,7 +691,7 @@ where
                             InvalidPoolTransactionError::Eip4844(
                                 Eip4844PoolTransactionError::InvalidEip4844Blob(err),
                             ),
-                        );
+                        )
                     }
                     // store the extracted blob
                     maybe_blob_sidecar = Some(blob);

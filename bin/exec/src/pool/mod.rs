@@ -209,6 +209,7 @@ mod test {
     use crate::config::transaction::IvmTransactionAllowConfig;
 
     use super::*;
+    use alloy_consensus::Transaction;
     use alloy_eips::eip2718::Decodable2718;
     use alloy_primitives::{hex, U256};
     use reth_chainspec::MAINNET;
@@ -229,7 +230,7 @@ mod test {
         let data = hex::decode(raw).unwrap();
         let tx = PooledTransaction::decode_2718(&mut data.as_ref()).unwrap();
 
-        tx.try_into_ecrecovered().unwrap().into()
+        EthPooledTransaction::from_pooled(tx.try_into_recovered().unwrap())
     }
 
     // https://etherscan.io/tx/0xbcc1267b368fb7ec3b3dbe4ea4adc16159cfba36c425bd2b58880c2c7f4ee557
@@ -239,7 +240,7 @@ mod test {
         let data = hex::decode(raw).unwrap();
         let tx = PooledTransaction::decode_2718(&mut data.as_ref()).unwrap();
 
-        tx.try_into_ecrecovered().unwrap().into()
+        EthPooledTransaction::from_pooled(tx.try_into_recovered().unwrap())
     }
 
     fn assert_outcome_tx_type_not_supported(

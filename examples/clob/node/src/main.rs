@@ -1,7 +1,6 @@
 //! The Infinity CLOB node binary.
 
-use alloy::{eips::BlockNumberOrTag, hex};
-use clob_node::K256LocalSigner;
+use alloy::{eips::BlockNumberOrTag, hex, signers::local::PrivateKeySigner};
 use std::env;
 
 // Small for now to get to failure cases quicker
@@ -36,7 +35,7 @@ async fn main() -> eyre::Result<()> {
     let operator_signer = {
         let operator_key = env::var(CLOB_OPERATOR_KEY).unwrap_or_else(|_| DEV_SECRET.to_string());
         let decoded = hex::decode(operator_key).unwrap();
-        K256LocalSigner::from_slice(&decoded).unwrap()
+        PrivateKeySigner::from_slice(&decoded).unwrap()
     };
 
     let clob_consumer_addr = {
