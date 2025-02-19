@@ -1,23 +1,21 @@
 //! Configuration for IVM's EVM execution environment.
 
 use alloy_primitives::Address;
-use builder::ivm_gas_handler_register;
+use gas::ivm_gas_handler_register;
 use reth_chainspec::ChainSpec;
-
 use reth_evm_ethereum::{EthEvm, EthEvmConfig};
 // use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
+use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, Database, NextBlockEnvAttributes};
 use reth_node_builder::{
     components::ExecutorBuilder, BuilderContext, FullNodeTypes, NodeTypesWithEngine,
 };
 use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory};
 use reth_primitives::{EthPrimitives, Header, TransactionSigned};
-
-use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, Database, NextBlockEnvAttributes};
 use reth_revm::{inspector_handle_register, EvmBuilder};
 use revm_primitives::{CfgEnvWithHandlerCfg, EVMError, HaltReason, HandlerCfg, SpecId, TxEnv};
 use std::{convert::Infallible, sync::Arc};
 
-pub mod builder;
+pub mod gas;
 
 /// IVM's EVM configuration
 #[derive(Debug, Clone)]
