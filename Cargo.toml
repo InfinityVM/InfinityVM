@@ -230,7 +230,7 @@ sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
 sp1-zkvm = { version = "4", features = ["libm", "lib", "bigint-rug"], default-features = false }
-sp1-sdk = { version = "4", default-features = false }
+sp1-sdk = { version = "4", default-features = false, features = ["bigint-rug"] }
 sp1-build = "4"
 sp1-core-executor = { version = "4", features = ["bigint-rug"] }
 
