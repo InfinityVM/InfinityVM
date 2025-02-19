@@ -1,6 +1,7 @@
 //! Configuration for IVM's EVM execution environment.
 
 use alloy_primitives::Address;
+use builder::ivm_gas_handler_register;
 use reth_chainspec::ChainSpec;
 
 use reth_evm_ethereum::{EthEvm, EthEvmConfig};
@@ -12,9 +13,8 @@ use reth_node_ethereum::{BasicBlockExecutorProvider, EthExecutionStrategyFactory
 use reth_primitives::{EthPrimitives, Header, TransactionSigned};
 
 use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, Database, NextBlockEnvAttributes};
-use reth_revm::EvmBuilder;
+use reth_revm::{inspector_handle_register, EvmBuilder};
 use revm_primitives::{CfgEnvWithHandlerCfg, EVMError, HaltReason, HandlerCfg, SpecId, TxEnv};
-
 use std::{convert::Infallible, sync::Arc};
 
 pub mod builder;
@@ -67,8 +67,6 @@ impl ConfigureEvm for IvmEvmConfig {
     // }
 
     fn evm_with_env<DB: Database>(&self, db: DB, evm_env: EvmEnv) -> Self::Evm<'_, DB, ()> {
-        // TODO
-        // IvmEvmBuilder::new(db, ()).build().into()
         let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
             cfg_env: evm_env.cfg_env,
             handler_cfg: HandlerCfg::new(evm_env.spec),
@@ -78,17 +76,10 @@ impl ConfigureEvm for IvmEvmConfig {
             .with_db(db)
             .with_cfg_env_with_handler_cfg(cfg_env_with_handler_cfg)
             .with_block_env(evm_env.block_env)
+            .append_handler_register(ivm_gas_handler_register)
             .build()
             .into()
     }
-
-    // fn evm_with_inspector<DB, I>(&self, db: DB, inspector: I) -> Evm<'_, I, DB>
-    // where
-    //     DB: Database,
-    //     I: GetInspector<DB>,
-    // {
-    //     IvmEvmBuilder::new(db, ()).build_with_inspector(inspector)
-    // }
 
     fn evm_with_env_and_inspector<DB, I>(
         &self,
@@ -114,7 +105,8 @@ impl ConfigureEvm for IvmEvmConfig {
             .with_external_context(inspector)
             .with_cfg_env_with_handler_cfg(cfg_env_with_handler_cfg)
             .with_block_env(evm_env.block_env)
-            // .append_handler_register(inspector_handle_register)
+            .append_handler_register(inspector_handle_register)
+            .append_handler_register(ivm_gas_handler_register)
             .build()
             .into()
     }
@@ -181,9 +173,6 @@ mod test {
 
     // Exact gas used by the transaction returned by `transaction_with_signer`.
     const EXACT_GAS_USED: u64 = 21080;
-    // This was introduced when bumping revm from 18.0.0 to 19.2.0 (along with bumping reth).
-    // https://github.com/InfinityVM/InfinityVM/issues/448
-    const UNKNOWN_GAS_REGRESSION: u64 = 120;
 
     fn executor_provider(
         chain_spec: Arc<ChainSpec>,
@@ -266,7 +255,7 @@ mod test {
 
         let result = evm.transact(tx_env).unwrap();
 
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
 
         let account = result.state.get(&signer_address).unwrap();
 
@@ -298,7 +287,7 @@ mod test {
             evm_config.tx_env(&transaction_signed, transaction_signed.recover_signer().unwrap());
 
         let result = evm.transact(tx_env).unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -317,7 +306,7 @@ mod test {
             evm_config.tx_env(&transaction_signed2, transaction_signed2.recover_signer().unwrap());
 
         let result = evm.transact(tx_env).unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
 
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
@@ -335,7 +324,7 @@ mod test {
             evm_config.tx_env(&transaction_signed3, transaction_signed3.recover_signer().unwrap());
 
         let result = evm.transact(tx_env).unwrap();
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
         let account = result.state.get(&signer_address).unwrap();
         assert_eq!(
             account.info,
@@ -351,7 +340,7 @@ mod test {
         let tx_env =
             evm_config.tx_env(&transaction_signed4, transaction_signed4.recover_signer().unwrap());
 
-        assert_eq!(result.result.gas_used(), EXACT_GAS_USED + UNKNOWN_GAS_REGRESSION);
+        assert_eq!(result.result.gas_used(), EXACT_GAS_USED);
 
         let result = evm.transact(tx_env).unwrap();
 
@@ -722,16 +711,11 @@ mod test {
         let BlockExecutionError::Validation(BlockValidationError::EVM { error, .. }) = err else {
             panic!()
         };
-        // let error = error.downcast::<EVMError<_>>();
-        // let EVMError::Transaction(InvalidTransaction::NonceTooHigh { tx, state }) =
-        //     error.unwrap().as_ref()
-        // else {
-        //     panic!()
-        // };
 
-        assert_eq!(error.to_string(), String::new());
-        // assert_eq!(*state, 5);
-        // assert_eq!(*tx, 10);
+        assert_eq!(
+            error.to_string(),
+            "transaction validation error: nonce 10 too high, expected 5".to_string()
+        );
     }
 
     #[test]
@@ -771,16 +755,10 @@ mod test {
             panic!()
         };
 
-        // let error = error.downcast::<EVMError<_>>();
-        // let EVMError::Transaction(InvalidTransaction::NonceTooLow { tx, state }) =
-        //     error.unwrap().as_ref()
-        // else {
-        //     panic!()
-        // };
-
-        assert_eq!(error.to_string(), String::new());
-        // assert_eq!(*state, 420);
-        // assert_eq!(*tx, 69);
+        assert_eq!(
+            error.to_string(),
+            "transaction validation error: nonce 69 too low, expected 420".to_string()
+        );
     }
 
     #[test]
