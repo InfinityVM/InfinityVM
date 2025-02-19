@@ -110,8 +110,8 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
         .port(port)
         // 1000 dev accounts generated and configured
         .args(["-a", "1000", "--hardfork", "cancun"])
-        .try_spawn()
-        .unwrap();
+        .keep_stdout()
+        .spawn();
 
     let job_manager_deploy = job_manager_deploy(anvil.endpoint()).await;
 

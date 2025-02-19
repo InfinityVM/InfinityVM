@@ -10,15 +10,6 @@ checksum = "250f629c0161ad8107cf89319e990051fae62832fd343083bea452d93e2205fd"
 
 [[package]]
 name = "alloy"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "689e271a72a5c0b05bfdf41c9d0424f11e9df721385dc5bd9045a51f9ea3313b"
-dependencies = [
- "alloy-core",
-]
-
-[[package]]
-name = "alloy"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6d2cc5aeb8dfa1e451a49fac87bc4b86c5de40ebea153ed88e83eb92b8151e74"
@@ -397,7 +388,7 @@ checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 name = "ivm-abi"
 version = "0.1.1"
 dependencies = [
- "alloy 0.11.1",
+ "alloy",
 ]
 
 [[package]]
@@ -439,7 +430,7 @@ checksum = "9afa463f5405ee81cdb9cc2baf37e08ec7e4c8209442b5d72c04cfb2cd6e6286"
 name = "matching-game-core"
 version = "0.1.0"
 dependencies = [
- "alloy 0.11.1",
+ "alloy",
  "bincode",
  "borsh",
  "kairos-trie",
@@ -451,7 +442,7 @@ dependencies = [
 name = "matching-game-sp1-guest"
 version = "0.1.0"
 dependencies = [
- "alloy 0.8.0",
+ "alloy",
  "bincode",
  "ivm-abi",
  "kairos-trie",
