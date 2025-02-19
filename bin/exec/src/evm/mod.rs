@@ -60,10 +60,6 @@ impl ConfigureEvm for IvmEvmConfig {
     type EvmError<DBError: core::error::Error + Send + Sync + 'static> = EVMError<DBError>;
     type HaltReason = HaltReason;
 
-    // fn evm<DB: Database>(&self, db: DB) -> Evm<'_, Self::DefaultExternalContext<'_>, DB> {
-    //     IvmEvmBuilder::new(db, ()).build()
-    // }
-
     fn evm_with_env<DB: Database>(&self, db: DB, evm_env: EvmEnv) -> Self::Evm<'_, DB, ()> {
         let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
             cfg_env: evm_env.cfg_env,
