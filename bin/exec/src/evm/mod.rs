@@ -4,7 +4,6 @@ use alloy_primitives::Address;
 use gas::ivm_gas_handler_register;
 use reth_chainspec::ChainSpec;
 use reth_evm_ethereum::{EthEvm, EthEvmConfig};
-// use reth_node_api::{ConfigureEvmEnv, NextBlockEnvAttributes};
 use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, Database, NextBlockEnvAttributes};
 use reth_node_builder::{
     components::ExecutorBuilder, BuilderContext, FullNodeTypes, NodeTypesWithEngine,
