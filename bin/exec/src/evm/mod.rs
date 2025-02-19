@@ -3,8 +3,8 @@
 use alloy_primitives::Address;
 use gas::ivm_gas_handler_register;
 use reth_chainspec::ChainSpec;
-use reth_evm_ethereum::{EthEvm, EthEvmConfig};
 use reth_evm::{env::EvmEnv, ConfigureEvm, ConfigureEvmEnv, Database, NextBlockEnvAttributes};
+use reth_evm_ethereum::{EthEvm, EthEvmConfig};
 use reth_node_builder::{
     components::ExecutorBuilder, BuilderContext, FullNodeTypes, NodeTypesWithEngine,
 };
@@ -84,7 +84,6 @@ impl ConfigureEvm for IvmEvmConfig {
         DB: Database,
         I: revm::GetInspector<DB>,
     {
-
         let cfg_env_with_handler_cfg = CfgEnvWithHandlerCfg {
             cfg_env: evm_env.cfg_env,
             handler_cfg: HandlerCfg::new(evm_env.spec),
