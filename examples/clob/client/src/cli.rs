@@ -9,7 +9,7 @@ use alloy::{
 use clap::{Args, Parser, Subcommand};
 use clob_contracts::clob_consumer::ClobConsumer;
 use clob_core::api::{AddOrderRequest, CancelOrderRequest, WithdrawRequest};
-use clob_test_utils::{mint_and_approve, AnvilClob};
+use clob_test_utils::{mint_and_approve, IvmExecClob};
 use eyre::OptionExt;
 use ivm_contracts::get_default_deploy_info;
 use ivm_test_utils::{get_account, get_signers};
@@ -130,7 +130,7 @@ impl Cli {
             Commands::MintAndApprove(a) => {
                 let deploy_info = get_default_deploy_info()?;
 
-                let info = AnvilClob {
+                let info = IvmExecClob {
                     // clob signer doesn't matter
                     clob_signer: get_signers(6)[5].clone(),
                     clob_consumer: deploy_info.clob_consumer,

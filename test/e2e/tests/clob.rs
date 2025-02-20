@@ -37,8 +37,8 @@ async fn state_job_submission_clob_consumer() {
         let clob_state0 = ClobState::default();
 
         let keys = get_signers(10);
-        let alice_key: PrivateKeySigner = keys[8].clone().into();
-        let bob_key: PrivateKeySigner = keys[9].clone().into();
+        let alice_key: PrivateKeySigner = keys[8].clone();
+        let bob_key: PrivateKeySigner = keys[9].clone();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
         let alice_wallet = EthereumWallet::new(alice_key);
@@ -80,8 +80,8 @@ async fn state_job_submission_clob_consumer() {
         let call = alice_quote.approve(clob.clob_consumer, U256::from(1_000));
         let r4 = call.send().await.unwrap().get_receipt();
         let bob_provider = ProviderBuilder::new()
-        .wallet(bob_wallet)
-        .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
+            .wallet(bob_wallet)
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
         let call = bob_quote.approve(clob.clob_consumer, U256::from(1_000));
         let r5 = call.send().await.unwrap().get_receipt();
@@ -246,8 +246,8 @@ async fn clob_node_e2e() {
 
         // Setup ready to use on chain accounts for Alice & Bob
         let keys = get_signers(10);
-        let alice_key: PrivateKeySigner = keys[8].clone().into();
-        let bob_key: PrivateKeySigner = keys[9].clone().into();
+        let alice_key: PrivateKeySigner = keys[8].clone();
+        let bob_key: PrivateKeySigner = keys[9].clone();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
         let alice_wallet = EthereumWallet::new(alice_key);
@@ -471,7 +471,7 @@ async fn cancel_works() {
         mint_and_approve(&clob, ivm_exec.ivm_exec.endpoint(), 10).await;
 
         let keys = get_signers(10);
-        let bob_key: PrivateKeySigner = keys[9].clone().into();
+        let bob_key: PrivateKeySigner = keys[9].clone();
         let bob: [u8; 20] = bob_key.address().into();
         let bob_wallet = EthereumWallet::new(bob_key);
 

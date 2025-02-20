@@ -1,4 +1,4 @@
-//! Locally spin up the coprocessor node, anvil, and the clob.
+//! Locally spin up the coprocessor node, `ivm_exec`, and the clob.
 
 use alloy::primitives::hex;
 use clob_node::{
@@ -6,18 +6,18 @@ use clob_node::{
     CLOB_JOB_SYNC_START, CLOB_LISTEN_ADDR, CLOB_OPERATOR_KEY,
 };
 use clob_programs::{CLOB_ELF, CLOB_PROGRAM_ID};
-use clob_test_utils::{anvil_with_clob_consumer, mint_and_approve};
+use clob_test_utils::{ivm_exec_with_clob_consumer, mint_and_approve};
 use intensity_test_programs::{INTENSITY_TEST_ELF, INTENSITY_TEST_PROGRAM_ID};
 use ivm_contracts::{DeployInfo, DEFAULT_DEPLOY_INFO};
-use ivm_mock_consumer::anvil_with_mock_consumer;
+use ivm_mock_consumer::ivm_exec_with_mock_consumer;
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, SubmitProgramRequest, VmType};
-use ivm_test_utils::{anvil_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
+use ivm_test_utils::{ivm_exec_with_job_manager, sleep_until_bound_config, ProcKill, LOCALHOST};
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 use std::{fs::File, process::Command};
 use tokio::signal::unix::{signal, SignalKind};
 use tracing::{info, warn};
 
-const ANVIL_PORT: u16 = 8545;
+const IVM_EXEC_PORT: u16 = 8545;
 const COPROCESSOR_GRPC_PORT: u16 = 50420;
 const COPROCESSOR_PROM_PORT: u16 = 50069;
 const HTTP_GATEWAY_LISTEN_PORT: u16 = 8080;
@@ -27,15 +27,16 @@ const CLOB_PORT: u16 = 40420;
 async fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::new();
     tracing::subscriber::set_global_default(subscriber).unwrap();
+    std::fs::create_dir_all("./logs").unwrap();
 
-    info!("Starting anvil on port: {ANVIL_PORT}");
-    let job_manager_deploy = anvil_with_job_manager(ANVIL_PORT).await;
-    sleep_until_bound_config(ANVIL_PORT, 30).await.unwrap();
+    info!("Starting ivm-exec on port: {IVM_EXEC_PORT}");
+    let job_manager_deploy =
+        ivm_exec_with_job_manager(IVM_EXEC_PORT, Some("logs/ivm_exec_logs".into())).await;
+    sleep_until_bound_config(IVM_EXEC_PORT, 30).await.unwrap();
 
     let job_manager = job_manager_deploy.job_manager.to_string();
-    let chain_id = job_manager_deploy.anvil.chain_id().to_string();
-    let http_rpc_url = job_manager_deploy.anvil.endpoint();
-    let ws_rpc_url = job_manager_deploy.anvil.ws_endpoint();
+    let http_rpc_url = job_manager_deploy.ivm_exec.endpoint();
+    let ws_rpc_url = job_manager_deploy.ivm_exec.ws_endpoint();
 
     let coproc_grpc = format!("{LOCALHOST}:{COPROCESSOR_GRPC_PORT}");
     let http_gateway_listen_address = format!("{LOCALHOST}:{HTTP_GATEWAY_LISTEN_PORT}");
@@ -79,8 +80,6 @@ async fn main() {
         .arg(&ws_rpc_url)
         .arg("--job-manager-address")
         .arg(job_manager)
-        .arg("--chain-id")
-        .arg(chain_id)
         .arg("--db-dir")
         .arg(coproc_db_dir.path())
         .stdout(coproc_stdout_logs)
@@ -92,11 +91,11 @@ async fn main() {
     info!("coprocessor-node process ID: {}", proc.0.id());
 
     info!("Deploying MockConsumer contract");
-    let mock_consumer = anvil_with_mock_consumer(&job_manager_deploy).await;
+    let mock_consumer = ivm_exec_with_mock_consumer(&job_manager_deploy).await;
     let mock_consumer_addr = mock_consumer.mock_consumer.to_string();
     info!(?mock_consumer_addr, "MockConsumer deployed at");
 
-    let clob_deploy = anvil_with_clob_consumer(&job_manager_deploy).await;
+    let clob_deploy = ivm_exec_with_clob_consumer(&job_manager_deploy).await;
     let clob_db_dir = tempfile::Builder::new().prefix("infinity-clob-local-db").tempdir().unwrap();
     let clob_http = format!("{LOCALHOST}:{CLOB_PORT}");
     let batcher_duration_ms = 1000;

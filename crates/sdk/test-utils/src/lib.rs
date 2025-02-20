@@ -140,7 +140,7 @@ pub struct IvmExecJobManager {
     pub coprocessor_operator: PrivateKeySigner,
 }
 
-/// Deploy ivm_exec_with_job_manager
+/// Deploy `ivm_exec_with_job_manager`
 pub async fn ivm_exec_with_job_manager(port: u16, logdir: Option<PathBuf>) -> IvmExecJobManager {
     let exec = IvmExecInstance::try_spawn(port, logdir).unwrap();
 
@@ -218,7 +218,7 @@ impl IvmExecInstance {
 
             let mut line = String::new();
             reader.read_line(&mut line)?;
-            if line.len() != 0 {
+            if !line.is_empty() {
                 debug!(target: "ivm::exec::test", line);
             }
             if line.contains("Consensus engine initialized") {

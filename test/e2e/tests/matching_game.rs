@@ -38,8 +38,8 @@ async fn state_job_submission_matching_game_consumer() {
             EthereumWallet::from(matching_game.matching_game_signer.clone());
 
         let keys = get_signers(10);
-        let alice_key: PrivateKeySigner = keys[8].clone().into();
-        let bob_key: PrivateKeySigner = keys[9].clone().into();
+        let alice_key: PrivateKeySigner = keys[8].clone();
+        let bob_key: PrivateKeySigner = keys[9].clone();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
 
@@ -188,8 +188,8 @@ async fn matching_game_server_e2e() {
 
         // Setup ready to use on chain accounts for Alice & Bob
         let keys = get_signers(10);
-        let alice_key: PrivateKeySigner = keys[8].clone().into();
-        let bob_key: PrivateKeySigner = keys[9].clone().into();
+        let alice_key: PrivateKeySigner = keys[8].clone();
+        let bob_key: PrivateKeySigner = keys[9].clone();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
 

@@ -19,12 +19,11 @@ use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 async fn pending_jobs_works() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
-        let ivm_exec = args.ivm_exec;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
 
         let keys = get_signers(6);
-        let random_user: PrivateKeySigner = keys[5].clone().into();
+        let random_user: PrivateKeySigner = keys[5].clone();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -127,12 +126,11 @@ async fn pending_jobs_works() {
 async fn pending_jobs_shows_stuck_jobs() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
-        let ivm_exec = args.ivm_exec;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
 
         let keys = get_signers(6);
-        let random_user: PrivateKeySigner = keys[5].clone().into();
+        let random_user: PrivateKeySigner = keys[5].clone();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {

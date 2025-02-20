@@ -1,20 +1,18 @@
 //! E2E tests and helpers.
 use alloy::eips::BlockNumberOrTag;
-use clob_test_utils::{anvil_with_clob_consumer, ivm_exec_with_clob_consumer, AnvilClob};
+use clob_test_utils::{ivm_exec_with_clob_consumer, IvmExecClob};
 use futures::future::FutureExt;
 use ivm_coproc::{
     node::{NodeConfig, WsConfig},
     relayer::RelayConfig,
     MAX_DA_PER_JOB,
 };
-use ivm_mock_consumer::{anvil_with_mock_consumer, ivm_exec_with_mock_consumer, AnvilMockConsumer};
+use ivm_mock_consumer::{ivm_exec_with_mock_consumer, IvmExecMockConsumer};
 use ivm_proto::coprocessor_node_client::CoprocessorNodeClient;
 use ivm_test_utils::{
     get_localhost_port, ivm_exec_with_job_manager, sleep_until_bound, IvmExecJobManager, LOCALHOST,
 };
-use matching_game_server::test_utils::{
-    anvil_with_matching_game_consumer, ivm_exec_with_matching_game_consumer, AnvilMatchingGame,
-};
+use matching_game_server::test_utils::{ivm_exec_with_matching_game_consumer, AnvilMatchingGame};
 use rand::Rng;
 use reth_db::DatabaseEnv;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
@@ -25,9 +23,9 @@ use tonic::transport::Channel;
 #[derive(Debug)]
 pub struct Args {
     /// `MockConsumer` deployment.
-    pub mock_consumer: Option<AnvilMockConsumer>,
+    pub mock_consumer: Option<IvmExecMockConsumer>,
     /// `ClobConsumer` deployment.
-    pub clob_consumer: Option<AnvilClob>,
+    pub clob_consumer: Option<IvmExecClob>,
     /// `MatchingGameConsumer` deployment.
     pub matching_game_consumer: Option<AnvilMatchingGame>,
     /// HTTP endpoint the clob node is listening on.

@@ -516,12 +516,11 @@ impl JobRelayer {
                 info!(
                     blob_count,
                     job.nonce,
-                    consumer=hex::encode(&job.consumer_address),
+                    consumer = hex::encode(&job.consumer_address),
                     "sending tx with blobs"
                 );
 
-                self
-                    .job_manager
+                self.job_manager
                     .submitResultForOffchainJob(
                         job.result_with_metadata.into(),
                         job.zkvm_operator_signature.into(),
@@ -567,7 +566,7 @@ impl JobRelayer {
                 Error::TxInclusion(error)
             })?;
 
-            info!(
+        info!(
                 receipt.transaction_index,
                 receipt.block_number,
                 receipt.blob_gas_used,
@@ -600,7 +599,7 @@ mod test {
     use ivm_contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
     use ivm_mock_consumer::{
         ivm_exec_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
-        AnvilMockConsumer,
+        IvmExecMockConsumer,
     };
     use prometheus::Registry;
 
@@ -617,13 +616,13 @@ mod test {
         let anvil_port = get_localhost_port();
         let ivm_exec: ivm_test_utils::IvmExecJobManager =
             ivm_exec_with_job_manager(anvil_port, None).await;
-        let AnvilMockConsumer { mock_consumer, mock_consumer_signer: _ } =
+        let IvmExecMockConsumer { mock_consumer, mock_consumer_signer: _ } =
             ivm_exec_with_mock_consumer(&ivm_exec).await;
 
         let IvmExecJobManager { ivm_exec, job_manager, relayer, coprocessor_operator } = ivm_exec;
         let keys = get_signers(10);
 
-        let user: PrivateKeySigner = keys[5].clone().into();
+        let user: PrivateKeySigner = keys[5].clone();
         let user_wallet = EthereumWallet::from(user);
 
         let consumer_provider = ProviderBuilder::new()

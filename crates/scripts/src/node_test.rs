@@ -35,7 +35,7 @@ const MATCHING_GAME_CONSUMER_ADDR: &str = "0x5793a71D3eF074f71dCC21216Dbfd5C0e78
 const OFFCHAIN_SIGNER_PRIVATE_KEY: &str =
     "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
 const ANVIL_IP: &str = "";
-const ANVIL_PORT: u16 = 8545;
+const IVM_EXEC_PORT: u16 = 8545;
 
 #[tokio::main]
 async fn main() {
@@ -98,7 +98,7 @@ async fn main() {
     }
 
     let provider = ProviderBuilder::new().on_http(
-        url::Url::parse(format!("http://{ANVIL_IP}:{ANVIL_PORT}").as_str()).expect("Valid URL"),
+        url::Url::parse(format!("http://{ANVIL_IP}:{IVM_EXEC_PORT}").as_str()).expect("Valid URL"),
     );
     let decoded = hex::decode(OFFCHAIN_SIGNER_PRIVATE_KEY).unwrap();
     let offchain_signer = PrivateKeySigner::from_slice(&decoded).unwrap();

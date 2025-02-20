@@ -12,7 +12,7 @@ use clob_core::{api::Request, tick, BorshKeccak256, ClobState};
 use ivm_contracts::{
     proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use ivm_test_utils::{get_signers, AnvilJobManager, IvmExecJobManager};
+use ivm_test_utils::{get_signers, IvmExecJobManager};
 
 /// `E2EMockERC20.sol` bindings
 pub mod mock_erc20 {
@@ -28,7 +28,7 @@ pub mod mock_erc20 {
 /// Output form [`anvil_with_clob_consumer`]
 /// TODO: rename
 #[derive(Debug)]
-pub struct AnvilClob {
+pub struct IvmExecClob {
     /// Offchain signer for clob.
     pub clob_signer: PrivateKeySigner,
     /// Address of the clob consumer contract
@@ -39,21 +39,14 @@ pub struct AnvilClob {
     pub base_erc20: Address,
 }
 
-/// Deploy `ClobConsumer` to anvil instance.
-/// TODO: delete
-pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
-    let AnvilJobManager { anvil, job_manager, .. } = anvil;
-    clob_consumer_deploy(anvil.endpoint(), job_manager).await
-}
-
 /// Deploy `ClobConsumer` to ivm-exec instance.
-pub async fn ivm_exec_with_clob_consumer(ivm_exec: &IvmExecJobManager) -> AnvilClob {
+pub async fn ivm_exec_with_clob_consumer(ivm_exec: &IvmExecJobManager) -> IvmExecClob {
     let IvmExecJobManager { ivm_exec, job_manager, .. } = ivm_exec;
     clob_consumer_deploy(ivm_exec.endpoint(), job_manager).await
 }
 
 /// Deploy clob consumer contracts.
-pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> AnvilClob {
+pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> IvmExecClob {
     let signers = get_signers(6);
 
     let consumer_owner: PrivateKeySigner = signers[4].clone();
@@ -110,11 +103,11 @@ pub async fn clob_consumer_deploy(rpc_url: String, job_manager: &Address) -> Anv
     .await
     .unwrap();
 
-    AnvilClob { clob_signer, clob_consumer: *clob_consumer.address(), quote_erc20, base_erc20 }
+    IvmExecClob { clob_signer, clob_consumer: *clob_consumer.address(), quote_erc20, base_erc20 }
 }
 
 /// Mint erc20s and approve transfers to the first `count` anvil auto seeded accounts.
-pub async fn mint_and_approve(clob: &AnvilClob, http_endpoint: String, count: usize) {
+pub async fn mint_and_approve(clob: &IvmExecClob, http_endpoint: String, count: usize) {
     let signers: Vec<_> = get_signers(count).into_iter().map(EthereumWallet::from).collect();
 
     for signer in signers {

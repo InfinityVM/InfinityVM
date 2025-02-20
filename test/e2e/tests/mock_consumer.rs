@@ -40,7 +40,7 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         let mock_user_address = Address::repeat_byte(69);
 
         let keys = get_signers(6);
-        let random_user: PrivateKeySigner = keys[5].clone().into();
+        let random_user: PrivateKeySigner = keys[5].clone();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -172,12 +172,11 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 async fn web2_parallel_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
-        let ivm_exec = args.ivm_exec;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
 
         let keys = get_signers(6);
-        let random_user: PrivateKeySigner = keys[5].clone().into();
+        let random_user: PrivateKeySigner = keys[5].clone();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -260,7 +259,7 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         let mock_user_address = Address::repeat_byte(69);
 
         let keys = get_signers(6);
-        let random_user: PrivateKeySigner = keys[5].clone().into();
+        let random_user: PrivateKeySigner = keys[5].clone();
         let random_user_wallet = EthereumWallet::from(random_user);
 
         // Seed coprocessor-node with ELF
