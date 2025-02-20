@@ -1,7 +1,11 @@
 //! Collects requests into batches and submits them to the coprocessor node at some regular
 //! cadence.
-use crate::{state::ServerState, K256LocalSigner};
-use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
+use crate::state::ServerState;
+use alloy::{
+    primitives::utils::keccak256,
+    signers::{local::PrivateKeySigner, Signer},
+    sol_types::SolValue,
+};
 use eyre::OptionExt;
 use ivm_abi::{abi_encode_offchain_job_request, JobParams, StatefulAppOnchainInput};
 use ivm_proto::{coprocessor_node_client::CoprocessorNodeClient, RelayStrategy, SubmitJobRequest};
@@ -38,7 +42,7 @@ async fn ensure_initialized(state: Arc<ServerState>) -> eyre::Result<()> {
 pub async fn run_batcher(
     state: Arc<ServerState>,
     sleep_duration: Duration,
-    signer: K256LocalSigner,
+    signer: PrivateKeySigner,
     cn_grpc_url: String,
     consumer_addr: [u8; 20],
 ) -> eyre::Result<()> {

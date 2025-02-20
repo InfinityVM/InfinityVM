@@ -1,6 +1,13 @@
 //! Utilities for setting up tests.
 
-use std::net::TcpListener;
+use eyre::eyre;
+use std::{
+    io::{BufRead, BufReader},
+    net::TcpListener,
+    path::PathBuf,
+    process::Command,
+    time::Instant,
+};
 
 use crate::wallet::Wallet;
 use alloy::{
@@ -8,24 +15,20 @@ use alloy::{
     node_bindings::{Anvil, AnvilInstance},
     primitives::{keccak256, Address},
     providers::{ext::AnvilApi, ProviderBuilder},
-    signers::{
-        k256::ecdsa::SigningKey,
-        local::{LocalSigner, PrivateKeySigner},
-        Signer,
-    },
+    signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
 };
+use eyre::{OptionExt, WrapErr};
 use ivm_abi::{abi_encode_offchain_job_request, JobParams};
 use ivm_contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
 use rand::Rng;
 use tokio::time::{sleep, Duration};
+use tracing::debug;
 use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 pub mod wallet;
-
-type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// Localhost IP address
 pub const LOCALHOST: &str = "127.0.0.1";
@@ -117,26 +120,153 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
         .port(port)
         // 1000 dev accounts generated and configured
         .args(["-a", "1000", "--hardfork", "cancun"])
-        .try_spawn()
-        .unwrap();
+        .spawn();
 
     let job_manager_deploy = job_manager_deploy(anvil.endpoint()).await;
 
     job_manager_deploy.into_anvil_job_manager(anvil)
 }
 
+/// Ivm Exec deployment with job manager
+#[derive(Debug)]
+pub struct IvmExecJobManager {
+    /// ivm-exec http instance
+    pub ivm_exec: IvmExecInstance,
+    /// Address of the job manager contract
+    pub job_manager: Address,
+    /// Relayer private key
+    pub relayer: PrivateKeySigner,
+    /// Coprocessor operator private key
+    pub coprocessor_operator: PrivateKeySigner,
+}
+
+/// Deploy `ivm_exec_with_job_manager`
+pub async fn ivm_exec_with_job_manager(port: u16, logdir: Option<PathBuf>) -> IvmExecJobManager {
+    let exec = IvmExecInstance::try_spawn(port, logdir).unwrap();
+
+    let job_manager = job_manager_deploy(exec.endpoint()).await;
+
+    job_manager.into_ivm_exec_job_manager(exec)
+}
+
+/// Handle to an instance of `ivm-exec`. Intended to be used similar to
+/// alloys' `AnvilInstance`.
+///
+/// This will kill its process on drop.
+#[derive(Debug)]
+pub struct IvmExecInstance {
+    child: std::process::Child,
+    port: u16,
+}
+
+impl IvmExecInstance {
+    /// Try to spawn a new ivm exec instance
+    pub fn try_spawn(port: u16, logdir: Option<PathBuf>) -> Result<Self, eyre::Error> {
+        const TIMEOUT_SECONDS: u64 = 90;
+        let mut cmd = Command::new("ivm-exec");
+        cmd.stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::inherit());
+
+        let datadir =
+            tempfile::Builder::new().prefix("ivm-exec-instance-datadir").tempdir().unwrap();
+
+        let logdir = logdir.unwrap_or_else(|| {
+            tempfile::Builder::new()
+                .prefix(&format!("ivm-exec-test-logs-{}", port))
+                .tempdir()
+                .unwrap()
+                .into_path()
+        });
+        // We disable discovery, but it still requires us to have a port
+        let ignored_discover_port = get_localhost_port();
+        let auth_port = get_localhost_port();
+
+        println!("ivm-exec test instance logs can be found in {}", logdir.display());
+        cmd.arg("node");
+        // Dev node that allows txs from anyone
+        cmd.arg("--dev").arg("--tx-allow.all");
+        // Fast block times to help tests go faster
+        cmd.arg("--dev.block-time").arg("500ms");
+        cmd.arg("--datadir").arg(datadir.into_path());
+        // Enable WS and HTTP rpc endpoints
+        cmd.arg("--http").arg("--ws");
+        // Explicitly enable most of the HTTP rpc modules
+        cmd.arg("--http.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
+        cmd.arg("--ws.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
+        // Disable discovery and ipc so we don't have to worry about allocation for port/socket
+        cmd.arg("--disable-discovery");
+        cmd.arg("--ipcdisable");
+        // If we don't do this it will complain about collisions on port 30303
+        cmd.arg("--port").arg(ignored_discover_port.to_string());
+        // Set the port
+        cmd.arg("--http.port").arg(port.to_string());
+        cmd.arg("--ws.port").arg(port.to_string());
+        cmd.arg("--authrpc.port").arg(auth_port.to_string());
+        // Configure log files - we log to stdout and the files
+        cmd.arg("--log.stdout.filter").arg("info");
+        cmd.arg("--log.file.directory").arg(logdir);
+        cmd.arg("--log.file.filter").arg("info");
+
+        let mut child = cmd.spawn().wrap_err(
+            "failed to spawn ivm-exec. do you you have ivm-exec installed an in your path?",
+        )?;
+
+        let stdout = child.stdout.take().ok_or_eyre("no std out")?;
+        let mut reader = BufReader::new(stdout);
+        let start = Instant::now();
+        loop {
+            if start + Duration::from_secs(TIMEOUT_SECONDS) <= Instant::now() {
+                return Err(eyre!("timed out while waiting for ivm-exec test to start"));
+            }
+
+            let mut line = String::new();
+            reader.read_line(&mut line)?;
+            if !line.is_empty() {
+                debug!(target: "ivm::exec::test", line);
+            }
+            if line.contains("Consensus engine initialized") {
+                debug!(target: "ivm::exec::test", "ivm-exec test is ready: consensus engine initialized");
+                break;
+            }
+        }
+
+        Ok(Self { port, child })
+    }
+
+    /// Returns the port of this instance
+    pub const fn port(&self) -> u16 {
+        self.port
+    }
+
+    /// Returns the HTTP endpoint of this instance
+    #[doc(alias = "http_endpoint")]
+    pub fn endpoint(&self) -> String {
+        format!("http://localhost:{}", self.port)
+    }
+
+    /// Returns the Websocket endpoint of this instance
+    pub fn ws_endpoint(&self) -> String {
+        format!("ws://localhost:{}", self.port)
+    }
+}
+
+impl Drop for IvmExecInstance {
+    fn drop(&mut self) {
+        self.child.kill().expect("could not kill ivm-exec");
+    }
+}
+
 /// Get the first `count` of the signers based on the reth dev seed.
-pub fn get_signers(count: usize) -> Vec<K256LocalSigner> {
+pub fn get_signers(count: usize) -> Vec<PrivateKeySigner> {
     Wallet::new(count)
         .gen()
         .into_iter()
         .map(|w| w.to_bytes().0)
-        .map(|b| K256LocalSigner::from_slice(&b).unwrap())
+        .map(|b| PrivateKeySigner::from_slice(&b).unwrap())
         .collect()
 }
 
 /// Get the `num` generated dev account.
-pub fn get_account(num: usize) -> K256LocalSigner {
+pub fn get_account(num: usize) -> PrivateKeySigner {
     let all_wallets = get_signers(num + 1);
     all_wallets[num].clone()
 }
@@ -166,6 +296,18 @@ impl JobManagerDeploy {
     }
 }
 
+impl JobManagerDeploy {
+    /// Convenience method to convert into `IvmExecJobManager`
+    pub fn into_ivm_exec_job_manager(self, ivm_exec: IvmExecInstance) -> IvmExecJobManager {
+        IvmExecJobManager {
+            ivm_exec,
+            job_manager: self.job_manager,
+            relayer: self.relayer,
+            coprocessor_operator: self.coprocessor_operator,
+        }
+    }
+}
+
 /// Deploy `JobManager` contract.
 pub async fn job_manager_deploy(rpc_url: String) -> JobManagerDeploy {
     let signers = get_signers(5);
@@ -178,7 +320,6 @@ pub async fn job_manager_deploy(rpc_url: String) -> JobManagerDeploy {
     let initial_owner_wallet = EthereumWallet::from(initial_owner.clone());
 
     let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(initial_owner_wallet.clone())
         .on_http(rpc_url.parse().unwrap());
 
@@ -218,7 +359,7 @@ pub async fn create_and_sign_offchain_request(
     consumer_addr: Address,
     onchain_input: &[u8],
     program_id: &[u8],
-    offchain_signer: LocalSigner<SigningKey>,
+    offchain_signer: PrivateKeySigner,
     offchain_input: &[u8],
 ) -> (Vec<u8>, Vec<u8>) {
     let job_params = JobParams {

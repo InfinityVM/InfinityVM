@@ -5,7 +5,7 @@ use crate::{
         tables::{ClobStateTable, GlobalIndexTable, RequestTable},
         NEXT_BATCH_GLOBAL_INDEX_KEY, PROCESSED_GLOBAL_INDEX_KEY,
     },
-    K256LocalSigner,
+    PrivateKeySigner,
 };
 use alloy::{primitives::utils::keccak256, signers::Signer, sol_types::SolValue};
 use clob_programs::CLOB_PROGRAM_ID;
@@ -54,7 +54,7 @@ where
 pub async fn run_batcher<D>(
     db: Arc<D>,
     sleep_duration: Duration,
-    signer: K256LocalSigner,
+    signer: PrivateKeySigner,
     cn_grpc_url: String,
     clob_consumer_addr: [u8; 20],
 ) -> eyre::Result<()>

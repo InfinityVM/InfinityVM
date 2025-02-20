@@ -1,7 +1,6 @@
 //! The matching game node binary.
 
-use alloy::hex;
-use matching_game_server::K256LocalSigner;
+use alloy::{hex, signers::local::PrivateKeySigner};
 use std::env;
 
 /// Secret for anvil key #6
@@ -24,7 +23,7 @@ async fn main() -> eyre::Result<()> {
     let operator_signer = {
         let operator_key = env::var(OPERATOR_KEY).unwrap_or_else(|_| DEV_SECRET.to_string());
         let decoded = hex::decode(operator_key).unwrap();
-        K256LocalSigner::from_slice(&decoded).unwrap()
+        PrivateKeySigner::from_slice(&decoded).unwrap()
     };
 
     let consumer_addr = {

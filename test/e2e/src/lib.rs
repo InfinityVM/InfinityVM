@@ -1,18 +1,18 @@
 //! E2E tests and helpers.
 use alloy::eips::BlockNumberOrTag;
-use clob_test_utils::{anvil_with_clob_consumer, AnvilClob};
+use clob_test_utils::{ivm_exec_with_clob_consumer, IvmExecClob};
 use futures::future::FutureExt;
 use ivm_coproc::{
     node::{NodeConfig, WsConfig},
     relayer::RelayConfig,
     MAX_DA_PER_JOB,
 };
-use ivm_mock_consumer::{anvil_with_mock_consumer, AnvilMockConsumer};
+use ivm_mock_consumer::{ivm_exec_with_mock_consumer, IvmExecMockConsumer};
 use ivm_proto::coprocessor_node_client::CoprocessorNodeClient;
 use ivm_test_utils::{
-    anvil_with_job_manager, get_localhost_port, sleep_until_bound, AnvilJobManager, LOCALHOST,
+    get_localhost_port, ivm_exec_with_job_manager, sleep_until_bound, IvmExecJobManager, LOCALHOST,
 };
-use matching_game_server::test_utils::{anvil_with_matching_game_consumer, AnvilMatchingGame};
+use matching_game_server::test_utils::{ivm_exec_with_matching_game_consumer, IvmExecMatchingGame};
 use rand::Rng;
 use reth_db::DatabaseEnv;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
@@ -23,17 +23,17 @@ use tonic::transport::Channel;
 #[derive(Debug)]
 pub struct Args {
     /// `MockConsumer` deployment.
-    pub mock_consumer: Option<AnvilMockConsumer>,
+    pub mock_consumer: Option<IvmExecMockConsumer>,
     /// `ClobConsumer` deployment.
-    pub clob_consumer: Option<AnvilClob>,
+    pub clob_consumer: Option<IvmExecClob>,
     /// `MatchingGameConsumer` deployment.
-    pub matching_game_consumer: Option<AnvilMatchingGame>,
+    pub matching_game_consumer: Option<IvmExecMatchingGame>,
     /// HTTP endpoint the clob node is listening on.
     pub clob_endpoint: Option<String>,
     /// HTTP endpoint the matching game node is listening on.
     pub matching_game_endpoint: Option<String>,
-    /// Anvil setup with `JobManager`.
-    pub anvil: AnvilJobManager,
+    /// ivm-exec setup with `JobManager`.
+    pub ivm_exec: IvmExecJobManager,
     /// Coprocessor Node gRPC client.
     pub coprocessor_node: CoprocessorNodeClient<Channel>,
     /// Coprocessor Node gRPC endpoint.
@@ -88,11 +88,11 @@ impl E2E {
         let test_num: u32 = rng.gen();
         let mut delete_dirs = vec![];
 
-        let anvil_port = get_localhost_port();
-        let anvil = anvil_with_job_manager(anvil_port).await;
+        let ivm_exec_port = get_localhost_port();
+        let ivm_exec = ivm_exec_with_job_manager(ivm_exec_port, None).await;
 
-        let http_rpc_url = anvil.anvil.endpoint();
-        let ws_rpc_url = anvil.anvil.ws_endpoint();
+        let http_rpc_url = ivm_exec.ivm_exec.endpoint();
+        let ws_rpc_url = ivm_exec.ivm_exec.ws_endpoint();
 
         let coproc_db_dir = temp_dir().join(format!("infinity-coproc-test-db-{}", test_num));
         delete_dirs.push(coproc_db_dir.clone());
@@ -110,12 +110,12 @@ impl E2E {
             prom_addr: prometheus_addr.parse().unwrap(),
             grpc_addr: coprocessor_node_grpc.parse().unwrap(),
             http_listen_addr: http_addr.parse().unwrap(),
-            zkvm_operator: anvil.coprocessor_operator.clone(),
-            relayer: anvil.relayer.clone(),
+            zkvm_operator: ivm_exec.coprocessor_operator.clone(),
+            relayer: ivm_exec.relayer.clone(),
             db: Arc::clone(&db),
             exec_queue_bound: 256,
             http_eth_rpc: http_rpc_url.clone(),
-            job_manager_address: anvil.job_manager,
+            job_manager_address: ivm_exec.job_manager,
             worker_count: 4,
             relay_config: RelayConfig {
                 confirmations: 1,
@@ -141,7 +141,7 @@ impl E2E {
             mock_consumer: None,
             coprocessor_node,
             coprocessor_node_endpoint: cn_grpc_client_url.clone(),
-            anvil,
+            ivm_exec,
             clob_consumer: None,
             clob_endpoint: None,
             matching_game_consumer: None,
@@ -150,12 +150,12 @@ impl E2E {
         };
 
         if self.mock_consumer {
-            args.mock_consumer = Some(anvil_with_mock_consumer(&args.anvil).await)
+            args.mock_consumer = Some(ivm_exec_with_mock_consumer(&args.ivm_exec).await)
         }
 
         let cn_grpc_client_url2 = cn_grpc_client_url.clone();
         if self.clob {
-            let clob_consumer = anvil_with_clob_consumer(&args.anvil).await;
+            let clob_consumer = ivm_exec_with_clob_consumer(&args.ivm_exec).await;
             let clob_db_dir = temp_dir().join(format!("infinity-clob-test-db-{}", test_num));
             delete_dirs.push(clob_db_dir.clone());
             let listen_port = get_localhost_port();
@@ -192,7 +192,7 @@ impl E2E {
         }
 
         if self.matching_game {
-            let matching_game_consumer = anvil_with_matching_game_consumer(&args.anvil).await;
+            let matching_game_consumer = ivm_exec_with_matching_game_consumer(&args.ivm_exec).await;
             let matching_game_db_dir =
                 temp_dir().join(format!("infinity-matching-game-test-db-{}", test_num));
             delete_dirs.push(matching_game_db_dir.clone());

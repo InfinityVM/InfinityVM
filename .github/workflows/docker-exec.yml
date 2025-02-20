@@ -24,8 +24,8 @@ env:
 
 jobs:
   docker-release:
-    name: Docker release to Google Artifact Registry
-    runs-on: ubicloud-standard-16
+    name: ivm-exec docker build
+    runs-on: ubicloud-standard-30
 
     permissions:
       contents: 'read'
@@ -56,9 +56,11 @@ jobs:
         with:
           PATTERNS: |
             bin/exec/**
+            **.lock
           FILES:  |
             .github/workflows/docker-exec.yml
             Dockerfile.exec
+            Cargo.toml
 
       - name: Docker Metadata Pull
         id: meta

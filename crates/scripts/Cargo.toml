@@ -25,14 +25,16 @@ workspace = true
 
 [dependencies]
 tokio = { workspace = true, features = ["signal"] }
-alloy = { version = "0.9", features = [
+alloy = { workspace = true, features = [
     "json-rpc",
     "node-bindings",
     "rpc-client",
     "rpc-types-debug",
     "rpc-types-trace",
+    "signers",
+    "signer-local",
+    "sol-types"
 ] }
-k256 = { workspace = true }
 dotenvy = { workspace = true }
 tempfile = { workspace = true }
 tracing = { workspace = true }

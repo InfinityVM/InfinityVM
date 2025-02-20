@@ -13,6 +13,7 @@ use ivm_proto::{
     GetPendingJobsRequest, GetResultRequest, JobStatus, JobStatusType, RelayStrategy,
     SubmitJobRequest, SubmitProgramRequest, VmType,
 };
+use ivm_test_utils::get_signers;
 use ivm_zkvm::{Sp1, Zkvm};
 use ivm_zkvm_executor::service::ZkvmExecutorService;
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
@@ -26,11 +27,11 @@ use reth_db_api::{
 async fn retriggered_non_executed_jobs_works() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
-        let anvil = args.anvil;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
 
-        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+        let keys = get_signers(6);
+        let random_user: PrivateKeySigner = keys[5].clone();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -158,12 +159,13 @@ async fn retriggered_non_executed_jobs_works() {
 async fn retriggered_executed_jobs_works() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
-        let anvil = args.anvil;
+        let ivm_exec = args.ivm_exec;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
         let program = Sp1.derive_program(MOCK_CONSUMER_ELF).unwrap();
 
-        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+        let keys = get_signers(6);
+        let random_user: PrivateKeySigner = keys[5].clone();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -179,7 +181,7 @@ async fn retriggered_executed_jobs_works() {
             .into_inner();
         assert_eq!(submit_program_response.program_id, program_id);
 
-        let executor = ZkvmExecutorService::new(anvil.coprocessor_operator.clone());
+        let executor = ZkvmExecutorService::new(ivm_exec.coprocessor_operator.clone());
 
         let requests: Vec<_> = (1..=3)
             .map(|nonce| {

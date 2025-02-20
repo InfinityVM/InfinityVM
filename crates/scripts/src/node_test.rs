@@ -4,7 +4,7 @@
 use alloy::{
     primitives::{hex, Address, FixedBytes},
     providers::ProviderBuilder,
-    signers::local::LocalSigner,
+    signers::local::PrivateKeySigner,
     sol_types::SolValue,
 };
 use clob_programs::{CLOB_ELF, CLOB_PROGRAM_ID};
@@ -16,7 +16,6 @@ use ivm_proto::{
     RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType,
 };
 use ivm_test_utils::create_and_sign_offchain_request;
-use k256::ecdsa::SigningKey;
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
     api::{Request, SubmitNumberRequest},
@@ -36,9 +35,7 @@ const MATCHING_GAME_CONSUMER_ADDR: &str = "0x5793a71D3eF074f71dCC21216Dbfd5C0e78
 const OFFCHAIN_SIGNER_PRIVATE_KEY: &str =
     "0x7c852118294e51e653712a81e05800f419141751be58f605c371e15141b007a6";
 const ANVIL_IP: &str = "";
-const ANVIL_PORT: u16 = 8545;
-
-type K256LocalSigner = LocalSigner<SigningKey>;
+const IVM_EXEC_PORT: u16 = 8545;
 
 #[tokio::main]
 async fn main() {
@@ -100,11 +97,11 @@ async fn main() {
         }
     }
 
-    let provider = ProviderBuilder::new().with_recommended_fillers().on_http(
-        url::Url::parse(format!("http://{ANVIL_IP}:{ANVIL_PORT}").as_str()).expect("Valid URL"),
+    let provider = ProviderBuilder::new().on_http(
+        url::Url::parse(format!("http://{ANVIL_IP}:{IVM_EXEC_PORT}").as_str()).expect("Valid URL"),
     );
     let decoded = hex::decode(OFFCHAIN_SIGNER_PRIVATE_KEY).unwrap();
-    let offchain_signer = K256LocalSigner::from_slice(&decoded).unwrap();
+    let offchain_signer = PrivateKeySigner::from_slice(&decoded).unwrap();
 
     // Test mock consumer job submission flow
 

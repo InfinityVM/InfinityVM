@@ -1,6 +1,6 @@
 use alloy::{
     primitives::{hex, keccak256, Address, Uint, U256},
-    signers::{local::LocalSigner, Signer},
+    signers::{local::PrivateKeySigner, Signer},
     sol,
     sol_types::{SolType, SolValue},
 };
@@ -10,10 +10,7 @@ use ivm_abi::{
 };
 use ivm_eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_test_utils::create_and_sign_offchain_request;
-use k256::ecdsa::SigningKey;
 use std::env;
-
-type K256LocalSigner = LocalSigner<SigningKey>;
 
 const MAX_CYCLES: u64 = 1_000_000;
 const PROGRAM_ID: &[u8] = b"programID";
@@ -26,18 +23,18 @@ const OFFCHAIN_SIGNER_PRIVATE_KEY: &str = "OFFCHAIN_SIGNER_PRIVATE_KEY";
 #[derive(Debug)]
 pub struct RequestAndResultSigner;
 
-fn get_coprocessor_operator_private_key() -> K256LocalSigner {
+fn get_coprocessor_operator_private_key() -> PrivateKeySigner {
     let private_key_hex = env::var(COPROCESSOR_OPERATOR_PRIVATE_KEY)
         .expect("COPROCESSOR_OPERATOR_PRIVATE_KEY not set in .env file");
     let decoded = hex::decode(private_key_hex).unwrap();
-    K256LocalSigner::from_slice(&decoded).unwrap()
+    PrivateKeySigner::from_slice(&decoded).unwrap()
 }
 
-fn get_offchain_signer_private_key() -> K256LocalSigner {
+fn get_offchain_signer_private_key() -> PrivateKeySigner {
     let private_key_hex = env::var(OFFCHAIN_SIGNER_PRIVATE_KEY)
         .expect("OFFCHAIN_SIGNER_PRIVATE_KEY not set in .env file");
     let decoded = hex::decode(private_key_hex).unwrap();
-    K256LocalSigner::from_slice(&decoded).unwrap()
+    PrivateKeySigner::from_slice(&decoded).unwrap()
 }
 
 impl RequestAndResultSigner {

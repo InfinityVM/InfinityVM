@@ -8,11 +8,10 @@ use crate::{
 };
 use alloy::{
     hex,
-    network::{Ethereum, EthereumWallet, TxSigner},
+    network::{EthereumWallet, TxSigner},
     primitives::{Address, PrimitiveSignature},
-    providers::{Provider, ProviderBuilder},
+    providers::{DynProvider, ProviderBuilder},
     rpc::types::TransactionReceipt,
-    transports::http::{reqwest, Client, Http},
 };
 use ivm_abi::abi_encode_offchain_job_request;
 use ivm_contracts::i_job_manager::IJobManager;
@@ -34,33 +33,7 @@ const JOB_RETRY_DELAY_MS: u64 = 500;
 /// Max duration between retries in `relay_job_result`.
 const JOB_RETRY_MAX_DELAY_MS: u64 = 30 * 1_000;
 
-type RecommendedFiller = alloy::providers::fillers::JoinFill<
-    alloy::providers::Identity,
-    alloy::providers::fillers::JoinFill<
-        alloy::providers::fillers::GasFiller,
-        alloy::providers::fillers::JoinFill<
-            alloy::providers::fillers::BlobGasFiller,
-            alloy::providers::fillers::JoinFill<
-                alloy::providers::fillers::NonceFiller,
-                alloy::providers::fillers::ChainIdFiller,
-            >,
-        >,
-    >,
->;
-
-type HttpTransport = Http<Client>;
-
-type RelayerProvider = alloy::providers::fillers::FillProvider<
-    alloy::providers::fillers::JoinFill<
-        RecommendedFiller,
-        alloy::providers::fillers::WalletFiller<EthereumWallet>,
-    >,
-    alloy::providers::RootProvider<HttpTransport>,
-    HttpTransport,
-    Ethereum,
->;
-
-type JobManagerContract = IJobManager::IJobManagerInstance<HttpTransport, RelayerProvider>;
+type JobManagerContract = IJobManager::IJobManagerInstance<(), DynProvider>;
 
 const TX_INCLUSION_ERROR: &str = "relay_error_tx_inclusion_error";
 const BROADCAST_ERROR: &str = "relay_error_broadcast_failure";
@@ -455,15 +428,15 @@ impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> JobRelayerBuilder<
         confirmations: u64,
         metrics: Arc<Metrics>,
     ) -> Result<JobRelayer, Error> {
-        let url: reqwest::Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
+        let url: alloy::transports::http::reqwest::Url =
+            http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
         info!("🧾 relayer sending transactions to rpc url {url}");
 
         let signer = self.signer.ok_or(Error::MissingSigner)?;
         let wallet = EthereumWallet::new(signer);
 
-        let provider =
-            ProviderBuilder::new().with_recommended_fillers().wallet(wallet).on_http(url);
-        let job_manager = JobManagerContract::new(job_manager, provider);
+        let provider = ProviderBuilder::new().wallet(wallet).on_http(url);
+        let job_manager = JobManagerContract::new(job_manager, DynProvider::new(provider));
 
         Ok(JobRelayer { job_manager, confirmations, metrics })
     }
@@ -539,7 +512,14 @@ impl JobRelayer {
         // have no offchain input, and thus no sidecar
         let call_builder = match job.blobs_sidecar {
             Some(sidecar) if !sidecar.blobs.is_empty() => {
-                let gas_price = self.job_manager.provider().get_gas_price().await?;
+                let blob_count = sidecar.blobs.len();
+                info!(
+                    blob_count,
+                    job.nonce,
+                    consumer = hex::encode(&job.consumer_address),
+                    "sending tx with blobs"
+                );
+
                 self.job_manager
                     .submitResultForOffchainJob(
                         job.result_with_metadata.into(),
@@ -548,7 +528,6 @@ impl JobRelayer {
                         request_signature.into(),
                     )
                     .sidecar(sidecar)
-                    .max_fee_per_blob_gas(gas_price)
             }
             _ => {
                 debug_assert!(job.offchain_input.is_empty());
@@ -588,10 +567,11 @@ impl JobRelayer {
             })?;
 
         info!(
-            receipt.transaction_index,
-            receipt.block_number,
-            ?receipt.block_hash,
-            ?receipt.transaction_hash,
+                receipt.transaction_index,
+                receipt.block_number,
+                receipt.blob_gas_used,
+                ?receipt.block_hash,
+                ?receipt.transaction_hash,
             id=hex::encode(job.id),
             consumer=hex::encode(job.consumer_address),
             job.nonce,
@@ -618,33 +598,36 @@ mod test {
     use ivm_abi::get_job_id;
     use ivm_contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
     use ivm_mock_consumer::{
-        anvil_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
-        AnvilMockConsumer,
+        ivm_exec_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
+        IvmExecMockConsumer,
     };
     use prometheus::Registry;
 
-    use ivm_test_utils::{anvil_with_job_manager, get_localhost_port, AnvilJobManager};
+    use ivm_test_utils::{
+        get_localhost_port, get_signers, ivm_exec_with_job_manager, IvmExecJobManager,
+    };
 
     const JOB_COUNT: usize = 30;
 
     #[tokio::test]
-    async fn run_can_successfully_submit_results() {
+    async fn run_can_successfully_submit_results_onchain_job() {
         ivm_test_utils::test_tracing();
 
         let anvil_port = get_localhost_port();
-        let anvil = anvil_with_job_manager(anvil_port).await;
-        let AnvilMockConsumer { mock_consumer, mock_consumer_signer: _ } =
-            anvil_with_mock_consumer(&anvil).await;
+        let ivm_exec: ivm_test_utils::IvmExecJobManager =
+            ivm_exec_with_job_manager(anvil_port, None).await;
+        let IvmExecMockConsumer { mock_consumer, mock_consumer_signer: _ } =
+            ivm_exec_with_mock_consumer(&ivm_exec).await;
 
-        let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } = anvil;
+        let IvmExecJobManager { ivm_exec, job_manager, relayer, coprocessor_operator } = ivm_exec;
+        let keys = get_signers(10);
 
-        let user: PrivateKeySigner = anvil.keys()[5].clone().into();
+        let user: PrivateKeySigner = keys[5].clone();
         let user_wallet = EthereumWallet::from(user);
 
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(user_wallet)
-            .on_http(anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock_consumer, &consumer_provider);
 
         let registry = Registry::new();
@@ -652,7 +635,7 @@ mod test {
 
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
-            .build(anvil.endpoint().parse().unwrap(), job_manager, 1, metrics)
+            .build(ivm_exec.endpoint().parse().unwrap(), job_manager, 1, metrics)
             .unwrap();
         let job_relayer = Arc::new(job_relayer);
 
@@ -682,7 +665,7 @@ mod test {
         // Give a little extra time to avoid flakiness
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        // Check that each job is in the anvil node logs
+        // Check that each job is in the ivm-exec node logs
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
         let logs = consumer_provider.get_logs(&filter).await.unwrap();
 
@@ -699,5 +682,12 @@ mod test {
 
         // We expect to see exactly job ids 0 to 29 in the JobCompleted events
         assert_eq!(seen, expected);
+    }
+
+    #[tokio::test]
+    async fn run_can_successfully_submit_results_offchain_job() {
+        ivm_test_utils::test_tracing();
+        // TODO
+        // todo!()
     }
 }

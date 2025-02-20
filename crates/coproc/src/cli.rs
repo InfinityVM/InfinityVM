@@ -8,10 +8,9 @@ use crate::{
 use alloy::{
     eips::BlockNumberOrTag,
     primitives::{hex, Address},
-    signers::local::LocalSigner,
+    signers::local::PrivateKeySigner,
 };
 use clap::Parser;
-use k256::ecdsa::SigningKey;
 
 const ENV_RELAYER_PRIV_KEY: &str = "RELAYER_PRIVATE_KEY";
 const ENV_ZKVM_OPERATOR_PRIVATE_KEY: &str = "ZKVM_OPERATOR_PRIVATE_KEY";
@@ -60,8 +59,6 @@ pub enum Error {
     #[error("database error: {0}")]
     Database(#[from] ivm_db::Error),
 }
-
-type K256LocalSigner = LocalSigner<SigningKey>;
 
 fn db_dir() -> String {
     let mut p = home::home_dir().expect("could not find users home dir");
@@ -162,25 +159,25 @@ struct Opts {
 }
 
 impl Opts {
-    fn operator_signer(&self) -> Result<K256LocalSigner, Error> {
+    fn operator_signer(&self) -> Result<PrivateKeySigner, Error> {
         let secret = std::env::var(ENV_ZKVM_OPERATOR_PRIVATE_KEY)
             .map_err(|_| Error::OperatorPrivKeyNotSet)?;
         Self::signer_from_hex(&secret)
     }
 
-    fn relayer_signer(&self) -> Result<K256LocalSigner, Error> {
+    fn relayer_signer(&self) -> Result<PrivateKeySigner, Error> {
         let secret =
             std::env::var(ENV_RELAYER_PRIV_KEY).map_err(|_| Error::RelayerPrivKeyNotSet)?;
         Self::signer_from_hex(&secret)
     }
 
-    fn signer_from_hex(secret: &String) -> Result<K256LocalSigner, Error> {
+    fn signer_from_hex(secret: &String) -> Result<PrivateKeySigner, Error> {
         if secret.len() < 64 {
             return Err(Error::ShortPrivateKeyHex);
         }
 
         let decoded = hex::decode(secret)?;
-        K256LocalSigner::from_slice(&decoded).map_err(Into::into)
+        PrivateKeySigner::from_slice(&decoded).map_err(Into::into)
     }
 }
 

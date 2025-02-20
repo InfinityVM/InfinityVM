@@ -67,7 +67,6 @@ async fn denies_non_allowed_senders() -> eyre::Result<()> {
     let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
 
     let rpc = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(EthereumWallet::new(wallet_1.clone()))
         .on_http(node.rpc_url());
 

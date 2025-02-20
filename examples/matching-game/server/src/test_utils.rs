@@ -2,41 +2,36 @@
 
 use crate::contracts::matching_game_consumer::MatchingGameConsumer;
 use alloy::{
-    network::EthereumWallet,
-    primitives::Address,
-    providers::ProviderBuilder,
-    signers::{
-        k256::ecdsa::SigningKey,
-        local::{LocalSigner, PrivateKeySigner},
-    },
+    network::EthereumWallet, primitives::Address, providers::ProviderBuilder,
+    signers::local::PrivateKeySigner,
 };
 use ivm_contracts::{
     proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use ivm_test_utils::{get_signers, AnvilJobManager};
-/// Local Signer
-pub type K256LocalSigner = LocalSigner<SigningKey>;
+use ivm_test_utils::{get_signers, IvmExecJobManager};
 
-/// Output form [`anvil_with_matching_game_consumer`]
+/// Output form [`ivm_exec_with_matching_game_consumer`]
 #[derive(Debug)]
-pub struct AnvilMatchingGame {
+pub struct IvmExecMatchingGame {
     /// Offchain signer for matching game.
     pub matching_game_signer: PrivateKeySigner,
     /// Address of the matching game consumer contract
     pub matching_game_consumer: Address,
 }
 
-/// Deploy `MatchingGameConsumer` to anvil instance.
-pub async fn anvil_with_matching_game_consumer(anvil: &AnvilJobManager) -> AnvilMatchingGame {
-    let AnvilJobManager { anvil, job_manager, .. } = anvil;
-    matching_game_consumer_deploy(anvil.endpoint(), job_manager).await
+/// Deploy `MatchingGameConsumer` to ivm-exec instance.
+pub async fn ivm_exec_with_matching_game_consumer(
+    ivm_exec: &IvmExecJobManager,
+) -> IvmExecMatchingGame {
+    let IvmExecJobManager { ivm_exec, job_manager, .. } = ivm_exec;
+    matching_game_consumer_deploy(ivm_exec.endpoint(), job_manager).await
 }
 
 /// Deploy matching game consumer contracts.
 pub async fn matching_game_consumer_deploy(
     rpc_url: String,
     job_manager: &Address,
-) -> AnvilMatchingGame {
+) -> IvmExecMatchingGame {
     let signers = get_signers(6);
 
     let consumer_owner: PrivateKeySigner = signers[4].clone();
@@ -44,10 +39,8 @@ pub async fn matching_game_consumer_deploy(
 
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
-    let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
-        .wallet(consumer_owner_wallet)
-        .on_http(rpc_url.parse().unwrap());
+    let provider =
+        ProviderBuilder::new().wallet(consumer_owner_wallet).on_http(rpc_url.parse().unwrap());
 
     let init_state_hash: [u8; 32] = Default::default();
 
@@ -76,7 +69,7 @@ pub async fn matching_game_consumer_deploy(
     .await
     .unwrap();
 
-    AnvilMatchingGame {
+    IvmExecMatchingGame {
         matching_game_signer,
         matching_game_consumer: *matching_game_consumer.address(),
     }

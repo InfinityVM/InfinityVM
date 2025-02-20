@@ -24,6 +24,7 @@ use ivm_proto::{
     coprocessor_node_client::CoprocessorNodeClient, GetResultRequest, JobStatusType, RelayStrategy,
     SubmitJobRequest, SubmitProgramRequest, VmType,
 };
+use ivm_test_utils::get_signers;
 use mock_consumer_programs::{MOCK_CONSUMER_ELF, MOCK_CONSUMER_PROGRAM_ID};
 use tokio::task::JoinSet;
 
@@ -34,11 +35,12 @@ type MockConsumerOut = sol!((Address, U256));
 async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
-        let anvil = args.anvil;
+        let ivm_exec = args.ivm_exec;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
 
-        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+        let keys = get_signers(6);
+        let random_user: PrivateKeySigner = keys[5].clone();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -54,9 +56,8 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
             .into_inner();
         assert_eq!(submit_program_response.program_id, program_id);
 
-        let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+        let consumer_provider =
+            ProviderBuilder::new().on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
         // Submit job to coproc node
@@ -118,12 +119,12 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
         );
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
-        assert_eq!(recovered1, anvil.coprocessor_operator.address());
+        assert_eq!(recovered1, ivm_exec.coprocessor_operator.address());
 
         // confirm we are hashing as expected
         let hash = eip191_hash_message(&signing_payload);
         let recovered2 = sig.recover_address_from_prehash(&hash).unwrap();
-        assert_eq!(recovered2, anvil.coprocessor_operator.address());
+        assert_eq!(recovered2, ivm_exec.coprocessor_operator.address());
 
         // Verify input
         assert_eq!(Address::abi_encode(&mock_user_address), job_result.onchain_input);
@@ -171,11 +172,11 @@ async fn web2_job_submission_coprocessor_node_mock_consumer_e2e() {
 async fn web2_parallel_job_submission_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
-        let anvil = args.anvil;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
 
-        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+        let keys = get_signers(6);
+        let random_user: PrivateKeySigner = keys[5].clone();
 
         // Seed coprocessor-node with ELF
         let submit_program_request = SubmitProgramRequest {
@@ -253,11 +254,12 @@ async fn web2_parallel_job_submission_coprocessor_node_mock_consumer_e2e() {
 async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
     async fn test(mut args: Args) {
         let mock = args.mock_consumer.unwrap();
-        let anvil = args.anvil;
+        let ivm_exec = args.ivm_exec;
         let program_id = MOCK_CONSUMER_PROGRAM_ID;
         let mock_user_address = Address::repeat_byte(69);
 
-        let random_user: PrivateKeySigner = anvil.anvil.keys()[5].clone().into();
+        let keys = get_signers(6);
+        let random_user: PrivateKeySigner = keys[5].clone();
         let random_user_wallet = EthereumWallet::from(random_user);
 
         // Seed coprocessor-node with ELF
@@ -275,9 +277,8 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         assert_eq!(submit_program_response.program_id, program_id);
 
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(random_user_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock.mock_consumer, &consumer_provider);
 
         // Make onchain job request
@@ -327,12 +328,12 @@ async fn event_job_created_coprocessor_node_mock_consumer_e2e() {
         );
         assert_eq!(job_result.result_with_metadata, signing_payload);
         let recovered1 = sig.recover_address_from_msg(&signing_payload[..]).unwrap();
-        assert_eq!(recovered1, anvil.coprocessor_operator.address());
+        assert_eq!(recovered1, ivm_exec.coprocessor_operator.address());
 
         // confirm we are hashing as expected
         let hash = eip191_hash_message(&signing_payload);
         let recovered2 = sig.recover_address_from_prehash(&hash).unwrap();
-        assert_eq!(recovered2, anvil.coprocessor_operator.address());
+        assert_eq!(recovered2, ivm_exec.coprocessor_operator.address());
 
         // Verify input
         assert_eq!(Address::abi_encode(&mock_user_address), job_result.onchain_input);

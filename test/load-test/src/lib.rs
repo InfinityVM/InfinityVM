@@ -15,7 +15,7 @@ pub fn anvil_ip() -> String {
 
 /// Get the Anvil port env var.
 pub fn anvil_port() -> String {
-    env::var("ANVIL_PORT").unwrap_or_else(|_| "8545".to_string())
+    env::var("IVM_EXEC_PORT").unwrap_or_else(|_| "8545".to_string())
 }
 
 /// Get the coprocessor gateway IP addressenv var.

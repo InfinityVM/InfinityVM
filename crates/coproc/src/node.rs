@@ -11,10 +11,9 @@ use crate::{
     server::CoprocessorNodeServerInner,
     writer::{self, Write, Writer},
 };
-use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::LocalSigner};
+use alloy::{eips::BlockNumberOrTag, primitives::Address, signers::local::PrivateKeySigner};
 use ivm_proto::coprocessor_node_server::CoprocessorNodeServer;
 use ivm_zkvm_executor::service::ZkvmExecutorService;
-use k256::ecdsa::SigningKey;
 use prometheus::Registry;
 use reth_db::Database;
 use std::{
@@ -25,8 +24,6 @@ use std::{
 };
 use tokio::{task::JoinHandle, try_join};
 use tracing::info;
-
-type K256LocalSigner = LocalSigner<SigningKey>;
 
 /// Error type for this module.
 #[derive(thiserror::Error, Debug)]
@@ -83,9 +80,9 @@ pub struct NodeConfig<D> {
     /// Address to listen on for the REST gRPC gateway.
     pub http_listen_addr: SocketAddr,
     /// zkVM operator private key.
-    pub zkvm_operator: K256LocalSigner,
+    pub zkvm_operator: PrivateKeySigner,
     /// Job result relayer private key.
-    pub relayer: K256LocalSigner,
+    pub relayer: PrivateKeySigner,
     /// Database handle
     pub db: Arc<D>,
     /// The upper bound size for the execution queue.

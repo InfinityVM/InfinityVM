@@ -47,7 +47,6 @@ async fn main() {
     tracing::info!(?alice_address);
 
     let provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(bob_wallet.clone())
         .on_http(DEFAULT_DEV_HTTP.parse().unwrap());
 

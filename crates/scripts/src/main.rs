@@ -1,4 +1,5 @@
 //! Helper script to generate ABI-encoded response + signature for the coprocessor contract tests
+
 use ivm_scripts::signer::RequestAndResultSigner;
 
 #[tokio::main]

@@ -1,6 +1,6 @@
 //! The matching game node.
 
-use alloy::signers::{k256::ecdsa::SigningKey, local::LocalSigner};
+use alloy::signers::local::PrivateKeySigner;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
 
@@ -23,15 +23,12 @@ pub const BATCHER_DURATION_MS: &str = "BATCHER_DURATION_MS";
 /// Matching game operator's secret key.
 pub const OPERATOR_KEY: &str = "OPERATOR_KEY";
 
-/// Operator signer type.
-pub type K256LocalSigner = LocalSigner<SigningKey>;
-
 /// Run the matching game node.
 #[allow(clippy::too_many_arguments)]
 pub async fn run(
     listen_addr: String,
     batcher_duration_ms: u64,
-    operator_signer: K256LocalSigner,
+    operator_signer: PrivateKeySigner,
     cn_grpc_url: String,
     consumer_addr: [u8; 20],
 ) -> eyre::Result<()> {

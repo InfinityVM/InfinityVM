@@ -13,6 +13,7 @@ use ivm_abi::{
     StatefulAppOnchainInput, StatefulAppResult,
 };
 use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType};
+use ivm_test_utils::get_signers;
 use kairos_trie::{stored::memory_db::MemoryDb, TrieRoot};
 use matching_game_core::{
     api::{
@@ -30,14 +31,15 @@ use tokio::time::{sleep, Duration};
 #[tokio::test(flavor = "multi_thread")]
 async fn state_job_submission_matching_game_consumer() {
     async fn test(mut args: Args) {
-        let anvil = args.anvil;
+        let ivm_exec = args.ivm_exec;
         let matching_game = args.matching_game_consumer.unwrap();
         let program_id = MATCHING_GAME_PROGRAM_ID;
         let matching_game_signer_wallet =
             EthereumWallet::from(matching_game.matching_game_signer.clone());
 
-        let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
-        let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
+        let keys = get_signers(10);
+        let alice_key: PrivateKeySigner = keys[8].clone();
+        let bob_key: PrivateKeySigner = keys[9].clone();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
 
@@ -56,9 +58,8 @@ async fn state_job_submission_matching_game_consumer() {
         assert_eq!(submit_program_response.program_id, program_id);
 
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(matching_game_signer_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
 
         let trie_db = Rc::new(MemoryDb::<Vec<u8>>::empty());
         let merkle_root0 = TrieRoot::Empty;
@@ -176,7 +177,7 @@ async fn state_job_submission_matching_game_consumer() {
 #[tokio::test(flavor = "multi_thread")]
 async fn matching_game_server_e2e() {
     async fn test(mut args: Args) {
-        let anvil = args.anvil;
+        let ivm_exec = args.ivm_exec;
         let matching_game = args.matching_game_consumer.unwrap();
         let program_id = MATCHING_GAME_PROGRAM_ID;
         let matching_game_signer_wallet =
@@ -186,8 +187,9 @@ async fn matching_game_server_e2e() {
         let client = matching_game_server::client::Client::new(matching_game_endpoint);
 
         // Setup ready to use on chain accounts for Alice & Bob
-        let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
-        let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
+        let keys = get_signers(10);
+        let alice_key: PrivateKeySigner = keys[8].clone();
+        let bob_key: PrivateKeySigner = keys[9].clone();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
 
@@ -207,9 +209,8 @@ async fn matching_game_server_e2e() {
 
         // Get chain state setup
         let consumer_provider = ProviderBuilder::new()
-            .with_recommended_fillers()
             .wallet(matching_game_signer_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let consumer_contract =
             MatchingGameConsumer::new(matching_game.matching_game_consumer, &consumer_provider);
 

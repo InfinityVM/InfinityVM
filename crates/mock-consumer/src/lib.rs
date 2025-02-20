@@ -14,24 +14,26 @@ use ivm_contracts::{
 };
 use ivm_db::tables::{Job, RequestType};
 use ivm_proto::{JobStatus, JobStatusType};
-use ivm_test_utils::{get_signers, AnvilJobManager};
+use ivm_test_utils::{get_signers, IvmExecJobManager};
 
 /// Max cycles that the `MockContract` calls create job with.
 pub const MOCK_CONSUMER_MAX_CYCLES: u64 = 1_000_000;
 
-/// Output from [`anvil_with_mock_consumer`]
+/// Output from [`ivm_exec_with_mock_consumer`]
 #[derive(Debug)]
-pub struct AnvilMockConsumer {
+pub struct IvmExecMockConsumer {
     /// Address of the mock consumer contract
     pub mock_consumer: Address,
     /// Offchain signer for mock consumer.
     pub mock_consumer_signer: PrivateKeySigner,
 }
 
-/// Deploy `MockConsumer` contracts to anvil instance
-pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> AnvilMockConsumer {
+/// Deploy `MockConsumer` contracts to ivm-exec instance
+pub async fn ivm_exec_with_mock_consumer(
+    ivm_job_manager: &IvmExecJobManager,
+) -> IvmExecMockConsumer {
     let signers = get_signers(6);
-    let AnvilJobManager { anvil, job_manager, .. } = anvil_job_manager;
+    let IvmExecJobManager { ivm_exec, job_manager, .. } = ivm_job_manager;
 
     let consumer_owner: PrivateKeySigner = signers[4].clone();
     let offchain_signer: PrivateKeySigner = signers[5].clone();
@@ -39,9 +41,8 @@ pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> An
     let consumer_owner_wallet = EthereumWallet::from(consumer_owner.clone());
 
     let consumer_provider = ProviderBuilder::new()
-        .with_recommended_fillers()
         .wallet(consumer_owner_wallet)
-        .on_http(anvil.endpoint().parse().unwrap());
+        .on_http(ivm_exec.endpoint().parse().unwrap());
 
     // Deploy mock consumer implementation
     let mock_consumer_impl = MockConsumer::deploy(consumer_provider.clone()).await.unwrap();
@@ -67,7 +68,7 @@ pub async fn anvil_with_mock_consumer(anvil_job_manager: &AnvilJobManager) -> An
     .await
     .unwrap();
 
-    AnvilMockConsumer {
+    IvmExecMockConsumer {
         mock_consumer: *mock_consumer.address(),
         mock_consumer_signer: offchain_signer,
     }
