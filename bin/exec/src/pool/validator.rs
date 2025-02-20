@@ -690,7 +690,7 @@ where
             // require an account to have a balance, we hardcode a high account balance that we
             // are confident will ensure this transaction passes downstream checks.
             // Upstream logic: https://github.com/paradigmxyz/reth/blob/d761ac42f5e15c46c00db90ca1b5b6f7f62a4f7c/crates/transaction-pool/src/validate/eth.rs#L475
-            balance: U256::from(u64::MAX),
+            balance: U256::MAX,
             state_nonce: account.nonce,
             transaction: ValidTransaction::new(transaction, maybe_blob_sidecar),
             // by this point assume all external transactions should be propagated

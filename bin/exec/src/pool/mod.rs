@@ -8,8 +8,8 @@ use reth_node_builder::{components::PoolBuilder, BuilderContext, FullNodeTypes};
 use reth_primitives::EthPrimitives;
 use reth_provider::CanonStateSubscriptions;
 use reth_transaction_pool::{
-    blobstore::DiskFileBlobStore, EthPooledTransaction, PoolTransaction, Priority,
-    TransactionOrdering, TransactionValidationTaskExecutor,
+    blobstore::DiskFileBlobStore, CoinbaseTipOrdering, EthPooledTransaction, PoolTransaction,
+    Priority, TransactionOrdering, TransactionValidationTaskExecutor,
 };
 use tracing::{debug, info};
 use validator::IvmTransactionValidatorBuilder;
@@ -86,7 +86,8 @@ pub struct GaslessOrdering {
 }
 
 impl GaslessOrdering {
-    const fn new(ivm_config: IvmConfig) -> Self {
+    /// Create a new instance of `GaslessOrdering`
+    pub const fn new(ivm_config: IvmConfig) -> Self {
         Self { ivm_config }
     }
 }
@@ -113,7 +114,7 @@ impl TransactionOrdering for GaslessOrdering {
 /// Type describing the IVM transaction pool.
 pub type IvmTransactionPool<Client, S> = reth_transaction_pool::Pool<
     TransactionValidationTaskExecutor<IvmTransactionValidator<Client, EthPooledTransaction>>,
-    GaslessOrdering,
+    CoinbaseTipOrdering<EthPooledTransaction>,
     S,
 >;
 
@@ -154,12 +155,12 @@ where
                 ctx.provider().clone(),
                 ctx.task_executor().clone(),
                 blob_store.clone(),
-                ivm_config.clone(),
+                ivm_config,
             );
 
         let transaction_pool = reth_transaction_pool::Pool::new(
             txn_validator,
-            GaslessOrdering::new(ivm_config),
+            CoinbaseTipOrdering::default(),
             blob_store,
             pool_config,
         );
