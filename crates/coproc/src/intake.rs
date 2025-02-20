@@ -191,7 +191,7 @@ where
             match self.active_actors.entry(consumer_address) {
                 Entry::Occupied(e) => e.get().clone(),
                 Entry::Vacant(e) => {
-                    info!(?nonce, ?consumer_address, "starting execution actor");
+                    info!(?nonce, consumer = hex::encode(consumer_address), "starting execution actor");
                     // ATTENTION: No async allowed while an entry lock is held.
                     let execution_tx = self.execution_actor_spawner.spawn(nonce);
                     e.insert(execution_tx.clone());
