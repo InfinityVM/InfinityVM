@@ -23,20 +23,22 @@ use ivm_abi::{
     StatefulAppOnchainInput, StatefulAppResult,
 };
 use ivm_proto::{GetResultRequest, RelayStrategy, SubmitJobRequest, SubmitProgramRequest, VmType};
+use ivm_test_utils::get_signers;
 use tokio::time::{sleep, Duration};
 
 #[ignore]
 #[tokio::test(flavor = "multi_thread")]
 async fn state_job_submission_clob_consumer() {
     async fn test(mut args: Args) {
-        let anvil = args.anvil;
+        let ivm_exec = args.ivm_exec;
         let clob = args.clob_consumer.unwrap();
         let program_id = CLOB_PROGRAM_ID;
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
         let clob_state0 = ClobState::default();
 
-        let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
-        let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
+        let keys = get_signers(10);
+        let alice_key: PrivateKeySigner = keys[8].clone().into();
+        let bob_key: PrivateKeySigner = keys[9].clone().into();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
         let alice_wallet = EthereumWallet::new(alice_key);
@@ -58,7 +60,7 @@ async fn state_job_submission_clob_consumer() {
 
         let consumer_provider = ProviderBuilder::new()
             .wallet(clob_signer_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let base_contract = MockErc20::new(clob.base_erc20, &consumer_provider);
         let quote_contract = MockErc20::new(clob.quote_erc20, &consumer_provider);
 
@@ -69,7 +71,7 @@ async fn state_job_submission_clob_consumer() {
 
         let alice_provider = ProviderBuilder::new()
             .wallet(alice_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let alice_base = MockErc20::new(clob.base_erc20, &alice_provider);
         let call = alice_base.approve(clob.clob_consumer, U256::from(1_000));
         let r3 = call.send().await.unwrap().get_receipt();
@@ -80,7 +82,7 @@ async fn state_job_submission_clob_consumer() {
 
         let bob_provider = ProviderBuilder::new()
             .wallet(bob_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
         let call = bob_quote.approve(clob.clob_consumer, U256::from(1_000));
         let r5 = call.send().await.unwrap().get_receipt();
@@ -228,7 +230,7 @@ async fn state_job_submission_clob_consumer() {
 #[tokio::test(flavor = "multi_thread", worker_threads = 8)]
 async fn clob_node_e2e() {
     async fn test(mut args: Args) {
-        let anvil = args.anvil;
+        let ivm_exec = args.ivm_exec;
         let clob = args.clob_consumer.unwrap();
         let program_id = CLOB_PROGRAM_ID;
         let clob_signer_wallet = EthereumWallet::from(clob.clob_signer.clone());
@@ -237,8 +239,9 @@ async fn clob_node_e2e() {
         let client = clob_client::Client::new(clob_endpoint);
 
         // Setup ready to use on chain accounts for Alice & Bob
-        let alice_key: PrivateKeySigner = anvil.anvil.keys()[8].clone().into();
-        let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
+        let keys = get_signers(10);
+        let alice_key: PrivateKeySigner = keys[8].clone().into();
+        let bob_key: PrivateKeySigner = keys[9].clone().into();
         let alice: [u8; 20] = alice_key.address().into();
         let bob: [u8; 20] = bob_key.address().into();
         let alice_wallet = EthereumWallet::new(alice_key);
@@ -261,7 +264,7 @@ async fn clob_node_e2e() {
         // Get chain state setup
         let consumer_provider = ProviderBuilder::new()
             .wallet(clob_signer_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let consumer_contract = ClobConsumer::new(clob.clob_consumer, &consumer_provider);
         let base_contract = MockErc20::new(clob.base_erc20, &consumer_provider);
         let quote_contract = MockErc20::new(clob.quote_erc20, &consumer_provider);
@@ -275,7 +278,7 @@ async fn clob_node_e2e() {
         // Alice and Bob both approve the ClobConsumer to move the ERC20 and then deposit
         let alice_provider = ProviderBuilder::new()
             .wallet(alice_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let alice_base = MockErc20::new(clob.base_erc20, &alice_provider);
         let call = alice_base.approve(clob.clob_consumer, U256::from(1_000));
         let r3 = call.send().await.unwrap().get_receipt();
@@ -286,7 +289,7 @@ async fn clob_node_e2e() {
 
         let bob_provider = ProviderBuilder::new()
             .wallet(bob_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
         let call = bob_quote.approve(clob.clob_consumer, U256::from(1_000));
         let r5 = call.send().await.unwrap().get_receipt();
@@ -451,20 +454,21 @@ async fn clob_node_e2e() {
 async fn cancel_works() {
     async fn test(args: Args) {
         let clob = args.clob_consumer.unwrap();
-        let anvil = args.anvil;
+        let ivm_exec = args.ivm_exec;
 
         let clob_endpoint = args.clob_endpoint.unwrap();
         let client = clob_client::Client::new(clob_endpoint);
 
-        mint_and_approve(&clob, anvil.anvil.endpoint(), 10).await;
+        mint_and_approve(&clob, ivm_exec.ivm_exec.endpoint(), 10).await;
 
-        let bob_key: PrivateKeySigner = anvil.anvil.keys()[9].clone().into();
+        let keys = get_signers(10);
+        let bob_key: PrivateKeySigner = keys[9].clone().into();
         let bob: [u8; 20] = bob_key.address().into();
         let bob_wallet = EthereumWallet::new(bob_key);
 
         let bob_provider = ProviderBuilder::new()
             .wallet(bob_wallet)
-            .on_http(anvil.anvil.endpoint().parse().unwrap());
+            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let bob_contract = ClobConsumer::new(clob.clob_consumer, &bob_provider);
         let call = bob_contract.deposit(U256::from(150), U256::from(300));
         call.send().await.unwrap().get_receipt().await.unwrap();

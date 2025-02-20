@@ -588,31 +588,31 @@ mod test {
     use ivm_abi::get_job_id;
     use ivm_contracts::{i_job_manager::IJobManager, mock_consumer::MockConsumer};
     use ivm_mock_consumer::{
-        anvil_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr,
-        AnvilMockConsumer,
+         ivm_exec_with_mock_consumer, mock_consumer_pending_job, mock_contract_input_addr, AnvilMockConsumer
     };
     use prometheus::Registry;
 
-    use ivm_test_utils::{anvil_with_job_manager, get_localhost_port, AnvilJobManager};
+    use ivm_test_utils::{get_localhost_port, get_signers, ivm_exec_with_job_manager, IvmExecJobManager};
 
     const JOB_COUNT: usize = 30;
 
     #[tokio::test]
-    async fn run_can_successfully_submit_results() {
+    async fn run_can_successfully_submit_results_onchain_job() {
         ivm_test_utils::test_tracing();
 
         let anvil_port = get_localhost_port();
-        let anvil = anvil_with_job_manager(anvil_port).await;
+        let ivm_exec: ivm_test_utils::IvmExecJobManager = ivm_exec_with_job_manager(anvil_port, None).await;
         let AnvilMockConsumer { mock_consumer, mock_consumer_signer: _ } =
-            anvil_with_mock_consumer(&anvil).await;
+            ivm_exec_with_mock_consumer(&ivm_exec).await;
 
-        let AnvilJobManager { anvil, job_manager, relayer, coprocessor_operator } = anvil;
+        let IvmExecJobManager { ivm_exec, job_manager, relayer, coprocessor_operator } = ivm_exec;
+        let keys = get_signers(10);
 
-        let user: PrivateKeySigner = anvil.keys()[5].clone().into();
+        let user: PrivateKeySigner = keys[5].clone().into();
         let user_wallet = EthereumWallet::from(user);
 
         let consumer_provider =
-            ProviderBuilder::new().wallet(user_wallet).on_http(anvil.endpoint().parse().unwrap());
+            ProviderBuilder::new().wallet(user_wallet).on_http(ivm_exec.endpoint().parse().unwrap());
         let consumer_contract = MockConsumer::new(mock_consumer, &consumer_provider);
 
         let registry = Registry::new();
@@ -620,7 +620,7 @@ mod test {
 
         let job_relayer = JobRelayerBuilder::new()
             .signer(relayer)
-            .build(anvil.endpoint().parse().unwrap(), job_manager, 1, metrics)
+            .build(ivm_exec.endpoint().parse().unwrap(), job_manager, 1, metrics)
             .unwrap();
         let job_relayer = Arc::new(job_relayer);
 
@@ -650,7 +650,7 @@ mod test {
         // Give a little extra time to avoid flakiness
         tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-        // Check that each job is in the anvil node logs
+        // Check that each job is in the ivm-exec node logs
         let filter = Filter::new().event(IJobManager::JobCompleted::SIGNATURE).from_block(0);
         let logs = consumer_provider.get_logs(&filter).await.unwrap();
 
@@ -667,5 +667,12 @@ mod test {
 
         // We expect to see exactly job ids 0 to 29 in the JobCompleted events
         assert_eq!(seen, expected);
+    }
+
+    #[tokio::test]
+    async fn run_can_successfully_submit_results_offchain_job() {
+        ivm_test_utils::test_tracing();
+        // TODO
+        // todo!()
     }
 }

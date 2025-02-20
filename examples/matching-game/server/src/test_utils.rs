@@ -8,9 +8,10 @@ use alloy::{
 use ivm_contracts::{
     proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use ivm_test_utils::{get_signers, AnvilJobManager};
+use ivm_test_utils::{get_signers, AnvilJobManager, IvmExecJobManager};
 
 /// Output form [`anvil_with_matching_game_consumer`]
+/// TODO: rename
 #[derive(Debug)]
 pub struct AnvilMatchingGame {
     /// Offchain signer for matching game.
@@ -20,9 +21,16 @@ pub struct AnvilMatchingGame {
 }
 
 /// Deploy `MatchingGameConsumer` to anvil instance.
+/// TODO: remove
 pub async fn anvil_with_matching_game_consumer(anvil: &AnvilJobManager) -> AnvilMatchingGame {
     let AnvilJobManager { anvil, job_manager, .. } = anvil;
     matching_game_consumer_deploy(anvil.endpoint(), job_manager).await
+}
+
+/// Deploy `MatchingGameConsumer` to ivm-exec instance.
+pub async fn ivm_exec_with_matching_game_consumer(ivm_exec: &IvmExecJobManager) -> AnvilMatchingGame {
+    let IvmExecJobManager { ivm_exec, job_manager, .. } = ivm_exec;
+    matching_game_consumer_deploy(ivm_exec.endpoint(), job_manager).await
 }
 
 /// Deploy matching game consumer contracts.

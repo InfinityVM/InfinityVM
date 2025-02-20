@@ -12,7 +12,7 @@ use clob_core::{api::Request, tick, BorshKeccak256, ClobState};
 use ivm_contracts::{
     proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use ivm_test_utils::{get_signers, AnvilJobManager};
+use ivm_test_utils::{get_signers, AnvilJobManager, IvmExecJobManager};
 
 /// `E2EMockERC20.sol` bindings
 pub mod mock_erc20 {
@@ -26,6 +26,7 @@ pub mod mock_erc20 {
 }
 
 /// Output form [`anvil_with_clob_consumer`]
+/// TODO: rename 
 #[derive(Debug)]
 pub struct AnvilClob {
     /// Offchain signer for clob.
@@ -39,9 +40,16 @@ pub struct AnvilClob {
 }
 
 /// Deploy `ClobConsumer` to anvil instance.
+/// TODO: delete
 pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
     let AnvilJobManager { anvil, job_manager, .. } = anvil;
     clob_consumer_deploy(anvil.endpoint(), job_manager).await
+}
+
+/// Deploy `ClobConsumer` to ivm-exec instance.
+pub async fn  ivm_exec_with_clob_consumer(ivm_exec: &IvmExecJobManager) -> AnvilClob {
+    let IvmExecJobManager { ivm_exec, job_manager, .. } = ivm_exec;
+    clob_consumer_deploy(ivm_exec.endpoint(), job_manager).await
 }
 
 /// Deploy clob consumer contracts.

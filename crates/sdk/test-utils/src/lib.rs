@@ -127,6 +127,28 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
     job_manager_deploy.into_anvil_job_manager(anvil)
 }
 
+/// Ivm Exec deployment with job manager
+#[derive(Debug)]
+pub struct IvmExecJobManager {
+    /// ivm-exec http instance
+    pub ivm_exec: IvmExecInstance,
+    /// Address of the job manager contract
+    pub job_manager: Address,
+    /// Relayer private key
+    pub relayer: PrivateKeySigner,
+    /// Coprocessor operator private key
+    pub coprocessor_operator: PrivateKeySigner,
+}
+
+/// Deploy ivm_exec_with_job_manager
+pub async fn ivm_exec_with_job_manager(port: u16, logdir: Option<PathBuf>) -> IvmExecJobManager {
+    let exec = IvmExecInstance::try_spawn(port, logdir).unwrap();
+
+    let job_manager = job_manager_deploy(exec.endpoint()).await;
+
+    job_manager.into_ivm_exec_job_manager(exec)
+}
+
 /// Handle to an instance of `ivm-exec`. Intended to be used similar to
 /// alloys' `AnvilInstance`.
 ///
@@ -159,9 +181,9 @@ impl IvmExecInstance {
         cmd.arg("node");
         // Dev node that allows txs from anyone
         cmd.arg("--dev").arg("--tx-allow.all");
-        // 2 second block times
+        // 1 second block times
         // TODO: make this faster once everything works
-        cmd.arg("--dev.block-time").arg("200ms");
+        cmd.arg("--dev.block-time").arg("500ms");
         cmd.arg("--datadir").arg(datadir.into_path());
         // Enable WS and HTTP rpc endpoints
         cmd.arg("--http").arg("--ws");
@@ -190,7 +212,6 @@ impl IvmExecInstance {
             {
                 return Err(eyre!("timed out while waiting for ivm-exec test to start"));
             }
-
 
             let mut line = String::new();
             reader.read_line(&mut line)?;
@@ -231,21 +252,6 @@ impl Drop for IvmExecInstance {
     }
 }
 
-pub struct IvmExecJobManager {
-    /// ivm-exec http instance
-    pub http_endpoint: String,
-    /// ivm-exec ws instance
-    pub ws_endpoint: String,
-    /// Address of the job manager contract
-    pub job_manager: Address,
-    /// Relayer private key
-    pub relayer: PrivateKeySigner,
-    /// Coprocessor operator private key
-    pub coprocessor_operator: PrivateKeySigner,
-}
-
-// pub async fn ivm_exec_with_job_manager(port: u16) ->
-
 /// Get the first `count` of the signers based on the reth dev seed.
 pub fn get_signers(count: usize) -> Vec<PrivateKeySigner> {
     Wallet::new(count)
@@ -280,6 +286,18 @@ impl JobManagerDeploy {
     pub fn into_anvil_job_manager(self, anvil: AnvilInstance) -> AnvilJobManager {
         AnvilJobManager {
             anvil,
+            job_manager: self.job_manager,
+            relayer: self.relayer,
+            coprocessor_operator: self.coprocessor_operator,
+        }
+    }
+}
+
+impl JobManagerDeploy {
+    /// Convenience method to convert into `IvmExecJobManager`
+    pub fn into_ivm_exec_job_manager(self, ivm_exec: IvmExecInstance) -> IvmExecJobManager {
+        IvmExecJobManager {
+            ivm_exec,
             job_manager: self.job_manager,
             relayer: self.relayer,
             coprocessor_operator: self.coprocessor_operator,
