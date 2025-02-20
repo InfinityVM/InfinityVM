@@ -8,29 +8,22 @@ use alloy::{
 use ivm_contracts::{
     proxy_admin::ProxyAdmin, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
-use ivm_test_utils::{get_signers, AnvilJobManager, IvmExecJobManager};
+use ivm_test_utils::{get_signers, IvmExecJobManager};
 
 /// Output form [`anvil_with_matching_game_consumer`]
 /// TODO: rename
 #[derive(Debug)]
-pub struct AnvilMatchingGame {
+pub struct IvmExecMatchingGame {
     /// Offchain signer for matching game.
     pub matching_game_signer: PrivateKeySigner,
     /// Address of the matching game consumer contract
     pub matching_game_consumer: Address,
 }
 
-/// Deploy `MatchingGameConsumer` to anvil instance.
-/// TODO: remove
-pub async fn anvil_with_matching_game_consumer(anvil: &AnvilJobManager) -> AnvilMatchingGame {
-    let AnvilJobManager { anvil, job_manager, .. } = anvil;
-    matching_game_consumer_deploy(anvil.endpoint(), job_manager).await
-}
-
 /// Deploy `MatchingGameConsumer` to ivm-exec instance.
 pub async fn ivm_exec_with_matching_game_consumer(
     ivm_exec: &IvmExecJobManager,
-) -> AnvilMatchingGame {
+) -> IvmExecMatchingGame {
     let IvmExecJobManager { ivm_exec, job_manager, .. } = ivm_exec;
     matching_game_consumer_deploy(ivm_exec.endpoint(), job_manager).await
 }
@@ -39,7 +32,7 @@ pub async fn ivm_exec_with_matching_game_consumer(
 pub async fn matching_game_consumer_deploy(
     rpc_url: String,
     job_manager: &Address,
-) -> AnvilMatchingGame {
+) -> IvmExecMatchingGame {
     let signers = get_signers(6);
 
     let consumer_owner: PrivateKeySigner = signers[4].clone();
@@ -77,7 +70,7 @@ pub async fn matching_game_consumer_deploy(
     .await
     .unwrap();
 
-    AnvilMatchingGame {
+    IvmExecMatchingGame {
         matching_game_signer,
         matching_game_consumer: *matching_game_consumer.address(),
     }

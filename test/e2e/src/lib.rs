@@ -12,7 +12,7 @@ use ivm_proto::coprocessor_node_client::CoprocessorNodeClient;
 use ivm_test_utils::{
     get_localhost_port, ivm_exec_with_job_manager, sleep_until_bound, IvmExecJobManager, LOCALHOST,
 };
-use matching_game_server::test_utils::{ivm_exec_with_matching_game_consumer, AnvilMatchingGame};
+use matching_game_server::test_utils::{ivm_exec_with_matching_game_consumer, IvmExecMatchingGame};
 use rand::Rng;
 use reth_db::DatabaseEnv;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};
@@ -27,7 +27,7 @@ pub struct Args {
     /// `ClobConsumer` deployment.
     pub clob_consumer: Option<IvmExecClob>,
     /// `MatchingGameConsumer` deployment.
-    pub matching_game_consumer: Option<AnvilMatchingGame>,
+    pub matching_game_consumer: Option<IvmExecMatchingGame>,
     /// HTTP endpoint the clob node is listening on.
     pub clob_endpoint: Option<String>,
     /// HTTP endpoint the matching game node is listening on.

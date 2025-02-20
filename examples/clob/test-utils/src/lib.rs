@@ -25,8 +25,7 @@ pub mod mock_erc20 {
     }
 }
 
-/// Output form [`anvil_with_clob_consumer`]
-/// TODO: rename
+/// Output form [`ivm_exec_with_clob_consumer`]
 #[derive(Debug)]
 pub struct IvmExecClob {
     /// Offchain signer for clob.

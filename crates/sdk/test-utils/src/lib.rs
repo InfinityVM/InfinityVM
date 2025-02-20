@@ -120,7 +120,6 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
         .port(port)
         // 1000 dev accounts generated and configured
         .args(["-a", "1000", "--hardfork", "cancun"])
-        .keep_stdout()
         .spawn();
 
     let job_manager_deploy = job_manager_deploy(anvil.endpoint()).await;
@@ -183,7 +182,7 @@ impl IvmExecInstance {
         cmd.arg("node");
         // Dev node that allows txs from anyone
         cmd.arg("--dev").arg("--tx-allow.all");
-        // Make block times to fast to help tests go faster
+        // Fast block times to help tests go faster
         cmd.arg("--dev.block-time").arg("500ms");
         cmd.arg("--datadir").arg(datadir.into_path());
         // Enable WS and HTTP rpc endpoints
@@ -191,10 +190,10 @@ impl IvmExecInstance {
         // Explicitly enable most of the HTTP rpc modules
         cmd.arg("--http.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
         cmd.arg("--ws.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
-        // Disable discovery so we don't have to work about port allocation
+        // Disable discovery and ipc so we don't have to worry about allocation for port/socket
         cmd.arg("--disable-discovery");
         cmd.arg("--ipcdisable");
-        // If we don't do this it will complain about collisions at 30303
+        // If we don't do this it will complain about collisions on port 30303
         cmd.arg("--port").arg(ignored_discover_port.to_string());
         // Set the port
         cmd.arg("--http.port").arg(port.to_string());
@@ -227,8 +226,6 @@ impl IvmExecInstance {
                 break;
             }
         }
-
-        // child.stdout = Some(reader.into_inner());
 
         Ok(Self { port, child })
     }
