@@ -29,7 +29,7 @@ RUN apt-get update && \
   apt-get install -y --no-install-recommends ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-COPY --from=builder /app/target/release/ivm-coproc /usr/local/bin/ivm-coproc
+COPY --from=builder /app/target/maxperf/ivm-coproc /usr/local/bin/ivm-coproc
 COPY --from=grafana/promtail:3.0.0 /usr/bin/promtail /usr/local/bin
 
 EXPOSE 22 50069 50420
