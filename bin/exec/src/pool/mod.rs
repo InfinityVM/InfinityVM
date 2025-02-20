@@ -114,7 +114,7 @@ impl TransactionOrdering for GaslessOrdering {
 /// Type describing the IVM transaction pool.
 pub type IvmTransactionPool<Client, S> = reth_transaction_pool::Pool<
     TransactionValidationTaskExecutor<IvmTransactionValidator<Client, EthPooledTransaction>>,
-    CoinbaseTipOrdering<EthPooledTransaction>,
+    GaslessOrdering,
     S,
 >;
 
@@ -155,12 +155,12 @@ where
                 ctx.provider().clone(),
                 ctx.task_executor().clone(),
                 blob_store.clone(),
-                ivm_config,
+                ivm_config.clone(),
             );
 
         let transaction_pool = reth_transaction_pool::Pool::new(
             txn_validator,
-            CoinbaseTipOrdering::default(),
+            GaslessOrdering::new(ivm_config),
             blob_store,
             pool_config,
         );
