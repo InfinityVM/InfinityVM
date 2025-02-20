@@ -10,8 +10,7 @@ use ivm_contracts::{
 };
 use ivm_test_utils::{get_signers, IvmExecJobManager};
 
-/// Output form [`anvil_with_matching_game_consumer`]
-/// TODO: rename
+/// Output form [`ivm_exec_with_matching_game_consumer`]
 #[derive(Debug)]
 pub struct IvmExecMatchingGame {
     /// Offchain signer for matching game.
