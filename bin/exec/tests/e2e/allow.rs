@@ -1,6 +1,6 @@
 #![allow(clippy::large_stack_frames)]
 
-use crate::utils::{assert_unsupported_tx, eth_payload_attributes, transfer_bytes, signed_bytes};
+use crate::utils::{assert_unsupported_tx, eth_payload_attributes, signed_bytes, transfer_bytes};
 use alloy_genesis::Genesis;
 use alloy_network::EthereumWallet;
 use alloy_primitives::{address, U256};
@@ -16,8 +16,8 @@ use reth_e2e_test_utils::{
 };
 use reth_node_builder::{NodeBuilder, NodeConfig, NodeHandle};
 use reth_tasks::TaskManager;
-use std::sync::Arc;
 use reth_transaction_pool::TransactionPool;
+use std::sync::Arc;
 
 alloy_sol_types::sol! {
     #[sol(rpc, bytecode = "6080604052348015600f57600080fd5b5060405160db38038060db833981016040819052602a91607a565b60005b818110156074576040805143602082015290810182905260009060600160408051601f19818403018152919052805160209091012080555080606d816092565b915050602d565b505060b8565b600060208284031215608b57600080fd5b5051919050565b60006001820160b157634e487b7160e01b600052601160045260246000fd5b5060010190565b60168060c56000396000f3fe6080604052600080fdfea164736f6c6343000810000a")]
@@ -234,7 +234,6 @@ async fn allow_config_is_fork_aware() {
     node.advance_block().await.unwrap();
 }
 
-
 #[tokio::test]
 async fn pool_works() {
     ivm_test_utils::test_tracing();
@@ -270,24 +269,13 @@ async fn pool_works() {
     let wallets = Wallet::new(30).gen();
     let wallet_0 = wallets[29].clone();
 
-    let tx0 = signed_bytes(
-        1, 21000, 0, None, None, wallet_0.clone()
-    ).await;
-    let tx1 = signed_bytes(
-        1, 21000, 1, None, None, wallet_0.clone()
-    ).await;
-    let tx1point1 = signed_bytes(
-        1, 21001, 1, None, None, wallet_0.clone()
-    ).await;
-    let tx2 = signed_bytes(
-        1, 21000, 2, None, None, wallet_0.clone()
-    ).await;
-    let tx3 = signed_bytes(
-        1, 21000, 3, None, None, wallet_0.clone()
-    ).await;
-    let tx4 = signed_bytes(
-        1, 21000, 4, None, None, wallet_0.clone()
-    ).await;
+    let normal_gas = 20e9 as u128;
+    let tx0 = signed_bytes(1, 21000, 0, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx1 = signed_bytes(1, 21000, 1, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx1point1 = signed_bytes(1, 21001, 1, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx2 = signed_bytes(1, 21000, 2, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx3 = signed_bytes(1, 21000, 3, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx4 = signed_bytes(1, 21000, 4, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
 
     node.rpc.inject_tx(tx0).await.unwrap();
     node.rpc.inject_tx(tx1).await.unwrap();
@@ -297,9 +285,9 @@ async fn pool_works() {
     node.advance_block().await.unwrap();
 
     // See transaction pool state for all available methods
-    assert_eq!(node.inner.pool().pool_size().pending, 0); 
-    assert_eq!(node.inner.pool().pool_size().basefee, 0); 
-    assert_eq!(node.inner.pool().pool_size().queued, 0); 
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
     assert_eq!(node.inner.pool().pool_size().total, 0);
 
     node.rpc.inject_tx(tx2).await.unwrap();
@@ -307,8 +295,36 @@ async fn pool_works() {
     node.rpc.inject_tx(tx4).await.unwrap();
     node.advance_block().await.unwrap();
 
-    assert_eq!(node.inner.pool().pool_size().pending, 0); 
-    assert_eq!(node.inner.pool().pool_size().basefee, 0); 
-    assert_eq!(node.inner.pool().pool_size().queued, 1); 
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 1);
     assert_eq!(node.inner.pool().pool_size().total, 1);
+
+    // Fill in the nonce gap
+    node.rpc.inject_tx(tx3).await.unwrap();
+    assert_eq!(node.inner.pool().pool_size().pending, 2);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 2);
+    node.advance_block().await.unwrap();
+    // Pool is emptied because everything gets included
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 0);
+
+    let one_eth = 10e14 as u128;
+    let tx5 = signed_bytes(1, 21000, 5, None, None, wallet_0.clone(), one_eth, normal_gas).await;
+
+    node.rpc.inject_tx(tx5).await.unwrap();
+    assert_eq!(node.inner.pool().pool_size().pending, 1);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 1);
+
+    node.advance_block().await.unwrap();
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 0);
 }

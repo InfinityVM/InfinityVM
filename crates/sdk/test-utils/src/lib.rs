@@ -51,7 +51,7 @@ impl Drop for ProcKill {
 ///
 /// If the tracing subscriber has already been initialized in a previous test, this
 /// function will silently fail due to `try_init()`, which does not
-///  reinitialize
+/// reinitialize
 /// the subscriber if one is already set.
 pub fn test_tracing() {
     let filter =
