@@ -2,11 +2,12 @@
 
 use std::{
     io::{BufRead, BufReader},
-    net::{SocketAddr, TcpListener},
+    net::{TcpListener},
     path::PathBuf,
     process::Command,
-    str::FromStr,
+    time::Instant,
 };
+use eyre::eyre;
 
 use crate::wallet::Wallet;
 use alloy::{
@@ -25,7 +26,7 @@ use ivm_contracts::{
 use rand::Rng;
 use tokio::time::{sleep, Duration};
 use tracing::debug;
-use tracing_subscriber::{field::debug, filter::LevelFilter, EnvFilter};
+use tracing_subscriber::{filter::LevelFilter, EnvFilter};
 
 pub mod wallet;
 
@@ -166,8 +167,11 @@ impl IvmExecInstance {
         cmd.arg("--http").arg("--ws");
         // Explicitly enable most of the HTTP rpc modules
         cmd.arg("--http.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
+        cmd.arg("--ws.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
         // Set the port
-        cmd.arg("--port").arg(port.to_string());
+        cmd.arg("--http.port").arg(port.to_string());
+        cmd.arg("--ws.port").arg(port.to_string());
+        cmd.arg("--authrpc.port").arg((port + 1).to_string());
         // Configure log files - we log to stdout and the files
         cmd.arg("--log.stdout.filter").arg("info");
         cmd.arg("--log.file.directory").arg(logdir);
@@ -179,21 +183,27 @@ impl IvmExecInstance {
 
         let stdout = child.stdout.take().ok_or_eyre("no std out")?;
         let mut reader = BufReader::new(stdout);
+        let start = Instant::now();
         loop {
+            if start + Duration::from_secs(1)
+                <= Instant::now()
+            {
+                return Err(eyre!("timed out while waiting for ivm-exec test to start"));
+            }
+
+
             let mut line = String::new();
             reader.read_line(&mut line)?;
-
             if line.len() != 0 {
                 debug!(target: "ivm::exec::test", line);
             }
-
-            if line.contains("Starting consensus engine") {
-                debug!(target: "ivm::exec::test", "ivm-exec test is ready: consensus engine started");
+            if line.contains("Consensus engine initialized") {
+                debug!(target: "ivm::exec::test", "ivm-exec test is ready: consensus engine initialized");
                 break;
             }
         }
 
-        child.stdout = Some(reader.into_inner());
+        // child.stdout = Some(reader.into_inner());
 
         Ok(Self { port, child })
     }

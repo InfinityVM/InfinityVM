@@ -15,5 +15,5 @@ async fn main() {
     // println!("===== JOB REQUEST =====");
     // RequestAndResultSigner::sign_job_request().await;
 
-    std::thread::sleep(std::time::Duration::from_secs(30));
+    std::thread::sleep(std::time::Duration::from_secs(3));
 }
