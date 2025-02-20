@@ -162,6 +162,7 @@ pub struct IvmExecInstance {
 impl IvmExecInstance {
     /// Try to spawn a new ivm exec instance
     pub fn try_spawn(port: u16, logdir: Option<PathBuf>) -> Result<Self, eyre::Error> {
+        const TIMEOUT_SECONDS: u64 = 90;
         let mut cmd = Command::new("ivm-exec");
         cmd.stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::inherit());
 
@@ -177,6 +178,7 @@ impl IvmExecInstance {
         });
         // We disable discovery, but it still requires us to have a port
         let ignored_discover_port = get_localhost_port();
+        let auth_port = get_localhost_port();
 
         println!("ivm-exec test instance logs can be found in {}", logdir.display());
         cmd.arg("node");
@@ -198,7 +200,7 @@ impl IvmExecInstance {
         // Set the port
         cmd.arg("--http.port").arg(port.to_string());
         cmd.arg("--ws.port").arg(port.to_string());
-        cmd.arg("--authrpc.port").arg((port + 1).to_string());
+        cmd.arg("--authrpc.port").arg(auth_port.to_string());
         // Configure log files - we log to stdout and the files
         cmd.arg("--log.stdout.filter").arg("info");
         cmd.arg("--log.file.directory").arg(logdir);
@@ -212,7 +214,7 @@ impl IvmExecInstance {
         let mut reader = BufReader::new(stdout);
         let start = Instant::now();
         loop {
-            if start + Duration::from_secs(1) <= Instant::now() {
+            if start + Duration::from_secs(TIMEOUT_SECONDS) <= Instant::now() {
                 return Err(eyre!("timed out while waiting for ivm-exec test to start"));
             }
 
