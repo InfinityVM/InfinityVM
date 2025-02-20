@@ -314,8 +314,12 @@ async fn pool_works() {
     assert_eq!(node.inner.pool().pool_size().queued, 0);
     assert_eq!(node.inner.pool().pool_size().total, 0);
 
-    let one_eth = 10e14 as u128;
-    let tx5 = signed_bytes(1, 21000, 5, None, None, wallet_0.clone(), one_eth, normal_gas).await;
+    // There was a bug with validation logic that always returned u64::MAX
+    // and any tip greater then that made the tx get stuck. Now we make sure
+    // validated transaction always outputs U256::MAX to get around this issue.
+    let over_u64_max = u128::MAX;
+    let tx5 =
+        signed_bytes(1, 21000, 5, None, None, wallet_0.clone(), over_u64_max, normal_gas).await;
 
     node.rpc.inject_tx(tx5).await.unwrap();
     assert_eq!(node.inner.pool().pool_size().pending, 1);
