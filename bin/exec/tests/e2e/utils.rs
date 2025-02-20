@@ -52,6 +52,50 @@ fn tx(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
+fn tx_gas(
+    chain_id: u64,
+    gas: u64,
+    nonce: u64,
+    to: Option<Address>,
+    data: Option<Bytes>,
+    max_fee_per_gas: u128,
+    max_priority_fee_per_gas: u128,
+) -> TransactionRequest {
+    let to = to.unwrap_or_else(Address::random);
+    TransactionRequest {
+        nonce: Some(nonce),
+        value: Some(U256::from(100)),
+        to: Some(TxKind::Call(to)),
+        gas: Some(gas),
+        max_fee_per_gas: Some(max_fee_per_gas),
+        max_priority_fee_per_gas: Some(max_priority_fee_per_gas),
+        chain_id: Some(chain_id),
+        input: TransactionInput { input: None, data },
+        authorization_list: None,
+
+        ..Default::default()
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn signed_bytes(
+    chain_id: u64,
+    gas: u64,
+    nonce: u64,
+    to: Option<Address>,
+    data: Option<Bytes>,
+    wallet: PrivateKeySigner,
+    max_fee_per_gas: u128,
+    max_priority_fee_per_gas: u128,
+) -> Bytes {
+    let tx = tx_gas(chain_id, gas, nonce, to, data, max_fee_per_gas, max_priority_fee_per_gas);
+
+    let signed: alloy_consensus::TxEnvelope = TransactionTestContext::sign_tx(wallet, tx).await;
+
+    signed.encoded_2718().into()
+}
+
 /// Creates a type 2718 transaction. Generates random address for to
 /// if none is specified
 pub(crate) async fn transfer_bytes(
