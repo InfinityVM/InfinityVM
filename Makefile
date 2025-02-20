@@ -67,4 +67,8 @@ run:
 
 .PHONY: install-exec
 install-exec:
-	cargo install --locked --path bin/exec
+	if ! command -v ivm-exec >/dev/null 2>&1; \
+	then \
+		cargo install --locked --path bin/exec; \
+		echo "$$HOME/.cargo/bin" >> $$GITHUB_PATH; \
+	fi

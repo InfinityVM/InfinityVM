@@ -28,7 +28,9 @@ pub async fn anvil_with_matching_game_consumer(anvil: &AnvilJobManager) -> Anvil
 }
 
 /// Deploy `MatchingGameConsumer` to ivm-exec instance.
-pub async fn ivm_exec_with_matching_game_consumer(ivm_exec: &IvmExecJobManager) -> AnvilMatchingGame {
+pub async fn ivm_exec_with_matching_game_consumer(
+    ivm_exec: &IvmExecJobManager,
+) -> AnvilMatchingGame {
     let IvmExecJobManager { ivm_exec, job_manager, .. } = ivm_exec;
     matching_game_consumer_deploy(ivm_exec.endpoint(), job_manager).await
 }

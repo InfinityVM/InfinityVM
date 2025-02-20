@@ -26,7 +26,7 @@ pub mod mock_erc20 {
 }
 
 /// Output form [`anvil_with_clob_consumer`]
-/// TODO: rename 
+/// TODO: rename
 #[derive(Debug)]
 pub struct AnvilClob {
     /// Offchain signer for clob.
@@ -47,7 +47,7 @@ pub async fn anvil_with_clob_consumer(anvil: &AnvilJobManager) -> AnvilClob {
 }
 
 /// Deploy `ClobConsumer` to ivm-exec instance.
-pub async fn  ivm_exec_with_clob_consumer(ivm_exec: &IvmExecJobManager) -> AnvilClob {
+pub async fn ivm_exec_with_clob_consumer(ivm_exec: &IvmExecJobManager) -> AnvilClob {
     let IvmExecJobManager { ivm_exec, job_manager, .. } = ivm_exec;
     clob_consumer_deploy(ivm_exec.endpoint(), job_manager).await
 }

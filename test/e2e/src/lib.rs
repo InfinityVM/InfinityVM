@@ -10,9 +10,11 @@ use ivm_coproc::{
 use ivm_mock_consumer::{anvil_with_mock_consumer, ivm_exec_with_mock_consumer, AnvilMockConsumer};
 use ivm_proto::coprocessor_node_client::CoprocessorNodeClient;
 use ivm_test_utils::{
-    get_localhost_port, ivm_exec_with_job_manager, sleep_until_bound, IvmExecJobManager, LOCALHOST
+    get_localhost_port, ivm_exec_with_job_manager, sleep_until_bound, IvmExecJobManager, LOCALHOST,
 };
-use matching_game_server::test_utils::{anvil_with_matching_game_consumer, ivm_exec_with_matching_game_consumer, AnvilMatchingGame};
+use matching_game_server::test_utils::{
+    anvil_with_matching_game_consumer, ivm_exec_with_matching_game_consumer, AnvilMatchingGame,
+};
 use rand::Rng;
 use reth_db::DatabaseEnv;
 use std::{env::temp_dir, future::Future, panic::AssertUnwindSafe, sync::Arc};

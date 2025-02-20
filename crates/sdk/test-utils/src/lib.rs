@@ -1,13 +1,13 @@
 //! Utilities for setting up tests.
 
+use eyre::eyre;
 use std::{
     io::{BufRead, BufReader},
-    net::{TcpListener},
+    net::TcpListener,
     path::PathBuf,
     process::Command,
     time::Instant,
 };
-use eyre::eyre;
 
 use crate::wallet::Wallet;
 use alloy::{
@@ -175,14 +175,14 @@ impl IvmExecInstance {
                 .unwrap()
                 .into_path()
         });
+        // We disable discovery, but it still requires us to have a port
+        let ignored_discover_port = get_localhost_port();
 
         println!("ivm-exec test instance logs can be found in {}", logdir.display());
-
         cmd.arg("node");
         // Dev node that allows txs from anyone
         cmd.arg("--dev").arg("--tx-allow.all");
-        // 1 second block times
-        // TODO: make this faster once everything works
+        // Make block times to fast to help tests go faster
         cmd.arg("--dev.block-time").arg("500ms");
         cmd.arg("--datadir").arg(datadir.into_path());
         // Enable WS and HTTP rpc endpoints
@@ -190,6 +190,10 @@ impl IvmExecInstance {
         // Explicitly enable most of the HTTP rpc modules
         cmd.arg("--http.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
         cmd.arg("--ws.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
+        // Disable discovery so we don't have to work about port allocation
+        cmd.arg("--disable-discovery");
+        // If we don't do this it will complain about collisions at 30303
+        cmd.arg("--port").arg(ignored_discover_port.to_string());
         // Set the port
         cmd.arg("--http.port").arg(port.to_string());
         cmd.arg("--ws.port").arg(port.to_string());
@@ -207,9 +211,7 @@ impl IvmExecInstance {
         let mut reader = BufReader::new(stdout);
         let start = Instant::now();
         loop {
-            if start + Duration::from_secs(1)
-                <= Instant::now()
-            {
+            if start + Duration::from_secs(1) <= Instant::now() {
                 return Err(eyre!("timed out while waiting for ivm-exec test to start"));
             }
 
