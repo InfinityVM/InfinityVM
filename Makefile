@@ -29,12 +29,12 @@ doc: contracts
 
 # Use this for iterating on integration tests
 .PHONY: test-all
-test-all: contracts
+test-all: contracts install-exec
 	@# Make sure to run the ignored tests
 	cargo test --all -- --include-ignored --nocapture
 
 .PHONY: test-all-ci
-test-all-ci: contracts
+test-all-ci: contracts install-exec
 	@# Make sure to run the ignored tests
 	@# We use release because the total build + test execution time in CI is faster,
 	@# however it tends to be slower locally.
@@ -64,3 +64,7 @@ contracts:
 .PHONY: run
 run:
 	cargo run --bin local
+
+.PHONY: install-exec
+install-exec:
+	cargo install --locked --path bin/exec

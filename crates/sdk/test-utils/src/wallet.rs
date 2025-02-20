@@ -36,7 +36,7 @@ impl Wallet {
 
     /// Generates a list of wallets
     pub fn gen(&self) -> Vec<PrivateKeySigner> {
-        use alloy_signer::Signer;
+        use alloy::signers::Signer;
 
         let builder = MnemonicBuilder::<English>::default().phrase(TEST_MNEMONIC);
 

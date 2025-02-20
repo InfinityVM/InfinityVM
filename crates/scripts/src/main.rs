@@ -3,6 +3,8 @@ use ivm_scripts::signer::RequestAndResultSigner;
 
 #[tokio::main]
 async fn main() {
+    ivm_test_utils::IvmExecInstance::spawn(2020).unwrap();
+
     println!("===== ONCHAIN RESULT =====");
     RequestAndResultSigner::sign_onchain_result().await;
 

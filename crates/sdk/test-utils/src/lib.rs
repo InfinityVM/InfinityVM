@@ -1,6 +1,6 @@
 //! Utilities for setting up tests.
 
-use std::net::TcpListener;
+use std::{net::TcpListener, process::Command};
 
 use crate::wallet::Wallet;
 use alloy::{
@@ -11,6 +11,7 @@ use alloy::{
     signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
 };
+use eyre::WrapErr;
 use ivm_abi::{abi_encode_offchain_job_request, JobParams};
 use ivm_contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
@@ -117,6 +118,79 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
 
     job_manager_deploy.into_anvil_job_manager(anvil)
 }
+
+/// Handle to an instance of `ivm-exec`. Intended to be used similar to
+/// alloys' `AnvilInstance`
+pub struct IvmExecInstance {
+    child: std::process::Child,
+    port: u16,
+}
+
+impl IvmExecInstance {
+    /// Try to spawn a new ivm exec instance
+    pub fn try_spawn(port: u16) -> Result<Self, eyre::Error> {
+        let mut cmd = Command::new("ivm-exec");
+        // cmd.stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::inherit());
+
+        let datadir =
+            tempfile::Builder::new().prefix("ivm-exec-instance-datadir").tempdir().unwrap();
+
+        cmd.arg("node");
+        // Dev node that allows txs from anyone
+        cmd.arg("--dev").arg("--tx-allow.all");
+        // 200ms block times
+        cmd.arg("--dev.block-time").arg("200ms");
+        cmd.arg("--datadir").arg(datadir.into_path());
+        // Enable WS and HTTP rpc endpoints
+        cmd.arg("--http").arg("--ws");
+        // Explicitly enable most of the HTTP rpc modules
+        cmd.arg("--http.api ").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
+        // Set the port
+        cmd.arg("-p").arg(port.to_string());
+
+        let mut child = cmd.spawn().wrap_err(
+            "failed to spawn ivm-exec. do you you have ivm-exec installed an in your path?",
+        )?;
+        Ok(Self { port, child })
+    }
+
+    /// Returns the port of this instance
+    pub const fn port(&self) -> u16 {
+        self.port
+    }
+
+    /// Returns the HTTP endpoint of this instance
+    #[doc(alias = "http_endpoint")]
+    pub fn endpoint(&self) -> String {
+        format!("http://localhost:{}", self.port)
+    }
+
+    /// Returns the Websocket endpoint of this instance
+    pub fn ws_endpoint(&self) -> String {
+        format!("ws://localhost:{}", self.port)
+    }
+}
+
+impl Drop for IvmExecInstance {
+    fn drop(&mut self) {
+        self.child.kill().expect("could not kill ivm-exec");
+    }
+}
+
+pub struct IvmExecJobManager {
+    /// ivm-exec http instance
+    pub http_endpoint: String,
+    /// ivm-exec ws instance
+    pub ws_endpoint: String,
+    /// Address of the job manager contract
+    pub job_manager: Address,
+    /// Relayer private key
+    pub relayer: PrivateKeySigner,
+    /// Coprocessor operator private key
+    pub coprocessor_operator: PrivateKeySigner,
+}
+
+// pub async fn ivm_exec_with_job_manager(port: u16) ->
 
 /// Get the first `count` of the signers based on the reth dev seed.
 pub fn get_signers(count: usize) -> Vec<PrivateKeySigner> {

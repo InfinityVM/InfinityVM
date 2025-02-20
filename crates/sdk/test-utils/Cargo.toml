@@ -12,8 +12,8 @@ alloy = { workspace = true, features = ["provider-anvil-node", "signer-local", "
 tracing-subscriber = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }
-alloy-signer-local = { version = "0.3.3", features = ["mnemonic"]}
-alloy-signer = { version = "0.3.3" }
+eyre = { workspace = true }
+tempfile = { workspace = true }
 
 ivm-contracts = { workspace = true }
 ivm-abi = { workspace = true }
