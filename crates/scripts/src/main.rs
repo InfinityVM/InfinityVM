@@ -3,14 +3,17 @@ use ivm_scripts::signer::RequestAndResultSigner;
 
 #[tokio::main]
 async fn main() {
-    ivm_test_utils::IvmExecInstance::spawn(2020).unwrap();
+    let instance =
+        ivm_test_utils::IvmExecInstance::try_spawn(2020, Some("./log/ivm-exec".into())).unwrap();
 
-    println!("===== ONCHAIN RESULT =====");
-    RequestAndResultSigner::sign_onchain_result().await;
+    // println!("===== ONCHAIN RESULT =====");
+    // RequestAndResultSigner::sign_onchain_result().await;
 
-    println!("===== OFFCHAIN RESULT =====");
-    RequestAndResultSigner::sign_offchain_result().await;
+    // println!("===== OFFCHAIN RESULT =====");
+    // RequestAndResultSigner::sign_offchain_result().await;
 
-    println!("===== JOB REQUEST =====");
-    RequestAndResultSigner::sign_job_request().await;
+    // println!("===== JOB REQUEST =====");
+    // RequestAndResultSigner::sign_job_request().await;
+
+    std::thread::sleep(std::time::Duration::from_secs(30));
 }

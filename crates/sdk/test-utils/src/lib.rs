@@ -1,6 +1,12 @@
 //! Utilities for setting up tests.
 
-use std::{net::TcpListener, process::Command};
+use std::{
+    io::{BufRead, BufReader},
+    net::{SocketAddr, TcpListener},
+    path::PathBuf,
+    process::Command,
+    str::FromStr,
+};
 
 use crate::wallet::Wallet;
 use alloy::{
@@ -11,14 +17,15 @@ use alloy::{
     signers::{local::PrivateKeySigner, Signer},
     sol_types::SolValue,
 };
-use eyre::WrapErr;
+use eyre::{OptionExt, WrapErr};
 use ivm_abi::{abi_encode_offchain_job_request, JobParams};
 use ivm_contracts::{
     job_manager::JobManager, transparent_upgradeable_proxy::TransparentUpgradeableProxy,
 };
 use rand::Rng;
 use tokio::time::{sleep, Duration};
-use tracing_subscriber::{filter::LevelFilter, EnvFilter};
+use tracing::debug;
+use tracing_subscriber::{field::debug, filter::LevelFilter, EnvFilter};
 
 pub mod wallet;
 
@@ -120,7 +127,10 @@ pub async fn anvil_with_job_manager(port: u16) -> AnvilJobManager {
 }
 
 /// Handle to an instance of `ivm-exec`. Intended to be used similar to
-/// alloys' `AnvilInstance`
+/// alloys' `AnvilInstance`.
+///
+/// This will kill its process on drop.
+#[derive(Debug)]
 pub struct IvmExecInstance {
     child: std::process::Child,
     port: u16,
@@ -128,29 +138,63 @@ pub struct IvmExecInstance {
 
 impl IvmExecInstance {
     /// Try to spawn a new ivm exec instance
-    pub fn try_spawn(port: u16) -> Result<Self, eyre::Error> {
+    pub fn try_spawn(port: u16, logdir: Option<PathBuf>) -> Result<Self, eyre::Error> {
         let mut cmd = Command::new("ivm-exec");
-        // cmd.stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::inherit());
+        cmd.stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::inherit());
 
         let datadir =
             tempfile::Builder::new().prefix("ivm-exec-instance-datadir").tempdir().unwrap();
 
+        let logdir = logdir.unwrap_or_else(|| {
+            tempfile::Builder::new()
+                .prefix(&format!("ivm-exec-test-logs-{}", port))
+                .tempdir()
+                .unwrap()
+                .into_path()
+        });
+
+        println!("ivm-exec test instance logs can be found in {}", logdir.display());
+
         cmd.arg("node");
         // Dev node that allows txs from anyone
         cmd.arg("--dev").arg("--tx-allow.all");
-        // 200ms block times
+        // 2 second block times
+        // TODO: make this faster once everything works
         cmd.arg("--dev.block-time").arg("200ms");
         cmd.arg("--datadir").arg(datadir.into_path());
         // Enable WS and HTTP rpc endpoints
         cmd.arg("--http").arg("--ws");
         // Explicitly enable most of the HTTP rpc modules
-        cmd.arg("--http.api ").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
+        cmd.arg("--http.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
         // Set the port
-        cmd.arg("-p").arg(port.to_string());
+        cmd.arg("--port").arg(port.to_string());
+        // Configure log files - we log to stdout and the files
+        cmd.arg("--log.stdout.filter").arg("info");
+        cmd.arg("--log.file.directory").arg(logdir);
+        cmd.arg("--log.file.filter").arg("info");
 
         let mut child = cmd.spawn().wrap_err(
             "failed to spawn ivm-exec. do you you have ivm-exec installed an in your path?",
         )?;
+
+        let stdout = child.stdout.take().ok_or_eyre("no std out")?;
+        let mut reader = BufReader::new(stdout);
+        loop {
+            let mut line = String::new();
+            reader.read_line(&mut line)?;
+
+            if line.len() != 0 {
+                debug!(target: "ivm::exec::test", line);
+            }
+
+            if line.contains("Starting consensus engine") {
+                debug!(target: "ivm::exec::test", "ivm-exec test is ready: consensus engine started");
+                break;
+            }
+        }
+
+        child.stdout = Some(reader.into_inner());
+
         Ok(Self { port, child })
     }
 

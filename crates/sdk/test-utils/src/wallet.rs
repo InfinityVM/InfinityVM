@@ -2,7 +2,7 @@
 //!
 //! This code is taken directly from <https://github.com/paradigmxyz/reth/blob/main/crates/e2e-test-utils/src/wallet.rs>
 
-use alloy_signer_local::{coins_bip39::English, MnemonicBuilder, PrivateKeySigner};
+use alloy::signers::local::{coins_bip39::English, MnemonicBuilder, PrivateKeySigner};
 
 /// One of the accounts of the genesis allocations.
 #[derive(Debug)]

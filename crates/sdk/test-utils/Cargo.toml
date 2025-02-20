@@ -8,12 +8,13 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-alloy = { workspace = true, features = ["provider-anvil-node", "signer-local", "signers", "signer-keystore"] }
+alloy = { workspace = true, features = ["provider-anvil-node", "signer-local", "signers", "signer-keystore", "signer-mnemonic"] }
 tracing-subscriber = { workspace = true }
 rand = { workspace = true }
 tokio = { workspace = true }
 eyre = { workspace = true }
 tempfile = { workspace = true }
+tracing = { workspace = true }
 
 ivm-contracts = { workspace = true }
 ivm-abi = { workspace = true }
