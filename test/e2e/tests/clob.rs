@@ -76,21 +76,27 @@ async fn state_job_submission_clob_consumer() {
         let call = alice_base.approve(clob.clob_consumer, U256::from(1_000));
         let r3 = call.send().await.unwrap().get_receipt();
 
-        let alice_contract = ClobConsumer::new(clob.clob_consumer, &alice_provider);
-        let call = alice_contract.deposit(U256::from(200), U256::from(0));
+        let alice_quote = MockErc20::new(clob.quote_erc20, &alice_provider);
+        let call = alice_quote.approve(clob.clob_consumer, U256::from(1_000));
         let r4 = call.send().await.unwrap().get_receipt();
-
         let bob_provider = ProviderBuilder::new()
-            .wallet(bob_wallet)
-            .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
+        .wallet(bob_wallet)
+        .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
         let call = bob_quote.approve(clob.clob_consumer, U256::from(1_000));
         let r5 = call.send().await.unwrap().get_receipt();
 
+        // Wait for mints and approvals to process before depositing
+        tokio::try_join!(r1, r2, r3, r4, r5).unwrap();
+
+        let alice_contract = ClobConsumer::new(clob.clob_consumer, &alice_provider);
+        let call = alice_contract.deposit(U256::from(200), U256::from(0));
+        let r5 = call.send().await.unwrap().get_receipt();
         let bob_contract = ClobConsumer::new(clob.clob_consumer, &bob_provider);
         let call = bob_contract.deposit(U256::from(0), U256::from(800));
         let r6 = call.send().await.unwrap().get_receipt();
-        tokio::try_join!(r1, r2, r3, r4, r5, r6).unwrap();
+        // Process deposits
+        tokio::try_join!(r5, r6).unwrap();
 
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;
         assert_eq!(bob_quote_bal, U256::from(200));
