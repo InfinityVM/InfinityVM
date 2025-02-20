@@ -1,6 +1,6 @@
 #![allow(clippy::large_stack_frames)]
 
-use crate::utils::{assert_unsupported_tx, eth_payload_attributes, transfer_bytes};
+use crate::utils::{assert_unsupported_tx, eth_payload_attributes, transfer_bytes, signed_bytes};
 use alloy_genesis::Genesis;
 use alloy_network::EthereumWallet;
 use alloy_primitives::{address, U256};
@@ -17,6 +17,7 @@ use reth_e2e_test_utils::{
 use reth_node_builder::{NodeBuilder, NodeConfig, NodeHandle};
 use reth_tasks::TaskManager;
 use std::sync::Arc;
+use reth_transaction_pool::TransactionPool;
 
 alloy_sol_types::sol! {
     #[sol(rpc, bytecode = "6080604052348015600f57600080fd5b5060405160db38038060db833981016040819052602a91607a565b60005b818110156074576040805143602082015290810182905260009060600160408051601f19818403018152919052805160209091012080555080606d816092565b915050602d565b505060b8565b600060208284031215608b57600080fd5b5051919050565b60006001820160b157634e487b7160e01b600052601160045260246000fd5b5060010190565b60168060c56000396000f3fe6080604052600080fdfea164736f6c6343000810000a")]
@@ -231,4 +232,83 @@ async fn allow_config_is_fork_aware() {
     let transfer_tx = transfer_bytes(3, None, wallet_0.clone()).await;
     node.rpc.inject_tx(transfer_tx).await.unwrap();
     node.advance_block().await.unwrap();
+}
+
+
+#[tokio::test]
+async fn pool_works() {
+    ivm_test_utils::test_tracing();
+
+    let tasks = TaskManager::current();
+    let exec = tasks.executor();
+
+    let genesis: Genesis =
+        serde_json::from_str(include_str!("../../mock/eth-genesis.json")).unwrap();
+    let chain_spec = Arc::new(
+        ChainSpecBuilder::default()
+            .chain(MAINNET.chain)
+            .genesis(genesis.clone())
+            .cancun_activated()
+            .build(),
+    );
+    let node_config = NodeConfig::test()
+        .with_chain(chain_spec)
+        .with_unused_ports()
+        .with_rpc(RpcServerArgs::default().with_unused_ports().with_http());
+
+    let config = IvmConfig::allow_all();
+    let ivm_node_types = IvmNode::new(config);
+    let NodeHandle { node, node_exit_future: _ } = NodeBuilder::new(node_config.clone())
+        .testing_node(exec.clone())
+        .node(ivm_node_types)
+        .launch()
+        .await
+        .unwrap();
+
+    let mut node = NodeTestContext::new(node, eth_payload_attributes).await.unwrap();
+
+    let wallets = Wallet::new(30).gen();
+    let wallet_0 = wallets[29].clone();
+
+    let tx0 = signed_bytes(
+        1, 21000, 0, None, None, wallet_0.clone()
+    ).await;
+    let tx1 = signed_bytes(
+        1, 21000, 1, None, None, wallet_0.clone()
+    ).await;
+    let tx1point1 = signed_bytes(
+        1, 21001, 1, None, None, wallet_0.clone()
+    ).await;
+    let tx2 = signed_bytes(
+        1, 21000, 2, None, None, wallet_0.clone()
+    ).await;
+    let tx3 = signed_bytes(
+        1, 21000, 3, None, None, wallet_0.clone()
+    ).await;
+    let tx4 = signed_bytes(
+        1, 21000, 4, None, None, wallet_0.clone()
+    ).await;
+
+    node.rpc.inject_tx(tx0).await.unwrap();
+    node.rpc.inject_tx(tx1).await.unwrap();
+    // Try injecting same nonce twice
+    let err = node.rpc.inject_tx(tx1point1).await.unwrap_err().to_string();
+    assert_eq!(err, *"replacement transaction underpriced");
+    node.advance_block().await.unwrap();
+
+    // See transaction pool state for all available methods
+    assert_eq!(node.inner.pool().pool_size().pending, 0); 
+    assert_eq!(node.inner.pool().pool_size().basefee, 0); 
+    assert_eq!(node.inner.pool().pool_size().queued, 0); 
+    assert_eq!(node.inner.pool().pool_size().total, 0);
+
+    node.rpc.inject_tx(tx2).await.unwrap();
+    // Skip nonce 3
+    node.rpc.inject_tx(tx4).await.unwrap();
+    node.advance_block().await.unwrap();
+
+    assert_eq!(node.inner.pool().pool_size().pending, 0); 
+    assert_eq!(node.inner.pool().pool_size().basefee, 0); 
+    assert_eq!(node.inner.pool().pool_size().queued, 1); 
+    assert_eq!(node.inner.pool().pool_size().total, 1);
 }

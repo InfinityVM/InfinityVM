@@ -52,6 +52,23 @@ fn tx(
     }
 }
 
+pub(crate) async fn signed_bytes(
+    chain_id: u64,
+    gas: u64,
+    nonce: u64,
+    to: Option<Address>,
+    data: Option<Bytes>,
+    wallet: PrivateKeySigner,
+) -> Bytes {
+    let tx = tx(
+        chain_id, gas, nonce, to, data
+    );
+
+    let signed: alloy_consensus::TxEnvelope = TransactionTestContext::sign_tx(wallet, tx).await;
+
+    signed.encoded_2718().into()
+}
+
 /// Creates a type 2718 transaction. Generates random address for to
 /// if none is specified
 pub(crate) async fn transfer_bytes(
