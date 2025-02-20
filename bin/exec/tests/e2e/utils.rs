@@ -52,6 +52,7 @@ fn tx(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn tx_gas(
     chain_id: u64,
     gas: u64,
@@ -77,6 +78,7 @@ fn tx_gas(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) async fn signed_bytes(
     chain_id: u64,
     gas: u64,

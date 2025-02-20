@@ -272,7 +272,8 @@ async fn pool_works() {
     let normal_gas = 20e9 as u128;
     let tx0 = signed_bytes(1, 21000, 0, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
     let tx1 = signed_bytes(1, 21000, 1, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
-    let tx1point1 = signed_bytes(1, 21001, 1, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx1point1 =
+        signed_bytes(1, 21001, 1, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
     let tx2 = signed_bytes(1, 21000, 2, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
     let tx3 = signed_bytes(1, 21000, 3, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
     let tx4 = signed_bytes(1, 21000, 4, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
