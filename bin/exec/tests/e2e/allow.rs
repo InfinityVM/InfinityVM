@@ -1,6 +1,6 @@
 #![allow(clippy::large_stack_frames)]
 
-use crate::utils::{assert_unsupported_tx, eth_payload_attributes, transfer_bytes};
+use crate::utils::{assert_unsupported_tx, eth_payload_attributes, signed_bytes, transfer_bytes};
 use alloy_genesis::Genesis;
 use alloy_network::EthereumWallet;
 use alloy_primitives::{address, U256};
@@ -16,6 +16,7 @@ use reth_e2e_test_utils::{
 };
 use reth_node_builder::{NodeBuilder, NodeConfig, NodeHandle};
 use reth_tasks::TaskManager;
+use reth_transaction_pool::TransactionPool;
 use std::sync::Arc;
 
 alloy_sol_types::sol! {
@@ -231,4 +232,104 @@ async fn allow_config_is_fork_aware() {
     let transfer_tx = transfer_bytes(3, None, wallet_0.clone()).await;
     node.rpc.inject_tx(transfer_tx).await.unwrap();
     node.advance_block().await.unwrap();
+}
+
+#[tokio::test]
+async fn pool_works() {
+    ivm_test_utils::test_tracing();
+
+    let tasks = TaskManager::current();
+    let exec = tasks.executor();
+
+    let genesis: Genesis =
+        serde_json::from_str(include_str!("../../mock/eth-genesis.json")).unwrap();
+    let chain_spec = Arc::new(
+        ChainSpecBuilder::default()
+            .chain(MAINNET.chain)
+            .genesis(genesis.clone())
+            .cancun_activated()
+            .build(),
+    );
+    let node_config = NodeConfig::test()
+        .with_chain(chain_spec)
+        .with_unused_ports()
+        .with_rpc(RpcServerArgs::default().with_unused_ports().with_http());
+
+    let config = IvmConfig::allow_all();
+    let ivm_node_types = IvmNode::new(config);
+    let NodeHandle { node, node_exit_future: _ } = NodeBuilder::new(node_config.clone())
+        .testing_node(exec.clone())
+        .node(ivm_node_types)
+        .launch()
+        .await
+        .unwrap();
+
+    let mut node = NodeTestContext::new(node, eth_payload_attributes).await.unwrap();
+
+    let wallets = Wallet::new(30).gen();
+    let wallet_0 = wallets[29].clone();
+
+    let normal_gas = 20e9 as u128;
+    let tx0 = signed_bytes(1, 21000, 0, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx1 = signed_bytes(1, 21000, 1, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx1point1 =
+        signed_bytes(1, 21001, 1, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx2 = signed_bytes(1, 21000, 2, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx3 = signed_bytes(1, 21000, 3, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+    let tx4 = signed_bytes(1, 21000, 4, None, None, wallet_0.clone(), normal_gas, normal_gas).await;
+
+    node.rpc.inject_tx(tx0).await.unwrap();
+    node.rpc.inject_tx(tx1).await.unwrap();
+    // Try injecting same nonce twice
+    let err = node.rpc.inject_tx(tx1point1).await.unwrap_err().to_string();
+    assert_eq!(err, *"replacement transaction underpriced");
+    node.advance_block().await.unwrap();
+
+    // See transaction pool state for all available methods
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 0);
+
+    node.rpc.inject_tx(tx2).await.unwrap();
+    // Skip nonce 3
+    node.rpc.inject_tx(tx4).await.unwrap();
+    node.advance_block().await.unwrap();
+
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 1);
+    assert_eq!(node.inner.pool().pool_size().total, 1);
+
+    // Fill in the nonce gap
+    node.rpc.inject_tx(tx3).await.unwrap();
+    assert_eq!(node.inner.pool().pool_size().pending, 2);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 2);
+    node.advance_block().await.unwrap();
+    // Pool is emptied because everything gets included
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 0);
+
+    // There was a bug with validation logic that always returned u64::MAX
+    // and any tip greater then that made the tx get stuck. Now we make sure
+    // validated transaction always outputs U256::MAX to get around this issue.
+    let over_u64_max = u128::MAX;
+    let tx5 =
+        signed_bytes(1, 21000, 5, None, None, wallet_0.clone(), over_u64_max, normal_gas).await;
+
+    node.rpc.inject_tx(tx5).await.unwrap();
+    assert_eq!(node.inner.pool().pool_size().pending, 1);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 1);
+
+    node.advance_block().await.unwrap();
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 0);
 }
