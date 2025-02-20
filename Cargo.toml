@@ -117,6 +117,11 @@ redundant_pub_crate = "allow"
 significant_drop_in_scrutinee = "allow"
 significant_drop_tightening = "allow"
 
+[profile.maxperf]
+inherits = "release"
+lto = "fat"
+codegen-units = 1
+
 [workspace.dependencies]
 # a
 anyhow = { version = "1", default-features = false }

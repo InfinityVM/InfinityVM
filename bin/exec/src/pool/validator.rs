@@ -9,7 +9,7 @@ use alloy_consensus::{
     BlockHeader,
 };
 use alloy_eips::{
-    eip1559::ETHEREUM_BLOCK_GAS_LIMIT_30M, eip4844::env_settings::EnvKzgSettings,
+    eip1559::ETHEREUM_BLOCK_GAS_LIMIT_36M, eip4844::env_settings::EnvKzgSettings,
     eip7840::BlobParams,
 };
 use alloy_primitives::U256;
@@ -91,9 +91,8 @@ impl IvmTransactionValidatorBuilder {
     ///  - EIP-4844
     pub fn new(chain_spec: Arc<ChainSpec>) -> Self {
         Self {
-            // NOTE: with reth 1.2.0, it now support 36M gas, but keeping lower for lower block
-            // times.
-            block_gas_limit: ETHEREUM_BLOCK_GAS_LIMIT_30M.into(),
+            // NOTE: with reth 1.2.0, it now support 36M gas when it used to be 30M
+            block_gas_limit: ETHEREUM_BLOCK_GAS_LIMIT_36M.into(),
             chain_spec,
             minimum_priority_fee: None,
             additional_tasks: 1,

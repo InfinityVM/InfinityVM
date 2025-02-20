@@ -21,7 +21,7 @@ RUN apt-get update && apt-get -y upgrade && \
 FROM base AS builder
 WORKDIR /app
 COPY --from=base /app/. .
-RUN cargo build --release --locked --bin ivm-coproc
+RUN cargo build --profile maxperf --locked --bin ivm-coproc
 
 FROM --platform=linux/amd64 debian:bookworm-slim
 WORKDIR /app
