@@ -289,23 +289,26 @@ async fn clob_node_e2e() {
         let call = alice_base.approve(clob.clob_consumer, U256::from(1_000));
         let r3 = call.send().await.unwrap().get_receipt();
 
-        let alice_contract = ClobConsumer::new(clob.clob_consumer, &alice_provider);
-        let call = alice_contract.deposit(U256::from(200), U256::from(0));
-        let r4 = call.send().await.unwrap().get_receipt();
-
         let bob_provider = ProviderBuilder::new()
             .wallet(bob_wallet)
             .on_http(ivm_exec.ivm_exec.endpoint().parse().unwrap());
         let bob_quote = MockErc20::new(clob.quote_erc20, &bob_provider);
         let call = bob_quote.approve(clob.clob_consumer, U256::from(1_000));
+        let r4 = call.send().await.unwrap().get_receipt();
+
+        // Process approvals and mints first
+        tokio::try_join!(r1, r2, r3, r4).unwrap();
+
+        let alice_contract = ClobConsumer::new(clob.clob_consumer, &alice_provider);
+        let call = alice_contract.deposit(U256::from(200), U256::from(0));
         let r5 = call.send().await.unwrap().get_receipt();
 
         let bob_contract = ClobConsumer::new(clob.clob_consumer, &bob_provider);
         let call = bob_contract.deposit(U256::from(0), U256::from(800));
         let r6 = call.send().await.unwrap().get_receipt();
 
-        // Wait for all the transactions to hit the chain
-        tokio::try_join!(r1, r2, r3, r4, r5, r6).unwrap();
+        // Wait for deposits to finish processing
+        tokio::try_join!(r5, r6).unwrap();
 
         // Sanity check that the ERC20s transferred
         let bob_quote_bal = bob_quote.balanceOf(bob.into()).call().await.unwrap()._0;

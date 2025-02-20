@@ -192,6 +192,7 @@ impl IvmExecInstance {
         cmd.arg("--ws.api").arg("admin,debug,eth,net,trace,txpool,web3,rpc,reth");
         // Disable discovery so we don't have to work about port allocation
         cmd.arg("--disable-discovery");
+        cmd.arg("--ipcdisable");
         // If we don't do this it will complain about collisions at 30303
         cmd.arg("--port").arg(ignored_discover_port.to_string());
         // Set the port

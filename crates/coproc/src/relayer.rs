@@ -511,15 +511,25 @@ impl JobRelayer {
         // Only add the sidecar if there are some blobs. Some offchain jobs might
         // have no offchain input, and thus no sidecar
         let call_builder = match job.blobs_sidecar {
-            Some(sidecar) if !sidecar.blobs.is_empty() => self
-                .job_manager
-                .submitResultForOffchainJob(
-                    job.result_with_metadata.into(),
-                    job.zkvm_operator_signature.into(),
-                    job_request_payload.into(),
-                    request_signature.into(),
-                )
-                .sidecar(sidecar),
+            Some(sidecar) if !sidecar.blobs.is_empty() => {
+                let blob_count = sidecar.blobs.len();
+                info!(
+                    blob_count,
+                    job.nonce,
+                    consumer=hex::encode(&job.consumer_address),
+                    "sending tx with blobs"
+                );
+
+                self
+                    .job_manager
+                    .submitResultForOffchainJob(
+                        job.result_with_metadata.into(),
+                        job.zkvm_operator_signature.into(),
+                        job_request_payload.into(),
+                        request_signature.into(),
+                    )
+                    .sidecar(sidecar)
+            }
             _ => {
                 debug_assert!(job.offchain_input.is_empty());
                 self.job_manager.submitResultForOffchainJob(
@@ -557,11 +567,12 @@ impl JobRelayer {
                 Error::TxInclusion(error)
             })?;
 
-        info!(
-            receipt.transaction_index,
-            receipt.block_number,
-            ?receipt.block_hash,
-            ?receipt.transaction_hash,
+            info!(
+                receipt.transaction_index,
+                receipt.block_number,
+                receipt.blob_gas_used,
+                ?receipt.block_hash,
+                ?receipt.transaction_hash,
             id=hex::encode(job.id),
             consumer=hex::encode(job.consumer_address),
             job.nonce,
