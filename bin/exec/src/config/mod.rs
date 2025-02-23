@@ -133,50 +133,32 @@ impl IvmConfig {
     pub fn from_network(network: Network) -> Self {
         match network {
             Network::Suzuka => {
-                let addresses0 = vec![
-                    address!("0x7e480b98e3710753ffb23f67bd35391d5a6b1e9e"),
-                    address!("0x17877a771f877d66317146c2158a13454c836d66"),
-                    address!("0x088d6345341b686cbd765bfb6be49d96b1977bc4"),
-                    address!("0x181b8b8dc24f1d9f2f2401481529962378b99532"),
-                    address!("0x9fb039d6d885fa2e9a2017ab96652138d9e06217"),
-                    address!("0xf40a1616b71b58bad6c7fca0ae24b045b67fa5b7"),
-                    address!("0xba0b00804898506e24fa898120e6a3f89a48d859"),
-                    address!("0xdbd5f8ab1e0171f09e40f298b32c3b190ec4fab4"),
-                    address!("0x43f31170bac1fe94c12941049c80e2a08e33d623"),
+                let addresses_sender0 = vec![
+                    address!("0x20f33ce90a13a4b5e7697e3544c3083b8f8a51d4"), // depositor
+                    address!("0xf8bbb414ff7f6d8061cb16b7c23685300b6b5527"), // coproc-operator
+                    address!("0x367457e0f4ae06bd090795ebdf585e04f6ee2c7f"), // coproc-relayer
+                    address!("0x0a065cedfe7d1b9435152dde846aa1f2f4b49776"), // deployer
+                    address!("0xa3354f9024f4dea7199bc944b0f27d95ea6295b1"), // faucet
+                    address!("0x51e163d5fd1d98fa714241e8d60e2bf5c6166ebb"), // fee_recipient
+                    address!("0x24e3ae70c81a16ac3fe5674e0556b769ea611cb6"), // fuzzer
+                    address!("0x100bbbad1a19b680d84e5c1370c21dd637d8a6ce"), // gtx-admin
+                    address!("0xbb0b808cce0c4f780bdfce67674eb1d6d24c7e12"), // offchain_signer
+                    address!("0xf9fa39d99d3f7c62bf52966a20af60e673d45f3e"), // validator-0
+                    address!("0xf791e9a8db4ab69caaf0179fa6ed808010277d96"), // validator-1
+                    address!("0xcc1e4f683ab0eef001d2dd6c5c87c07a15c71f70"), // validator-2
+                    address!("0xb6da9b28619412d728be31643ee10b1001c7d463"), // validator-3
                 ];
 
                 let mut fork0 = IvmTransactionAllowConfig::deny_all();
                 let mut priority_senders = HashSet::new();
-                for addr in addresses0 {
+                for addr in addresses_sender0 {
                     fork0.add_sender(addr);
                     fork0.add_to(addr);
-                }
-
-                let address1 = vec![
-                    address!("0x3361cddEa38de48e38a78D0c8E147c4b068ee710"), // spammer 1
-                    address!("0xa313C490a588FFe561591b7B80232297599A5346"), // spammer 2
-                    address!("0xA8D785806B05cF7253e18E3ddad7a214Fd2313b4"), // spammer 3
-                    address!("0xe6c32783830667d1a40c746bc2487d609aabe2c2"), // deployer
-                    address!("0xb99f5f26be2e689b0d4e0de99b59bed3655337c1"), // faucet
-                    address!("0x57dbd91b33eed2624cbbbb0b3f06d3ac68586f02"), // fee_recipient
-                    address!("0x62cf21043ac6b0da1cf255d64894db00bf5480d5"), // fuzzer
-                    address!("0xe76e63ed207f58ad51846d9748b6832d87b4d563"), // offchain_signer
-                    address!("0xff78fd33b2df47f64346b2ad3ee93798ff1e33aa"), // validator 0
-                    address!("0xde4499102af723d2dfc31c40e41b6a02bb860008"), // validator 1
-                    address!("0x9601d991a71d975dfcbc3e09bbb27e7552cdf10c"), // validator 2
-                    address!("0x46233286b1a41f9d9fe22ca36347396f34582fb3"), // validator 3
-                    address!("0x20f33ce90a13a4b5e7697e3544c3083b8f8a51d4"), // depositor
-                ];
-
-                let mut fork1 = IvmTransactionAllowConfig::deny_all();
-                for addr in address1 {
-                    fork1.add_sender(addr);
-                    fork1.add_to(addr);
                     priority_senders.insert(addr);
                 }
+
                 let forks = BTreeMap::from([
-                    (0, fork0),          // genesis
-                    (1738731600, fork1), // february 5, 2025 00:00:00 UTC
+                    (0, fork0), // genesis
                 ]);
 
                 Self { forks, priority_senders }
