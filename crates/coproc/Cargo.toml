@@ -46,7 +46,7 @@ ivm-mock-consumer = { workspace = true }
 vergen-git2 = { workspace = true }
 
 [features]
-default = ["min-info-logs", "jemalloc"]
+default = ["jemalloc"]
 
 jemalloc = ["dep:tikv-jemallocator"]
 
