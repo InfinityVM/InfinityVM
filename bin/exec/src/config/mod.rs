@@ -149,12 +149,22 @@ impl IvmConfig {
                     address!("0xb6da9b28619412d728be31643ee10b1001c7d463"), // validator-3
                 ];
 
+                let addresses_to0 = vec![
+                    address!("0xf1508594b19bc7c19e7ddc0c38d0f6034fc7cc2b"), // mock sol
+                    address!("0xe28da10f95837b327bd541ec8eea5cf9191a3f02"), // mock eth
+                    address!("0xa45f78c667fd0d4857b52705f5d69eacc8d21f33"), // mock usdc
+                    address!("0x3bd00c3574e02b55e4fd9e653454787c0597ef99"), // job manager
+                    address!("0x8031996896bd8d9e846ebcbbda647f18ea55b2f7"), // gtx
+                ];
+
                 let mut fork0 = IvmTransactionAllowConfig::deny_all();
                 let mut priority_senders = HashSet::new();
                 for addr in addresses_sender0 {
                     fork0.add_sender(addr);
-                    fork0.add_to(addr);
                     priority_senders.insert(addr);
+                }
+                for addr in addresses_to0 {
+                    fork0.add_to(addr);
                 }
 
                 let forks = BTreeMap::from([
