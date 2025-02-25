@@ -63,6 +63,14 @@ pub mod mock_consumer {
     }
 }
 
+pub mod stateful_consumer {
+    alloy::sol! {
+      #[sol(rpc)]
+      StatefulConsumer,
+      "json/StatefulConsumer.json"
+    }
+}
+
 /// Path to write deploy info to
 pub const DEFAULT_DEPLOY_INFO: &str = "./logs/deploy_info.json";
 

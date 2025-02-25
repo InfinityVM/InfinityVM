@@ -60,6 +60,7 @@ contracts:
 	cp contracts/out/TransparentUpgradeableProxy.sol/TransparentUpgradeableProxy.json crates/contracts/json
 	cp contracts/out/ProxyAdmin.sol/ProxyAdmin.json crates/contracts/json
 	cp contracts/out/Consumer.sol/Consumer.json crates/contracts/json
+	cp contracts/out/StatefulConsumer.sol/StatefulConsumer.json crates/contracts/json
 
 .PHONY: run
 run:
