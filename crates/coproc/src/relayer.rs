@@ -14,7 +14,7 @@ use alloy::{
     rpc::types::TransactionReceipt,
 };
 use ivm_abi::abi_encode_offchain_job_request;
-use ivm_contracts::i_job_manager::IJobManager;
+use ivm_contracts::{stateful_consumer::StatefulConsumer::getNextNonceReturn, i_job_manager::IJobManager, stateful_consumer::StatefulConsumer};
 use ivm_db::{
     get_all_failed_jobs,
     tables::{Job, RequestType},
@@ -27,6 +27,7 @@ use tokio::sync::{
     oneshot,
 };
 use tracing::{error, info};
+use alloy::transports::http::reqwest::Url;
 
 /// Delay between retrying failed jobs, in milliseconds.
 const JOB_RETRY_DELAY_MS: u64 = 500;
@@ -428,17 +429,18 @@ impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> JobRelayerBuilder<
         confirmations: u64,
         metrics: Arc<Metrics>,
     ) -> Result<JobRelayer, Error> {
-        let url: alloy::transports::http::reqwest::Url =
+        let rpc_url: Url =
             http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
-        info!("🧾 relayer sending transactions to rpc url {url}");
+        info!("🧾 relayer sending transactions to rpc url {rpc_url}");
 
         let signer = self.signer.ok_or(Error::MissingSigner)?;
         let wallet = EthereumWallet::new(signer);
 
-        let provider = ProviderBuilder::new().wallet(wallet).on_http(url);
-        let job_manager = JobManagerContract::new(job_manager, DynProvider::new(provider));
+        let wallet_provider = ProviderBuilder::new().wallet(wallet).on_http(rpc_url.clone());
+        let job_manager = JobManagerContract::new(job_manager, DynProvider::new(wallet_provider));
+        let provider = DynProvider::new(ProviderBuilder::new().on_http(rpc_url));
 
-        Ok(JobRelayer { job_manager, confirmations, metrics })
+        Ok(JobRelayer { job_manager, confirmations, metrics, provider })
     }
 }
 
@@ -452,6 +454,7 @@ pub struct JobRelayer {
     job_manager: JobManagerContract,
     confirmations: u64,
     metrics: Arc<Metrics>,
+    provider: DynProvider,
 }
 
 impl JobRelayer {
@@ -496,6 +499,7 @@ impl JobRelayer {
     }
 
     /// Submit a completed job to the `JobManager` contract for an offchain job request.
+    /// IMPORTANT: this assume the consumer contract inherits `StatefulConsumer`.
     pub async fn relay_result_for_offchain_job(
         &self,
         job: Job,
@@ -566,15 +570,43 @@ impl JobRelayer {
                 Error::TxInclusion(error)
             })?;
 
+
+        let consumer = hex::encode(&job.consumer_address);
+        let nonce = job.nonce;
+
+        // We check that the next nonce reported by the consumer contract has incremented as expected.
+        // 
+        let stateful_consumer = StatefulConsumer::new(Address::from_slice(&job.consumer_address), self.provider.clone());
+        for i in 1u32..=15 {
+            match stateful_consumer.getNextNonce().call().await {
+                Err(error) => {
+                    let backoff = 2u64.pow(i);
+                    error!(?backoff, ?nonce, ?consumer, ?error, "error attempting to query getNextNonce, trying again");
+                    tokio::time::sleep(tokio::time::Duration::from_millis(backoff)).await;
+                }
+                Ok(getNextNonceReturn { _0: next_nonce }) => {
+                    if next_nonce != job.nonce + 1 {
+                        error!(
+                            ?consumer,
+                            ?nonce,
+                            ?next_nonce,
+                            "post relay getNextNonce is not expected value"
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+
         info!(
-                receipt.transaction_index,
-                receipt.block_number,
-                receipt.blob_gas_used,
-                ?receipt.block_hash,
-                ?receipt.transaction_hash,
+            receipt.transaction_index,
+            receipt.block_number,
+            receipt.blob_gas_used,
+            ?receipt.block_hash,
+            ?receipt.transaction_hash,
             id=hex::encode(job.id),
-            consumer=hex::encode(job.consumer_address),
-            job.nonce,
+            ?consumer,
+            ?nonce,
             "tx included"
         );
         self.metrics.incr_relayed_total();
