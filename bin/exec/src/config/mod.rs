@@ -147,7 +147,8 @@ impl IvmConfig {
                     address!("0xf791e9a8db4ab69caaf0179fa6ed808010277d96"), // validator-1
                     address!("0xcc1e4f683ab0eef001d2dd6c5c87c07a15c71f70"), // validator-2
                     address!("0xb6da9b28619412d728be31643ee10b1001c7d463"), // validator-3
-                    address!("0x3361cddea38de48e38a78d0c8e147c4b068ee710"), // fee recipient in manifest
+                    address!("0x3361cddea38de48e38a78d0c8e147c4b068ee710"), /* fee recipient in
+                                                                             * manifest */
                 ];
 
                 let addresses_to0 = vec![
