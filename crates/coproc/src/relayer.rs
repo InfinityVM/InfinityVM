@@ -602,8 +602,8 @@ impl JobRelayer {
                             ?next_nonce,
                             "post relay getNextNonce is not expected value"
                         );
-                        break;
                     }
+                    break;
                 }
             }
         }
