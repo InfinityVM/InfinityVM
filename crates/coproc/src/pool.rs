@@ -17,7 +17,7 @@ use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::{marker::Send, sync::Arc};
 use tokio::sync::oneshot;
-use tracing::{error, instrument, warn};
+use tracing::{error, info, instrument, warn};
 
 /// A message to the executor
 pub type PoolMsg = (Job, oneshot::Sender<PoolReply>);
@@ -143,6 +143,7 @@ where
 
         while let Ok((mut job, reply_tx)) = pool_rx.recv() {
             let job_nonce = job.nonce;
+            let consumer = hex::encode(&job.consumer_address);
             // get_program will update the job status in case of failure
             let program_with_meta =
                 match Self::get_program(&db, &mut job, &metrics, writer_tx2.clone()) {
@@ -172,7 +173,9 @@ where
                     continue
                 }
             };
-            metrics.observe_job_exec_time(now.elapsed());
+            let exec_time = now.elapsed();
+            metrics.observe_job_exec_time(exec_time);
+            info!(?exec_time, nonce = job_nonce, ?consumer, "job execution done");
 
             reply_tx
                 .send(PoolReply::Ok(executed_job))
