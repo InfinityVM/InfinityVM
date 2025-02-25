@@ -87,7 +87,7 @@ where
             consumer = hex::encode(consumer),
             program_id = hex::encode(&program_id),
             job_id = hex::encode(job_id),
-            "new job request"
+            "new gRPC job request"
         );
 
         let relay_strategy = req.relay_strategy();

@@ -25,7 +25,7 @@ use ivm_zkvm_executor::service::ZkvmExecutorService;
 use reth_db::Database;
 use std::sync::Arc;
 use tokio::sync::{mpsc::Sender, oneshot};
-use tracing::info;
+use tracing::{info, warn};
 
 /// Errors from job processor
 #[derive(thiserror::Error, Debug)]
@@ -148,6 +148,9 @@ where
 
         let consumer_address: [u8; 20] =
             job.consumer_address.clone().try_into().expect("caller must validate address length.");
+        // Bind to some info for ergonomic logging
+        let nonce = job.nonce;
+        let consumer = hex::encode(consumer_address);
 
         // TODO: add new table for just job ID so we can avoid writing full job here and reading.
         // We can just pass the job itself along the channel
@@ -159,13 +162,21 @@ where
             let jobs_match = old_job == job;
 
             if old_job.is_failed() && jobs_match {
+                warn!(?nonce, ?consumer, ?old_job.status, "job resubmission: identical failed job");
                 return Err(Error::JobExistsAndFailedToRelay);
             }
             if old_job.is_relayed() {
+                warn!(?nonce, ?consumer, "job resubmission: job already relayed");
                 return Err(Error::JobRelayed);
             }
             if self.get_pending_nonces(consumer_address).await?.contains(&job.nonce) {
+                warn!(?nonce, ?consumer, "job resubmission: job already pending");
                 return Ok(())
+            }
+            if job.is_failed() {
+                info!(?nonce, ?consumer, ?old_job.status, "job resubmission: previously failed");
+            } else {
+                info!(?nonce, ?consumer, ?old_job.status, "job resubmission: valid resubmission");
             }
 
             // We overwrite the old job. This allows users to submit new jobs in case the original
@@ -186,18 +197,14 @@ where
                 ivm_contracts::consumer::Consumer::new(consumer_address.into(), provider);
             // This is the next nonce; since we expect contracts to be initialized with
             // nonce 0, the first nonce should be 1.
-            let nonce = consumer.getNextNonce().call().await?._0;
+            let next_nonce = consumer.getNextNonce().call().await?._0;
 
             match self.active_actors.entry(consumer_address) {
                 Entry::Occupied(e) => e.get().clone(),
                 Entry::Vacant(e) => {
-                    info!(
-                        ?nonce,
-                        consumer = hex::encode(consumer_address),
-                        "starting execution actor"
-                    );
+                    info!(?next_nonce, ?nonce, ?consumer, "starting execution actor");
                     // ATTENTION: No async allowed while an entry lock is held.
-                    let execution_tx = self.execution_actor_spawner.spawn(nonce);
+                    let execution_tx = self.execution_actor_spawner.spawn(next_nonce);
                     e.insert(execution_tx.clone());
                     execution_tx
                 }
