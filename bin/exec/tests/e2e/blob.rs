@@ -3,6 +3,7 @@
 use crate::utils::eth_payload_attributes;
 use alloy_consensus::constants::MAINNET_GENESIS_HASH;
 use alloy_genesis::Genesis;
+use alloy_network::EthereumWallet;
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types_engine::PayloadStatusEnum;
 use ivm_exec::{
@@ -138,6 +139,64 @@ async fn can_handle_blobs() -> eyre::Result<()> {
     let envelope = node.rpc.envelope_by_hash(blob_tx_hash).await?;
     // make sure the sidecar is present
     TransactionTestContext::validate_sidecar(envelope);
+
+    Ok(())
+}
+
+#[tokio::test]
+async fn can_build_blocks_only_blobs() -> eyre::Result<()>  {
+    ivm_test_utils::test_tracing();
+    let tasks = TaskManager::current();
+    let exec = tasks.executor();
+
+    let genesis: Genesis =
+        serde_json::from_str(include_str!("../../mock/eth-genesis.json")).unwrap();
+    let chain_spec = Arc::new(
+        ChainSpecBuilder::default()
+            .chain(MAINNET.chain)
+            .genesis(genesis.clone())
+            .cancun_activated()
+            .build(),
+    );
+    let node_config = NodeConfig::test()
+        .with_chain(chain_spec)
+        .with_unused_ports()
+        .with_rpc(RpcServerArgs::default().with_unused_ports().with_http());
+
+    // Everyone is denied
+    let ivm_node_types = IvmNode::new(IvmConfig::allow_all());
+
+    let NodeHandle { node, node_exit_future: _ } = NodeBuilder::new(node_config.clone())
+        .testing_node(exec.clone())
+        .node(ivm_node_types)
+        .launch()
+        .await?;
+    let mut node = NodeTestContext::new(node, eth_payload_attributes).await?;
+
+    let rpc = ProviderBuilder::new()
+        .on_http(node.rpc_url());
+
+    let wallets = Wallet::new(6).gen();
+    let wallet_0 = wallets[0].clone();
+
+    
+    // Build blob tx
+    let blob_tx = TransactionTestContext::tx_with_blobs_bytes(1, wallet_0.clone()).await?;
+    // Inject blob tx to the pool. This should be the only tx in the pool
+    // rpc.send_raw_transaction(&blob_tx).await.register().await?;
+    let blob_tx_hash = node.rpc.inject_tx(blob_tx).await?;
+    assert_eq!(node.inner.pool().pool_size().pending, 1);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 1);
+
+    node.inner.pool().best_transactions().next().unwrap();
+
+    node.advance_block().await?;
+    assert_eq!(node.inner.pool().pool_size().pending, 0);
+    assert_eq!(node.inner.pool().pool_size().basefee, 0);
+    assert_eq!(node.inner.pool().pool_size().queued, 0);
+    assert_eq!(node.inner.pool().pool_size().total, 0);
 
     Ok(())
 }
