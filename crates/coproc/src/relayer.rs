@@ -12,9 +12,13 @@ use alloy::{
     primitives::{Address, PrimitiveSignature},
     providers::{DynProvider, ProviderBuilder},
     rpc::types::TransactionReceipt,
+    transports::http::reqwest::Url,
 };
 use ivm_abi::abi_encode_offchain_job_request;
-use ivm_contracts::{stateful_consumer::StatefulConsumer::getNextNonceReturn, i_job_manager::IJobManager, stateful_consumer::StatefulConsumer};
+use ivm_contracts::{
+    i_job_manager::IJobManager,
+    stateful_consumer::{StatefulConsumer, StatefulConsumer::getNextNonceReturn},
+};
 use ivm_db::{
     get_all_failed_jobs,
     tables::{Job, RequestType},
@@ -27,7 +31,6 @@ use tokio::sync::{
     oneshot,
 };
 use tracing::{error, info};
-use alloy::transports::http::reqwest::Url;
 
 /// Delay between retrying failed jobs, in milliseconds.
 const JOB_RETRY_DELAY_MS: u64 = 500;
@@ -429,8 +432,7 @@ impl<S: TxSigner<PrimitiveSignature> + Send + Sync + 'static> JobRelayerBuilder<
         confirmations: u64,
         metrics: Arc<Metrics>,
     ) -> Result<JobRelayer, Error> {
-        let rpc_url: Url =
-            http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
+        let rpc_url: Url = http_rpc_url.parse().map_err(|_| Error::HttpRpcUrlParse)?;
         info!("🧾 relayer sending transactions to rpc url {rpc_url}");
 
         let signer = self.signer.ok_or(Error::MissingSigner)?;
@@ -570,17 +572,26 @@ impl JobRelayer {
                 Error::TxInclusion(error)
             })?;
 
-
         let consumer = hex::encode(&job.consumer_address);
         let nonce = job.nonce;
 
-        // We check that the next nonce reported by the consumer contract has incremented as expected.
-        let stateful_consumer = StatefulConsumer::new(Address::from_slice(&job.consumer_address), self.provider.clone());
+        // We check that the next nonce reported by the consumer contract has incremented as
+        // expected.
+        let stateful_consumer = StatefulConsumer::new(
+            Address::from_slice(&job.consumer_address),
+            self.provider.clone(),
+        );
         for i in 1u32..=15 {
             match stateful_consumer.getNextNonce().call().await {
                 Err(error) => {
                     let backoff = 2u64.pow(i);
-                    error!(?backoff, ?nonce, ?consumer, ?error, "error attempting to query getNextNonce, trying again");
+                    error!(
+                        ?backoff,
+                        ?nonce,
+                        ?consumer,
+                        ?error,
+                        "error attempting to query getNextNonce, trying again"
+                    );
                     tokio::time::sleep(tokio::time::Duration::from_millis(backoff)).await;
                 }
                 Ok(getNextNonceReturn { _0: next_nonce }) => {
