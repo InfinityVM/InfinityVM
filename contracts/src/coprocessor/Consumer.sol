@@ -35,6 +35,10 @@ abstract contract Consumer is
         _;
     }
 
+    function getJobManager() public view virtual returns (address) {
+        return address(_jobManager);
+    }
+
     function getOnchainInputForJob(bytes32 jobID) public view virtual returns (bytes memory) {
         return jobIDToInputs[jobID].onchainInput;
     }
