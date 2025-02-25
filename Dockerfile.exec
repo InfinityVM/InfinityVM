@@ -18,7 +18,7 @@ RUN apt-get update && apt-get -y upgrade && \
 FROM base AS builder
 WORKDIR /app
 COPY --from=base /app/. .
-RUN cargo build --locked --profile maxperf --bin ivm-exec --features min-info-logs
+RUN cargo build --locked --profile maxperf --bin ivm-exec
 
 FROM debian:bookworm-slim
 WORKDIR /app
