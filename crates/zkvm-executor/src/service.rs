@@ -11,7 +11,7 @@ use ivm_eip4844::{SidecarBuilder, SimpleCoder};
 use ivm_proto::VmType;
 use ivm_zkvm::{Sp1, Zkvm};
 use std::marker::Send;
-use tracing::{error, info, instrument};
+use tracing::{error, info};
 
 /// Zkvm executor errors
 #[derive(thiserror::Error, Debug)]
