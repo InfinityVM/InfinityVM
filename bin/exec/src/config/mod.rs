@@ -150,6 +150,7 @@ impl IvmConfig {
                 ];
 
                 let addresses_to0 = vec![
+                    address!("0x4242424242424242424242424242424242424242"), // Deposit contract
                     address!("0xf1508594b19bc7c19e7ddc0c38d0f6034fc7cc2b"), // mock sol
                     address!("0xe28da10f95837b327bd541ec8eea5cf9191a3f02"), // mock eth
                     address!("0xa45f78c667fd0d4857b52705f5d69eacc8d21f33"), // mock usdc
