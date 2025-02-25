@@ -81,7 +81,6 @@ where
     /// WARNING: this does not check the program ID of the program. It is up to the caller to
     /// ensure that they trust the ELF has the correct program ID onchain before committing to
     /// the result. Otherwise they risk being slashed because any proof will not verify.
-    #[instrument(skip_all, level = "debug")]
     #[allow(clippy::too_many_arguments)]
     #[inline]
     pub fn execute_onchain_job(
@@ -118,7 +117,6 @@ where
     /// WARNING: this does not check the program ID of the program. It is up to the caller to
     /// ensure that they trust the ELF has the correct program ID onchain before committing to
     /// the result. Otherwise they risk being slashed because any proof will not verify.
-    #[instrument(skip_all, level = "debug")]
     #[allow(clippy::too_many_arguments, clippy::type_complexity)]
     #[inline]
     pub fn execute_offchain_job(
