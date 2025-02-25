@@ -575,7 +575,6 @@ impl JobRelayer {
         let nonce = job.nonce;
 
         // We check that the next nonce reported by the consumer contract has incremented as expected.
-        // 
         let stateful_consumer = StatefulConsumer::new(Address::from_slice(&job.consumer_address), self.provider.clone());
         for i in 1u32..=15 {
             match stateful_consumer.getNextNonce().call().await {
