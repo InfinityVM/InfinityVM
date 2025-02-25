@@ -32,10 +32,10 @@ impl Metrics {
         let relayed_total = Counter::new("relayed_total", "Total number of jobs relayed").unwrap();
         let job_exec_time = Histogram::with_opts(
             HistogramOpts::new("job_exec_time", "Total time for a single job to execute").buckets(
-                // From 250ms to 100s, polynomial
+                // From 250ms to 3 minutes, polynomial
                 vec![
                     0.25, 1., 2.25, 4., 6., 9., 12., 16., 20., 25., 30., 36., 42., 49., 56., 64.,
-                    72., 81., 90., 100.,
+                    72., 81., 90., 100., 110., 121., 131., 144., 156., 169., 180.,
                 ],
             ),
         )
