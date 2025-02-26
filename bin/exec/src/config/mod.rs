@@ -147,6 +147,8 @@ impl IvmConfig {
                     address!("0xf791e9a8db4ab69caaf0179fa6ed808010277d96"), // validator-1
                     address!("0xcc1e4f683ab0eef001d2dd6c5c87c07a15c71f70"), // validator-2
                     address!("0xb6da9b28619412d728be31643ee10b1001c7d463"), // validator-3
+                    address!("0x3361cddea38de48e38a78d0c8e147c4b068ee710"), /* fee recipient in
+                                                                             * manifest */
                 ];
 
                 let addresses_to0 = vec![
@@ -154,8 +156,9 @@ impl IvmConfig {
                     address!("0xf1508594b19bc7c19e7ddc0c38d0f6034fc7cc2b"), // mock sol
                     address!("0xe28da10f95837b327bd541ec8eea5cf9191a3f02"), // mock eth
                     address!("0xa45f78c667fd0d4857b52705f5d69eacc8d21f33"), // mock usdc
-                    address!("0x3bd00c3574e02b55e4fd9e653454787c0597ef99"), // job manager
-                    address!("0x8031996896bd8d9e846ebcbbda647f18ea55b2f7"), // gtx
+                    address!("0x0d558ed9bf39194b3addc46a686ea151b88758d7"), // mock usdt
+                    address!("0xc91ee83611203880e2c4a47905ff0848ab7bef4f"), // gtx
+                    address!("0x63b2227f0a235018a11f325ab1828666457fd9fa"), // job manager
                 ];
 
                 let mut fork0 = IvmTransactionAllowConfig::deny_all();
