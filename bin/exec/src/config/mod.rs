@@ -180,7 +180,20 @@ impl IvmConfig {
             Network::Monza => {
                 // Privileged senders
                 let addresses_sender0 = vec![
-                    // TODO: add after generation ceremony
+                    address!("0xe7a63aaf0afc13e559774917fc681ebabdf477ed"), // gtx-admin
+                    address!("0x5bb4305ae8d6d227b8f2b4ec1e842c754ae4e089"), // coproc-relayer
+                    address!("0xccd8368aa81d10ba1100d5bb6645bf5426424751"), // coproc-operator
+                    address!("0xbb5430a58ef147a21f3362da6be68dfb70bc6d95"), // validator-0
+                    address!("0x93c2266960a9b278a062f685e0a119c867614a38"), // validator-1
+                    address!("0x71dfbca871aece51e0ea1f2b7d8c91872cc6627a"), // validator-2
+                    address!("0xbe5a8f4bb624e69c4a08a7ebe14856e0f081aa7b"), // validator-3
+                    address!("0x67f20d73130373fcf21eb165a095f79099d221a6"), // fee-recipient
+                    address!("0x090d9e39939440a2c9a94040c61daff8b7c3b192"), // deployer
+                    address!("0x2545ce5ae87283527a305fdc30a9c7167ca33dbc"), // faucet
+                    address!("0x2a22352a44b79e7771a5bef021591e114622bebb"), // fuzzer
+                    address!("0xf504f5f76a94145c75d04e495d307c4a88297966"), // offchain_signer
+                    address!("0x20fe96e8783fba91acf07260b5fa40c3e655c5ff"), // validator-canary
+                    address!("0x20f33ce90a13a4b5e7697e3544c3083b8f8a51d4"), // depositor
                 ];
 
                 // Deployed contracts
