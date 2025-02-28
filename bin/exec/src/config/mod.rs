@@ -157,8 +157,35 @@ impl IvmConfig {
                     address!("0xe28da10f95837b327bd541ec8eea5cf9191a3f02"), // mock eth
                     address!("0xa45f78c667fd0d4857b52705f5d69eacc8d21f33"), // mock usdc
                     address!("0x0d558ed9bf39194b3addc46a686ea151b88758d7"), // mock usdt
-                    address!("0xc91ee83611203880e2c4a47905ff0848ab7bef4f"), // gtx
-                    address!("0x63b2227f0a235018a11f325ab1828666457fd9fa"), // job manager
+                    address!("0xcb22256e10095506bff52f38362a09f7622fb6ce"), // gtx
+                    address!("0x52e73d5849d368ee516dc136c418d265703b4065"), // job manager
+                ];
+
+                let mut fork0 = IvmTransactionAllowConfig::deny_all();
+                let mut priority_senders = HashSet::new();
+                for addr in addresses_sender0 {
+                    fork0.add_sender(addr);
+                    priority_senders.insert(addr);
+                }
+                for addr in addresses_to0 {
+                    fork0.add_to(addr);
+                }
+
+                let forks = BTreeMap::from([
+                    (0, fork0), // genesis
+                ]);
+
+                Self { forks, priority_senders }
+            }
+            Network::Monza => {
+                // Privileged senders
+                let addresses_sender0 = vec![
+                    // TODO: add after generation ceremony
+                ];
+
+                // Deployed contracts
+                let addresses_to0 = vec![
+                    address!("0x4242424242424242424242424242424242424242"), // Deposit contract
                 ];
 
                 let mut fork0 = IvmTransactionAllowConfig::deny_all();

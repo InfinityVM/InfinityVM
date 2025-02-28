@@ -49,6 +49,8 @@ pub type IvmAddOns<N> = RpcAddOns<
 pub enum Network {
     /// Select the Suzuka network.
     Suzuka,
+    /// Select the Monza network.
+    Monza,
 }
 
 /// Add IVM specific arguments to the default reth cli.
