@@ -1,0 +1,166 @@
+name: Release Binary
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url || steps.get_release.outputs.upload_url }}
+      version: ${{ steps.get_version.outputs.version }}
+    steps:
+      - name: Get the version
+        id: get_version
+        run: |
+          # Try to extract version from tag
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+            TAG=${GITHUB_REF#refs/tags/}
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          else
+            # Fallback: use short commit SHA and date
+            SHORT_SHA="${GITHUB_SHA:0:7}"
+            VERSION=$(date +'%Y%m%d')-${SHORT_SHA}
+            TAG="v$VERSION"
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
+      # Create a new release for non-tag pushes
+      - name: Create release
+        id: create_release
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_WORKFLOW }}
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          release_name: Release ${{ steps.get_version.outputs.tag }}
+          draft: false
+          prerelease: false
+
+      # Get existing release for tag pushes
+      - name: Get existing release
+        id: get_release
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_WORKFLOW }}
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            try {
+              const release = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: tag
+              });
+              core.setOutput('upload_url', release.data.upload_url);
+              console.log(`Found existing release with upload URL: ${release.data.upload_url}`);
+            } catch (error) {
+              console.log(`No existing release found, creating a new one for tag ${tag}`);
+              
+              const release = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tag,
+                name: `Release ${tag}`,
+                draft: false,
+                prerelease: false
+              });
+              
+              core.setOutput('upload_url', release.data.upload_url);
+            }
+
+  build:
+    needs: create-release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            asset_name: ivm-exec-v${{ needs.create-release.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            asset_name: ivm-exec-v${{ needs.create-release.outputs.version }}-aarch64-unknown-linux-gnu.tar.gz
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            asset_name: ivm-exec-v${{ needs.create-release.outputs.version }}-aarch64-apple-darwin.tar.gz
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: ${{ matrix.target }}
+          override: true
+      
+      - name: Install cross-compilation tools
+        if: contains(matrix.target, 'aarch64-unknown-linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+
+      - name: Build binary
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release --target ${{ matrix.target }} --bin ivm-exec
+      
+      - name: Package binary (Unix)
+        if: "!contains(matrix.os, 'windows')"
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/ivm-exec dist/
+          cd dist
+          tar czf ../${{ matrix.asset_name }} ivm-exec
+          cd ..
+            
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_WORKFLOW }}
+        with:
+          upload_url: ${{ needs.create-release.outputs.upload_url }}
+          asset_path: ./${{ matrix.asset_name }}
+          asset_name: ${{ matrix.asset_name }}
+          asset_content_type: application/octet-stream
+
+  update-binstall:
+    needs: [create-release, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Create or update .binstall.json
+        run: |
+          cat > .binstall.json << EOL
+          {
+            "name": "ivm-exec",
+            "version": "${{ needs.create-release.outputs.version }}",
+            "package_uri": "https://github.com/${{ github.repository }}/releases/download/v{version}/ivm-exec-v{version}-{target}.tar.gz",
+            "pre_install": [],
+            "post_install": [],
+            "binaries": {
+              "ivm-exec": {
+                "path": "ivm-exec"
+              }
+            }
+          }
+          EOL
+      
+      - name: Commit and push binstall metadata
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: "Update binstall metadata for v${{ needs.create-release.outputs.version }}"
+          file_pattern: ".binstall.json"
