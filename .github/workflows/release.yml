@@ -12,7 +12,7 @@ jobs:
   create-release:
     runs-on: ubuntu-latest
     outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
+      upload_url: ${{ steps.create_release.outputs.upload_url || steps.get_release.outputs.upload_url }}
       version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: Get the version
@@ -32,8 +32,10 @@ jobs:
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
+      # Create a new release for non-tag pushes
       - name: Create release
         id: create_release
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_WORKFLOW }}
@@ -42,6 +44,39 @@ jobs:
           release_name: Release ${{ steps.get_version.outputs.tag }}
           draft: false
           prerelease: false
+
+      # Get existing release for tag pushes
+      - name: Get existing release
+        id: get_release
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/github-script@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_WORKFLOW }}
+        with:
+          script: |
+            const tag = context.ref.replace('refs/tags/', '');
+            try {
+              const release = await github.rest.repos.getReleaseByTag({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag: tag
+              });
+              core.setOutput('upload_url', release.data.upload_url);
+              console.log(`Found existing release with upload URL: ${release.data.upload_url}`);
+            } catch (error) {
+              console.log(`No existing release found, creating a new one for tag ${tag}`);
+              
+              const release = await github.rest.repos.createRelease({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                tag_name: tag,
+                name: `Release ${tag}`,
+                draft: false,
+                prerelease: false
+              });
+              
+              core.setOutput('upload_url', release.data.upload_url);
+            }
 
   build:
     needs: create-release
@@ -118,7 +153,7 @@ jobs:
             "post_install": [],
             "binaries": {
               "ivm-exec": {
-                "path": "ivm-exec",
+                "path": "ivm-exec"
               }
             }
           }
