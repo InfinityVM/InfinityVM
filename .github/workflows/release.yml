@@ -23,7 +23,8 @@ jobs:
             VERSION=${GITHUB_REF#refs/tags/v}
           else
             # Fallback: use short commit SHA and date
-            VERSION=$(date +'%Y%m%d')-${{ github.sha::7 }}
+            SHORT_SHA="${GITHUB_SHA:0:7}"
+            VERSION=$(date +'%Y%m%d')-${SHORT_SHA}
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
