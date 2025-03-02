@@ -17,7 +17,15 @@ jobs:
     steps:
       - name: Get the version
         id: get_version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          # Try to extract version from tag
+          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            # Fallback: use short commit SHA and date
+            VERSION=$(date +'%Y%m%d')-$(git rev-parse --short HEAD)
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
       
       - name: Create release
         id: create_release
