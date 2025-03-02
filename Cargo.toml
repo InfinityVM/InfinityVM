@@ -234,10 +234,10 @@ serde_json = { version = "1.0", default-features = false }
 sha2 = { version = "0.10", features = ["std"], default-features = false }
 strum = { version = "0.26.3", features = ["derive"], default-features = false}
 
-sp1-zkvm = { version = "4", features = ["libm", "lib", "bigint-rug"], default-features = false }
-sp1-sdk = { version = "4", default-features = false, features = ["bigint-rug"] }
-sp1-build = "4"
-sp1-core-executor = { version = "4", features = ["bigint-rug"] }
+sp1-zkvm = { version = "4.1.2", features = ["libm", "lib", "bigint-rug"], default-features = false }
+sp1-sdk = { version = "4.1.2", default-features = false, features = ["bigint-rug"] }
+sp1-build = "4.1.2"
+sp1-core-executor = { version = "4.1.2", features = ["bigint-rug"] }
 
 # t
 tonic-build = { version = "0.12", features = ["prost", "transport", "cleanup-markdown"], default-features = false }
