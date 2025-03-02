@@ -21,10 +21,14 @@ jobs:
           # Try to extract version from tag
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
+            TAG=${GITHUB_REF#refs/tags/}
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
           else
             # Fallback: use short commit SHA and date
             SHORT_SHA="${GITHUB_SHA:0:7}"
             VERSION=$(date +'%Y%m%d')-${SHORT_SHA}
+            TAG="v$VERSION"
+            echo "tag=$TAG" >> $GITHUB_OUTPUT
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
       
@@ -34,8 +38,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_WORKFLOW }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          release_name: Release ${{ steps.get_version.outputs.tag }}
           draft: false
           prerelease: false
 
